@@ -53,264 +53,232 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     const errors: string[] = []
+    const startTime = Date.now()
+
+    console.log('[DataContext] Starting PARALLEL data fetch...')
 
     try {
+      // Create all fetch promises - run in PARALLEL for speed
+      const fetchPromises: Promise<void>[] = []
+
       // BUYERS: Fetch from Airtable (primary) or Supabase (fallback)
-      if (isAirtable) {
-        console.log('[DataContext] Fetching buyers from Airtable...')
-        try {
-          const airtableLeads = await fetchAirtableLeads()
-          if (airtableLeads && airtableLeads.length > 0) {
-            // Map Airtable fields to our Buyer type
-            const mappedLeads: Buyer[] = airtableLeads.map((lead: any) => ({
-              id: lead.id,
-              full_name: lead.name || lead.full_name || lead.Name,
-              first_name: lead.first_name || lead.firstName,
-              last_name: lead.last_name || lead.lastName,
-              email: lead.email || lead.Email,
-              phone: lead.phone || lead.Phone,
-              budget: lead.budget || lead.Budget,
-              budget_min: lead.budget_min || lead.budgetMin,
-              budget_max: lead.budget_max || lead.budgetMax,
-              bedrooms: lead.bedrooms || lead.Bedrooms,
-              location: lead.location || lead.Location || lead.area,
-              area: lead.area || lead.Area,
-              timeline: lead.timeline || lead.Timeline,
-              source: lead.source || lead.Source,
-              campaign: lead.campaign || lead.Campaign,
-              campaign_id: lead.campaign_id || lead.campaignId,
-              status: lead.status || lead.Status,
-              quality_score: lead.qualityScore || lead.quality_score || lead['Quality Score'],
-              intent_score: lead.intentScore || lead.intent_score || lead['Intent Score'],
-              payment_method: lead.payment_method || lead.paymentMethod,
-              proof_of_funds: lead.proof_of_funds || lead.proofOfFunds,
-              mortgage_status: lead.mortgage_status || lead.mortgageStatus,
-              uk_broker: lead.uk_broker || lead.ukBroker,
-              uk_solicitor: lead.uk_solicitor || lead.ukSolicitor,
-              notes: lead.notes || lead.Notes,
-              created_at: lead.createdAt || lead.created_at || lead.Created,
-              updated_at: lead.updatedAt || lead.updated_at,
-              last_contact: lead.lastContact || lead.last_contact || lead['Last Contact'],
-            }))
-            console.log('[DataContext] Fetched buyers from Airtable:', mappedLeads.length)
-            setLeads(mappedLeads)
-          } else {
-            console.log('[DataContext] No buyers in Airtable, trying Supabase...')
-            errors.push('No buyers found in Airtable')
-          }
-        } catch (e) {
-          console.error('[DataContext] Airtable buyers fetch failed:', e)
-          errors.push(`Airtable Buyers: ${e instanceof Error ? e.message : 'Failed'}`)
-        }
-      } else if (isSupabase) {
-        // Fallback to Supabase for buyers
-        console.log('[DataContext] Fetching buyers from Supabase...')
-        const supabase = createClient()
-        try {
-          const allBuyers: Buyer[] = []
-          const pageSize = 1000
-          let page = 0
-          let hasMore = true
-
-          while (hasMore) {
-            const from = page * pageSize
-            const to = from + pageSize - 1
-
-            const { data: buyersData, error: buyersError } = await supabase
-              .from('buyers')
-              .select('*')
-              .order('created_at', { ascending: false })
-              .range(from, to)
-
-            if (buyersError) {
-              console.error('[DataContext] Supabase Buyers error:', buyersError.message)
-              errors.push(`Supabase Buyers: ${buyersError.message}`)
-              hasMore = false
-            } else if (buyersData) {
-              allBuyers.push(...buyersData)
-              console.log(`[DataContext] Fetched buyers page ${page + 1}:`, buyersData.length)
-              hasMore = buyersData.length === pageSize
-              page++
+      const buyersFetch = async () => {
+        if (isAirtable) {
+          console.log('[DataContext] Fetching buyers from Airtable...')
+          try {
+            const airtableLeads = await fetchAirtableLeads()
+            if (airtableLeads && airtableLeads.length > 0) {
+              // Flexible mapping - use first available value from multiple field name variations
+              const mappedLeads: Buyer[] = airtableLeads.map((lead: any) => {
+                const getValue = (...keys: string[]) => {
+                  for (const key of keys) {
+                    if (lead[key] !== undefined && lead[key] !== null) return lead[key]
+                  }
+                  return null
+                }
+                return {
+                  id: lead.id,
+                  full_name: getValue('name', 'full_name', 'Name', 'Full Name', 'fullName'),
+                  first_name: getValue('first_name', 'firstName', 'First Name'),
+                  last_name: getValue('last_name', 'lastName', 'Last Name'),
+                  email: getValue('email', 'Email', 'EMAIL'),
+                  phone: getValue('phone', 'Phone', 'PHONE', 'telephone'),
+                  budget: getValue('budget', 'Budget', 'BUDGET'),
+                  budget_min: getValue('budget_min', 'budgetMin', 'Budget Min'),
+                  budget_max: getValue('budget_max', 'budgetMax', 'Budget Max'),
+                  bedrooms: getValue('bedrooms', 'Bedrooms', 'BEDROOMS'),
+                  location: getValue('location', 'Location', 'area', 'Area'),
+                  area: getValue('area', 'Area', 'location', 'Location'),
+                  timeline: getValue('timeline', 'Timeline', 'TIMELINE'),
+                  source: getValue('source', 'Source', 'SOURCE'),
+                  campaign: getValue('campaign', 'Campaign', 'CAMPAIGN'),
+                  campaign_id: getValue('campaign_id', 'campaignId', 'Campaign ID'),
+                  status: getValue('status', 'Status', 'STATUS') || 'new',
+                  quality_score: getValue('qualityScore', 'quality_score', 'Quality Score', 'QualityScore'),
+                  intent_score: getValue('intentScore', 'intent_score', 'Intent Score', 'IntentScore'),
+                  payment_method: getValue('payment_method', 'paymentMethod', 'Payment Method'),
+                  proof_of_funds: getValue('proof_of_funds', 'proofOfFunds', 'Proof of Funds'),
+                  mortgage_status: getValue('mortgage_status', 'mortgageStatus', 'Mortgage Status'),
+                  uk_broker: getValue('uk_broker', 'ukBroker', 'UK Broker'),
+                  uk_solicitor: getValue('uk_solicitor', 'ukSolicitor', 'UK Solicitor'),
+                  notes: getValue('notes', 'Notes', 'NOTES'),
+                  created_at: getValue('createdAt', 'created_at', 'Created', 'created'),
+                  updated_at: getValue('updatedAt', 'updated_at', 'Updated', 'updated'),
+                  last_contact: getValue('lastContact', 'last_contact', 'Last Contact'),
+                  // Spread any remaining fields for maximum compatibility
+                  ...lead,
+                }
+              })
+              console.log('[DataContext] Fetched buyers from Airtable:', mappedLeads.length)
+              setLeads(mappedLeads)
             } else {
-              hasMore = false
+              console.log('[DataContext] No buyers in Airtable')
+              errors.push('No buyers found in Airtable')
             }
+          } catch (e) {
+            console.error('[DataContext] Airtable buyers fetch failed:', e)
+            errors.push(`Airtable Buyers: ${e instanceof Error ? e.message : 'Failed'}`)
           }
-
-          console.log('[DataContext] Total buyers fetched from Supabase:', allBuyers.length)
-          setLeads(allBuyers)
-        } catch (e) {
-          console.error('[DataContext] Supabase Buyers fetch failed:', e)
+        } else if (isSupabase) {
+          console.log('[DataContext] Fetching buyers from Supabase...')
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('buyers')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(5000)
+          if (error) {
+            errors.push(`Supabase Buyers: ${error.message}`)
+          } else if (data) {
+            console.log('[DataContext] Fetched buyers from Supabase:', data.length)
+            setLeads(data)
+          }
         }
       }
 
       // CAMPAIGNS: Fetch from Airtable (primary) or Supabase (fallback)
-      if (isAirtable) {
-        console.log('[DataContext] Fetching campaigns from Airtable...')
-        try {
-          const airtableCampaigns = await fetchAirtableCampaigns()
-          if (airtableCampaigns && airtableCampaigns.length > 0) {
-            // Map Airtable fields to our Campaign type - handle all possible field name variations
-            const mappedCampaigns: Campaign[] = airtableCampaigns.map((camp: any) => {
-              // Parse spend - try multiple field names and parse as number
-              const spendValue = camp.spend || camp.Spend || camp.amount_spent ||
-                camp['Amount Spent'] || camp.total_spend || camp['Total Spend'] || 0
-              const parsedSpend = typeof spendValue === 'string'
-                ? parseFloat(spendValue.replace(/[£$,]/g, '')) || 0
-                : (Number(spendValue) || 0)
+      const campaignsFetch = async () => {
+        if (isAirtable) {
+          console.log('[DataContext] Fetching campaigns from Airtable...')
+          try {
+            const airtableCampaigns = await fetchAirtableCampaigns()
+            if (airtableCampaigns && airtableCampaigns.length > 0) {
+              const mappedCampaigns: Campaign[] = airtableCampaigns.map((camp: any) => {
+                const getValue = (...keys: string[]) => {
+                  for (const key of keys) {
+                    if (camp[key] !== undefined && camp[key] !== null) return camp[key]
+                  }
+                  return null
+                }
+                const parseNum = (val: any) => {
+                  if (typeof val === 'string') return parseFloat(val.replace(/[£$,]/g, '')) || 0
+                  return Number(val) || 0
+                }
 
-              // Parse leads count
-              const leadsValue = camp.leads || camp.Leads || camp.lead_count ||
-                camp['Lead Count'] || camp['Leads Generated'] || 0
-              const parsedLeads = Number(leadsValue) || 0
-
-              // Parse CPL
-              const cplValue = camp.cpl || camp.CPL || camp.cost_per_lead || camp['Cost Per Lead'] || 0
-              const parsedCPL = typeof cplValue === 'string'
-                ? parseFloat(cplValue.replace(/[£$,]/g, '')) || 0
-                : (Number(cplValue) || 0)
-
-              // Get development name - try multiple field variations
-              const developmentName = camp.development || camp.Development ||
-                camp.development_name || camp['Development Name'] ||
-                camp.client || camp.Client || null
-
-              return {
-                id: camp.id,
-                name: camp.name || camp.Name || 'Unnamed Campaign',
-                client: camp.client || camp.Client,
-                development: developmentName,
-                company_id: camp.company_id || camp.companyId,
-                platform: camp.platform || camp.Platform,
-                status: camp.status || camp.Status || 'unknown',
-                spend: parsedSpend,
-                amount_spent: parsedSpend,
-                leads: parsedLeads,
-                lead_count: parsedLeads,
-                cpl: parsedCPL,
-                cost_per_lead: parsedCPL,
-                impressions: Number(camp.impressions || camp.Impressions) || 0,
-                clicks: Number(camp.clicks || camp.Clicks) || 0,
-                ctr: Number(camp.ctr || camp.CTR) || 0,
-                start_date: camp.startDate || camp.start_date || camp['Start Date'],
-                end_date: camp.endDate || camp.end_date || camp['End Date'],
-                created_at: camp.createdAt || camp.created_at,
-                updated_at: camp.updatedAt || camp.updated_at,
-              }
-            })
-
-            // Log total spend for debugging
-            const totalSpend = mappedCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
-            console.log('[DataContext] Fetched campaigns from Airtable:', mappedCampaigns.length)
-            console.log('[DataContext] Total campaign spend:', totalSpend)
-            console.log('[DataContext] First campaign data:', mappedCampaigns[0])
-
-            setCampaigns(mappedCampaigns)
-          } else {
-            console.log('[DataContext] No campaigns in Airtable, trying Supabase...')
-            errors.push('No campaigns found in Airtable')
+                return {
+                  id: camp.id,
+                  name: getValue('name', 'Name', 'NAME', 'campaign_name', 'Campaign Name') || 'Unnamed',
+                  client: getValue('client', 'Client', 'CLIENT'),
+                  development: getValue('development', 'Development', 'development_name', 'Development Name'),
+                  company_id: getValue('company_id', 'companyId', 'Company ID'),
+                  platform: getValue('platform', 'Platform', 'PLATFORM'),
+                  status: getValue('status', 'Status', 'STATUS') || 'unknown',
+                  spend: parseNum(getValue('spend', 'Spend', 'amount_spent', 'Amount Spent', 'total_spend', 'Total Spend')),
+                  amount_spent: parseNum(getValue('spend', 'Spend', 'amount_spent', 'Amount Spent')),
+                  leads: parseNum(getValue('leads', 'Leads', 'lead_count', 'Lead Count', 'Leads Generated')),
+                  lead_count: parseNum(getValue('leads', 'Leads', 'lead_count', 'Lead Count')),
+                  cpl: parseNum(getValue('cpl', 'CPL', 'cost_per_lead', 'Cost Per Lead')),
+                  cost_per_lead: parseNum(getValue('cpl', 'CPL', 'cost_per_lead', 'Cost Per Lead')),
+                  impressions: parseNum(getValue('impressions', 'Impressions')),
+                  clicks: parseNum(getValue('clicks', 'Clicks')),
+                  ctr: parseNum(getValue('ctr', 'CTR')),
+                  start_date: getValue('startDate', 'start_date', 'Start Date'),
+                  end_date: getValue('endDate', 'end_date', 'End Date'),
+                  created_at: getValue('createdAt', 'created_at', 'Created'),
+                  updated_at: getValue('updatedAt', 'updated_at', 'Updated'),
+                  ...camp,
+                }
+              })
+              console.log('[DataContext] Fetched campaigns from Airtable:', mappedCampaigns.length)
+              setCampaigns(mappedCampaigns)
+            } else {
+              console.log('[DataContext] No campaigns in Airtable')
+              errors.push('No campaigns found in Airtable')
+            }
+          } catch (e) {
+            console.error('[DataContext] Airtable campaigns fetch failed:', e)
+            errors.push(`Airtable Campaigns: ${e instanceof Error ? e.message : 'Failed'}`)
           }
-        } catch (e) {
-          console.error('[DataContext] Airtable campaigns fetch failed:', e)
-          errors.push(`Airtable Campaigns: ${e instanceof Error ? e.message : 'Failed'}`)
-        }
-      } else if (isSupabase) {
-        // Fallback to Supabase for campaigns
-        console.log('[DataContext] Fetching campaigns from Supabase...')
-        const supabase = createClient()
-        try {
-          const { data: campaignsData, error: campaignsError } = await supabase
+        } else if (isSupabase) {
+          const supabase = createClient()
+          const { data, error } = await supabase
             .from('campaigns')
             .select('*')
             .order('created_at', { ascending: false })
-
-          if (campaignsError) {
-            console.error('[DataContext] Supabase Campaigns error:', campaignsError.message)
-            errors.push(`Supabase Campaigns: ${campaignsError.message}`)
-          } else if (campaignsData) {
-            console.log('[DataContext] Fetched campaigns from Supabase:', campaignsData.length)
-            setCampaigns(campaignsData)
+          if (error) {
+            errors.push(`Supabase Campaigns: ${error.message}`)
+          } else if (data) {
+            setCampaigns(data)
           }
-        } catch (e) {
-          console.error('[DataContext] Supabase Campaigns fetch failed:', e)
         }
       }
 
       // COMPANIES: Always from Supabase
-      if (isSupabase) {
-        console.log('[DataContext] Fetching companies from Supabase...')
-        const supabase = createClient()
-        try {
-          const { data: companiesData, error: companiesError } = await supabase
+      const companiesFetch = async () => {
+        if (isSupabase) {
+          const supabase = createClient()
+          const { data, error } = await supabase
             .from('companies')
             .select('*')
             .order('name', { ascending: true })
-
-          if (companiesError) {
-            console.error('[DataContext] Companies error:', companiesError.message)
-            errors.push(`Companies: ${companiesError.message}`)
-          } else if (companiesData) {
-            console.log('[DataContext] Fetched companies:', companiesData.length)
-            setCompanies(companiesData)
+          if (error) {
+            errors.push(`Companies: ${error.message}`)
+          } else if (data) {
+            console.log('[DataContext] Fetched companies:', data.length)
+            setCompanies(data)
           }
-        } catch (e) {
-          console.error('[DataContext] Companies fetch failed:', e)
         }
       }
 
       // DEVELOPMENTS: Fetch from Airtable
-      if (isAirtable) {
-        console.log('[DataContext] Fetching developments from Airtable...')
-        try {
-          const airtableDevelopments = await fetchAirtableDevelopments()
-          if (airtableDevelopments && airtableDevelopments.length > 0) {
-            const mappedDevelopments: Development[] = airtableDevelopments.map((dev: any) => ({
-              id: dev.id,
-              name: dev.name || dev.Name || 'Unknown Development',
-              location: dev.location || dev.Location || dev.address || dev.Address,
-              developer: dev.developer || dev.Developer,
-              status: dev.status || dev.Status || 'Active',
-              units: dev.units || dev.Units || dev.total_units || dev['Total Units'] || 0,
-              total_units: dev.total_units || dev['Total Units'] || 0,
-              available_units: dev.available_units || dev['Available Units'] || 0,
-              price_from: dev.price_from || dev['Price From'],
-              price_to: dev.price_to || dev['Price To'],
-              completion_date: dev.completion_date || dev['Completion Date'],
-              description: dev.description || dev.Description,
-              image_url: dev.image_url || dev['Image URL'],
-              total_leads: dev.total_leads || dev['Total Leads'] || 0,
-              total_spend: dev.total_spend || dev['Total Spend'] || 0,
-            }))
-            console.log('[DataContext] Fetched developments from Airtable:', mappedDevelopments.length)
-            setDevelopments(mappedDevelopments)
-          } else {
-            console.log('[DataContext] No developments in Airtable')
+      const developmentsFetch = async () => {
+        if (isAirtable) {
+          try {
+            const airtableDevelopments = await fetchAirtableDevelopments()
+            if (airtableDevelopments && airtableDevelopments.length > 0) {
+              const mappedDevelopments: Development[] = airtableDevelopments.map((dev: any) => {
+                const getValue = (...keys: string[]) => {
+                  for (const key of keys) {
+                    if (dev[key] !== undefined && dev[key] !== null) return dev[key]
+                  }
+                  return null
+                }
+                return {
+                  id: dev.id,
+                  name: getValue('name', 'Name', 'NAME') || 'Unknown Development',
+                  location: getValue('location', 'Location', 'address', 'Address'),
+                  developer: getValue('developer', 'Developer'),
+                  status: getValue('status', 'Status') || 'Active',
+                  units: getValue('units', 'Units', 'total_units', 'Total Units') || 0,
+                  total_units: getValue('total_units', 'Total Units') || 0,
+                  available_units: getValue('available_units', 'Available Units') || 0,
+                  price_from: getValue('price_from', 'Price From'),
+                  price_to: getValue('price_to', 'Price To'),
+                  completion_date: getValue('completion_date', 'Completion Date'),
+                  description: getValue('description', 'Description'),
+                  image_url: getValue('image_url', 'Image URL'),
+                  total_leads: getValue('total_leads', 'Total Leads') || 0,
+                  total_spend: getValue('total_spend', 'Total Spend') || 0,
+                  ...dev,
+                }
+              })
+              console.log('[DataContext] Fetched developments:', mappedDevelopments.length)
+              setDevelopments(mappedDevelopments)
+            }
+          } catch (e) {
+            console.error('[DataContext] Developments fetch failed:', e)
           }
-        } catch (e) {
-          console.error('[DataContext] Airtable developments fetch failed:', e)
         }
       }
 
-      // USERS: Fetch from Supabase profiles or create demo users
-      if (isSupabase) {
-        console.log('[DataContext] Fetching users from Supabase...')
-        const supabase = createClient()
-        try {
-          const { data: profilesData, error: profilesError } = await supabase
+      // USERS: Fetch from Supabase profiles
+      const usersFetch = async () => {
+        const demoUsers: AppUser[] = [
+          { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
+          { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
+          { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
+          { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
+        ]
+        if (isSupabase) {
+          const supabase = createClient()
+          const { data, error } = await supabase
             .from('profiles')
             .select('*')
             .order('full_name', { ascending: true })
-
-          if (profilesError) {
-            console.error('[DataContext] Profiles error:', profilesError.message)
-            // Use demo users if profiles table doesn't exist
-            setUsers([
-              { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
-              { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
-              { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
-              { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
-            ])
-          } else if (profilesData && profilesData.length > 0) {
-            const mappedUsers: AppUser[] = profilesData.map((p: any) => ({
+          if (error || !data || data.length === 0) {
+            setUsers(demoUsers)
+          } else {
+            setUsers(data.map((p: any) => ({
               id: p.id,
               name: p.full_name || p.email || 'Unknown',
               email: p.email || '',
@@ -319,45 +287,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
               company_id: p.company_id,
               avatar_url: p.avatar_url,
               status: 'active',
-              last_active: p.last_active,
-              created_at: p.created_at,
-            }))
-            console.log('[DataContext] Fetched users from Supabase:', mappedUsers.length)
-            setUsers(mappedUsers)
-          } else {
-            // Use demo users if no profiles exist
-            setUsers([
-              { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
-              { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
-              { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
-              { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
-            ])
+            })))
           }
-        } catch (e) {
-          console.error('[DataContext] Users fetch failed:', e)
-          // Use demo users on error
-          setUsers([
-            { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
-            { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
-            { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
-            { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
-          ])
+        } else {
+          setUsers(demoUsers)
         }
-      } else {
-        // Demo users when no database is configured
-        setUsers([
-          { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
-          { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
-          { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
-          { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
-        ])
       }
+
+      // Run ALL fetches in PARALLEL
+      fetchPromises.push(buyersFetch())
+      fetchPromises.push(campaignsFetch())
+      fetchPromises.push(companiesFetch())
+      fetchPromises.push(developmentsFetch())
+      fetchPromises.push(usersFetch())
+
+      await Promise.all(fetchPromises)
+
+      const elapsed = Date.now() - startTime
+      console.log(`[DataContext] All data fetched in ${elapsed}ms`)
 
       if (errors.length > 0) {
         setError(errors.join('; '))
       }
-
-      console.log('[DataContext] Data fetch complete')
     } catch (err) {
       console.error('[DataContext] Error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
