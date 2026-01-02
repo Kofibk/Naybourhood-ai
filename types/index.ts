@@ -108,17 +108,19 @@ export interface Company {
   name?: string
   type?: string
   website?: string
-  tier?: string
+  // Contact fields (Supabase uses contact_phone, frontend uses phone)
   contact_name?: string
   contact_email?: string
-  phone?: string
+  contact_phone?: string
+  phone?: string // Alias for contact_phone
   status?: string
   total_spend?: number
   total_leads?: number
   campaign_count?: number
   // Billing fields
   subscription_status?: 'active' | 'trialing' | 'past_due' | 'cancelled' | 'none'
-  subscription_tier?: 'starter' | 'growth' | 'enterprise'
+  subscription_tier?: 'starter' | 'access' | 'growth' | 'enterprise'
+  tier?: string // Alias for subscription_tier
   subscription_price?: number
   billing_cycle?: 'monthly' | 'annual'
   next_billing_date?: string

@@ -136,8 +136,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (error) {
             errors.push(`Supabase Buyers: ${error.message}`)
           } else if (data) {
-            console.log('[DataContext] Fetched buyers from Supabase:', data.length)
-            setLeads(data)
+            // Map Supabase data with derived fields for frontend compatibility
+            const mappedLeads: Buyer[] = data.map((lead: any) => {
+              // Derive first_name/last_name from full_name if not present
+              let firstName = lead.first_name
+              let lastName = lead.last_name
+              if (!firstName && lead.full_name) {
+                const nameParts = lead.full_name.split(' ')
+                firstName = nameParts[0] || null
+                lastName = nameParts.slice(1).join(' ') || null
+              }
+              return {
+                ...lead,
+                first_name: firstName,
+                last_name: lastName,
+                // Ensure area is populated from location if missing
+                area: lead.area || lead.location,
+              }
+            })
+            console.log('[DataContext] Fetched buyers from Supabase:', mappedLeads.length)
+            setLeads(mappedLeads)
           }
         }
       }
@@ -204,7 +222,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (error) {
             errors.push(`Supabase Campaigns: ${error.message}`)
           } else if (data) {
-            setCampaigns(data)
+            // Map Supabase columns to frontend expected fields
+            const mappedCampaigns: Campaign[] = data.map((c: any) => ({
+              ...c,
+              // Alias fields for frontend compatibility
+              amount_spent: c.spend,
+              lead_count: c.leads,
+              cost_per_lead: c.cpl,
+            }))
+            console.log('[DataContext] Fetched campaigns from Supabase:', mappedCampaigns.length)
+            setCampaigns(mappedCampaigns)
           }
         }
       }
@@ -220,8 +247,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           if (error) {
             errors.push(`Companies: ${error.message}`)
           } else if (data) {
-            console.log('[DataContext] Fetched companies:', data.length)
-            setCompanies(data)
+            // Map Supabase columns to frontend expected fields
+            const mappedCompanies: Company[] = data.map((c: any) => ({
+              ...c,
+              // Alias fields for frontend compatibility
+              phone: c.contact_phone,
+              tier: c.subscription_tier,
+            }))
+            console.log('[DataContext] Fetched companies:', mappedCompanies.length)
+            setCompanies(mappedCompanies)
           }
         }
       }
