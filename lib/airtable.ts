@@ -6,6 +6,11 @@ const AIRTABLE_BASE_ID = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID
 
 const BASE_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`
 
+// Debug: Log configuration on load
+console.log('[Airtable Config] API Key set:', !!AIRTABLE_API_KEY, AIRTABLE_API_KEY ? `(${AIRTABLE_API_KEY.substring(0, 10)}...)` : '')
+console.log('[Airtable Config] Base ID:', AIRTABLE_BASE_ID)
+console.log('[Airtable Config] Base URL:', BASE_URL)
+
 // Table Configuration - Updated for Naybourhood
 export const TABLES = {
   leads: 'buyers',
@@ -193,7 +198,9 @@ async function fetchAllRecords(tableName: string): Promise<any[]> {
   const records: any[] = []
   let offset: string | undefined
 
-  console.log(`[Airtable] Fetching from table: "${tableName}"`)
+  console.log(`[Airtable] ========== FETCH START ==========`)
+  console.log(`[Airtable] Table name: "${tableName}"`)
+  console.log(`[Airtable] Full base URL: ${BASE_URL}`)
 
   do {
     const params = new URLSearchParams()
@@ -201,24 +208,39 @@ async function fetchAllRecords(tableName: string): Promise<any[]> {
     params.set('pageSize', '100')
 
     const url = `${encodeURIComponent(tableName)}?${params}`
-    console.log(`[Airtable] Request URL: ${url}`)
+    const fullUrl = `${BASE_URL}/${url}`
+    console.log(`[Airtable] Full request URL: ${fullUrl}`)
 
     const data = await airtableFetch(url)
+
+    console.log(`[Airtable] Raw response data:`, JSON.stringify(data, null, 2).substring(0, 500))
+
     if (!data) {
-      console.log(`[Airtable] No data returned for table: "${tableName}"`)
+      console.log(`[Airtable] No data returned for table: "${tableName}" - data is null/undefined`)
+      return []
+    }
+
+    if (!data.records) {
+      console.log(`[Airtable] Response has no records property. Response keys:`, Object.keys(data))
       return []
     }
 
     console.log(`[Airtable] Response for "${tableName}":`, {
       recordCount: data.records?.length || 0,
       hasOffset: !!data.offset,
-      firstRecord: data.records?.[0] ? Object.keys(data.records[0].fields || {}) : 'none'
+      firstRecordId: data.records?.[0]?.id || 'none',
+      firstRecordFields: data.records?.[0] ? Object.keys(data.records[0].fields || {}) : 'none'
     })
+
+    if (data.records?.[0]) {
+      console.log(`[Airtable] First record full data:`, JSON.stringify(data.records[0], null, 2))
+    }
 
     records.push(...data.records)
     offset = data.offset
   } while (offset)
 
+  console.log(`[Airtable] ========== FETCH COMPLETE: ${records.length} records ==========`)
   return records
 }
 
