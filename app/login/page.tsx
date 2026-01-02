@@ -8,14 +8,14 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LogoIcon } from '@/components/Logo'
-import { Loader2, Mail, CheckCircle } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { Loader2, Mail, CheckCircle, Zap } from 'lucide-react'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 const demoAccounts = [
-  { email: 'kofi@naybourhood.ai', role: 'Admin', path: '/admin' },
-  { email: 'developer@test.com', role: 'Developer', path: '/developer' },
-  { email: 'agent@test.com', role: 'Agent', path: '/agent' },
-  { email: 'broker@test.com', role: 'Broker', path: '/broker' },
+  { email: 'kofi@naybourhood.ai', role: 'Admin', path: '/admin', name: 'Kofi' },
+  { email: 'developer@test.com', role: 'Developer', path: '/developer', name: 'Developer' },
+  { email: 'agent@test.com', role: 'Agent', path: '/agent', name: 'Agent' },
+  { email: 'broker@test.com', role: 'Broker', path: '/broker', name: 'Broker' },
 ]
 
 export default function LoginPage() {
@@ -24,18 +24,28 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const router = useRouter()
-  const supabase = createClient()
+  const supabaseConfigured = isSupabaseConfigured()
 
-  // Check if user is already logged in
+  // Check if user is already logged in (localStorage for demo mode)
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        redirectBasedOnEmail(user.email || '')
-      }
+    const storedUser = localStorage.getItem('naybourhood_user')
+    if (storedUser) {
+      const user = JSON.parse(storedUser)
+      redirectBasedOnRole(user.role)
     }
-    checkUser()
   }, [])
+
+  const redirectBasedOnRole = (role: string) => {
+    if (role === 'admin') {
+      router.push('/admin')
+    } else if (role === 'agent') {
+      router.push('/agent')
+    } else if (role === 'broker') {
+      router.push('/broker')
+    } else {
+      router.push('/developer')
+    }
+  }
 
   const redirectBasedOnEmail = (userEmail: string) => {
     const emailLower = userEmail.toLowerCase()
@@ -56,17 +66,23 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+      if (supabaseConfigured) {
+        const supabase = createClient()
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        })
 
-      if (error) {
-        setError(error.message)
+        if (error) {
+          setError(error.message)
+        } else {
+          setMagicLinkSent(true)
+        }
       } else {
-        setMagicLinkSent(true)
+        // Demo mode - just redirect
+        handleDemoAccess(email)
       }
     } catch {
       setError('Something went wrong. Please try again.')
@@ -75,30 +91,44 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = async (demoEmail: string) => {
-    setIsLoading(true)
-    setError('')
+  // Quick demo access - bypasses Supabase auth
+  const handleDemoAccess = (demoEmail: string) => {
+    const account = demoAccounts.find(a => a.email === demoEmail)
+    const emailLower = demoEmail.toLowerCase()
 
-    try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email: demoEmail,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
+    let role = 'developer'
+    let name = demoEmail.split('@')[0]
+    let path = '/developer'
 
-      if (error) {
-        setError(error.message)
-        setIsLoading(false)
-      } else {
-        setEmail(demoEmail)
-        setMagicLinkSent(true)
-        setIsLoading(false)
-      }
-    } catch {
-      setError('Something went wrong. Please try again.')
-      setIsLoading(false)
+    if (account) {
+      role = account.role.toLowerCase()
+      name = account.name
+      path = account.path
+    } else if (emailLower.includes('admin') || emailLower === 'kofi@naybourhood.ai') {
+      role = 'admin'
+      path = '/admin'
+    } else if (emailLower.includes('agent')) {
+      role = 'agent'
+      path = '/agent'
+    } else if (emailLower.includes('broker')) {
+      role = 'broker'
+      path = '/broker'
     }
+
+    // Store in localStorage for session
+    localStorage.setItem('naybourhood_user', JSON.stringify({
+      id: `demo-${Date.now()}`,
+      email: demoEmail,
+      name: name,
+      role: role,
+    }))
+
+    router.push(path)
+  }
+
+  const handleQuickAccess = (account: typeof demoAccounts[0]) => {
+    setIsLoading(true)
+    handleDemoAccess(account.email)
   }
 
   if (magicLinkSent) {
@@ -146,7 +176,7 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Form - Magic Link Only */}
+        {/* Login Form */}
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -167,21 +197,27 @@ export default function LoginPage() {
                 ) : (
                   <Mail className="h-4 w-4" />
                 )}
-                Send Magic Link
+                {supabaseConfigured ? 'Send Magic Link' : 'Continue'}
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                We&apos;ll email you a secure link to sign in — no password needed.
+                {supabaseConfigured
+                  ? "We'll email you a secure link to sign in — no password needed."
+                  : "Demo mode - click continue to access the dashboard."
+                }
               </p>
             </form>
           </CardContent>
         </Card>
 
-        {/* Quick Access */}
+        {/* Quick Access - Always works */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Quick Access</CardTitle>
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-500" />
+              Quick Access
+            </CardTitle>
             <CardDescription className="text-xs">
-              Send magic link to these accounts
+              Click to access dashboard instantly
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2">
@@ -191,13 +227,13 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="justify-start text-xs"
-                onClick={() => handleDemoLogin(account.email)}
+                onClick={() => handleQuickAccess(account)}
                 disabled={isLoading}
               >
                 <Badge variant="secondary" className="mr-2 text-[10px]">
                   {account.role}
                 </Badge>
-                <span className="truncate">{account.email.split('@')[0]}</span>
+                <span className="truncate">{account.name}</span>
               </Button>
             ))}
           </CardContent>
