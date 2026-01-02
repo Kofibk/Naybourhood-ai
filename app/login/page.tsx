@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Logo, LogoIcon } from '@/components/Logo'
+import { LogoIcon } from '@/components/Logo'
 import { Loader2, Mail, CheckCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 const demoAccounts = [
   { email: 'kofi@naybourhood.ai', role: 'Admin', path: '/admin' },
@@ -17,20 +18,37 @@ const demoAccounts = [
   { email: 'broker@test.com', role: 'Broker', path: '/broker' },
 ]
 
-// Demo users for login
-const demoUsers: Record<string, { name: string; role: string }> = {
-  'kofi@naybourhood.ai': { name: 'Kofi', role: 'admin' },
-  'developer@test.com': { name: 'John Smith', role: 'developer' },
-  'agent@test.com': { name: 'Michael Davies', role: 'agent' },
-  'broker@test.com': { name: 'Lisa Green', role: 'broker' },
-}
-
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const router = useRouter()
+  const supabase = createClient()
+
+  // Check if user is already logged in
+  useEffect(() => {
+    const checkUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        redirectBasedOnEmail(user.email || '')
+      }
+    }
+    checkUser()
+  }, [])
+
+  const redirectBasedOnEmail = (userEmail: string) => {
+    const emailLower = userEmail.toLowerCase()
+    if (emailLower === 'kofi@naybourhood.ai' || emailLower.includes('admin')) {
+      router.push('/admin')
+    } else if (emailLower.includes('agent')) {
+      router.push('/agent')
+    } else if (emailLower.includes('broker')) {
+      router.push('/broker')
+    } else {
+      router.push('/developer')
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -38,31 +56,16 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Simulate magic link sending
-      await new Promise((resolve) => setTimeout(resolve, 1500))
+      const { error } = await supabase.auth.signInWithOtp({
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
 
-      // For demo purposes, check if it's a known email and auto-login
-      const demoUser = demoUsers[email.toLowerCase()]
-
-      if (demoUser) {
-        // Demo: Auto-login for known demo accounts
-        localStorage.setItem(
-          'naybourhood_user',
-          JSON.stringify({
-            id: 'U999',
-            email,
-            name: demoUser.name,
-            role: demoUser.role,
-          })
-        )
-
-        // Route based on role
-        if (demoUser.role === 'admin') router.push('/admin')
-        else if (demoUser.role === 'agent') router.push('/agent')
-        else if (demoUser.role === 'broker') router.push('/broker')
-        else router.push('/developer')
+      if (error) {
+        setError(error.message)
       } else {
-        // Show magic link sent message for unknown emails
         setMagicLinkSent(true)
       }
     } catch {
@@ -72,19 +75,30 @@ export default function LoginPage() {
     }
   }
 
-  const handleDemoLogin = async (demoEmail: string, path: string) => {
+  const handleDemoLogin = async (demoEmail: string) => {
     setIsLoading(true)
-    const user = demoUsers[demoEmail.toLowerCase()]
-    localStorage.setItem(
-      'naybourhood_user',
-      JSON.stringify({
-        id: `U${Math.random().toString(36).substr(2, 3)}`,
+    setError('')
+
+    try {
+      const { error } = await supabase.auth.signInWithOtp({
         email: demoEmail,
-        name: user?.name || demoEmail.split('@')[0],
-        role: user?.role || 'developer',
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
-    )
-    router.push(path)
+
+      if (error) {
+        setError(error.message)
+        setIsLoading(false)
+      } else {
+        setEmail(demoEmail)
+        setMagicLinkSent(true)
+        setIsLoading(false)
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+      setIsLoading(false)
+    }
   }
 
   if (magicLinkSent) {
@@ -162,12 +176,12 @@ export default function LoginPage() {
           </CardContent>
         </Card>
 
-        {/* Demo Accounts */}
+        {/* Quick Access */}
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-sm">Demo Accounts</CardTitle>
+            <CardTitle className="text-sm">Quick Access</CardTitle>
             <CardDescription className="text-xs">
-              Click to sign in instantly
+              Send magic link to these accounts
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2">
@@ -177,7 +191,7 @@ export default function LoginPage() {
                 variant="outline"
                 size="sm"
                 className="justify-start text-xs"
-                onClick={() => handleDemoLogin(account.email, account.path)}
+                onClick={() => handleDemoLogin(account.email)}
                 disabled={isLoading}
               >
                 <Badge variant="secondary" className="mr-2 text-[10px]">
