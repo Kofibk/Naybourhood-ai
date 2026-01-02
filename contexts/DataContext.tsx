@@ -76,33 +76,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   }
                   return null
                 }
+                // Get lead name and split into first/last
+                const leadName = getValue('lead name', 'lead_name', 'name', 'Name', 'full_name', 'Full Name')
+                const nameParts = leadName ? leadName.split(' ') : []
+                const derivedFirstName = nameParts[0] || null
+                const derivedLastName = nameParts.slice(1).join(' ') || null
+
                 return {
                   id: lead.id,
-                  full_name: getValue('name', 'full_name', 'Name', 'Full Name', 'fullName'),
-                  first_name: getValue('first_name', 'firstName', 'First Name'),
-                  last_name: getValue('last_name', 'lastName', 'Last Name'),
+                  full_name: leadName,
+                  first_name: getValue('first_name', 'firstName', 'First Name') || derivedFirstName,
+                  last_name: getValue('last_name', 'lastName', 'Last Name') || derivedLastName,
                   email: getValue('email', 'Email', 'EMAIL'),
-                  phone: getValue('phone', 'Phone', 'PHONE', 'telephone'),
-                  budget: getValue('budget', 'Budget', 'BUDGET'),
+                  phone: getValue('phone numner', 'phone number', 'phone', 'Phone', 'PHONE', 'telephone'),
+                  budget: getValue('budget range', 'budget_range', 'budget', 'Budget', 'BUDGET'),
                   budget_min: getValue('budget_min', 'budgetMin', 'Budget Min'),
                   budget_max: getValue('budget_max', 'budgetMax', 'Budget Max'),
-                  bedrooms: getValue('bedrooms', 'Bedrooms', 'BEDROOMS'),
-                  location: getValue('location', 'Location', 'area', 'Area'),
-                  area: getValue('area', 'Area', 'location', 'Location'),
-                  timeline: getValue('timeline', 'Timeline', 'TIMELINE'),
-                  source: getValue('source', 'Source', 'SOURCE'),
-                  campaign: getValue('campaign', 'Campaign', 'CAMPAIGN'),
+                  bedrooms: getValue('preferred bedrooms', 'preferred_bedrooms', 'bedrooms', 'Bedrooms', 'BEDROOMS'),
+                  location: getValue('preferred location', 'preferred_location', 'location', 'Location', 'area', 'Area'),
+                  area: getValue('preferred location', 'preferred_location', 'area', 'Area', 'location', 'Location'),
+                  timeline: getValue('timeline to purchase', 'timeline_to_purchase', 'timeline', 'Timeline', 'TIMELINE'),
+                  source: getValue('meta', 'source', 'Source', 'SOURCE'),
+                  campaign: getValue('development', 'campaign', 'Campaign', 'CAMPAIGN'),
                   campaign_id: getValue('campaign_id', 'campaignId', 'Campaign ID'),
-                  status: getValue('status', 'Status', 'STATUS') || 'new',
-                  quality_score: getValue('qualityScore', 'quality_score', 'Quality Score', 'QualityScore'),
-                  intent_score: getValue('intentScore', 'intent_score', 'Intent Score', 'IntentScore'),
-                  payment_method: getValue('payment_method', 'paymentMethod', 'Payment Method'),
+                  status: getValue('status', 'Status', 'STATUS') || 'New',
+                  quality_score: getValue('quality_score', 'qualityScore', 'Quality Score', 'QualityScore'),
+                  intent_score: getValue('intent_score', 'intentScore', 'Intent Score', 'IntentScore'),
+                  payment_method: getValue('cash or mortgage', 'cash_or_mortgage', 'payment_method', 'paymentMethod', 'Payment Method'),
                   proof_of_funds: getValue('proof_of_funds', 'proofOfFunds', 'Proof of Funds'),
-                  mortgage_status: getValue('mortgage_status', 'mortgageStatus', 'Mortgage Status'),
+                  mortgage_status: getValue('manual update', 'manual_update', 'mortgage_status', 'mortgageStatus', 'Mortgage Status'),
                   uk_broker: getValue('uk_broker', 'ukBroker', 'UK Broker'),
                   uk_solicitor: getValue('uk_solicitor', 'ukSolicitor', 'UK Solicitor'),
                   notes: getValue('notes', 'Notes', 'NOTES'),
-                  created_at: getValue('createdAt', 'created_at', 'Created', 'created'),
+                  created_at: getValue('date added', 'date_added', 'createdAt', 'created_at', 'Created', 'created'),
                   updated_at: getValue('updatedAt', 'updated_at', 'Updated', 'updated'),
                   last_contact: getValue('lastContact', 'last_contact', 'Last Contact'),
                   // Spread any remaining fields for maximum compatibility
