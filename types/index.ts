@@ -38,6 +38,24 @@ export interface Buyer {
   created_at?: string
   updated_at?: string
   last_contact?: string
+  // Assignment fields
+  assigned_to?: string
+  assigned_user?: string
+  assigned_user_name?: string
+  assigned_at?: string
+}
+
+export interface AppUser {
+  id: string
+  name: string
+  email: string
+  role: UserRole
+  company?: string
+  company_id?: string
+  avatar_url?: string
+  status?: 'active' | 'inactive'
+  last_active?: string
+  created_at?: string
 }
 
 export interface Campaign {
@@ -98,8 +116,30 @@ export interface Company {
   total_spend?: number
   total_leads?: number
   campaign_count?: number
+  // Billing fields
+  subscription_status?: 'active' | 'trialing' | 'past_due' | 'cancelled' | 'none'
+  subscription_tier?: 'starter' | 'growth' | 'enterprise'
+  subscription_price?: number
+  billing_cycle?: 'monthly' | 'annual'
+  next_billing_date?: string
+  stripe_customer_id?: string
+  stripe_subscription_id?: string
   created_at?: string
   updated_at?: string
+}
+
+export interface Invoice {
+  id: string
+  company_id: string
+  company_name?: string
+  amount: number
+  status: 'paid' | 'pending' | 'overdue' | 'failed'
+  invoice_date: string
+  due_date?: string
+  paid_date?: string
+  stripe_invoice_id?: string
+  description?: string
+  created_at?: string
 }
 
 export interface Conversation {

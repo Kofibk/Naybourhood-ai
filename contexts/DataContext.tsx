@@ -12,13 +12,14 @@ import {
   createLead as createAirtableLead,
   deleteLead as deleteAirtableLead,
 } from '@/lib/airtable'
-import type { Buyer, Campaign, Company, Development } from '@/types'
+import type { Buyer, Campaign, Company, Development, AppUser } from '@/types'
 
 interface DataContextType {
   leads: Buyer[]
   campaigns: Campaign[]
   companies: Company[]
   developments: Development[]
+  users: AppUser[]
   isLoading: boolean
   error: string | null
   isSupabase: boolean
@@ -28,6 +29,7 @@ interface DataContextType {
   updateCampaign: (id: string, data: Partial<Campaign>) => Promise<Campaign | null>
   createLead: (data: Partial<Buyer>) => Promise<Buyer | null>
   deleteLead: (id: string) => Promise<boolean>
+  assignLead: (leadId: string, userId: string) => Promise<boolean>
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -37,6 +39,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [developments, setDevelopments] = useState<Development[]>([])
+  const [users, setUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -284,6 +287,69 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // USERS: Fetch from Supabase profiles or create demo users
+      if (isSupabase) {
+        console.log('[DataContext] Fetching users from Supabase...')
+        const supabase = createClient()
+        try {
+          const { data: profilesData, error: profilesError } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('full_name', { ascending: true })
+
+          if (profilesError) {
+            console.error('[DataContext] Profiles error:', profilesError.message)
+            // Use demo users if profiles table doesn't exist
+            setUsers([
+              { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
+              { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
+              { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
+              { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
+            ])
+          } else if (profilesData && profilesData.length > 0) {
+            const mappedUsers: AppUser[] = profilesData.map((p: any) => ({
+              id: p.id,
+              name: p.full_name || p.email || 'Unknown',
+              email: p.email || '',
+              role: p.role || 'agent',
+              company: p.company,
+              company_id: p.company_id,
+              avatar_url: p.avatar_url,
+              status: 'active',
+              last_active: p.last_active,
+              created_at: p.created_at,
+            }))
+            console.log('[DataContext] Fetched users from Supabase:', mappedUsers.length)
+            setUsers(mappedUsers)
+          } else {
+            // Use demo users if no profiles exist
+            setUsers([
+              { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
+              { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
+              { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
+              { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
+            ])
+          }
+        } catch (e) {
+          console.error('[DataContext] Users fetch failed:', e)
+          // Use demo users on error
+          setUsers([
+            { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
+            { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
+            { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
+            { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
+          ])
+        }
+      } else {
+        // Demo users when no database is configured
+        setUsers([
+          { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
+          { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
+          { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
+          { id: 'user-4', name: 'Michael Brown', email: 'michael@naybourhood.ai', role: 'broker', status: 'active' },
+        ])
+      }
+
       if (errors.length > 0) {
         setError(errors.join('; '))
       }
@@ -444,6 +510,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [isAirtable, isSupabase])
 
+  // Assign a lead to a user
+  const assignLead = useCallback(async (leadId: string, userId: string): Promise<boolean> => {
+    try {
+      const user = users.find((u) => u.id === userId)
+      const assignmentData: Partial<Buyer> = {
+        assigned_to: userId,
+        assigned_user: userId,
+        assigned_user_name: user?.name || 'Unknown',
+        assigned_at: new Date().toISOString(),
+      }
+
+      const result = await updateLead(leadId, assignmentData)
+      if (result) {
+        console.log('[DataContext] Lead assigned successfully:', leadId, 'to', user?.name)
+        return true
+      }
+      return false
+    } catch (e) {
+      console.error('[DataContext] Assign lead failed:', e)
+      return false
+    }
+  }, [updateLead, users])
+
   return (
     <DataContext.Provider
       value={{
@@ -451,6 +540,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         campaigns,
         companies,
         developments,
+        users,
         isLoading,
         error,
         isSupabase,
@@ -460,6 +550,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         updateCampaign,
         createLead,
         deleteLead,
+        assignLead,
       }}
     >
       {children}

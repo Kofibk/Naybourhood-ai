@@ -28,16 +28,19 @@ import {
   Trash2,
   CheckCircle,
   AlertCircle,
+  UserPlus,
+  Users,
 } from 'lucide-react'
 
 export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { leads, isLoading, updateLead, deleteLead } = useData()
+  const { leads, users, isLoading, updateLead, deleteLead, assignLead } = useData()
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isAssigning, setIsAssigning] = useState(false)
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [editData, setEditData] = useState<Partial<Buyer>>({})
 
@@ -96,6 +99,30 @@ export default function LeadDetailPage() {
       setSaveMessage({ type: 'error', text: 'An error occurred while deleting.' })
     } finally {
       setIsDeleting(false)
+    }
+  }
+
+  const handleAssign = async (userId: string) => {
+    if (!lead) return
+
+    setIsAssigning(true)
+    setSaveMessage(null)
+
+    try {
+      const success = await assignLead(lead.id, userId)
+      if (success) {
+        const assignedUser = users.find((u) => u.id === userId)
+        setSaveMessage({
+          type: 'success',
+          text: `Lead assigned to ${assignedUser?.name || 'user'} successfully!`
+        })
+      } else {
+        setSaveMessage({ type: 'error', text: 'Failed to assign lead. Please try again.' })
+      }
+    } catch (e) {
+      setSaveMessage({ type: 'error', text: 'An error occurred while assigning.' })
+    } finally {
+      setIsAssigning(false)
     }
   }
 
@@ -527,6 +554,64 @@ export default function LeadDetailPage() {
               ) : (
                 <span className="text-sm font-medium">{displayData.mortgage_status || 'N/A'}</span>
               )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Assignment */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <UserPlus className="h-4 w-4" />
+              Lead Assignment
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Assigned To</span>
+              <div className="flex items-center gap-2">
+                {displayData.assigned_user_name ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
+                      <User className="h-3 w-3 text-primary" />
+                    </div>
+                    <span className="text-sm font-medium">{displayData.assigned_user_name}</span>
+                  </div>
+                ) : (
+                  <Badge variant="secondary">Unassigned</Badge>
+                )}
+              </div>
+            </div>
+            {displayData.assigned_at && (
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">Assigned On</span>
+                <span className="text-sm">{formatDate(displayData.assigned_at)}</span>
+              </div>
+            )}
+            <div className="pt-2 border-t border-border">
+              <label className="text-sm font-medium block mb-2">
+                {displayData.assigned_to ? 'Reassign Lead' : 'Assign Lead'}
+              </label>
+              <div className="flex gap-2">
+                <select
+                  className="flex-1 h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  value={displayData.assigned_to || ''}
+                  onChange={(e) => e.target.value && handleAssign(e.target.value)}
+                  disabled={isAssigning}
+                >
+                  <option value="">Select a user...</option>
+                  {users.map((user) => (
+                    <option key={user.id} value={user.id}>
+                      {user.name} ({user.role})
+                    </option>
+                  ))}
+                </select>
+                {isAssigning && (
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    Assigning...
+                  </div>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
