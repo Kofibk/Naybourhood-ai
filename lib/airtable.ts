@@ -6,10 +6,10 @@ const AIRTABLE_BASE_ID = process.env.NEXT_PUBLIC_AIRTABLE_BASE_ID
 
 const BASE_URL = `https://api.airtable.com/v0/${AIRTABLE_BASE_ID}`
 
-// Table Configuration
+// Table Configuration - Updated for Naybourhood
 export const TABLES = {
-  leads: 'Leads',
-  campaigns: 'Campaigns',
+  leads: 'buyers',
+  campaigns: 'campaigns previous data',
   companies: 'Companies',
   users: 'Users',
 }
