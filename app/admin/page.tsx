@@ -1,21 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import { getGreeting, getDateString, formatCurrency } from '@/lib/utils'
-import {
-  dashboardMetrics,
-  leadClassifications,
-  funnelData,
-  timelineData,
-  sourceData,
-  aiRecommendations,
-  campaignAlerts,
-  actionLeads,
-} from '@/lib/demoData'
 import {
   Users,
   Flame,
@@ -31,13 +21,15 @@ import {
   RefreshCw,
   Upload,
   Eye,
+  Building2,
+  Megaphone,
 } from 'lucide-react'
 
 const COLORS = {
   hot: '#ef4444',
-  star: '#eab308',
-  lightning: '#3b82f6',
-  valid: '#22c55e',
+  warm: '#f59e0b',
+  qualified: '#22c55e',
+  new: '#3b82f6',
   cold: '#6b7280',
 }
 
@@ -85,7 +77,7 @@ function AnimatedNumber({
 }
 
 export default function AdminDashboard() {
-  const { leads, campaigns, isLoading, isSupabase, error, refreshData } = useData()
+  const { leads, campaigns, companies, isLoading, isSupabase, error, refreshData } = useData()
   const [user, setUser] = useState<{ name?: string }>({})
 
   useEffect(() => {
@@ -97,13 +89,115 @@ export default function AdminDashboard() {
 
   const userName = user.name?.split(' ')[0] || 'there'
 
-  const classificationData = Object.entries(leadClassifications).map(
-    ([name, value]) => ({
-      name: name.charAt(0).toUpperCase() + name.slice(1),
-      value,
-      color: COLORS[name as keyof typeof COLORS],
-    })
-  )
+  // Calculate real metrics from data
+  const metrics = useMemo(() => {
+    const totalLeads = leads.length
+    const hotLeads = leads.filter(l => (l.quality_score || 0) >= 80).length
+    const avgScore = totalLeads > 0
+      ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
+      : 0
+    const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0)
+    const totalCampaignLeads = campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0)
+    const avgCPL = totalCampaignLeads > 0 ? Math.round(totalSpend / totalCampaignLeads) : 0
+    const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+    const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
+
+    return {
+      totalLeads,
+      hotLeads,
+      avgScore,
+      totalSpend,
+      avgCPL,
+      qualifiedRate,
+      totalCampaigns: campaigns.length,
+      activeCampaigns: campaigns.filter(c => c.status === 'active').length,
+      totalCompanies: companies.length,
+    }
+  }, [leads, campaigns, companies])
+
+  // Calculate lead classifications from real data
+  const classificationData = useMemo(() => {
+    const hot = leads.filter(l => (l.quality_score || 0) >= 85).length
+    const warm = leads.filter(l => (l.quality_score || 0) >= 70 && (l.quality_score || 0) < 85).length
+    const qualified = leads.filter(l => l.status === 'Qualified').length
+    const newLeads = leads.filter(l => l.status === 'New').length
+    const cold = leads.filter(l => (l.quality_score || 0) < 50).length
+
+    return [
+      { name: 'Hot (85+)', value: hot, color: COLORS.hot },
+      { name: 'Warm (70-84)', value: warm, color: COLORS.warm },
+      { name: 'Qualified', value: qualified, color: COLORS.qualified },
+      { name: 'New', value: newLeads, color: COLORS.new },
+      { name: 'Cold (<50)', value: cold, color: COLORS.cold },
+    ]
+  }, [leads])
+
+  // Get leads requiring action (high score, not yet contacted)
+  const actionLeads = useMemo(() => {
+    return leads
+      .filter(l => (l.quality_score || 0) >= 75 && l.status !== 'Completed')
+      .sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
+      .slice(0, 5)
+  }, [leads])
+
+  // Get campaign alerts (high CPL campaigns)
+  const campaignAlerts = useMemo(() => {
+    return campaigns
+      .filter(c => c.status === 'active' && (c.cpl || c.cost_per_lead || 0) > 50)
+      .sort((a, b) => (b.cpl || b.cost_per_lead || 0) - (a.cpl || a.cost_per_lead || 0))
+      .slice(0, 3)
+  }, [campaigns])
+
+  // Build funnel from real data
+  const funnelData = useMemo(() => {
+    const total = leads.length
+    const contacted = leads.filter(l => l.status !== 'New').length
+    const qualified = leads.filter(l => l.status === 'Qualified' || l.status === 'Viewing Booked').length
+    const viewing = leads.filter(l => l.status === 'Viewing Booked').length
+    const offer = leads.filter(l => l.status === 'Offer Made' || l.status === 'Completed').length
+
+    return [
+      { name: 'Total', value: total, color: '#ffffff' },
+      { name: 'Contacted', value: contacted, color: '#3b82f6' },
+      { name: 'Qualified', value: qualified, color: '#22c55e' },
+      { name: 'Viewing', value: viewing, color: '#f59e0b' },
+      { name: 'Offer', value: offer, color: '#a855f7' },
+    ]
+  }, [leads])
+
+  // AI recommendations based on real data
+  const aiRecommendations = useMemo(() => {
+    const recs: string[] = []
+
+    if (actionLeads.length > 0) {
+      const topLead = actionLeads[0]
+      recs.push(`Follow up with ${topLead.full_name || topLead.first_name} (Score: ${topLead.quality_score}) - High priority lead`)
+    }
+
+    const highCPLCampaigns = campaigns.filter(c => (c.cpl || 0) > 60)
+    if (highCPLCampaigns.length > 0) {
+      recs.push(`Review ${highCPLCampaigns.length} campaigns with CPL above £60`)
+    }
+
+    const newLeadsCount = leads.filter(l => l.status === 'New').length
+    if (newLeadsCount > 5) {
+      recs.push(`${newLeadsCount} new leads awaiting initial contact`)
+    }
+
+    const activeCampaigns = campaigns.filter(c => c.status === 'active')
+    if (activeCampaigns.length > 0) {
+      const bestCampaign = activeCampaigns.sort((a, b) => (a.cpl || 999) - (b.cpl || 999))[0]
+      if (bestCampaign) {
+        recs.push(`Best performing: ${bestCampaign.name} with £${bestCampaign.cpl || bestCampaign.cost_per_lead} CPL`)
+      }
+    }
+
+    if (metrics.qualifiedRate < 50) {
+      recs.push('Qualified rate below 50% - consider refining targeting')
+    }
+
+    return recs.length > 0 ? recs : ['All systems running smoothly - keep up the great work!']
+  }, [leads, campaigns, actionLeads, metrics.qualifiedRate])
 
   return (
     <div className="space-y-6">
@@ -116,17 +210,17 @@ export default function AdminDashboard() {
           <p className="text-sm text-muted-foreground">{getDateString()}</p>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-xs text-muted-foreground">
-              Campaigns: {campaigns.length} · Leads: {leads.length}
+              Campaigns: {campaigns.length} · Leads: {leads.length} · Companies: {companies.length}
             </p>
             <Badge
               variant={isSupabase ? 'success' : 'secondary'}
               className="text-[10px]"
             >
-              {isSupabase ? 'Supabase' : 'Demo Data'}
+              {isSupabase ? 'Live Data' : 'Demo Data'}
             </Badge>
             {error && (
               <Badge variant="destructive" className="text-[10px]">
-                Error
+                {error}
               </Badge>
             )}
           </div>
@@ -160,7 +254,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </div>
             <AnimatedNumber
-              value={dashboardMetrics.totalLeads}
+              value={metrics.totalLeads}
               className="text-2xl font-bold"
             />
           </CardContent>
@@ -172,7 +266,7 @@ export default function AdminDashboard() {
               <Flame className="h-4 w-4 text-orange-500" />
             </div>
             <AnimatedNumber
-              value={dashboardMetrics.hotLeads}
+              value={metrics.hotLeads}
               className="text-2xl font-bold text-orange-500"
             />
           </CardContent>
@@ -184,7 +278,7 @@ export default function AdminDashboard() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </div>
             <AnimatedNumber
-              value={dashboardMetrics.avgScore}
+              value={metrics.avgScore}
               className="text-2xl font-bold"
             />
           </CardContent>
@@ -196,7 +290,7 @@ export default function AdminDashboard() {
               <PoundSterling className="h-4 w-4 text-muted-foreground" />
             </div>
             <div className="text-2xl font-bold">
-              {formatCurrency(dashboardMetrics.totalSpend)}
+              {formatCurrency(metrics.totalSpend)}
             </div>
           </CardContent>
         </Card>
@@ -207,7 +301,7 @@ export default function AdminDashboard() {
               <TrendingDown className="h-4 w-4 text-success" />
             </div>
             <AnimatedNumber
-              value={dashboardMetrics.avgCPL}
+              value={metrics.avgCPL}
               prefix="£"
               className="text-2xl font-bold text-success"
             />
@@ -220,7 +314,7 @@ export default function AdminDashboard() {
               <CheckCircle className="h-4 w-4 text-success" />
             </div>
             <AnimatedNumber
-              value={dashboardMetrics.qualifiedRate}
+              value={metrics.qualifiedRate}
               suffix="%"
               className="text-2xl font-bold text-success"
             />
@@ -242,7 +336,7 @@ export default function AdminDashboard() {
               <div className="w-32 h-32 relative flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-2xl font-bold">
-                    {dashboardMetrics.totalLeads.toLocaleString()}
+                    {metrics.totalLeads.toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground">Total</div>
                 </div>
@@ -277,7 +371,7 @@ export default function AdminDashboard() {
           </CardHeader>
           <CardContent className="space-y-3">
             {funnelData.map((stage, i) => {
-              const maxValue = funnelData[0].value
+              const maxValue = funnelData[0].value || 1
               const widthPercent = Math.max((stage.value / maxValue) * 100, 15)
               const prevValue = i > 0 ? funnelData[i - 1].value : stage.value
               const rate =
@@ -338,93 +432,122 @@ export default function AdminDashboard() {
         </CardContent>
       </Card>
 
-      {/* Action Required */}
+      {/* Action Required - Real Leads */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Flame className="h-4 w-4 text-orange-500" />
-            Action Required
+            Priority Leads
             <Badge variant="destructive">{actionLeads.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {actionLeads.map((lead) => (
-            <div
-              key={lead.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20"
-            >
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm">{lead.name}</span>
-                  <Badge variant="muted">{lead.budget}</Badge>
-                  <Badge variant="warning">{lead.status}</Badge>
+          {actionLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No priority leads at this time</p>
+          ) : (
+            actionLeads.map((lead) => (
+              <div
+                key={lead.id}
+                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20"
+              >
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-sm">{lead.full_name || lead.first_name || 'Unknown'}</span>
+                    {lead.budget && <Badge variant="muted">{lead.budget}</Badge>}
+                    {lead.status && <Badge variant="warning">{lead.status}</Badge>}
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>Score: {lead.quality_score || 0}</span>
+                    {lead.intent_score && <span>Intent: {lead.intent_score}</span>}
+                    {lead.timeline && <span>{lead.timeline}</span>}
+                    {lead.source && <span>via {lead.source}</span>}
+                  </div>
                 </div>
-                <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                  <span>Q: {lead.qualityScore}</span>
-                  <span>I: {lead.intentScore}</span>
-                  <span>{lead.timeline}</span>
+                <div className="flex gap-2 shrink-0">
+                  <Button size="icon" className="h-8 w-8">
+                    <Phone className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8">
+                    <MessageCircle className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button size="icon" variant="outline" className="h-8 w-8">
+                    <Calendar className="h-3.5 w-3.5" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex gap-2 shrink-0">
-                <Button size="icon" className="h-8 w-8">
-                  <Phone className="h-3.5 w-3.5" />
-                </Button>
-                <Button size="icon" variant="outline" className="h-8 w-8">
-                  <MessageCircle className="h-3.5 w-3.5" />
-                </Button>
-                <Button size="icon" variant="outline" className="h-8 w-8">
-                  <Calendar className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
 
-      {/* Campaign Alerts */}
+      {/* Campaign Performance - Real Campaigns */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-warning" />
-            Campaign Alerts
-            <Badge variant="warning">{campaignAlerts.length}</Badge>
+            <Megaphone className="h-4 w-4 text-primary" />
+            Active Campaigns
+            <Badge variant="secondary">{campaigns.filter(c => c.status === 'active').length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {campaignAlerts.map((alert) => (
-            <div
-              key={alert.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20"
-            >
-              <div className="space-y-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm">{alert.campaign}</span>
-                  <span className="text-destructive font-medium text-sm">
-                    CPL: £{alert.currentCPL}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {alert.recommendation}. Target: £{alert.targetCPL}.
-                  {alert.savings && (
-                    <span className="text-success"> Save £{alert.savings}</span>
-                  )}
-                </p>
-              </div>
-              <div className="flex gap-2 shrink-0">
-                <Button
-                  size="sm"
-                  variant="success"
-                  className="bg-success hover:bg-success/90"
+          {campaigns.filter(c => c.status === 'active').length === 0 ? (
+            <p className="text-sm text-muted-foreground">No active campaigns</p>
+          ) : (
+            campaigns
+              .filter(c => c.status === 'active')
+              .slice(0, 5)
+              .map((campaign) => (
+                <div
+                  key={campaign.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-card border"
                 >
-                  <CheckCircle className="h-3.5 w-3.5 mr-1" />
-                  Apply
-                </Button>
-                <Button size="icon" variant="outline" className="h-8 w-8">
-                  <Eye className="h-3.5 w-3.5" />
-                </Button>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm">{campaign.name}</span>
+                      {campaign.platform && <Badge variant="secondary">{campaign.platform}</Badge>}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span>Spend: {formatCurrency(campaign.spend || campaign.amount_spent || 0)}</span>
+                      <span>Leads: {campaign.leads || campaign.lead_count || 0}</span>
+                      <span className={`font-medium ${(campaign.cpl || 0) > 50 ? 'text-warning' : 'text-success'}`}>
+                        CPL: £{campaign.cpl || campaign.cost_per_lead || 0}
+                      </span>
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline">
+                    <Eye className="h-3.5 w-3.5 mr-1" />
+                    View
+                  </Button>
+                </div>
+              ))
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Companies Overview */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-primary" />
+            Companies
+            <Badge variant="secondary">{companies.length}</Badge>
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+            {companies.slice(0, 5).map((company) => (
+              <div
+                key={company.id}
+                className="p-3 rounded-lg bg-card border text-center"
+              >
+                <p className="font-medium text-sm truncate">{company.name}</p>
+                <p className="text-xs text-muted-foreground">{company.tier || company.type || 'Client'}</p>
+                <Badge variant={company.status === 'active' ? 'success' : 'secondary'} className="mt-2 text-[10px]">
+                  {company.status || 'Active'}
+                </Badge>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </CardContent>
       </Card>
     </div>
