@@ -12,40 +12,84 @@ export const TABLES = {
   campaigns: 'campaigns previous data',
   companies: 'Companies',
   users: 'Users',
+  developments: 'Developments',
 }
 
 // Field Mappings - Map Airtable field names to app fields
+// These mappings try multiple common field name variations
 export const FIELD_MAPS = {
   leads: {
     id: 'id',
     name: 'Name',
+    full_name: 'Full Name',
+    first_name: 'First Name',
+    last_name: 'Last Name',
     email: 'Email',
     phone: 'Phone',
     budget: 'Budget',
+    budget_min: 'Budget Min',
+    budget_max: 'Budget Max',
+    bedrooms: 'Bedrooms',
+    location: 'Location',
+    area: 'Area',
     timeline: 'Timeline',
     source: 'Source',
     campaign: 'Campaign',
+    campaign_id: 'Campaign ID',
     status: 'Status',
     qualityScore: 'Quality Score',
     intentScore: 'Intent Score',
+    payment_method: 'Payment Method',
+    proof_of_funds: 'Proof of Funds',
+    mortgage_status: 'Mortgage Status',
+    uk_broker: 'UK Broker',
+    uk_solicitor: 'UK Solicitor',
     createdAt: 'Created',
     lastContact: 'Last Contact',
     notes: 'Notes',
+    assigned_to: 'Assigned To',
+    assigned_user: 'Assigned User',
+    company_id: 'Company ID',
   },
   campaigns: {
     id: 'id',
     name: 'Name',
     client: 'Client',
+    development: 'Development',
+    development_name: 'Development Name',
     platform: 'Platform',
     status: 'Status',
     spend: 'Spend',
+    amount_spent: 'Amount Spent',
+    total_spend: 'Total Spend',
     leads: 'Leads',
+    lead_count: 'Lead Count',
     cpl: 'CPL',
+    cost_per_lead: 'Cost Per Lead',
     impressions: 'Impressions',
     clicks: 'Clicks',
     ctr: 'CTR',
     startDate: 'Start Date',
     endDate: 'End Date',
+  },
+  developments: {
+    id: 'id',
+    name: 'Name',
+    location: 'Location',
+    address: 'Address',
+    developer: 'Developer',
+    status: 'Status',
+    units: 'Units',
+    total_units: 'Total Units',
+    available_units: 'Available Units',
+    price_from: 'Price From',
+    price_to: 'Price To',
+    completion_date: 'Completion Date',
+    description: 'Description',
+    image_url: 'Image URL',
+    features: 'Features',
+    total_leads: 'Total Leads',
+    total_spend: 'Total Spend',
   },
   companies: {
     id: 'id',
@@ -95,13 +139,34 @@ async function airtableFetch(endpoint: string, options: RequestInit = {}) {
   return response.json()
 }
 
-// Map Airtable record to app format
-function mapRecord<T>(record: any, fieldMap: Record<string, string>): T {
+// Map Airtable record to app format - also returns raw fields for debugging
+function mapRecord<T>(record: any, fieldMap: Record<string, string>, logRaw = false): T {
   const mapped: any = { id: record.id }
+
+  // Log raw fields for debugging (only first record)
+  if (logRaw) {
+    console.log('[Airtable] Raw record fields:', Object.keys(record.fields || {}))
+    console.log('[Airtable] Raw record values:', record.fields)
+  }
 
   for (const [appField, airtableField] of Object.entries(fieldMap)) {
     if (appField === 'id') continue
     mapped[appField] = record.fields[airtableField] ?? null
+  }
+
+  // Also copy raw fields directly for flexible access
+  if (record.fields) {
+    for (const [key, value] of Object.entries(record.fields)) {
+      // Add raw field access using original Airtable field names
+      const lowerKey = key.toLowerCase().replace(/\s+/g, '_')
+      if (!(lowerKey in mapped)) {
+        mapped[lowerKey] = value
+      }
+      // Also add with original casing
+      if (!(key in mapped)) {
+        mapped[key] = value
+      }
+    }
   }
 
   return mapped as T
@@ -131,7 +196,9 @@ async function fetchAllRecords(tableName: string): Promise<any[]> {
 export async function fetchLeads() {
   try {
     const records = await fetchAllRecords(TABLES.leads)
-    return records.map((r) => mapRecord(r, FIELD_MAPS.leads))
+    console.log(`[Airtable] Fetched ${records.length} leads`)
+    // Log first record for debugging
+    return records.map((r, i) => mapRecord(r, FIELD_MAPS.leads, i === 0))
   } catch (error) {
     console.error('Error fetching leads:', error)
     return null
@@ -141,9 +208,23 @@ export async function fetchLeads() {
 export async function fetchCampaigns() {
   try {
     const records = await fetchAllRecords(TABLES.campaigns)
-    return records.map((r) => mapRecord(r, FIELD_MAPS.campaigns))
+    console.log(`[Airtable] Fetched ${records.length} campaigns`)
+    // Log first record for debugging
+    return records.map((r, i) => mapRecord(r, FIELD_MAPS.campaigns, i === 0))
   } catch (error) {
     console.error('Error fetching campaigns:', error)
+    return null
+  }
+}
+
+export async function fetchDevelopments() {
+  try {
+    const records = await fetchAllRecords(TABLES.developments)
+    console.log(`[Airtable] Fetched ${records.length} developments`)
+    // Log first record for debugging
+    return records.map((r, i) => mapRecord(r, FIELD_MAPS.developments, i === 0))
+  } catch (error) {
+    console.error('Error fetching developments:', error)
     return null
   }
 }

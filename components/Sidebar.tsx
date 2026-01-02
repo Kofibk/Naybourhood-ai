@@ -21,6 +21,7 @@ import {
   Sparkles,
   MessageSquare,
   Heart,
+  Home,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -48,8 +49,9 @@ export function Sidebar({ userType, userName = 'User', onLogout }: SidebarProps)
     if (userType === 'admin') {
       return [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
-        { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns', badge: 57 },
-        { name: 'Leads', icon: Users, href: '/admin/leads', badge: 1543 },
+        { name: 'Developments', icon: Home, href: '/admin/developments' },
+        { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
+        { name: 'Leads', icon: Users, href: '/admin/leads' },
         { name: 'Companies', icon: Building2, href: '/admin/companies' },
         { name: 'Users', icon: UserCog, href: '/admin/users' },
         { name: 'Billing', icon: CreditCard, href: '/admin/billing' },

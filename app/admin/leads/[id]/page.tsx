@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { createClient } from '@/lib/supabase/client'
+import { Input } from '@/components/ui/input'
+import { useData } from '@/contexts/DataContext'
 import type { Buyer } from '@/types'
 import {
   ArrowLeft,
@@ -22,35 +23,85 @@ import {
   FileCheck,
   Building2,
   Edit,
+  Save,
+  X,
+  Trash2,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react'
 
 export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [lead, setLead] = useState<Buyer | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { leads, isLoading, updateLead, deleteLead } = useData()
 
-  useEffect(() => {
-    async function fetchLead() {
-      if (!params.id) return
+  const [isEditing, setIsEditing] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [editData, setEditData] = useState<Partial<Buyer>>({})
 
-      const supabase = createClient()
-      const { data, error } = await supabase
-        .from('buyers')
-        .select('*')
-        .eq('id', params.id)
-        .single()
+  const lead = useMemo(() => {
+    return leads.find((l) => l.id === params.id)
+  }, [leads, params.id])
 
-      if (error) {
-        console.error('Error fetching lead:', error)
-      } else {
-        setLead(data)
-      }
-      setIsLoading(false)
+  const handleEdit = () => {
+    if (lead) {
+      setEditData({ ...lead })
+      setIsEditing(true)
+      setSaveMessage(null)
     }
+  }
 
-    fetchLead()
-  }, [params.id])
+  const handleCancel = () => {
+    setIsEditing(false)
+    setEditData({})
+    setSaveMessage(null)
+  }
+
+  const handleSave = async () => {
+    if (!lead) return
+
+    setIsSaving(true)
+    setSaveMessage(null)
+
+    try {
+      const result = await updateLead(lead.id, editData)
+      if (result) {
+        setSaveMessage({ type: 'success', text: 'Lead updated successfully!' })
+        setIsEditing(false)
+        setEditData({})
+      } else {
+        setSaveMessage({ type: 'error', text: 'Failed to update lead. Please try again.' })
+      }
+    } catch (e) {
+      setSaveMessage({ type: 'error', text: 'An error occurred while saving.' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!lead || !confirm('Are you sure you want to delete this lead? This action cannot be undone.')) return
+
+    setIsDeleting(true)
+    try {
+      const success = await deleteLead(lead.id)
+      if (success) {
+        router.push('/admin/leads')
+      } else {
+        setSaveMessage({ type: 'error', text: 'Failed to delete lead.' })
+      }
+    } catch (e) {
+      setSaveMessage({ type: 'error', text: 'An error occurred while deleting.' })
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const updateField = (field: keyof Buyer, value: any) => {
+    setEditData((prev) => ({ ...prev, [field]: value }))
+  }
 
   if (isLoading) {
     return (
@@ -72,6 +123,8 @@ export default function LeadDetailPage() {
     )
   }
 
+  const displayData = isEditing ? { ...lead, ...editData } : lead
+
   const getScoreColor = (score: number | undefined) => {
     if (!score) return 'text-muted-foreground'
     if (score >= 85) return 'text-orange-500'
@@ -89,8 +142,24 @@ export default function LeadDetailPage() {
     })
   }
 
+  const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Viewing Booked', 'Offer Made', 'Completed', 'Lost']
+
   return (
     <div className="space-y-6">
+      {/* Save Message */}
+      {saveMessage && (
+        <div className={`p-3 rounded-lg flex items-center gap-2 ${
+          saveMessage.type === 'success' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+        }`}>
+          {saveMessage.type === 'success' ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          <span className="text-sm">{saveMessage.text}</span>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -99,38 +168,87 @@ export default function LeadDetailPage() {
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold font-display">
-                {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
-              </h1>
-              {(lead.quality_score || 0) >= 85 && (
+              {isEditing ? (
+                <Input
+                  value={editData.full_name || displayData.full_name || ''}
+                  onChange={(e) => updateField('full_name', e.target.value)}
+                  className="text-2xl font-bold h-auto py-1"
+                  placeholder="Full Name"
+                />
+              ) : (
+                <h1 className="text-2xl font-bold font-display">
+                  {displayData.full_name || `${displayData.first_name || ''} ${displayData.last_name || ''}`.trim() || 'Unknown'}
+                </h1>
+              )}
+              {(displayData.quality_score || 0) >= 85 && (
                 <Flame className="h-5 w-5 text-orange-500" />
               )}
-              <Badge variant={lead.status === 'Qualified' ? 'success' : 'outline'}>
-                {lead.status || 'New'}
-              </Badge>
+              {isEditing ? (
+                <select
+                  value={editData.status || displayData.status || 'New'}
+                  onChange={(e) => updateField('status', e.target.value)}
+                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                >
+                  {STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                  ))}
+                </select>
+              ) : (
+                <Badge variant={displayData.status === 'Qualified' ? 'success' : 'outline'}>
+                  {displayData.status || 'New'}
+                </Badge>
+              )}
             </div>
             <p className="text-sm text-muted-foreground">
-              Added {formatDate(lead.created_at)} · Last contact {formatDate(lead.last_contact)}
+              Added {formatDate(displayData.created_at)} · Last contact {formatDate(displayData.last_contact)}
             </p>
           </div>
         </div>
         <div className="flex gap-2">
-          <Button size="sm">
-            <Phone className="h-4 w-4 mr-2" />
-            Call
-          </Button>
-          <Button size="sm" variant="outline">
-            <Mail className="h-4 w-4 mr-2" />
-            Email
-          </Button>
-          <Button size="sm" variant="outline">
-            <MessageCircle className="h-4 w-4 mr-2" />
-            WhatsApp
-          </Button>
-          <Button size="sm" variant="outline">
-            <Edit className="h-4 w-4 mr-2" />
-            Edit
-          </Button>
+          {isEditing ? (
+            <>
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving}
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Changes'}
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleCancel}>
+                <X className="h-4 w-4 mr-2" />
+                Cancel
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm">
+                <Phone className="h-4 w-4 mr-2" />
+                Call
+              </Button>
+              <Button size="sm" variant="outline">
+                <Mail className="h-4 w-4 mr-2" />
+                Email
+              </Button>
+              <Button size="sm" variant="outline">
+                <MessageCircle className="h-4 w-4 mr-2" />
+                WhatsApp
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                {isDeleting ? 'Deleting...' : 'Delete'}
+              </Button>
+            </>
+          )}
         </div>
       </div>
 
@@ -142,9 +260,20 @@ export default function LeadDetailPage() {
               <Target className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Quality Score</span>
             </div>
-            <p className={`text-3xl font-bold ${getScoreColor(lead.quality_score)}`}>
-              {lead.quality_score || 0}
-            </p>
+            {isEditing ? (
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={editData.quality_score ?? displayData.quality_score ?? 0}
+                onChange={(e) => updateField('quality_score', parseInt(e.target.value) || 0)}
+                className="text-2xl font-bold h-auto py-1"
+              />
+            ) : (
+              <p className={`text-3xl font-bold ${getScoreColor(displayData.quality_score)}`}>
+                {displayData.quality_score || 0}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -153,9 +282,20 @@ export default function LeadDetailPage() {
               <Flame className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Intent Score</span>
             </div>
-            <p className={`text-3xl font-bold ${getScoreColor(lead.intent_score)}`}>
-              {lead.intent_score || 0}
-            </p>
+            {isEditing ? (
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={editData.intent_score ?? displayData.intent_score ?? 0}
+                onChange={(e) => updateField('intent_score', parseInt(e.target.value) || 0)}
+                className="text-2xl font-bold h-auto py-1"
+              />
+            ) : (
+              <p className={`text-3xl font-bold ${getScoreColor(displayData.intent_score)}`}>
+                {displayData.intent_score || 0}
+              </p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -164,7 +304,16 @@ export default function LeadDetailPage() {
               <Banknote className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Budget</span>
             </div>
-            <p className="text-xl font-bold">{lead.budget || 'N/A'}</p>
+            {isEditing ? (
+              <Input
+                value={editData.budget ?? displayData.budget ?? ''}
+                onChange={(e) => updateField('budget', e.target.value)}
+                placeholder="e.g., £500,000 - £750,000"
+                className="text-lg font-bold h-auto py-1"
+              />
+            ) : (
+              <p className="text-xl font-bold">{displayData.budget || 'N/A'}</p>
+            )}
           </CardContent>
         </Card>
         <Card>
@@ -173,7 +322,16 @@ export default function LeadDetailPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Timeline</span>
             </div>
-            <p className="text-xl font-bold">{lead.timeline || 'N/A'}</p>
+            {isEditing ? (
+              <Input
+                value={editData.timeline ?? displayData.timeline ?? ''}
+                onChange={(e) => updateField('timeline', e.target.value)}
+                placeholder="e.g., 3-6 months"
+                className="text-lg font-bold h-auto py-1"
+              />
+            ) : (
+              <p className="text-xl font-bold">{displayData.timeline || 'N/A'}</p>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -190,19 +348,53 @@ export default function LeadDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Email</span>
-              <span className="text-sm font-medium">{lead.email || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  type="email"
+                  value={editData.email ?? displayData.email ?? ''}
+                  onChange={(e) => updateField('email', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.email || 'N/A'}</span>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Phone</span>
-              <span className="text-sm font-medium">{lead.phone || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  type="tel"
+                  value={editData.phone ?? displayData.phone ?? ''}
+                  onChange={(e) => updateField('phone', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.phone || 'N/A'}</span>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Source</span>
-              <Badge variant="outline">{lead.source || 'N/A'}</Badge>
+              {isEditing ? (
+                <Input
+                  value={editData.source ?? displayData.source ?? ''}
+                  onChange={(e) => updateField('source', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <Badge variant="outline">{displayData.source || 'N/A'}</Badge>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Campaign</span>
-              <span className="text-sm font-medium">{lead.campaign || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  value={editData.campaign ?? displayData.campaign ?? ''}
+                  onChange={(e) => updateField('campaign', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.campaign || 'N/A'}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -218,23 +410,48 @@ export default function LeadDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Location</span>
-              <span className="text-sm font-medium">{lead.location || lead.area || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  value={editData.location ?? displayData.location ?? displayData.area ?? ''}
+                  onChange={(e) => updateField('location', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.location || displayData.area || 'N/A'}</span>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Bedrooms</span>
-              <span className="text-sm font-medium">{lead.bedrooms || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editData.bedrooms ?? displayData.bedrooms ?? ''}
+                  onChange={(e) => updateField('bedrooms', parseInt(e.target.value) || undefined)}
+                  className="max-w-[100px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.bedrooms || 'N/A'}</span>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Budget Range</span>
               <span className="text-sm font-medium">
-                {lead.budget_min && lead.budget_max
-                  ? `£${lead.budget_min.toLocaleString()} - £${lead.budget_max.toLocaleString()}`
-                  : lead.budget || 'N/A'}
+                {displayData.budget_min && displayData.budget_max
+                  ? `£${displayData.budget_min.toLocaleString()} - £${displayData.budget_max.toLocaleString()}`
+                  : displayData.budget || 'N/A'}
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Payment Method</span>
-              <span className="text-sm font-medium">{lead.payment_method || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  value={editData.payment_method ?? displayData.payment_method ?? ''}
+                  onChange={(e) => updateField('payment_method', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.payment_method || 'N/A'}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -250,25 +467,66 @@ export default function LeadDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Proof of Funds</span>
-              <Badge variant={lead.proof_of_funds ? 'success' : 'secondary'}>
-                {lead.proof_of_funds ? 'Verified' : 'Pending'}
-              </Badge>
+              {isEditing ? (
+                <select
+                  value={editData.proof_of_funds ?? displayData.proof_of_funds ? 'true' : 'false'}
+                  onChange={(e) => updateField('proof_of_funds', e.target.value === 'true')}
+                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="false">Pending</option>
+                  <option value="true">Verified</option>
+                </select>
+              ) : (
+                <Badge variant={displayData.proof_of_funds ? 'success' : 'secondary'}>
+                  {displayData.proof_of_funds ? 'Verified' : 'Pending'}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">UK Broker</span>
-              <Badge variant={lead.uk_broker ? 'success' : 'secondary'}>
-                {lead.uk_broker ? 'Yes' : 'No'}
-              </Badge>
+              {isEditing ? (
+                <select
+                  value={editData.uk_broker ?? displayData.uk_broker ? 'true' : 'false'}
+                  onChange={(e) => updateField('uk_broker', e.target.value === 'true')}
+                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              ) : (
+                <Badge variant={displayData.uk_broker ? 'success' : 'secondary'}>
+                  {displayData.uk_broker ? 'Yes' : 'No'}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">UK Solicitor</span>
-              <Badge variant={lead.uk_solicitor ? 'success' : 'secondary'}>
-                {lead.uk_solicitor ? 'Yes' : 'No'}
-              </Badge>
+              {isEditing ? (
+                <select
+                  value={editData.uk_solicitor ?? displayData.uk_solicitor ? 'true' : 'false'}
+                  onChange={(e) => updateField('uk_solicitor', e.target.value === 'true')}
+                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="false">No</option>
+                  <option value="true">Yes</option>
+                </select>
+              ) : (
+                <Badge variant={displayData.uk_solicitor ? 'success' : 'secondary'}>
+                  {displayData.uk_solicitor ? 'Yes' : 'No'}
+                </Badge>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Mortgage Status</span>
-              <span className="text-sm font-medium">{lead.mortgage_status || 'N/A'}</span>
+              {isEditing ? (
+                <Input
+                  value={editData.mortgage_status ?? displayData.mortgage_status ?? ''}
+                  onChange={(e) => updateField('mortgage_status', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.mortgage_status || 'N/A'}</span>
+              )}
             </div>
           </CardContent>
         </Card>
@@ -279,9 +537,18 @@ export default function LeadDetailPage() {
             <CardTitle className="text-sm font-medium">Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              {lead.notes || 'No notes added yet.'}
-            </p>
+            {isEditing ? (
+              <textarea
+                value={editData.notes ?? displayData.notes ?? ''}
+                onChange={(e) => updateField('notes', e.target.value)}
+                className="w-full min-h-[100px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                placeholder="Add notes about this lead..."
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                {displayData.notes || 'No notes added yet.'}
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

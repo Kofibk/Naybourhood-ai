@@ -2,18 +2,32 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { isAirtableConfigured, fetchLeads as fetchAirtableLeads, fetchCampaigns as fetchAirtableCampaigns } from '@/lib/airtable'
-import type { Buyer, Campaign, Company } from '@/types'
+import {
+  isAirtableConfigured,
+  fetchLeads as fetchAirtableLeads,
+  fetchCampaigns as fetchAirtableCampaigns,
+  fetchDevelopments as fetchAirtableDevelopments,
+  updateLead as updateAirtableLead,
+  updateCampaign as updateAirtableCampaign,
+  createLead as createAirtableLead,
+  deleteLead as deleteAirtableLead,
+} from '@/lib/airtable'
+import type { Buyer, Campaign, Company, Development } from '@/types'
 
 interface DataContextType {
   leads: Buyer[]
   campaigns: Campaign[]
   companies: Company[]
+  developments: Development[]
   isLoading: boolean
   error: string | null
   isSupabase: boolean
   isAirtable: boolean
   refreshData: () => Promise<void>
+  updateLead: (id: string, data: Partial<Buyer>) => Promise<Buyer | null>
+  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<Campaign | null>
+  createLead: (data: Partial<Buyer>) => Promise<Buyer | null>
+  deleteLead: (id: string) => Promise<boolean>
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -22,6 +36,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [leads, setLeads] = useState<Buyer[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
+  const [developments, setDevelopments] = useState<Development[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -128,29 +143,61 @@ export function DataProvider({ children }: { children: ReactNode }) {
         try {
           const airtableCampaigns = await fetchAirtableCampaigns()
           if (airtableCampaigns && airtableCampaigns.length > 0) {
-            // Map Airtable fields to our Campaign type
-            const mappedCampaigns: Campaign[] = airtableCampaigns.map((camp: any) => ({
-              id: camp.id,
-              name: camp.name || camp.Name,
-              client: camp.client || camp.Client,
-              company_id: camp.company_id || camp.companyId,
-              platform: camp.platform || camp.Platform,
-              status: camp.status || camp.Status,
-              spend: camp.spend || camp.Spend || camp.amount_spent,
-              amount_spent: camp.amount_spent || camp.amountSpent,
-              leads: camp.leads || camp.Leads || camp.lead_count,
-              lead_count: camp.lead_count || camp.leadCount,
-              cpl: camp.cpl || camp.CPL || camp.cost_per_lead,
-              cost_per_lead: camp.cost_per_lead || camp.costPerLead,
-              impressions: camp.impressions || camp.Impressions,
-              clicks: camp.clicks || camp.Clicks,
-              ctr: camp.ctr || camp.CTR,
-              start_date: camp.startDate || camp.start_date || camp['Start Date'],
-              end_date: camp.endDate || camp.end_date || camp['End Date'],
-              created_at: camp.createdAt || camp.created_at,
-              updated_at: camp.updatedAt || camp.updated_at,
-            }))
+            // Map Airtable fields to our Campaign type - handle all possible field name variations
+            const mappedCampaigns: Campaign[] = airtableCampaigns.map((camp: any) => {
+              // Parse spend - try multiple field names and parse as number
+              const spendValue = camp.spend || camp.Spend || camp.amount_spent ||
+                camp['Amount Spent'] || camp.total_spend || camp['Total Spend'] || 0
+              const parsedSpend = typeof spendValue === 'string'
+                ? parseFloat(spendValue.replace(/[£$,]/g, '')) || 0
+                : (Number(spendValue) || 0)
+
+              // Parse leads count
+              const leadsValue = camp.leads || camp.Leads || camp.lead_count ||
+                camp['Lead Count'] || camp['Leads Generated'] || 0
+              const parsedLeads = Number(leadsValue) || 0
+
+              // Parse CPL
+              const cplValue = camp.cpl || camp.CPL || camp.cost_per_lead || camp['Cost Per Lead'] || 0
+              const parsedCPL = typeof cplValue === 'string'
+                ? parseFloat(cplValue.replace(/[£$,]/g, '')) || 0
+                : (Number(cplValue) || 0)
+
+              // Get development name - try multiple field variations
+              const developmentName = camp.development || camp.Development ||
+                camp.development_name || camp['Development Name'] ||
+                camp.client || camp.Client || null
+
+              return {
+                id: camp.id,
+                name: camp.name || camp.Name || 'Unnamed Campaign',
+                client: camp.client || camp.Client,
+                development: developmentName,
+                company_id: camp.company_id || camp.companyId,
+                platform: camp.platform || camp.Platform,
+                status: camp.status || camp.Status || 'unknown',
+                spend: parsedSpend,
+                amount_spent: parsedSpend,
+                leads: parsedLeads,
+                lead_count: parsedLeads,
+                cpl: parsedCPL,
+                cost_per_lead: parsedCPL,
+                impressions: Number(camp.impressions || camp.Impressions) || 0,
+                clicks: Number(camp.clicks || camp.Clicks) || 0,
+                ctr: Number(camp.ctr || camp.CTR) || 0,
+                start_date: camp.startDate || camp.start_date || camp['Start Date'],
+                end_date: camp.endDate || camp.end_date || camp['End Date'],
+                created_at: camp.createdAt || camp.created_at,
+                updated_at: camp.updatedAt || camp.updated_at,
+              }
+            })
+
+            // Log total spend for debugging
+            const totalSpend = mappedCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
             console.log('[DataContext] Fetched campaigns from Airtable:', mappedCampaigns.length)
+            console.log('[DataContext] Total campaign spend:', totalSpend)
+            console.log('[DataContext] First campaign data:', mappedCampaigns[0])
+
             setCampaigns(mappedCampaigns)
           } else {
             console.log('[DataContext] No campaigns in Airtable, trying Supabase...')
@@ -204,6 +251,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      // DEVELOPMENTS: Fetch from Airtable
+      if (isAirtable) {
+        console.log('[DataContext] Fetching developments from Airtable...')
+        try {
+          const airtableDevelopments = await fetchAirtableDevelopments()
+          if (airtableDevelopments && airtableDevelopments.length > 0) {
+            const mappedDevelopments: Development[] = airtableDevelopments.map((dev: any) => ({
+              id: dev.id,
+              name: dev.name || dev.Name || 'Unknown Development',
+              location: dev.location || dev.Location || dev.address || dev.Address,
+              developer: dev.developer || dev.Developer,
+              status: dev.status || dev.Status || 'Active',
+              units: dev.units || dev.Units || dev.total_units || dev['Total Units'] || 0,
+              total_units: dev.total_units || dev['Total Units'] || 0,
+              available_units: dev.available_units || dev['Available Units'] || 0,
+              price_from: dev.price_from || dev['Price From'],
+              price_to: dev.price_to || dev['Price To'],
+              completion_date: dev.completion_date || dev['Completion Date'],
+              description: dev.description || dev.Description,
+              image_url: dev.image_url || dev['Image URL'],
+              total_leads: dev.total_leads || dev['Total Leads'] || 0,
+              total_spend: dev.total_spend || dev['Total Spend'] || 0,
+            }))
+            console.log('[DataContext] Fetched developments from Airtable:', mappedDevelopments.length)
+            setDevelopments(mappedDevelopments)
+          } else {
+            console.log('[DataContext] No developments in Airtable')
+          }
+        } catch (e) {
+          console.error('[DataContext] Airtable developments fetch failed:', e)
+        }
+      }
+
       if (errors.length > 0) {
         setError(errors.join('; '))
       }
@@ -221,17 +301,165 @@ export function DataProvider({ children }: { children: ReactNode }) {
     refreshData()
   }, [refreshData])
 
+  // Update a lead in Airtable or Supabase
+  const updateLead = useCallback(async (id: string, data: Partial<Buyer>): Promise<Buyer | null> => {
+    try {
+      if (isAirtable) {
+        console.log('[DataContext] Updating lead in Airtable:', id, data)
+        const result = await updateAirtableLead(id, data)
+        if (result) {
+          // Update local state
+          setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...data } : l)))
+          return result as Buyer
+        }
+      } else if (isSupabase) {
+        console.log('[DataContext] Updating lead in Supabase:', id, data)
+        const supabase = createClient()
+        const { data: updatedData, error } = await supabase
+          .from('buyers')
+          .update(data)
+          .eq('id', id)
+          .select()
+          .single()
+
+        if (error) {
+          console.error('[DataContext] Supabase update error:', error)
+          return null
+        }
+
+        // Update local state
+        setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...updatedData } : l)))
+        return updatedData
+      }
+      return null
+    } catch (e) {
+      console.error('[DataContext] Update lead failed:', e)
+      return null
+    }
+  }, [isAirtable, isSupabase])
+
+  // Update a campaign in Airtable or Supabase
+  const updateCampaign = useCallback(async (id: string, data: Partial<Campaign>): Promise<Campaign | null> => {
+    try {
+      if (isAirtable) {
+        console.log('[DataContext] Updating campaign in Airtable:', id, data)
+        const result = await updateAirtableCampaign(id, data)
+        if (result) {
+          // Update local state
+          setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...data } : c)))
+          return result as Campaign
+        }
+      } else if (isSupabase) {
+        console.log('[DataContext] Updating campaign in Supabase:', id, data)
+        const supabase = createClient()
+        const { data: updatedData, error } = await supabase
+          .from('campaigns')
+          .update(data)
+          .eq('id', id)
+          .select()
+          .single()
+
+        if (error) {
+          console.error('[DataContext] Supabase campaign update error:', error)
+          return null
+        }
+
+        // Update local state
+        setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedData } : c)))
+        return updatedData
+      }
+      return null
+    } catch (e) {
+      console.error('[DataContext] Update campaign failed:', e)
+      return null
+    }
+  }, [isAirtable, isSupabase])
+
+  // Create a new lead
+  const createLead = useCallback(async (data: Partial<Buyer>): Promise<Buyer | null> => {
+    try {
+      if (isAirtable) {
+        console.log('[DataContext] Creating lead in Airtable:', data)
+        const result = await createAirtableLead(data)
+        if (result) {
+          // Add to local state
+          setLeads((prev) => [result as Buyer, ...prev])
+          return result as Buyer
+        }
+      } else if (isSupabase) {
+        console.log('[DataContext] Creating lead in Supabase:', data)
+        const supabase = createClient()
+        const { data: newData, error } = await supabase
+          .from('buyers')
+          .insert(data)
+          .select()
+          .single()
+
+        if (error) {
+          console.error('[DataContext] Supabase create error:', error)
+          return null
+        }
+
+        // Add to local state
+        setLeads((prev) => [newData, ...prev])
+        return newData
+      }
+      return null
+    } catch (e) {
+      console.error('[DataContext] Create lead failed:', e)
+      return null
+    }
+  }, [isAirtable, isSupabase])
+
+  // Delete a lead
+  const deleteLead = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      if (isAirtable) {
+        console.log('[DataContext] Deleting lead from Airtable:', id)
+        await deleteAirtableLead(id)
+        // Remove from local state
+        setLeads((prev) => prev.filter((l) => l.id !== id))
+        return true
+      } else if (isSupabase) {
+        console.log('[DataContext] Deleting lead from Supabase:', id)
+        const supabase = createClient()
+        const { error } = await supabase
+          .from('buyers')
+          .delete()
+          .eq('id', id)
+
+        if (error) {
+          console.error('[DataContext] Supabase delete error:', error)
+          return false
+        }
+
+        // Remove from local state
+        setLeads((prev) => prev.filter((l) => l.id !== id))
+        return true
+      }
+      return false
+    } catch (e) {
+      console.error('[DataContext] Delete lead failed:', e)
+      return false
+    }
+  }, [isAirtable, isSupabase])
+
   return (
     <DataContext.Provider
       value={{
         leads,
         campaigns,
         companies,
+        developments,
         isLoading,
         error,
         isSupabase,
         isAirtable,
         refreshData,
+        updateLead,
+        updateCampaign,
+        createLead,
+        deleteLead,
       }}
     >
       {children}

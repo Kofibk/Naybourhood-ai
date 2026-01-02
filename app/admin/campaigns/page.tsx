@@ -38,12 +38,37 @@ export default function CampaignsPage() {
   const [search, setSearch] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
 
-  // Group campaigns by client/development
+  // Group campaigns by development name (not client)
   const groupedCampaigns = useMemo(() => {
     const groups: Record<string, DevelopmentGroup> = {}
 
     campaigns.forEach((campaign) => {
-      const groupName = campaign.client || 'Other Campaigns'
+      // Try to get development name from multiple fields
+      // Priority: development > client > extract from campaign name
+      let groupName = campaign.development || campaign.client
+
+      // If no development/client, try to extract development name from campaign name
+      // Common patterns: "The Haydon - Facebook", "River Park Tower Campaign"
+      if (!groupName && campaign.name) {
+        // Try to extract the development name from the campaign name
+        const developmentPatterns = [
+          /^([^-–]+?)(?:\s*[-–])/,  // Before dash: "The Haydon - Facebook"
+          /^(.+?)\s+(?:Campaign|FB|Facebook|Google|Meta|Ads?|Marketing)/i,  // Before keyword
+        ]
+
+        for (const pattern of developmentPatterns) {
+          const match = campaign.name.match(pattern)
+          if (match && match[1] && match[1].trim().length > 2) {
+            groupName = match[1].trim()
+            break
+          }
+        }
+      }
+
+      // Fallback to "Uncategorized" only if nothing found
+      if (!groupName) {
+        groupName = 'Uncategorized Campaigns'
+      }
 
       if (!groups[groupName]) {
         groups[groupName] = {
@@ -59,7 +84,7 @@ export default function CampaignsPage() {
       groups[groupName].campaigns.push(campaign)
       groups[groupName].totalSpend += campaign.spend || campaign.amount_spent || 0
       groups[groupName].totalLeads += campaign.leads || campaign.lead_count || 0
-      if (campaign.status === 'active') {
+      if (campaign.status === 'active' || campaign.status === 'Active') {
         groups[groupName].activeCampaigns++
       }
     })
@@ -71,7 +96,12 @@ export default function CampaignsPage() {
         : 0
     })
 
-    return Object.values(groups).sort((a, b) => b.totalSpend - a.totalSpend)
+    // Sort by total spend, but put "Uncategorized" at the end
+    return Object.values(groups).sort((a, b) => {
+      if (a.name === 'Uncategorized Campaigns') return 1
+      if (b.name === 'Uncategorized Campaigns') return -1
+      return b.totalSpend - a.totalSpend
+    })
   }, [campaigns])
 
   // Filter groups based on search

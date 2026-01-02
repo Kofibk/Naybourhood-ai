@@ -44,6 +44,7 @@ export interface Campaign {
   id: string
   name: string
   client?: string
+  development?: string
   company_id?: string
   platform?: string
   status?: string
@@ -58,6 +59,28 @@ export interface Campaign {
   ctr?: number
   start_date?: string
   end_date?: string
+  created_at?: string
+  updated_at?: string
+}
+
+export interface Development {
+  id: string
+  name: string
+  location?: string
+  address?: string
+  developer?: string
+  status?: string
+  units?: number
+  total_units?: number
+  available_units?: number
+  price_from?: string
+  price_to?: string
+  completion_date?: string
+  description?: string
+  image_url?: string
+  features?: string[]
+  total_leads?: number
+  total_spend?: number
   created_at?: string
   updated_at?: string
 }
