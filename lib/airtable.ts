@@ -118,25 +118,41 @@ export const FIELD_MAPS = {
 // API Functions
 async function airtableFetch(endpoint: string, options: RequestInit = {}) {
   if (!AIRTABLE_API_KEY || !AIRTABLE_BASE_ID) {
-    console.warn('Airtable not configured. Using demo data.')
+    console.warn('[Airtable] Not configured - missing API_KEY or BASE_ID')
     return null
   }
 
-  const response = await fetch(`${BASE_URL}/${endpoint}`, {
-    ...options,
-    headers: {
-      Authorization: `Bearer ${AIRTABLE_API_KEY}`,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
+  const fullUrl = `${BASE_URL}/${endpoint}`
+  console.log('[Airtable] Fetching:', fullUrl.substring(0, 100) + '...')
 
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error?.message || 'Airtable API error')
+  try {
+    const response = await fetch(fullUrl, {
+      ...options,
+      headers: {
+        Authorization: `Bearer ${AIRTABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+
+    console.log('[Airtable] Response status:', response.status)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('[Airtable] API Error:', response.status, errorText)
+      try {
+        const error = JSON.parse(errorText)
+        throw new Error(error.error?.message || `Airtable API error: ${response.status}`)
+      } catch {
+        throw new Error(`Airtable API error: ${response.status} - ${errorText}`)
+      }
+    }
+
+    return response.json()
+  } catch (error) {
+    console.error('[Airtable] Fetch error:', error)
+    throw error
   }
-
-  return response.json()
 }
 
 // Map Airtable record to app format - also returns raw fields for debugging
@@ -177,13 +193,27 @@ async function fetchAllRecords(tableName: string): Promise<any[]> {
   const records: any[] = []
   let offset: string | undefined
 
+  console.log(`[Airtable] Fetching from table: "${tableName}"`)
+
   do {
     const params = new URLSearchParams()
     if (offset) params.set('offset', offset)
     params.set('pageSize', '100')
 
-    const data = await airtableFetch(`${encodeURIComponent(tableName)}?${params}`)
-    if (!data) return []
+    const url = `${encodeURIComponent(tableName)}?${params}`
+    console.log(`[Airtable] Request URL: ${url}`)
+
+    const data = await airtableFetch(url)
+    if (!data) {
+      console.log(`[Airtable] No data returned for table: "${tableName}"`)
+      return []
+    }
+
+    console.log(`[Airtable] Response for "${tableName}":`, {
+      recordCount: data.records?.length || 0,
+      hasOffset: !!data.offset,
+      firstRecord: data.records?.[0] ? Object.keys(data.records[0].fields || {}) : 'none'
+    })
 
     records.push(...data.records)
     offset = data.offset
