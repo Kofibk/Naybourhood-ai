@@ -213,10 +213,10 @@ export default function AdminDashboard() {
               Campaigns: {campaigns.length} · Leads: {leads.length} · Companies: {companies.length}
             </p>
             <Badge
-              variant={isSupabase ? 'success' : 'secondary'}
+              variant={isSupabase ? 'success' : 'destructive'}
               className="text-[10px]"
             >
-              {isSupabase ? 'Live Data' : 'Demo Data'}
+              {isSupabase ? 'Live Data' : 'Not Connected'}
             </Badge>
             {error && (
               <Badge variant="destructive" className="text-[10px]">

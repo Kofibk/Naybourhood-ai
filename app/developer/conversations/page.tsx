@@ -1,97 +1,97 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { useMemo } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { Search, MessageSquare, Phone, MoreVertical } from 'lucide-react'
+import { useData } from '@/contexts/DataContext'
+import { Search, MessageSquare, Phone, Users } from 'lucide-react'
 
-const conversations = [
-  {
-    id: 'C001',
-    name: 'James Chen',
-    lastMessage: 'I am very interested in the 2-bed unit at Nine Elms',
-    time: '2 hours ago',
-    unread: 2,
-    status: 'active',
-  },
-  {
-    id: 'C002',
-    name: 'Sarah Williams',
-    lastMessage: 'Can we schedule a viewing for this weekend?',
-    time: '5 hours ago',
-    unread: 0,
-    status: 'active',
-  },
-  {
-    id: 'C003',
-    name: 'David Park',
-    lastMessage: 'Thanks for the information. I will review and get back to you.',
-    time: '1 day ago',
-    unread: 0,
-    status: 'pending',
-  },
-]
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 60) return `${diffMins} mins ago`
+  if (diffHours < 24) return `${diffHours} hours ago`
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString()
+}
 
 export default function ConversationsPage() {
+  const { leads, isLoading } = useData()
+
+  // Get leads with recent activity as conversations
+  const conversations = useMemo(() => {
+    return leads
+      .filter(l => l.last_contact || l.created_at)
+      .sort((a, b) => {
+        const dateA = new Date(a.last_contact || a.created_at || 0)
+        const dateB = new Date(b.last_contact || b.created_at || 0)
+        return dateB.getTime() - dateA.getTime()
+      })
+      .slice(0, 10)
+      .map(lead => ({
+        id: lead.id,
+        name: lead.full_name || lead.first_name || 'Unknown',
+        lastMessage: `Interested in ${lead.location || 'properties'} - ${lead.budget || 'Budget TBC'}`,
+        time: getTimeAgo(lead.last_contact || lead.created_at || ''),
+        status: lead.status,
+      }))
+  }, [leads])
+
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-display">Conversations</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage your buyer communications
-        </p>
+        <p className="text-sm text-muted-foreground">Manage buyer communications</p>
       </div>
 
-      {/* Search */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
         <Input placeholder="Search conversations..." className="pl-9" />
       </div>
 
-      {/* Conversations List */}
       <div className="space-y-3">
-        {conversations.map((conv) => (
-          <Card
-            key={conv.id}
-            className="hover:border-primary/50 transition-colors cursor-pointer"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-start gap-4">
-                <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center shrink-0">
-                  <MessageSquare className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-semibold">{conv.name}</h3>
-                      {conv.unread > 0 && (
-                        <Badge variant="default" className="text-[10px]">
-                          {conv.unread}
-                        </Badge>
-                      )}
-                    </div>
-                    <span className="text-xs text-muted-foreground shrink-0">
-                      {conv.time}
-                    </span>
+        {isLoading ? (
+          <p className="text-sm text-muted-foreground text-center py-8">Loading...</p>
+        ) : conversations.length === 0 ? (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
+              <p className="text-muted-foreground">No conversations yet</p>
+            </CardContent>
+          </Card>
+        ) : (
+          conversations.map((conv) => (
+            <Card key={conv.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
+                    <MessageSquare className="h-6 w-6 text-muted-foreground" />
                   </div>
-                  <p className="text-sm text-muted-foreground truncate mt-1">
-                    {conv.lastMessage}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1 shrink-0">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <h3 className="font-semibold">{conv.name}</h3>
+                        {conv.status && <Badge variant="outline">{conv.status}</Badge>}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{conv.time}</span>
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate mt-1">{conv.lastMessage}</p>
+                  </div>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <Phone className="h-4 w-4" />
                   </Button>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+              </CardContent>
+            </Card>
+          ))
+        )}
       </div>
     </div>
   )

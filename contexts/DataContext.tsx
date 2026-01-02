@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isAirtableConfigured } from '@/lib/airtable'
-import { demoLeads, demoCampaigns, demoCompanies } from '@/lib/demoData'
 import type { Buyer, Campaign, Company } from '@/types'
 
 interface DataContextType {
@@ -99,10 +98,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         console.log('[DataContext] Data fetch complete')
       } else {
-        console.log('[DataContext] Supabase not configured, using demo data')
-        setLeads(demoLeads)
-        setCampaigns(demoCampaigns)
-        setCompanies(demoCompanies)
+        console.warn('[DataContext] Supabase not configured - no data will be loaded')
+        setError('Supabase not configured')
       }
     } catch (err) {
       console.error('[DataContext] Error:', err)

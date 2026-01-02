@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -36,11 +37,46 @@ const config = {
   },
 }
 
+function getTimeAgo(dateString: string): string {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 60) return `${diffMins} mins ago`
+  if (diffHours < 24) return `${diffHours} hours ago`
+  if (diffDays < 7) return `${diffDays} days ago`
+  return date.toLocaleDateString()
+}
+
 export function UserDashboard({ userType, userName }: UserDashboardProps) {
-  const { leads } = useData()
+  const { leads, isLoading } = useData()
   const typeConfig = config[userType]
 
-  const hotLeads = leads.filter((l) => (l.quality_score || 0) >= 85).slice(0, 3)
+  const hotLeads = useMemo(() =>
+    leads.filter((l) => (l.quality_score || 0) >= 85).slice(0, 3),
+    [leads]
+  )
+
+  // Calculate real metrics from data
+  const viewingsCount = useMemo(() =>
+    leads.filter(l => l.status === 'Viewing Booked').length,
+    [leads]
+  )
+
+  // Get recent activity from real leads
+  const recentActivity = useMemo(() => {
+    return leads
+      .filter(l => l.created_at || l.last_contact)
+      .sort((a, b) => {
+        const dateA = new Date(a.last_contact || a.created_at || 0)
+        const dateB = new Date(b.last_contact || b.created_at || 0)
+        return dateB.getTime() - dateA.getTime()
+      })
+      .slice(0, 3)
+  }, [leads])
 
   return (
     <div className="space-y-6">
@@ -89,8 +125,8 @@ export function UserDashboard({ userType, userName }: UserDashboardProps) {
             <div className="flex items-center justify-between mb-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">8</div>
-            <div className="text-xs text-muted-foreground">Viewings This Week</div>
+            <div className="text-2xl font-bold">{viewingsCount}</div>
+            <div className="text-xs text-muted-foreground">Viewings Booked</div>
           </CardContent>
         </Card>
         <Card>
@@ -98,8 +134,8 @@ export function UserDashboard({ userType, userName }: UserDashboardProps) {
             <div className="flex items-center justify-between mb-2">
               <MessageSquare className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">3</div>
-            <div className="text-xs text-muted-foreground">Unread Messages</div>
+            <div className="text-2xl font-bold">{leads.filter(l => l.status === 'New').length}</div>
+            <div className="text-xs text-muted-foreground">New {typeConfig.title}</div>
           </CardContent>
         </Card>
       </div>
@@ -170,7 +206,7 @@ export function UserDashboard({ userType, userName }: UserDashboardProps) {
             </div>
             <div>
               <p className="font-medium text-sm">Conversations</p>
-              <p className="text-xs text-muted-foreground">3 unread messages</p>
+              <p className="text-xs text-muted-foreground">View all messages</p>
             </div>
           </CardContent>
         </Card>
@@ -182,7 +218,7 @@ export function UserDashboard({ userType, userName }: UserDashboardProps) {
             <div>
               <p className="font-medium text-sm">My Matches</p>
               <p className="text-xs text-muted-foreground">
-                12 matched {typeConfig.title.toLowerCase()}
+                {leads.filter(l => l.status === 'Qualified').length} qualified {typeConfig.title.toLowerCase()}
               </p>
             </div>
           </CardContent>
@@ -206,24 +242,27 @@ export function UserDashboard({ userType, userName }: UserDashboardProps) {
           <CardTitle className="text-sm font-medium">Recent Activity</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-2 h-2 rounded-full bg-success" />
-            <span className="text-muted-foreground">New lead:</span>
-            <span className="font-medium">James Chen</span>
-            <span className="text-muted-foreground ml-auto">2 hours ago</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-2 h-2 rounded-full bg-warning" />
-            <span className="text-muted-foreground">Viewing booked:</span>
-            <span className="font-medium">Sarah Williams</span>
-            <span className="text-muted-foreground ml-auto">5 hours ago</span>
-          </div>
-          <div className="flex items-center gap-3 text-sm">
-            <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <span className="text-muted-foreground">Message received:</span>
-            <span className="font-medium">David Park</span>
-            <span className="text-muted-foreground ml-auto">1 day ago</span>
-          </div>
+          {recentActivity.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No recent activity</p>
+          ) : (
+            recentActivity.map((lead, i) => {
+              const date = lead.last_contact || lead.created_at
+              const timeAgo = date ? getTimeAgo(date) : 'Recently'
+              const statusColor = lead.status === 'Viewing Booked' ? 'bg-warning' :
+                lead.status === 'New' ? 'bg-success' : 'bg-blue-500'
+              const statusText = lead.status === 'Viewing Booked' ? 'Viewing booked:' :
+                lead.status === 'New' ? 'New lead:' : 'Updated:'
+
+              return (
+                <div key={lead.id || i} className="flex items-center gap-3 text-sm">
+                  <div className={`w-2 h-2 rounded-full ${statusColor}`} />
+                  <span className="text-muted-foreground">{statusText}</span>
+                  <span className="font-medium">{lead.full_name || lead.first_name || 'Unknown'}</span>
+                  <span className="text-muted-foreground ml-auto">{timeAgo}</span>
+                </div>
+              )
+            })
+          )}
         </CardContent>
       </Card>
     </div>
