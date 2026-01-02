@@ -20,10 +20,10 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Buyer[]>(demoLeads)
-  const [campaigns, setCampaigns] = useState<Campaign[]>(demoCampaigns)
-  const [companies, setCompanies] = useState<Company[]>(demoCompanies)
-  const [isLoading, setIsLoading] = useState(false)
+  const [leads, setLeads] = useState<Buyer[]>([])
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const isSupabase = isSupabaseConfigured()
@@ -32,50 +32,81 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const refreshData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
+    const errors: string[] = []
 
     try {
       if (isSupabase) {
         const supabase = createClient()
+        console.log('[DataContext] Fetching data from Supabase...')
 
-        // Fetch buyers
-        const { data: buyersData, error: buyersError } = await supabase
-          .from('buyers')
-          .select('*')
-          .order('created_at', { ascending: false })
+        // Fetch buyers - don't throw, just log errors
+        try {
+          const { data: buyersData, error: buyersError } = await supabase
+            .from('buyers')
+            .select('*')
+            .order('created_at', { ascending: false })
 
-        if (buyersError) throw buyersError
-        if (buyersData) setLeads(buyersData)
+          if (buyersError) {
+            console.error('[DataContext] Buyers error:', buyersError.message)
+            errors.push(`Buyers: ${buyersError.message}`)
+          } else if (buyersData) {
+            console.log('[DataContext] Fetched buyers:', buyersData.length)
+            setLeads(buyersData)
+          }
+        } catch (e) {
+          console.error('[DataContext] Buyers fetch failed:', e)
+        }
 
         // Fetch campaigns
-        const { data: campaignsData, error: campaignsError } = await supabase
-          .from('campaigns')
-          .select('*')
-          .order('created_at', { ascending: false })
+        try {
+          const { data: campaignsData, error: campaignsError } = await supabase
+            .from('campaigns')
+            .select('*')
+            .order('created_at', { ascending: false })
 
-        if (campaignsError) throw campaignsError
-        if (campaignsData) setCampaigns(campaignsData)
+          if (campaignsError) {
+            console.error('[DataContext] Campaigns error:', campaignsError.message)
+            errors.push(`Campaigns: ${campaignsError.message}`)
+          } else if (campaignsData) {
+            console.log('[DataContext] Fetched campaigns:', campaignsData.length)
+            setCampaigns(campaignsData)
+          }
+        } catch (e) {
+          console.error('[DataContext] Campaigns fetch failed:', e)
+        }
 
         // Fetch companies
-        const { data: companiesData, error: companiesError } = await supabase
-          .from('companies')
-          .select('*')
-          .order('name', { ascending: true })
+        try {
+          const { data: companiesData, error: companiesError } = await supabase
+            .from('companies')
+            .select('*')
+            .order('name', { ascending: true })
 
-        if (companiesError) throw companiesError
-        if (companiesData) setCompanies(companiesData)
+          if (companiesError) {
+            console.error('[DataContext] Companies error:', companiesError.message)
+            errors.push(`Companies: ${companiesError.message}`)
+          } else if (companiesData) {
+            console.log('[DataContext] Fetched companies:', companiesData.length)
+            setCompanies(companiesData)
+          }
+        } catch (e) {
+          console.error('[DataContext] Companies fetch failed:', e)
+        }
+
+        if (errors.length > 0) {
+          setError(errors.join('; '))
+        }
+
+        console.log('[DataContext] Data fetch complete')
       } else {
-        // Use demo data
+        console.log('[DataContext] Supabase not configured, using demo data')
         setLeads(demoLeads)
         setCampaigns(demoCampaigns)
         setCompanies(demoCompanies)
       }
     } catch (err) {
-      console.error('Error fetching data:', err)
+      console.error('[DataContext] Error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
-      // Fallback to demo data
-      setLeads(demoLeads)
-      setCampaigns(demoCampaigns)
-      setCompanies(demoCompanies)
     } finally {
       setIsLoading(false)
     }

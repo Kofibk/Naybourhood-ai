@@ -66,6 +66,8 @@ export interface Company {
   id: string
   name?: string
   type?: string
+  website?: string
+  tier?: string
   contact_name?: string
   contact_email?: string
   phone?: string
