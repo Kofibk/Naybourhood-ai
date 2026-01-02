@@ -397,5 +397,17 @@ export async function fetchActiveCampaigns() {
 
 // Check if Airtable is configured
 export function isAirtableConfigured(): boolean {
-  return !!(AIRTABLE_API_KEY && AIRTABLE_BASE_ID)
+  const hasApiKey = !!AIRTABLE_API_KEY
+  const hasBaseId = !!AIRTABLE_BASE_ID
+  const isConfigured = hasApiKey && hasBaseId
+
+  console.log('[Airtable] isAirtableConfigured check:', {
+    hasApiKey,
+    hasBaseId,
+    isConfigured,
+    apiKeyPreview: AIRTABLE_API_KEY ? `${AIRTABLE_API_KEY.substring(0, 8)}...` : 'NOT SET',
+    baseIdPreview: AIRTABLE_BASE_ID || 'NOT SET',
+  })
+
+  return isConfigured
 }

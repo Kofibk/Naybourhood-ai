@@ -46,6 +46,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const isSupabase = isSupabaseConfigured()
   const isAirtable = isAirtableConfigured()
 
+  // Debug: Log configuration status on mount
+  console.log('[DataContext] Configuration status:', { isSupabase, isAirtable })
+
   const refreshData = useCallback(async () => {
     setIsLoading(true)
     setError(null)
