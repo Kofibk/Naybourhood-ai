@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react'
 
 export default function LeadsPage() {
+  const router = useRouter()
   const { leads, isLoading } = useData()
   const [search, setSearch] = useState('')
 
@@ -101,7 +103,8 @@ export default function LeadsPage() {
                   filteredLeads.map((lead) => (
                     <tr
                       key={lead.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/admin/leads/${lead.id}`)}
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-3">

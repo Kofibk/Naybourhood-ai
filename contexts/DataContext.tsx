@@ -38,20 +38,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const supabase = createClient()
         console.log('[DataContext] Fetching data from Supabase...')
 
-        // Fetch buyers - don't throw, just log errors
+        // Fetch buyers with pagination (Supabase default limit is 1000)
         try {
-          const { data: buyersData, error: buyersError } = await supabase
-            .from('buyers')
-            .select('*')
-            .order('created_at', { ascending: false })
+          const allBuyers: Buyer[] = []
+          const pageSize = 1000
+          let page = 0
+          let hasMore = true
 
-          if (buyersError) {
-            console.error('[DataContext] Buyers error:', buyersError.message)
-            errors.push(`Buyers: ${buyersError.message}`)
-          } else if (buyersData) {
-            console.log('[DataContext] Fetched buyers:', buyersData.length)
-            setLeads(buyersData)
+          while (hasMore) {
+            const from = page * pageSize
+            const to = from + pageSize - 1
+
+            const { data: buyersData, error: buyersError } = await supabase
+              .from('buyers')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .range(from, to)
+
+            if (buyersError) {
+              console.error('[DataContext] Buyers error:', buyersError.message)
+              errors.push(`Buyers: ${buyersError.message}`)
+              hasMore = false
+            } else if (buyersData) {
+              allBuyers.push(...buyersData)
+              console.log(`[DataContext] Fetched buyers page ${page + 1}:`, buyersData.length)
+              hasMore = buyersData.length === pageSize
+              page++
+            } else {
+              hasMore = false
+            }
           }
+
+          console.log('[DataContext] Total buyers fetched:', allBuyers.length)
+          setLeads(allBuyers)
         } catch (e) {
           console.error('[DataContext] Buyers fetch failed:', e)
         }

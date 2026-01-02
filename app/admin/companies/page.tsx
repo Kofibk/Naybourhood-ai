@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +10,7 @@ import { formatCurrency } from '@/lib/utils'
 import { Plus, Search, Filter, MoreVertical, Building2 } from 'lucide-react'
 
 export default function CompaniesPage() {
+  const router = useRouter()
   const { companies, isLoading } = useData()
 
   return (
@@ -47,7 +49,11 @@ export default function CompaniesPage() {
           </div>
         ) : (
           companies.map((company) => (
-            <Card key={company.id}>
+            <Card
+              key={company.id}
+              className="cursor-pointer hover:border-primary/50 transition-colors"
+              onClick={() => router.push(`/admin/companies/${company.id}`)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
