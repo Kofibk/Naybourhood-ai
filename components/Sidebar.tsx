@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Logo } from '@/components/Logo'
 import {
   LayoutDashboard,
   Megaphone,
@@ -74,11 +75,8 @@ export function Sidebar({ userType, userName = 'User', onLogout }: SidebarProps)
     <div className="flex flex-col h-full bg-sidebar">
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-            <span className="text-black font-bold text-sm">N</span>
-          </div>
-          <span className="text-sm font-semibold tracking-wide">NAYBOURHOOD</span>
+        <Link href="/">
+          <Logo variant="light" size="sm" />
         </Link>
       </div>
 

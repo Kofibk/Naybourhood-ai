@@ -7,10 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Loader2 } from 'lucide-react'
+import { Logo, LogoIcon } from '@/components/Logo'
+import { Loader2, Mail, CheckCircle } from 'lucide-react'
 
 const demoAccounts = [
-  { email: 'admin@naybourhood.ai', role: 'Admin', path: '/admin' },
+  { email: 'kofi@naybourhood.ai', role: 'Admin', path: '/admin' },
   { email: 'developer@test.com', role: 'Developer', path: '/developer' },
   { email: 'agent@test.com', role: 'Agent', path: '/agent' },
   { email: 'broker@test.com', role: 'Broker', path: '/broker' },
@@ -18,7 +19,7 @@ const demoAccounts = [
 
 // Demo users for login
 const demoUsers: Record<string, { name: string; role: string }> = {
-  'admin@naybourhood.ai': { name: 'Kofi', role: 'admin' },
+  'kofi@naybourhood.ai': { name: 'Kofi', role: 'admin' },
   'developer@test.com': { name: 'John Smith', role: 'developer' },
   'agent@test.com': { name: 'Michael Davies', role: 'agent' },
   'broker@test.com': { name: 'Lisa Green', role: 'broker' },
@@ -26,9 +27,9 @@ const demoUsers: Record<string, { name: string; role: string }> = {
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [magicLinkSent, setMagicLinkSent] = useState(false)
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -37,30 +38,35 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Demo login - store user in localStorage
+      // Simulate magic link sending
+      await new Promise((resolve) => setTimeout(resolve, 1500))
+
+      // For demo purposes, check if it's a known email and auto-login
       const demoUser = demoUsers[email.toLowerCase()]
-      const user = demoUser || {
-        name: email.split('@')[0],
-        role: 'developer',
+
+      if (demoUser) {
+        // Demo: Auto-login for known demo accounts
+        localStorage.setItem(
+          'naybourhood_user',
+          JSON.stringify({
+            id: 'U999',
+            email,
+            name: demoUser.name,
+            role: demoUser.role,
+          })
+        )
+
+        // Route based on role
+        if (demoUser.role === 'admin') router.push('/admin')
+        else if (demoUser.role === 'agent') router.push('/agent')
+        else if (demoUser.role === 'broker') router.push('/broker')
+        else router.push('/developer')
+      } else {
+        // Show magic link sent message for unknown emails
+        setMagicLinkSent(true)
       }
-
-      localStorage.setItem(
-        'naybourhood_user',
-        JSON.stringify({
-          id: 'U999',
-          email,
-          name: user.name,
-          role: user.role,
-        })
-      )
-
-      // Route based on email/role
-      if (email.includes('admin')) router.push('/admin')
-      else if (email.includes('agent')) router.push('/agent')
-      else if (email.includes('broker')) router.push('/broker')
-      else router.push('/developer')
     } catch {
-      setError('Something went wrong')
+      setError('Something went wrong. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -81,15 +87,44 @@ export default function LoginPage() {
     router.push(path)
   }
 
+  if (magicLinkSent) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <LogoIcon className="w-16 h-16 mx-auto" variant="light" />
+          <div className="space-y-2">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="font-display text-2xl font-medium">Check your email</h1>
+            <p className="text-muted-foreground">
+              We&apos;ve sent a magic link to <strong>{email}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Click the link in your email to sign in to your account.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setMagicLinkSent(false)
+              setEmail('')
+            }}
+          >
+            Use a different email
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
-          <Link href="/" className="inline-flex items-center gap-3">
-            <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-xl">N</span>
-            </div>
+          <Link href="/" className="inline-block">
+            <LogoIcon className="w-14 h-14 mx-auto" variant="light" />
           </Link>
           <h1 className="mt-4 font-display text-2xl font-medium">Welcome back</h1>
           <p className="text-sm text-muted-foreground mt-1">
@@ -97,12 +132,12 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Login Form */}
+        {/* Login Form - Magic Link Only */}
         <Card>
           <CardContent className="pt-6">
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Email</label>
+                <label className="text-sm font-medium">Email address</label>
                 <Input
                   type="email"
                   placeholder="you@example.com"
@@ -111,23 +146,18 @@ export default function LoginPage() {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Password</label>
-                <Input
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
               {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full gap-2" disabled={isLoading}>
                 {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : null}
-                Sign In
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="h-4 w-4" />
+                )}
+                Send Magic Link
               </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                We&apos;ll email you a secure link to sign in — no password needed.
+              </p>
             </form>
           </CardContent>
         </Card>
@@ -137,7 +167,7 @@ export default function LoginPage() {
           <CardHeader className="pb-3">
             <CardTitle className="text-sm">Demo Accounts</CardTitle>
             <CardDescription className="text-xs">
-              Click to sign in instantly (any password works)
+              Click to sign in instantly
             </CardDescription>
           </CardHeader>
           <CardContent className="grid grid-cols-2 gap-2">
@@ -161,9 +191,9 @@ export default function LoginPage() {
 
         <p className="text-center text-sm text-muted-foreground">
           Don&apos;t have an account?{' '}
-          <Link href="/login" className="text-primary hover:underline">
+          <a href="mailto:hello@naybourhood.ai" className="text-primary hover:underline">
             Contact sales
-          </Link>
+          </a>
         </p>
       </div>
     </div>

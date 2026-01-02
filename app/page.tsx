@@ -1,9 +1,9 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { Logo, LogoIcon } from '@/components/Logo'
 import {
   ArrowRight,
-  Sparkles,
   Target,
   MessageSquare,
   CheckCircle,
@@ -14,7 +14,6 @@ import {
   Globe,
   Users,
   BadgePercent,
-  UserCheck,
 } from 'lucide-react'
 
 const stats = [
@@ -146,11 +145,8 @@ export default function LandingPage() {
       {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold">N</span>
-            </div>
-            <span className="font-semibold tracking-wide">NAYBOURHOOD</span>
+          <Link href="/">
+            <Logo variant="light" size="md" />
           </Link>
           <nav className="hidden md:flex items-center gap-6">
             <Link
@@ -426,10 +422,8 @@ export default function LandingPage() {
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center">
-                <span className="text-black font-bold text-sm">N</span>
-              </div>
+            <div className="flex items-center gap-3">
+              <LogoIcon className="w-8 h-8" variant="light" />
               <span className="text-sm text-muted-foreground">
                 © 2024 Naybourhood. All rights reserved.
               </span>
