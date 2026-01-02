@@ -77,7 +77,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
                   return null
                 }
                 // Get lead name and split into first/last
-                const leadName = getValue('lead name', 'lead_name', 'name', 'Name', 'full_name', 'Full Name')
+                const leadName = getValue('Lead Name', 'lead name', 'lead_name', 'name', 'Name', 'full_name', 'Full Name')
                 const nameParts = leadName ? leadName.split(' ') : []
                 const derivedFirstName = nameParts[0] || null
                 const derivedLastName = nameParts.slice(1).join(' ') || null
