@@ -29,7 +29,6 @@ import {
 // Admins with billing access - must match Sidebar.tsx
 const BILLING_ACCESS_EMAILS = [
   'kofi@naybourhood.ai',
-  'admin@naybourhood.ai',
 ]
 
 // Pricing configuration

@@ -45,8 +45,6 @@ interface SidebarProps {
 // Admins with billing access - add emails here
 const BILLING_ACCESS_EMAILS = [
   'kofi@naybourhood.ai',
-  'admin@naybourhood.ai',
-  // Add more authorized billing admin emails here
 ]
 
 export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: SidebarProps) {
