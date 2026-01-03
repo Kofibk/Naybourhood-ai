@@ -167,7 +167,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Process CAMPAIGNS
       if (!campaignsResult.error && campaignsResult.data) {
         console.log('[DataContext] Campaigns loaded:', campaignsResult.data.length)
-        setCampaigns(campaignsResult.data)
+        if (campaignsResult.data.length > 0) {
+          console.log('[DataContext] First campaign columns:', Object.keys(campaignsResult.data[0]))
+        }
+        // Map column names - support both Supabase schema names and legacy names
+        const mappedCampaigns = campaignsResult.data.map((c: any) => ({
+          ...c,
+          spend: c.spend || c.ad_spend || c.amount_spent || c['Ad Spend'] || c['Total Spend'] || 0,
+          leads: c.leads || c.lead_count || c['Lead Count'] || c['Leads'] || 0,
+          cpl: c.cpl || c.cost_per_lead || c['CPL'] || c['Cost Per Lead'] || 0,
+        }))
+        setCampaigns(mappedCampaigns)
       } else if (campaignsResult.error) {
         errors.push(`Campaigns: ${campaignsResult.error.message}`)
       }
@@ -595,7 +605,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         'first_name', 'last_name', 'full_name', 'email', 'phone',
         'finance_type', 'loan_amount', 'loan_amount_display',
         'required_by_date', 'message', 'status', 'notes',
-        'assigned_agent', 'date_added', 'updated_at'
+        'assigned_agent', 'company_id', 'date_added', 'updated_at'
       ]
 
       const cleanData: Record<string, any> = {}

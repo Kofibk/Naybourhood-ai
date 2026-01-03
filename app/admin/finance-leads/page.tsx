@@ -142,6 +142,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[140px]' },
   { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[120px]' },
   { key: 'date_added', label: 'Date Added', visible: true, width: 'w-[110px]' },
+  { key: 'company_id', label: 'Broker', visible: true, width: 'w-[130px]' },
   { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'w-[130px]' },
   { key: 'required_by_date', label: 'Required By', visible: false, width: 'w-[120px]' },
   { key: 'message', label: 'Message', visible: false, width: 'w-[250px]' },
@@ -155,7 +156,25 @@ const generateId = () => Math.random().toString(36).substring(2, 9)
 
 export default function FinanceLeadsPage() {
   const router = useRouter()
-  const { financeLeads, isLoading, refreshData } = useData()
+  const { financeLeads, companies, isLoading, refreshData, updateFinanceLead } = useData()
+
+  // Get broker companies only
+  const brokerCompanies = useMemo(() => {
+    return companies.filter(c => c.type === 'broker' || c.type === 'Broker')
+  }, [companies])
+
+  // Helper to get company name by ID
+  const getCompanyName = (companyId?: string) => {
+    if (!companyId) return '-'
+    const company = companies.find(c => c.id === companyId)
+    return company?.name || '-'
+  }
+
+  // Handle assigning broker to finance lead
+  const handleAssignBroker = async (leadId: string, companyId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await updateFinanceLead(leadId, { company_id: companyId || undefined })
+  }
 
   // Search state
   const [search, setSearch] = useState('')
@@ -878,6 +897,29 @@ export default function FinanceLeadsPage() {
                             )}
                             {col.key === 'date_added' && (
                               <span className="text-muted-foreground">{formatDate(lead.date_added)}</span>
+                            )}
+                            {col.key === 'company_id' && (
+                              <select
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs w-full"
+                                value={lead.company_id || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => handleAssignBroker(lead.id, e.target.value, e as any)}
+                              >
+                                <option value="">Unassigned</option>
+                                {brokerCompanies.length > 0 ? (
+                                  brokerCompanies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                      {company.name}
+                                    </option>
+                                  ))
+                                ) : (
+                                  companies.map((company) => (
+                                    <option key={company.id} value={company.id}>
+                                      {company.name}
+                                    </option>
+                                  ))
+                                )}
+                              </select>
                             )}
                             {col.key === 'assigned_agent' && (
                               <span className="truncate">{lead.assigned_agent || '-'}</span>

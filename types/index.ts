@@ -204,6 +204,7 @@ export interface FinanceLead {
   status?: string
   notes?: string
   assigned_agent?: string
+  company_id?: string      // Broker company assignment
   date_added?: string
   created_at?: string
   updated_at?: string

@@ -32,7 +32,19 @@ import {
 export default function FinanceLeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { financeLeads, isLoading, updateFinanceLead } = useData()
+  const { financeLeads, companies, isLoading, updateFinanceLead } = useData()
+
+  // Get broker companies for assignment
+  const brokerCompanies = useMemo(() => {
+    return companies.filter(c => c.type === 'broker' || c.type === 'Broker')
+  }, [companies])
+
+  // Helper to get company name by ID
+  const getCompanyName = (companyId?: string) => {
+    if (!companyId) return 'Unassigned'
+    const company = companies.find(c => c.id === companyId)
+    return company?.name || 'Unassigned'
+  }
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -441,6 +453,29 @@ export default function FinanceLeadDetailPage() {
                 />
               ) : (
                 <span className="text-sm font-medium">{displayData.assigned_agent || 'Unassigned'}</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Broker Company</span>
+              {isEditing ? (
+                <select
+                  value={editData.company_id ?? displayData.company_id ?? ''}
+                  onChange={(e) => updateField('company_id', e.target.value || undefined)}
+                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">Unassigned</option>
+                  {brokerCompanies.length > 0 ? (
+                    brokerCompanies.map((company) => (
+                      <option key={company.id} value={company.id}>{company.name}</option>
+                    ))
+                  ) : (
+                    companies.map((company) => (
+                      <option key={company.id} value={company.id}>{company.name}</option>
+                    ))
+                  )}
+                </select>
+              ) : (
+                <span className="text-sm font-medium">{getCompanyName(displayData.company_id)}</span>
               )}
             </div>
           </CardContent>

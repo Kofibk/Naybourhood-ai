@@ -61,9 +61,22 @@ export function Sidebar({ userType, userName = 'User', onLogout }: SidebarProps)
         { name: 'Settings', icon: Settings, href: '/admin/settings' },
       ]
     }
+    // Broker gets Finance Leads
+    if (userType === 'broker') {
+      return [
+        { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
+        { name: 'Finance Leads', icon: Landmark, href: `${basePath}/finance-leads` },
+        { name: 'Buyers', icon: Users, href: `${basePath}/buyers` },
+        { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
+        { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
+        { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights` },
+        { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
+      ]
+    }
+    // Developer and Agent
     return [
       { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-      { name: 'Buyers', icon: Users, href: `${basePath}/buyers`, badge: 234 },
+      { name: 'Buyers', icon: Users, href: `${basePath}/buyers` },
       { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
       { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
       { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns` },
