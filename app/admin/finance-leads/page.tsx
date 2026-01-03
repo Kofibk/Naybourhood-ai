@@ -176,6 +176,27 @@ export default function FinanceLeadsPage() {
     await updateFinanceLead(leadId, { company_id: companyId || undefined })
   }
 
+  // Bulk assign all unassigned finance leads to a broker
+  const [bulkAssigning, setBulkAssigning] = useState(false)
+  const handleBulkAssignBroker = async (companyId: string) => {
+    if (!companyId) return
+    setBulkAssigning(true)
+    try {
+      const unassignedLeads = financeLeads.filter(lead => !lead.company_id)
+      for (const lead of unassignedLeads) {
+        await updateFinanceLead(lead.id, { company_id: companyId })
+      }
+    } finally {
+      setBulkAssigning(false)
+    }
+  }
+
+  // Count unassigned leads
+  const unassignedCount = useMemo(() =>
+    financeLeads.filter(lead => !lead.company_id).length,
+    [financeLeads]
+  )
+
   // Search state
   const [search, setSearch] = useState('')
 
@@ -510,7 +531,30 @@ export default function FinanceLeadsPage() {
               : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} finance leads`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
+          {unassignedCount > 0 && brokerCompanies.length > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">{unassignedCount} unassigned</span>
+              <select
+                className="h-8 text-xs rounded-md border border-input bg-background px-2"
+                onChange={(e) => {
+                  if (e.target.value) {
+                    handleBulkAssignBroker(e.target.value)
+                    e.target.value = ''
+                  }
+                }}
+                disabled={bulkAssigning}
+                defaultValue=""
+              >
+                <option value="">Bulk Assign to...</option>
+                {brokerCompanies.map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <Button
             variant="outline"
             size="sm"
