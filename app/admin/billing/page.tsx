@@ -12,13 +12,10 @@ import {
   Download,
   FileText,
   TrendingUp,
-  TrendingDown,
   Users,
   DollarSign,
-  Calendar,
   Building2,
   Search,
-  Filter,
   ChevronRight,
   AlertCircle,
   CheckCircle,
@@ -26,128 +23,71 @@ import {
   XCircle,
   RefreshCw,
 } from 'lucide-react'
-import { Company, Invoice } from '@/types'
 
-// Demo billing data - in production this would come from Stripe/database
-const mockSubscriptions: Partial<Company>[] = [
-  {
-    id: '1',
-    name: 'Berkeley Homes',
-    subscription_status: 'active',
-    subscription_tier: 'enterprise',
-    subscription_price: 2499,
-    billing_cycle: 'monthly',
-    next_billing_date: '2024-07-01',
-    total_leads: 245,
-  },
-  {
-    id: '2',
-    name: 'Barratt Developments',
-    subscription_status: 'active',
-    subscription_tier: 'growth',
-    subscription_price: 999,
-    billing_cycle: 'monthly',
-    next_billing_date: '2024-07-15',
-    total_leads: 128,
-  },
-  {
-    id: '3',
-    name: 'Taylor Wimpey',
-    subscription_status: 'trialing',
-    subscription_tier: 'growth',
-    subscription_price: 999,
-    billing_cycle: 'monthly',
-    next_billing_date: '2024-06-30',
-    total_leads: 45,
-  },
-  {
-    id: '4',
-    name: 'Persimmon Homes',
-    subscription_status: 'past_due',
-    subscription_tier: 'starter',
-    subscription_price: 499,
-    billing_cycle: 'monthly',
-    next_billing_date: '2024-06-15',
-    total_leads: 67,
-  },
-  {
-    id: '5',
-    name: 'Redrow',
-    subscription_status: 'active',
-    subscription_tier: 'growth',
-    subscription_price: 9990,
-    billing_cycle: 'annual',
-    next_billing_date: '2025-01-01',
-    total_leads: 189,
-  },
-  {
-    id: '6',
-    name: 'Bellway',
-    subscription_status: 'cancelled',
-    subscription_tier: 'starter',
-    subscription_price: 0,
-    billing_cycle: 'monthly',
-    next_billing_date: undefined,
-    total_leads: 23,
-  },
-]
-
-const mockInvoices: Invoice[] = [
-  { id: 'INV-2024-001', company_id: '1', company_name: 'Berkeley Homes', amount: 2499, status: 'paid', invoice_date: '2024-06-01', paid_date: '2024-06-01' },
-  { id: 'INV-2024-002', company_id: '2', company_name: 'Barratt Developments', amount: 999, status: 'paid', invoice_date: '2024-06-15', paid_date: '2024-06-15' },
-  { id: 'INV-2024-003', company_id: '3', company_name: 'Taylor Wimpey', amount: 0, status: 'pending', invoice_date: '2024-06-30', description: 'Trial ending' },
-  { id: 'INV-2024-004', company_id: '4', company_name: 'Persimmon Homes', amount: 499, status: 'overdue', invoice_date: '2024-06-15', due_date: '2024-06-20' },
-  { id: 'INV-2024-005', company_id: '1', company_name: 'Berkeley Homes', amount: 2499, status: 'paid', invoice_date: '2024-05-01', paid_date: '2024-05-01' },
-  { id: 'INV-2024-006', company_id: '2', company_name: 'Barratt Developments', amount: 999, status: 'paid', invoice_date: '2024-05-15', paid_date: '2024-05-16' },
-  { id: 'INV-2024-007', company_id: '5', company_name: 'Redrow', amount: 9990, status: 'paid', invoice_date: '2024-01-01', paid_date: '2024-01-01', description: 'Annual subscription' },
-]
+// Pricing configuration
+const TIER_PRICES = {
+  starter: 299,
+  access: 499,
+  growth: 899,
+  enterprise: 2499,
+}
 
 export default function BillingPage() {
-  const { companies, isLoading } = useData()
+  const { companies, isLoading, refreshData } = useData()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [invoiceStatusFilter, setInvoiceStatusFilter] = useState<string>('all')
 
-  // Merge real companies with mock subscription data
+  // Use real companies data for billing
   const subscribedCompanies = useMemo(() => {
-    // Use mock data for now - in production, merge with real company data
-    return mockSubscriptions as Company[]
+    return companies.map(company => ({
+      ...company,
+      // Ensure subscription_price is calculated from tier
+      subscription_price: TIER_PRICES[company.subscription_tier as keyof typeof TIER_PRICES] || 0,
+    }))
   }, [companies])
 
-  // Calculate revenue metrics
+  // Calculate revenue metrics from real data
   const metrics = useMemo(() => {
-    const activeSubscriptions = subscribedCompanies.filter(
-      c => c.subscription_status === 'active' || c.subscription_status === 'trialing'
+    const activeCompanies = subscribedCompanies.filter(
+      c => c.subscription_status === 'active' || c.status === 'active'
     )
 
     // Calculate MRR (Monthly Recurring Revenue)
-    const mrr = subscribedCompanies.reduce((sum, c) => {
-      if (c.subscription_status !== 'active') return sum
-      const monthly = c.billing_cycle === 'annual'
-        ? (c.subscription_price || 0) / 12
-        : (c.subscription_price || 0)
-      return sum + monthly
+    const mrr = activeCompanies.reduce((sum, c) => {
+      const price = TIER_PRICES[c.subscription_tier as keyof typeof TIER_PRICES] || 0
+      return sum + price
     }, 0)
 
     // Calculate ARR (Annual Recurring Revenue)
     const arr = mrr * 12
 
     // Count by status
-    const active = subscribedCompanies.filter(c => c.subscription_status === 'active').length
-    const trialing = subscribedCompanies.filter(c => c.subscription_status === 'trialing').length
-    const pastDue = subscribedCompanies.filter(c => c.subscription_status === 'past_due').length
-    const cancelled = subscribedCompanies.filter(c => c.subscription_status === 'cancelled').length
+    const active = subscribedCompanies.filter(c =>
+      c.subscription_status === 'active' || c.status === 'active'
+    ).length
+    const trialing = subscribedCompanies.filter(c =>
+      c.subscription_status === 'trialing'
+    ).length
+    const pastDue = subscribedCompanies.filter(c =>
+      c.subscription_status === 'past_due'
+    ).length
+    const cancelled = subscribedCompanies.filter(c =>
+      c.subscription_status === 'cancelled' || c.status === 'inactive'
+    ).length
 
     // Count by tier
-    const enterprise = subscribedCompanies.filter(c => c.subscription_tier === 'enterprise' && c.subscription_status === 'active').length
-    const growth = subscribedCompanies.filter(c => c.subscription_tier === 'growth' && c.subscription_status === 'active').length
-    const starter = subscribedCompanies.filter(c => c.subscription_tier === 'starter' && c.subscription_status === 'active').length
-
-    // Invoice stats
-    const paidInvoices = mockInvoices.filter(i => i.status === 'paid')
-    const overdueInvoices = mockInvoices.filter(i => i.status === 'overdue')
-    const totalRevenue = paidInvoices.reduce((sum, i) => sum + i.amount, 0)
-    const overdueAmount = overdueInvoices.reduce((sum, i) => sum + i.amount, 0)
+    const enterprise = subscribedCompanies.filter(c =>
+      c.subscription_tier === 'enterprise' && (c.subscription_status === 'active' || c.status === 'active')
+    ).length
+    const growth = subscribedCompanies.filter(c =>
+      c.subscription_tier === 'growth' && (c.subscription_status === 'active' || c.status === 'active')
+    ).length
+    const access = subscribedCompanies.filter(c =>
+      c.subscription_tier === 'access' && (c.subscription_status === 'active' || c.status === 'active')
+    ).length
+    const starter = subscribedCompanies.filter(c =>
+      c.subscription_tier === 'starter' && (c.subscription_status === 'active' || c.status === 'active')
+    ).length
 
     return {
       mrr,
@@ -158,9 +98,8 @@ export default function BillingPage() {
       cancelled,
       enterprise,
       growth,
+      access,
       starter,
-      totalRevenue,
-      overdueAmount,
       totalCustomers: subscribedCompanies.length,
     }
   }, [subscribedCompanies])
@@ -172,25 +111,12 @@ export default function BillingPage() {
         company.name?.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchesStatus = statusFilter === 'all' ||
-        company.subscription_status === statusFilter
+        company.subscription_status === statusFilter ||
+        (statusFilter === 'active' && company.status === 'active')
 
       return matchesSearch && matchesStatus
     })
   }, [subscribedCompanies, searchQuery, statusFilter])
-
-  // Filter invoices
-  const filteredInvoices = useMemo(() => {
-    return mockInvoices.filter(invoice => {
-      const matchesSearch = !searchQuery ||
-        invoice.company_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        invoice.id.toLowerCase().includes(searchQuery.toLowerCase())
-
-      const matchesStatus = invoiceStatusFilter === 'all' ||
-        invoice.status === invoiceStatusFilter
-
-      return matchesSearch && matchesStatus
-    })
-  }, [searchQuery, invoiceStatusFilter])
 
   const getStatusIcon = (status?: string) => {
     switch (status) {
@@ -201,9 +127,10 @@ export default function BillingPage() {
       case 'past_due':
         return <AlertCircle className="h-4 w-4 text-destructive" />
       case 'cancelled':
+      case 'inactive':
         return <XCircle className="h-4 w-4 text-muted-foreground" />
       default:
-        return null
+        return <CheckCircle className="h-4 w-4 text-success" />
     }
   }
 
@@ -216,9 +143,10 @@ export default function BillingPage() {
       case 'past_due':
         return <Badge variant="destructive">Past Due</Badge>
       case 'cancelled':
-        return <Badge variant="secondary">Cancelled</Badge>
+      case 'inactive':
+        return <Badge variant="secondary">Inactive</Badge>
       default:
-        return <Badge variant="muted">None</Badge>
+        return <Badge variant="success">Active</Badge>
     }
   }
 
@@ -228,25 +156,12 @@ export default function BillingPage() {
         return <Badge variant="default" className="bg-purple-600">Enterprise</Badge>
       case 'growth':
         return <Badge variant="default" className="bg-blue-600">Growth</Badge>
+      case 'access':
+        return <Badge variant="default" className="bg-teal-600">Access</Badge>
       case 'starter':
         return <Badge variant="outline">Starter</Badge>
       default:
-        return null
-    }
-  }
-
-  const getInvoiceStatusBadge = (status: string) => {
-    switch (status) {
-      case 'paid':
-        return <Badge variant="success">Paid</Badge>
-      case 'pending':
-        return <Badge variant="warning">Pending</Badge>
-      case 'overdue':
-        return <Badge variant="destructive">Overdue</Badge>
-      case 'failed':
-        return <Badge variant="destructive">Failed</Badge>
-      default:
-        return <Badge variant="muted">{status}</Badge>
+        return <Badge variant="muted">Free</Badge>
     }
   }
 
@@ -265,17 +180,17 @@ export default function BillingPage() {
         <div>
           <h2 className="text-2xl font-bold font-display">Billing & Subscriptions</h2>
           <p className="text-sm text-muted-foreground">
-            Track paying customers, subscriptions, and invoice status
+            Track paying customers and subscription status
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={() => refreshData()}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
           <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Export
-          </Button>
-          <Button>
-            <CreditCard className="h-4 w-4 mr-2" />
-            Stripe Dashboard
           </Button>
         </div>
       </div>
@@ -291,7 +206,7 @@ export default function BillingPage() {
             <p className="text-2xl font-bold">{formatCurrency(metrics.mrr)}</p>
             <div className="flex items-center gap-1 mt-1">
               <TrendingUp className="h-3 w-3 text-success" />
-              <span className="text-xs text-success">+12% vs last month</span>
+              <span className="text-xs text-success">Monthly recurring</span>
             </div>
           </CardContent>
         </Card>
@@ -313,26 +228,26 @@ export default function BillingPage() {
             </div>
             <p className="text-2xl font-bold">{metrics.active}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              +{metrics.trialing} trials
+              {metrics.trialing > 0 ? `+${metrics.trialing} trials` : 'Paying customers'}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="h-4 w-4 text-destructive" />
-              <span className="text-xs text-muted-foreground">At Risk</span>
+              <Building2 className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Total Companies</span>
             </div>
-            <p className="text-2xl font-bold text-destructive">{metrics.pastDue}</p>
+            <p className="text-2xl font-bold">{metrics.totalCustomers}</p>
             <p className="text-xs text-muted-foreground mt-1">
-              {formatCurrency(metrics.overdueAmount)} overdue
+              {metrics.cancelled} inactive
             </p>
           </CardContent>
         </Card>
       </div>
 
       {/* Tier Breakdown */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="border-purple-500/20 bg-purple-500/5">
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -341,7 +256,7 @@ export default function BillingPage() {
                 <p className="text-2xl font-bold">{metrics.enterprise}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Avg. £2,499/mo</p>
+                <p className="text-xs text-muted-foreground">£{TIER_PRICES.enterprise}/mo</p>
               </div>
             </div>
           </CardContent>
@@ -354,7 +269,20 @@ export default function BillingPage() {
                 <p className="text-2xl font-bold">{metrics.growth}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Avg. £999/mo</p>
+                <p className="text-xs text-muted-foreground">£{TIER_PRICES.growth}/mo</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-teal-500/20 bg-teal-500/5">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-teal-400">Access</p>
+                <p className="text-2xl font-bold">{metrics.access}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">£{TIER_PRICES.access}/mo</p>
               </div>
             </div>
           </CardContent>
@@ -367,7 +295,7 @@ export default function BillingPage() {
                 <p className="text-2xl font-bold">{metrics.starter}</p>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Avg. £499/mo</p>
+                <p className="text-xs text-muted-foreground">£{TIER_PRICES.starter}/mo</p>
               </div>
             </div>
           </CardContent>
@@ -379,7 +307,7 @@ export default function BillingPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Subscribers</CardTitle>
+              <CardTitle>Companies</CardTitle>
               <CardDescription>{filteredCompanies.length} companies</CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -401,7 +329,7 @@ export default function BillingPage() {
                 <option value="active">Active</option>
                 <option value="trialing">Trialing</option>
                 <option value="past_due">Past Due</option>
-                <option value="cancelled">Cancelled</option>
+                <option value="inactive">Inactive</option>
               </select>
             </div>
           </div>
@@ -414,18 +342,18 @@ export default function BillingPage() {
                 className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
               >
                 <div className="flex items-center gap-4">
-                  {getStatusIcon(company.subscription_status)}
+                  {getStatusIcon(company.subscription_status || company.status)}
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{company.name}</p>
                       {getTierBadge(company.subscription_tier)}
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <span>{company.total_leads || 0} leads</span>
-                      {company.next_billing_date && (
+                      <span>{company.type}</span>
+                      {company.contact_email && (
                         <>
                           <span>·</span>
-                          <span>Next billing: {company.next_billing_date}</span>
+                          <span>{company.contact_email}</span>
                         </>
                       )}
                     </div>
@@ -434,16 +362,14 @@ export default function BillingPage() {
                 <div className="flex items-center gap-6">
                   <div className="text-right">
                     <p className="font-medium">
-                      {company.subscription_price
-                        ? formatCurrency(company.subscription_price)
+                      {company.subscription_tier
+                        ? formatCurrency(TIER_PRICES[company.subscription_tier as keyof typeof TIER_PRICES] || 0)
                         : '—'
                       }
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {company.billing_cycle === 'annual' ? '/year' : '/month'}
-                    </p>
+                    <p className="text-xs text-muted-foreground">/month</p>
                   </div>
-                  {getStatusBadge(company.subscription_status)}
+                  {getStatusBadge(company.subscription_status || company.status)}
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </div>
               </div>
@@ -457,87 +383,6 @@ export default function BillingPage() {
         </CardContent>
       </Card>
 
-      {/* Invoice History */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Invoice History</CardTitle>
-              <CardDescription>All invoices across customers</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <select
-                value={invoiceStatusFilter}
-                onChange={(e) => setInvoiceStatusFilter(e.target.value)}
-                className="h-9 px-3 rounded-md border border-input bg-background text-sm"
-              >
-                <option value="all">All Invoices</option>
-                <option value="paid">Paid</option>
-                <option value="pending">Pending</option>
-                <option value="overdue">Overdue</option>
-                <option value="failed">Failed</option>
-              </select>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            {filteredInvoices.map((invoice) => (
-              <div
-                key={invoice.id}
-                className="flex items-center justify-between py-3 px-4 rounded-lg hover:bg-muted/30 transition-colors"
-              >
-                <div className="flex items-center gap-4">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium">{invoice.id}</p>
-                      {getInvoiceStatusBadge(invoice.status)}
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-1">
-                      <Building2 className="h-3 w-3" />
-                      <span>{invoice.company_name}</span>
-                      <span>·</span>
-                      <Calendar className="h-3 w-3" />
-                      <span>{invoice.invoice_date}</span>
-                      {invoice.description && (
-                        <>
-                          <span>·</span>
-                          <span>{invoice.description}</span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-medium">{formatCurrency(invoice.amount)}</p>
-                    {invoice.paid_date && (
-                      <p className="text-xs text-muted-foreground">
-                        Paid {invoice.paid_date}
-                      </p>
-                    )}
-                    {invoice.status === 'overdue' && invoice.due_date && (
-                      <p className="text-xs text-destructive">
-                        Due {invoice.due_date}
-                      </p>
-                    )}
-                  </div>
-                  <Button variant="ghost" size="icon">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-            {filteredInvoices.length === 0 && (
-              <p className="text-center text-muted-foreground py-8">
-                No invoices match your filters
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Quick Actions */}
       <Card>
         <CardHeader>
@@ -545,17 +390,17 @@ export default function BillingPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button variant="outline" className="h-auto py-4 flex-col" onClick={() => refreshData()}>
               <RefreshCw className="h-5 w-5 mb-2" />
-              <span className="text-sm">Sync Stripe</span>
+              <span className="text-sm">Refresh Data</span>
+            </Button>
+            <Button variant="outline" className="h-auto py-4 flex-col">
+              <CreditCard className="h-5 w-5 mb-2" />
+              <span className="text-sm">Stripe Dashboard</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col">
               <FileText className="h-5 w-5 mb-2" />
               <span className="text-sm">Create Invoice</span>
-            </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
-              <AlertCircle className="h-5 w-5 mb-2" />
-              <span className="text-sm">Send Reminders</span>
             </Button>
             <Button variant="outline" className="h-auto py-4 flex-col">
               <Download className="h-5 w-5 mb-2" />

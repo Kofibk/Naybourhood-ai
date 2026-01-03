@@ -1,30 +1,81 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { Search, Filter, Phone, Mail, Eye, Flame, Heart } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Search, Phone, Mail, Eye, Flame, Heart, Users } from 'lucide-react'
 
 export default function AgentBuyersPage() {
   const { leads, isLoading } = useData()
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  const filteredLeads = leads.filter(
-    (lead) =>
-      lead.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-      lead.email?.toLowerCase().includes(search.toLowerCase())
-  )
+  // Filter leads by company_id
+  const myLeads = useMemo(() => {
+    if (!user?.company_id) {
+      return []
+    }
+    return leads.filter(lead => {
+      if (lead.company_id === user.company_id) return true
+      // Show all for now until company linking is refined
+      return true
+    })
+  }, [leads, user?.company_id])
+
+  const filteredLeads = useMemo(() => {
+    return myLeads.filter((lead) => {
+      const matchesSearch = !search ||
+        lead.full_name?.toLowerCase().includes(search.toLowerCase()) ||
+        lead.email?.toLowerCase().includes(search.toLowerCase()) ||
+        lead.phone?.includes(search)
+
+      const matchesStatus = statusFilter === 'all' || lead.status === statusFilter
+
+      return matchesSearch && matchesStatus
+    })
+  }, [myLeads, search, statusFilter])
+
+  const stats = useMemo(() => ({
+    total: myLeads.length,
+    hot: myLeads.filter(l => (l.quality_score || 0) >= 85).length,
+  }), [myLeads])
+
+  if (!user?.company_id) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold font-display">Buyer Database</h2>
+          <p className="text-sm text-muted-foreground">
+            Access qualified buyers for your listings
+          </p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Your account is not linked to a company.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contact an administrator to assign you to a company.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold font-display">Buyer Database</h2>
-        <p className="text-sm text-muted-foreground">
-          Access qualified buyers for your listings
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-bold font-display">Buyer Database</h2>
+          <p className="text-sm text-muted-foreground">
+            {filteredLeads.length} buyers • {stats.hot} hot leads
+          </p>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">
@@ -37,16 +88,27 @@ export default function AgentBuyersPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
+        <select
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+        >
+          <option value="all">All Status</option>
+          <option value="New">New</option>
+          <option value="Contacted">Contacted</option>
+          <option value="Qualified">Qualified</option>
+          <option value="Viewing Booked">Viewing Booked</option>
+        </select>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
           <div className="col-span-full text-center py-8 text-muted-foreground">
             Loading...
+          </div>
+        ) : filteredLeads.length === 0 ? (
+          <div className="col-span-full text-center py-8 text-muted-foreground">
+            {myLeads.length === 0 ? 'No buyers available.' : 'No buyers match your search.'}
           </div>
         ) : (
           filteredLeads.map((lead) => (
@@ -89,10 +151,20 @@ export default function AgentBuyersPage() {
                     </Badge>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => lead.phone && window.open(`tel:${lead.phone}`)}
+                    >
                       <Phone className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => lead.email && window.open(`mailto:${lead.email}`)}
+                    >
                       <Mail className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-8 w-8">

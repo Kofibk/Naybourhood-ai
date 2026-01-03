@@ -44,6 +44,7 @@ export interface Buyer {
   assigned_user?: string
   assigned_user_name?: string
   assigned_at?: string
+  company_id?: string  // Company UUID for data filtering
 }
 
 export interface AppUser {
