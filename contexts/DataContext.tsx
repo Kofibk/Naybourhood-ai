@@ -64,18 +64,82 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // BUYERS: Fetch from Supabase (primary) - Airtable disabled for reliability
       const buyersFetch = async () => {
         if (isSupabase) {
-          console.log('[DataContext] Fetching buyers from Supabase...')
+          console.log('[DataContext] Fetching ALL buyers from Supabase...')
           const supabase = createClient()
-          const { data, error } = await supabase
-            .from('buyers')
-            .select('*')
-            .order('created_at', { ascending: false })
-          if (error) {
-            console.error('[DataContext] Supabase buyers error:', error.message)
-            errors.push(`Buyers: ${error.message}`)
-          } else if (data && data.length > 0) {
-            console.log('[DataContext] Fetched buyers from Supabase:', data.length)
-            setLeads(data)
+
+          // Fetch ALL rows using pagination (Supabase defaults to 1000)
+          let allBuyers: any[] = []
+          let from = 0
+          const batchSize = 1000
+          let hasMore = true
+
+          while (hasMore) {
+            const { data, error } = await supabase
+              .from('buyers')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .range(from, from + batchSize - 1)
+
+            if (error) {
+              console.error('[DataContext] Supabase buyers error:', error.message)
+              errors.push(`Buyers: ${error.message}`)
+              hasMore = false
+            } else if (data && data.length > 0) {
+              allBuyers = [...allBuyers, ...data]
+              from += batchSize
+              hasMore = data.length === batchSize
+              console.log(`[DataContext] Fetched batch: ${data.length} buyers (total: ${allBuyers.length})`)
+            } else {
+              hasMore = false
+            }
+          }
+
+          if (allBuyers.length > 0) {
+            // Log first record to see actual column names
+            console.log('[DataContext] First buyer columns:', Object.keys(allBuyers[0]))
+
+            // Map Airtable CSV column names to frontend expected names
+            const mappedBuyers = allBuyers.map((b: any) => ({
+              id: b.id,
+              // Name - try multiple column names
+              full_name: b.full_name || b['Lead Name'] || b['lead name'] || b.name || 'Unknown',
+              first_name: b.first_name || b['First Name'],
+              last_name: b.last_name || b['Last Name'],
+              // Contact
+              email: b.email || b['Email'] || b['email'],
+              phone: b.phone || b['phone number'] || b['Phone Number'] || b['Phone'],
+              // Budget - from "budget range" column
+              budget: b.budget || b['budget range'] || b['Budget Range'] || b['Budget'],
+              budget_min: b.budget_min,
+              budget_max: b.budget_max,
+              // Property requirements
+              bedrooms: b.bedrooms || b['preferred bedrooms'] || b['Preferred Bedrooms'],
+              location: b.location || b['preferred location'] || b['Preferred Location'] || b.area,
+              area: b.area || b['preferred location'] || b['Preferred Location'],
+              timeline: b.timeline || b['timeline to purchase'] || b['Timeline to Purchase'],
+              // Source tracking
+              source: b.source || b['source platform'] || b['Source Platform'] || b['Source'],
+              campaign: b.campaign || b['development'] || b['Development'] || b['Campaign'],
+              // Status
+              status: b.status || b['Status'] || 'New',
+              quality_score: b.quality_score || b['Quality Score'] || 0,
+              intent_score: b.intent_score || b['Intent Score'] || 0,
+              // Financial
+              payment_method: b.payment_method || b['cash or mortgage'] || b['Cash or Mortgage'],
+              mortgage_status: b.mortgage_status || b['manual update'] || b['Manual Update'],
+              proof_of_funds: b.proof_of_funds,
+              uk_broker: b.uk_broker,
+              uk_solicitor: b.uk_solicitor,
+              // Dates
+              created_at: b.created_at || b['date added'] || b['Date Added'],
+              updated_at: b.updated_at,
+              notes: b.notes || b['Notes'],
+              // Pass through ALL other fields
+              ...b,
+            }))
+
+            console.log('[DataContext] Total buyers fetched:', mappedBuyers.length)
+            setLeads(mappedBuyers)
           } else {
             console.log('[DataContext] No buyers in Supabase')
           }
