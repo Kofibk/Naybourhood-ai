@@ -77,7 +77,7 @@ function AnimatedNumber({
 }
 
 export default function AdminDashboard() {
-  const { leads, campaigns, companies, isLoading, isSupabase, error, refreshData } = useData()
+  const { leads, campaigns, companies, isLoading, error, refreshData } = useData()
   const [user, setUser] = useState<{ name?: string }>({})
 
   useEffect(() => {
@@ -213,10 +213,10 @@ export default function AdminDashboard() {
               Campaigns: {campaigns.length} · Leads: {leads.length} · Companies: {companies.length}
             </p>
             <Badge
-              variant={isSupabase ? 'success' : 'destructive'}
+              variant={!error ? 'success' : 'destructive'}
               className="text-[10px]"
             >
-              {isSupabase ? 'Live Data' : 'Not Connected'}
+              {!error ? 'Supabase Connected' : 'Connection Error'}
             </Badge>
             {error && (
               <Badge variant="destructive" className="text-[10px]">

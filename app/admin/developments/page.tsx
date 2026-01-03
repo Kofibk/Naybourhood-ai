@@ -214,7 +214,7 @@ export default function DevelopmentsPage() {
         ) : filteredDevelopments.length === 0 ? (
           <div className="col-span-full text-center py-8 text-muted-foreground">
             {developments.length === 0
-              ? 'No developments found in Airtable'
+              ? 'No developments found'
               : 'No developments match your search'}
           </div>
         ) : (

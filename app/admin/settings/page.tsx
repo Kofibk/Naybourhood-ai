@@ -36,7 +36,7 @@ import {
 } from 'lucide-react'
 
 export default function SettingsPage() {
-  const { isLoading, isSupabase, isAirtable, leads, campaigns, companies, developments } = useData()
+  const { isLoading, leads, campaigns, companies, developments } = useData()
   const [activeTab, setActiveTab] = useState<'general' | 'integrations' | 'scoring' | 'notifications' | 'api'>('general')
   const [showApiKey, setShowApiKey] = useState(false)
 
@@ -47,9 +47,9 @@ export default function SettingsPage() {
       totalCampaigns: campaigns.length,
       totalCompanies: companies.length,
       totalDevelopments: developments.length,
-      dataSource: isAirtable ? 'Airtable' : isSupabase ? 'Supabase' : 'Demo Data',
+      dataSource: 'Supabase',
     }
-  }, [leads, campaigns, companies, developments, isAirtable, isSupabase])
+  }, [leads, campaigns, companies, developments])
 
   // Lead scoring thresholds (would be saved to database)
   const [scoringConfig, setScoringConfig] = useState({
@@ -76,15 +76,8 @@ export default function SettingsPage() {
       name: 'Supabase',
       description: 'Database, Auth & Realtime',
       icon: Database,
-      status: isSupabase ? 'connected' : 'disconnected',
+      status: 'connected',
       env: ['NEXT_PUBLIC_SUPABASE_URL', 'NEXT_PUBLIC_SUPABASE_ANON_KEY'],
-    },
-    {
-      name: 'Airtable',
-      description: 'Alternative database',
-      icon: Database,
-      status: isAirtable ? 'connected' : 'disconnected',
-      env: ['NEXT_PUBLIC_AIRTABLE_API_KEY', 'NEXT_PUBLIC_AIRTABLE_BASE_ID'],
     },
     {
       name: 'Stripe',
@@ -421,30 +414,30 @@ export default function SettingsPage() {
                 <RefreshCw className="h-5 w-5" />
                 Data Synchronization
               </CardTitle>
-              <CardDescription>Configure data sync between sources</CardDescription>
+              <CardDescription>Configure data sync settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
                 <div>
-                  <div className="font-medium">Auto-sync from Airtable</div>
+                  <div className="font-medium">Real-time sync</div>
                   <div className="text-sm text-muted-foreground">
-                    Sync data every 5 minutes
+                    Supabase realtime subscriptions enabled
                   </div>
                 </div>
                 <Button variant="outline" size="sm">Enabled</Button>
               </div>
               <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
                 <div>
-                  <div className="font-medium">Two-way sync</div>
+                  <div className="font-medium">Auto-refresh</div>
                   <div className="text-sm text-muted-foreground">
-                    Changes in Naybourhood update Airtable
+                    Dashboard data refreshes automatically
                   </div>
                 </div>
                 <Button variant="outline" size="sm">Enabled</Button>
               </div>
               <Button variant="outline">
                 <RefreshCw className="h-4 w-4 mr-2" />
-                Force Sync Now
+                Refresh Data Now
               </Button>
             </CardContent>
           </Card>
