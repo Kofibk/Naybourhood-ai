@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
 import {
   ArrowLeft,
@@ -22,6 +23,10 @@ import {
   MessageSquare,
   FileText,
   Clock,
+  PoundSterling,
+  Briefcase,
+  Building2,
+  UserCheck,
 } from 'lucide-react'
 
 export default function FinanceLeadDetailPage() {
@@ -114,6 +119,7 @@ export default function FinanceLeadDetailPage() {
   }
 
   const STATUS_OPTIONS = ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed']
+  const FINANCE_TYPE_OPTIONS = ['Bridging Finance', 'Development Finance', 'Residential', 'Buy to let', 'Other']
 
   // Calculate days until required
   const getDaysUntilRequired = () => {
@@ -215,25 +221,38 @@ export default function FinanceLeadDetailPage() {
       </div>
 
       {/* Key Info Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Finance Type</span>
+            </div>
+            <Badge variant="outline" className="text-xs">
+              {displayData.finance_type || 'N/A'}
+            </Badge>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex items-center gap-2 mb-1">
+              <PoundSterling className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Loan Amount</span>
+            </div>
+            <p className="text-xl font-bold">
+              {displayData.loan_amount_display || (displayData.loan_amount ? formatCurrency(displayData.loan_amount) : 'N/A')}
+            </p>
+          </CardContent>
+        </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Calendar className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Required By</span>
             </div>
-            {isEditing ? (
-              <Input
-                type="date"
-                value={editData.required_by_date ?? displayData.required_by_date ?? ''}
-                onChange={(e) => updateField('required_by_date', e.target.value)}
-                className="h-8"
-              />
-            ) : (
-              <p className="text-xl font-bold">
-                {formatDate(displayData.required_by_date)}
-              </p>
-            )}
+            <p className="text-sm font-bold">
+              {formatDate(displayData.required_by_date)}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -242,34 +261,34 @@ export default function FinanceLeadDetailPage() {
               <Clock className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Days Until Required</span>
             </div>
-            <p className={`text-xl font-bold ${
+            <p className={`text-sm font-bold ${
               daysUntil !== null && daysUntil < 0 ? 'text-destructive' :
               daysUntil !== null && daysUntil <= 7 ? 'text-warning' :
               'text-success'
             }`}>
-              {daysUntil !== null ? (daysUntil < 0 ? `${Math.abs(daysUntil)} days overdue` : `${daysUntil} days`) : 'N/A'}
+              {daysUntil !== null ? (daysUntil < 0 ? `${Math.abs(daysUntil)} overdue` : `${daysUntil} days`) : 'N/A'}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Mail className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Email</span>
+              <UserCheck className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Assigned Agent</span>
             </div>
-            <p className="text-sm font-medium truncate" title={displayData.email}>
-              {displayData.email || 'N/A'}
+            <p className="text-sm font-medium truncate" title={displayData.assigned_agent}>
+              {displayData.assigned_agent || 'Unassigned'}
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Phone</span>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Date Added</span>
             </div>
             <p className="text-sm font-medium">
-              {displayData.phone || 'N/A'}
+              {formatDate(displayData.date_added)}
             </p>
           </CardContent>
         </Card>
@@ -354,6 +373,66 @@ export default function FinanceLeadDetailPage() {
                 />
               ) : (
                 <span className="text-sm font-medium">{formatDate(displayData.required_by_date)}</span>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Finance Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Building2 className="h-4 w-4" />
+              Finance Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Finance Type</span>
+              {isEditing ? (
+                <select
+                  value={editData.finance_type ?? displayData.finance_type ?? ''}
+                  onChange={(e) => updateField('finance_type', e.target.value)}
+                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">Select...</option>
+                  {FINANCE_TYPE_OPTIONS.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              ) : (
+                <Badge variant="outline">{displayData.finance_type || 'N/A'}</Badge>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Loan Amount</span>
+              {isEditing ? (
+                <Input
+                  type="number"
+                  value={editData.loan_amount ?? displayData.loan_amount ?? ''}
+                  onChange={(e) => updateField('loan_amount', parseFloat(e.target.value) || 0)}
+                  className="max-w-[150px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">
+                  {displayData.loan_amount_display || (displayData.loan_amount ? formatCurrency(displayData.loan_amount) : 'N/A')}
+                </span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Date Added</span>
+              <span className="text-sm font-medium">{formatDate(displayData.date_added)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Assigned Agent</span>
+              {isEditing ? (
+                <Input
+                  value={editData.assigned_agent ?? displayData.assigned_agent ?? ''}
+                  onChange={(e) => updateField('assigned_agent', e.target.value)}
+                  className="max-w-[150px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.assigned_agent || 'Unassigned'}</span>
               )}
             </div>
           </CardContent>

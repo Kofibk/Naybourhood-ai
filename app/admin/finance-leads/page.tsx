@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
 import {
   Search,
@@ -32,9 +33,9 @@ import {
   Clock,
 } from 'lucide-react'
 
-type SortField = 'full_name' | 'email' | 'phone' | 'required_by_date' | 'message' | 'status' | 'notes' | 'created_at'
+type SortField = 'full_name' | 'email' | 'phone' | 'finance_type' | 'loan_amount' | 'required_by_date' | 'message' | 'status' | 'notes' | 'assigned_agent' | 'date_added' | 'created_at'
 type SortDirection = 'asc' | 'desc'
-type GroupBy = 'none' | 'status'
+type GroupBy = 'none' | 'status' | 'finance_type' | 'assigned_agent'
 
 // Filter types for Airtable-style filtering
 type FilterOperator =
@@ -53,7 +54,7 @@ type FilterOperator =
   | 'is_any_of'
   | 'is_none_of'
 
-type FilterFieldType = 'text' | 'select' | 'date'
+type FilterFieldType = 'text' | 'select' | 'date' | 'currency'
 
 interface FilterField {
   key: string
@@ -81,10 +82,14 @@ const FILTER_FIELDS: FilterField[] = [
   { key: 'full_name', label: 'Name', type: 'text' },
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'phone', label: 'Phone', type: 'text' },
+  { key: 'finance_type', label: 'Finance Type', type: 'select', options: ['Bridging Finance', 'Development Finance', 'Residential', 'Buy to let', 'Other'] },
+  { key: 'loan_amount', label: 'Loan Amount', type: 'currency' },
   { key: 'required_by_date', label: 'Required By', type: 'date' },
   { key: 'message', label: 'Message', type: 'text' },
   { key: 'status', label: 'Status', type: 'select', options: ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed'] },
   { key: 'notes', label: 'Notes', type: 'text' },
+  { key: 'assigned_agent', label: 'Assigned Agent', type: 'text' },
+  { key: 'date_added', label: 'Date Added', type: 'date' },
   { key: 'created_at', label: 'Created Date', type: 'date' },
 ]
 
@@ -118,16 +123,30 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
     { value: 'is_empty', label: 'is empty' },
     { value: 'is_not_empty', label: 'is not empty' },
   ],
+  currency: [
+    { value: 'equals', label: '=' },
+    { value: 'not_equals', label: '≠' },
+    { value: 'greater_than', label: '>' },
+    { value: 'less_than', label: '<' },
+    { value: 'greater_or_equal', label: '≥' },
+    { value: 'less_or_equal', label: '≤' },
+    { value: 'is_empty', label: 'is empty' },
+    { value: 'is_not_empty', label: 'is not empty' },
+  ],
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'full_name', label: 'Name', visible: true, width: 'w-[180px]' },
   { key: 'email', label: 'Email', visible: true, width: 'w-[200px]' },
   { key: 'phone', label: 'Phone', visible: true, width: 'w-[130px]' },
-  { key: 'required_by_date', label: 'Required By', visible: true, width: 'w-[120px]' },
-  { key: 'message', label: 'Message', visible: true, width: 'w-[250px]' },
+  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[140px]' },
+  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[120px]' },
+  { key: 'date_added', label: 'Date Added', visible: true, width: 'w-[110px]' },
+  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'w-[130px]' },
+  { key: 'required_by_date', label: 'Required By', visible: false, width: 'w-[120px]' },
+  { key: 'message', label: 'Message', visible: false, width: 'w-[250px]' },
   { key: 'status', label: 'Status', visible: true, width: 'w-[140px]' },
-  { key: 'notes', label: 'Notes', visible: true, width: 'w-[200px]' },
+  { key: 'notes', label: 'Notes', visible: false, width: 'w-[200px]' },
   { key: 'created_at', label: 'Created', visible: false, width: 'w-[100px]' },
 ]
 
@@ -241,20 +260,32 @@ export default function FinanceLeadsPage() {
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) > new Date(condition.value as string)
         }
+        if (fieldConfig.type === 'currency') {
+          return Number(rawValue) > Number(condition.value)
+        }
         return false
       case 'less_than':
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) < new Date(condition.value as string)
+        }
+        if (fieldConfig.type === 'currency') {
+          return Number(rawValue) < Number(condition.value)
         }
         return false
       case 'greater_or_equal':
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) >= new Date(condition.value as string)
         }
+        if (fieldConfig.type === 'currency') {
+          return Number(rawValue) >= Number(condition.value)
+        }
         return false
       case 'less_or_equal':
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) <= new Date(condition.value as string)
+        }
+        if (fieldConfig.type === 'currency') {
+          return Number(rawValue) <= Number(condition.value)
         }
         return false
       case 'is_any_of':
@@ -305,9 +336,15 @@ export default function FinanceLeadsPage() {
       let bVal: any = (b as any)[sortField]
 
       // Handle date strings
-      if (sortField === 'created_at' || sortField === 'required_by_date') {
+      if (sortField === 'created_at' || sortField === 'required_by_date' || sortField === 'date_added') {
         aVal = aVal ? new Date(aVal).getTime() : 0
         bVal = bVal ? new Date(bVal).getTime() : 0
+      }
+
+      // Handle numeric fields
+      if (sortField === 'loan_amount') {
+        aVal = aVal || 0
+        bVal = bVal || 0
       }
 
       // Handle strings
@@ -568,6 +605,8 @@ export default function FinanceLeadsPage() {
             >
               <option value="none">No Grouping</option>
               <option value="status">Group by Status</option>
+              <option value="finance_type">Group by Finance Type</option>
+              <option value="assigned_agent">Group by Agent</option>
             </select>
           </div>
         </div>
@@ -687,6 +726,14 @@ export default function FinanceLeadsPage() {
                             <Input
                               type="date"
                               className="w-[160px]"
+                              value={condition.value as string}
+                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                            />
+                          ) : fieldConfig?.type === 'currency' ? (
+                            <Input
+                              type="number"
+                              className="w-[150px]"
+                              placeholder="£ Amount"
                               value={condition.value as string}
                               onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
                             />
@@ -818,6 +865,22 @@ export default function FinanceLeadsPage() {
                             )}
                             {col.key === 'phone' && (
                               <span className="truncate">{lead.phone || '-'}</span>
+                            )}
+                            {col.key === 'finance_type' && (
+                              <Badge variant="outline" className="text-[10px]">
+                                {lead.finance_type || '-'}
+                              </Badge>
+                            )}
+                            {col.key === 'loan_amount' && (
+                              <span className="font-medium">
+                                {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount) : '-')}
+                              </span>
+                            )}
+                            {col.key === 'date_added' && (
+                              <span className="text-muted-foreground">{formatDate(lead.date_added)}</span>
+                            )}
+                            {col.key === 'assigned_agent' && (
+                              <span className="truncate">{lead.assigned_agent || '-'}</span>
                             )}
                             {col.key === 'required_by_date' && (
                               <span className="text-muted-foreground">{formatDate(lead.required_by_date)}</span>

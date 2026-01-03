@@ -195,10 +195,15 @@ export interface FinanceLead {
   last_name?: string
   email?: string
   phone?: string
+  finance_type?: string
+  loan_amount?: number
+  loan_amount_display?: string
   required_by_date?: string
   message?: string
   status?: string
   notes?: string
+  assigned_agent?: string
+  date_added?: string
   created_at?: string
   updated_at?: string
 }
