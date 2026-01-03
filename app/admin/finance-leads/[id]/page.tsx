@@ -7,28 +7,21 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
 import {
   ArrowLeft,
   Phone,
   Mail,
-  MessageCircle,
   User,
-  Flame,
-  Target,
   Edit,
   Save,
   X,
-  Trash2,
   CheckCircle,
   AlertCircle,
-  PoundSterling,
-  Percent,
-  CreditCard,
-  Briefcase,
-  Building,
+  Calendar,
+  MessageSquare,
   FileText,
+  Clock,
 } from 'lucide-react'
 
 export default function FinanceLeadDetailPage() {
@@ -99,27 +92,6 @@ export default function FinanceLeadDetailPage() {
 
   const displayData = isEditing ? { ...lead, ...editData } : lead
 
-  const getScoreColor = (score: number | undefined) => {
-    if (!score) return 'text-muted-foreground'
-    if (score >= 80) return 'text-orange-500'
-    if (score >= 60) return 'text-success'
-    return 'text-muted-foreground'
-  }
-
-  const getCreditColor = (score: number | undefined) => {
-    if (!score) return 'text-muted-foreground'
-    if (score >= 750) return 'text-success'
-    if (score >= 650) return 'text-warning'
-    return 'text-destructive'
-  }
-
-  const getLTVColor = (ltv: number | undefined) => {
-    if (!ltv) return 'text-muted-foreground'
-    if (ltv <= 60) return 'text-success'
-    if (ltv <= 80) return 'text-warning'
-    return 'text-destructive'
-  }
-
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
     return new Date(dateString).toLocaleDateString('en-GB', {
@@ -129,9 +101,30 @@ export default function FinanceLeadDetailPage() {
     })
   }
 
-  const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Application', 'Approved', 'Completed', 'Declined', 'Lost']
-  const LOAN_TYPES = ['Purchase', 'Remortgage', 'Buy to Let', 'Bridging', 'Commercial', 'Development']
-  const EMPLOYMENT_OPTIONS = ['Employed', 'Self-Employed', 'Director', 'Contractor', 'Retired', 'Unemployed']
+  const getStatusColor = (status?: string) => {
+    switch (status) {
+      case 'Contact Pending': return 'warning'
+      case 'Follow-up': return 'default'
+      case 'Awaiting Documents': return 'secondary'
+      case 'Not Proceeding': return 'destructive'
+      case 'Duplicate': return 'muted'
+      case 'Completed': return 'success'
+      default: return 'outline'
+    }
+  }
+
+  const STATUS_OPTIONS = ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed']
+
+  // Calculate days until required
+  const getDaysUntilRequired = () => {
+    if (!displayData.required_by_date) return null
+    const required = new Date(displayData.required_by_date)
+    const today = new Date()
+    const diff = Math.ceil((required.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+    return diff
+  }
+
+  const daysUntil = getDaysUntilRequired()
 
   return (
     <div className="space-y-6">
@@ -169,12 +162,9 @@ export default function FinanceLeadDetailPage() {
                   {displayData.full_name || `${displayData.first_name || ''} ${displayData.last_name || ''}`.trim() || 'Unknown'}
                 </h1>
               )}
-              {(displayData.quality_score || 0) >= 80 && (
-                <Flame className="h-5 w-5 text-orange-500" />
-              )}
               {isEditing ? (
                 <select
-                  value={editData.status || displayData.status || 'New'}
+                  value={editData.status || displayData.status || 'Contact Pending'}
                   onChange={(e) => updateField('status', e.target.value)}
                   className="px-2 py-1 rounded-md border border-input bg-background text-sm"
                 >
@@ -183,8 +173,8 @@ export default function FinanceLeadDetailPage() {
                   ))}
                 </select>
               ) : (
-                <Badge variant={displayData.status === 'Approved' ? 'success' : displayData.status === 'Declined' ? 'destructive' : 'outline'}>
-                  {displayData.status || 'New'}
+                <Badge variant={getStatusColor(displayData.status) as any}>
+                  {displayData.status || 'Unknown'}
                 </Badge>
               )}
             </div>
@@ -224,24 +214,24 @@ export default function FinanceLeadDetailPage() {
         </div>
       </div>
 
-      {/* Key Finance Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* Key Info Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Loan Amount</span>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Required By</span>
             </div>
             {isEditing ? (
               <Input
-                type="number"
-                value={editData.loan_amount ?? displayData.loan_amount ?? 0}
-                onChange={(e) => updateField('loan_amount', parseInt(e.target.value) || 0)}
-                className="text-xl font-bold h-auto py-1"
+                type="date"
+                value={editData.required_by_date ?? displayData.required_by_date ?? ''}
+                onChange={(e) => updateField('required_by_date', e.target.value)}
+                className="h-8"
               />
             ) : (
-              <p className="text-2xl font-bold">
-                {displayData.loan_amount ? formatCurrency(displayData.loan_amount) : 'N/A'}
+              <p className="text-xl font-bold">
+                {formatDate(displayData.required_by_date)}
               </p>
             )}
           </CardContent>
@@ -249,85 +239,38 @@ export default function FinanceLeadDetailPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Building className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Property Value</span>
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Days Until Required</span>
             </div>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={editData.property_value ?? displayData.property_value ?? 0}
-                onChange={(e) => updateField('property_value', parseInt(e.target.value) || 0)}
-                className="text-xl font-bold h-auto py-1"
-              />
-            ) : (
-              <p className="text-2xl font-bold">
-                {displayData.property_value ? formatCurrency(displayData.property_value) : 'N/A'}
-              </p>
-            )}
+            <p className={`text-xl font-bold ${
+              daysUntil !== null && daysUntil < 0 ? 'text-destructive' :
+              daysUntil !== null && daysUntil <= 7 ? 'text-warning' :
+              'text-success'
+            }`}>
+              {daysUntil !== null ? (daysUntil < 0 ? `${Math.abs(daysUntil)} days overdue` : `${daysUntil} days`) : 'N/A'}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Percent className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">LTV</span>
+              <Mail className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Email</span>
             </div>
-            {isEditing ? (
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={editData.ltv ?? displayData.ltv ?? 0}
-                onChange={(e) => updateField('ltv', parseInt(e.target.value) || 0)}
-                className="text-xl font-bold h-auto py-1"
-              />
-            ) : (
-              <p className={`text-2xl font-bold ${getLTVColor(displayData.ltv)}`}>
-                {displayData.ltv ? `${displayData.ltv}%` : 'N/A'}
-              </p>
-            )}
+            <p className="text-sm font-medium truncate" title={displayData.email}>
+              {displayData.email || 'N/A'}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <CreditCard className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Credit Score</span>
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Phone</span>
             </div>
-            {isEditing ? (
-              <Input
-                type="number"
-                value={editData.credit_score ?? displayData.credit_score ?? 0}
-                onChange={(e) => updateField('credit_score', parseInt(e.target.value) || 0)}
-                className="text-xl font-bold h-auto py-1"
-              />
-            ) : (
-              <p className={`text-2xl font-bold ${getCreditColor(displayData.credit_score)}`}>
-                {displayData.credit_score || 'N/A'}
-              </p>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Target className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Quality Score</span>
-            </div>
-            {isEditing ? (
-              <Input
-                type="number"
-                min="0"
-                max="100"
-                value={editData.quality_score ?? displayData.quality_score ?? 0}
-                onChange={(e) => updateField('quality_score', parseInt(e.target.value) || 0)}
-                className="text-xl font-bold h-auto py-1"
-              />
-            ) : (
-              <p className={`text-2xl font-bold ${getScoreColor(displayData.quality_score)}`}>
-                {displayData.quality_score || 0}
-              </p>
-            )}
+            <p className="text-sm font-medium">
+              {displayData.phone || 'N/A'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -342,6 +285,20 @@ export default function FinanceLeadDetailPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Full Name</span>
+              {isEditing ? (
+                <Input
+                  value={editData.full_name ?? displayData.full_name ?? ''}
+                  onChange={(e) => updateField('full_name', e.target.value)}
+                  className="max-w-[200px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">
+                  {displayData.full_name || `${displayData.first_name || ''} ${displayData.last_name || ''}`.trim() || 'N/A'}
+                </span>
+              )}
+            </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Email</span>
               {isEditing ? (
@@ -369,150 +326,99 @@ export default function FinanceLeadDetailPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Source</span>
-              {isEditing ? (
-                <Input
-                  value={editData.source ?? displayData.source ?? ''}
-                  onChange={(e) => updateField('source', e.target.value)}
-                  className="max-w-[200px] h-8"
-                />
-              ) : (
-                <Badge variant="outline">{displayData.source || 'N/A'}</Badge>
-              )}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Campaign</span>
-              {isEditing ? (
-                <Input
-                  value={editData.campaign ?? displayData.campaign ?? ''}
-                  onChange={(e) => updateField('campaign', e.target.value)}
-                  className="max-w-[200px] h-8"
-                />
-              ) : (
-                <span className="text-sm font-medium">{displayData.campaign || 'N/A'}</span>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Loan Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Loan Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Loan Type</span>
+              <span className="text-sm text-muted-foreground">Status</span>
               {isEditing ? (
                 <select
-                  value={editData.loan_type ?? displayData.loan_type ?? ''}
-                  onChange={(e) => updateField('loan_type', e.target.value)}
+                  value={editData.status ?? displayData.status ?? ''}
+                  onChange={(e) => updateField('status', e.target.value)}
                   className="px-2 py-1 rounded-md border border-input bg-background text-sm"
                 >
-                  <option value="">Select...</option>
-                  {LOAN_TYPES.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              ) : (
-                <Badge variant="secondary">{displayData.loan_type || 'N/A'}</Badge>
-              )}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Loan Amount</span>
-              <span className="text-sm font-medium">
-                {displayData.loan_amount ? formatCurrency(displayData.loan_amount) : 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Property Value</span>
-              <span className="text-sm font-medium">
-                {displayData.property_value ? formatCurrency(displayData.property_value) : 'N/A'}
-              </span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">LTV Ratio</span>
-              <span className={`text-sm font-medium ${getLTVColor(displayData.ltv)}`}>
-                {displayData.ltv ? `${displayData.ltv}%` : 'N/A'}
-              </span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Employment & Income */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Briefcase className="h-4 w-4" />
-              Employment & Income
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Employment Status</span>
-              {isEditing ? (
-                <select
-                  value={editData.employment_status ?? displayData.employment_status ?? ''}
-                  onChange={(e) => updateField('employment_status', e.target.value)}
-                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="">Select...</option>
-                  {EMPLOYMENT_OPTIONS.map((status) => (
+                  {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>{status}</option>
                   ))}
                 </select>
               ) : (
-                <Badge variant="outline">{displayData.employment_status || 'N/A'}</Badge>
+                <Badge variant={getStatusColor(displayData.status) as any}>
+                  {displayData.status || 'Unknown'}
+                </Badge>
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Annual Income</span>
+              <span className="text-sm text-muted-foreground">Required By</span>
               {isEditing ? (
                 <Input
-                  type="number"
-                  value={editData.income ?? displayData.income ?? 0}
-                  onChange={(e) => updateField('income', parseInt(e.target.value) || 0)}
-                  className="max-w-[150px] h-8"
+                  type="date"
+                  value={editData.required_by_date ?? displayData.required_by_date ?? ''}
+                  onChange={(e) => updateField('required_by_date', e.target.value)}
+                  className="max-w-[200px] h-8"
                 />
               ) : (
-                <span className="text-sm font-medium">
-                  {displayData.income ? formatCurrency(displayData.income) : 'N/A'}
-                </span>
+                <span className="text-sm font-medium">{formatDate(displayData.required_by_date)}</span>
               )}
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Credit Score</span>
-              <span className={`text-sm font-medium ${getCreditColor(displayData.credit_score)}`}>
-                {displayData.credit_score || 'N/A'}
-              </span>
             </div>
           </CardContent>
         </Card>
 
-        {/* Notes */}
+        {/* Message */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-sm font-medium">Notes</CardTitle>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <MessageSquare className="h-4 w-4" />
+              Message
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {isEditing ? (
+              <textarea
+                value={editData.message ?? displayData.message ?? ''}
+                onChange={(e) => updateField('message', e.target.value)}
+                className="w-full min-h-[150px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                placeholder="Lead's message or inquiry..."
+              />
+            ) : (
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {displayData.message || 'No message provided.'}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card className="md:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              Notes
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isEditing ? (
               <textarea
                 value={editData.notes ?? displayData.notes ?? ''}
                 onChange={(e) => updateField('notes', e.target.value)}
-                className="w-full min-h-[100px] p-2 rounded-md border border-input bg-background text-sm resize-y"
-                placeholder="Add notes about this finance lead..."
+                className="w-full min-h-[120px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                placeholder="Add internal notes about this finance lead..."
               />
             ) : (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {displayData.notes || 'No notes added yet.'}
               </p>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {/* Timestamps */}
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex items-center gap-6 text-xs text-muted-foreground">
+            <span>Created: {formatDate(displayData.created_at)}</span>
+            {displayData.updated_at && (
+              <span>Last Updated: {formatDate(displayData.updated_at)}</span>
+            )}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

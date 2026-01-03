@@ -195,20 +195,10 @@ export interface FinanceLead {
   last_name?: string
   email?: string
   phone?: string
-  loan_amount?: number
-  loan_type?: string
-  property_value?: number
-  ltv?: number
-  credit_score?: number
-  employment_status?: string
-  income?: number
+  required_by_date?: string
+  message?: string
   status?: string
-  source?: string
-  campaign?: string
-  quality_score?: number
   notes?: string
-  assigned_to?: string
-  assigned_user_name?: string
   created_at?: string
   updated_at?: string
 }

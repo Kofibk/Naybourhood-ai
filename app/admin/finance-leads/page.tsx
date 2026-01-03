@@ -8,14 +8,12 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import type { FinanceLead } from '@/types'
-import { formatCurrency } from '@/lib/utils'
 import {
   Search,
   Filter,
   Phone,
   Mail,
   Eye,
-  Flame,
   ChevronDown,
   ChevronUp,
   ChevronLeft,
@@ -26,18 +24,17 @@ import {
   RefreshCw,
   ArrowUpDown,
   SlidersHorizontal,
-  UserPlus,
   Plus,
   Trash2,
-  PoundSterling,
-  CreditCard,
-  Building,
-  Percent,
+  Calendar,
+  MessageSquare,
+  FileText,
+  Clock,
 } from 'lucide-react'
 
-type SortField = 'full_name' | 'quality_score' | 'loan_amount' | 'property_value' | 'ltv' | 'credit_score' | 'status' | 'created_at' | 'source'
+type SortField = 'full_name' | 'email' | 'phone' | 'required_by_date' | 'message' | 'status' | 'notes' | 'created_at'
 type SortDirection = 'asc' | 'desc'
-type GroupBy = 'none' | 'status' | 'source' | 'loan_type' | 'employment_status'
+type GroupBy = 'none' | 'status'
 
 // Filter types for Airtable-style filtering
 type FilterOperator =
@@ -56,7 +53,7 @@ type FilterOperator =
   | 'is_any_of'
   | 'is_none_of'
 
-type FilterFieldType = 'text' | 'number' | 'select' | 'date' | 'currency'
+type FilterFieldType = 'text' | 'select' | 'date'
 
 interface FilterField {
   key: string
@@ -79,22 +76,15 @@ interface ColumnConfig {
   width?: string
 }
 
-// Define all filterable fields with their types
+// Define all filterable fields with their types - matching actual Supabase columns
 const FILTER_FIELDS: FilterField[] = [
   { key: 'full_name', label: 'Name', type: 'text' },
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'phone', label: 'Phone', type: 'text' },
-  { key: 'loan_amount', label: 'Loan Amount', type: 'currency' },
-  { key: 'loan_type', label: 'Loan Type', type: 'select', options: ['Purchase', 'Remortgage', 'Buy to Let', 'Bridging', 'Commercial', 'Development'] },
-  { key: 'property_value', label: 'Property Value', type: 'currency' },
-  { key: 'ltv', label: 'LTV %', type: 'number' },
-  { key: 'credit_score', label: 'Credit Score', type: 'number' },
-  { key: 'employment_status', label: 'Employment', type: 'select', options: ['Employed', 'Self-Employed', 'Director', 'Contractor', 'Retired', 'Unemployed'] },
-  { key: 'income', label: 'Income', type: 'currency' },
-  { key: 'quality_score', label: 'Quality Score', type: 'number' },
-  { key: 'status', label: 'Status', type: 'select', options: ['New', 'Contacted', 'Qualified', 'Application', 'Approved', 'Completed', 'Declined', 'Lost'] },
-  { key: 'source', label: 'Source', type: 'select', options: ['Facebook', 'Google', 'Instagram', 'Referral', 'Website', 'Broker', 'Other'] },
-  { key: 'campaign', label: 'Campaign', type: 'text' },
+  { key: 'required_by_date', label: 'Required By', type: 'date' },
+  { key: 'message', label: 'Message', type: 'text' },
+  { key: 'status', label: 'Status', type: 'select', options: ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed'] },
+  { key: 'notes', label: 'Notes', type: 'text' },
   { key: 'created_at', label: 'Created Date', type: 'date' },
 ]
 
@@ -107,26 +97,6 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
     { value: 'not_equals', label: 'is not' },
     { value: 'starts_with', label: 'starts with' },
     { value: 'ends_with', label: 'ends with' },
-    { value: 'is_empty', label: 'is empty' },
-    { value: 'is_not_empty', label: 'is not empty' },
-  ],
-  number: [
-    { value: 'equals', label: '=' },
-    { value: 'not_equals', label: '≠' },
-    { value: 'greater_than', label: '>' },
-    { value: 'less_than', label: '<' },
-    { value: 'greater_or_equal', label: '≥' },
-    { value: 'less_or_equal', label: '≤' },
-    { value: 'is_empty', label: 'is empty' },
-    { value: 'is_not_empty', label: 'is not empty' },
-  ],
-  currency: [
-    { value: 'equals', label: '=' },
-    { value: 'not_equals', label: '≠' },
-    { value: 'greater_than', label: '>' },
-    { value: 'less_than', label: '<' },
-    { value: 'greater_or_equal', label: '≥' },
-    { value: 'less_or_equal', label: '≤' },
     { value: 'is_empty', label: 'is empty' },
     { value: 'is_not_empty', label: 'is not empty' },
   ],
@@ -152,19 +122,12 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'full_name', label: 'Name', visible: true, width: 'w-[180px]' },
-  { key: 'email', label: 'Email', visible: true, width: 'w-[180px]' },
+  { key: 'email', label: 'Email', visible: true, width: 'w-[200px]' },
   { key: 'phone', label: 'Phone', visible: true, width: 'w-[130px]' },
-  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[120px]' },
-  { key: 'loan_type', label: 'Loan Type', visible: true, width: 'w-[110px]' },
-  { key: 'property_value', label: 'Property Value', visible: true, width: 'w-[120px]' },
-  { key: 'ltv', label: 'LTV', visible: true, width: 'w-[70px]' },
-  { key: 'credit_score', label: 'Credit', visible: true, width: 'w-[80px]' },
-  { key: 'quality_score', label: 'Q Score', visible: true, width: 'w-[80px]' },
-  { key: 'status', label: 'Status', visible: true, width: 'w-[100px]' },
-  { key: 'source', label: 'Source', visible: false, width: 'w-[100px]' },
-  { key: 'employment_status', label: 'Employment', visible: false, width: 'w-[110px]' },
-  { key: 'income', label: 'Income', visible: false, width: 'w-[100px]' },
-  { key: 'campaign', label: 'Campaign', visible: false, width: 'w-[130px]' },
+  { key: 'required_by_date', label: 'Required By', visible: true, width: 'w-[120px]' },
+  { key: 'message', label: 'Message', visible: true, width: 'w-[250px]' },
+  { key: 'status', label: 'Status', visible: true, width: 'w-[140px]' },
+  { key: 'notes', label: 'Notes', visible: true, width: 'w-[200px]' },
   { key: 'created_at', label: 'Created', visible: false, width: 'w-[100px]' },
 ]
 
@@ -263,14 +226,8 @@ export default function FinanceLeadsPage() {
       case 'not_contains':
         return !value.includes(conditionValue)
       case 'equals':
-        if (fieldConfig.type === 'number' || fieldConfig.type === 'currency') {
-          return Number(rawValue) === Number(condition.value)
-        }
         return value === conditionValue
       case 'not_equals':
-        if (fieldConfig.type === 'number' || fieldConfig.type === 'currency') {
-          return Number(rawValue) !== Number(condition.value)
-        }
         return value !== conditionValue
       case 'starts_with':
         return value.startsWith(conditionValue)
@@ -284,22 +241,22 @@ export default function FinanceLeadsPage() {
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) > new Date(condition.value as string)
         }
-        return Number(rawValue) > Number(condition.value)
+        return false
       case 'less_than':
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) < new Date(condition.value as string)
         }
-        return Number(rawValue) < Number(condition.value)
+        return false
       case 'greater_or_equal':
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) >= new Date(condition.value as string)
         }
-        return Number(rawValue) >= Number(condition.value)
+        return false
       case 'less_or_equal':
         if (fieldConfig.type === 'date') {
           return new Date(rawValue) <= new Date(condition.value as string)
         }
-        return Number(rawValue) <= Number(condition.value)
+        return false
       case 'is_any_of':
         const anyOfValues = Array.isArray(condition.value) ? condition.value : [condition.value]
         return anyOfValues.some((v) => v.toLowerCase() === value)
@@ -322,7 +279,8 @@ export default function FinanceLeadsPage() {
           lead.email?.toLowerCase().includes(searchLower) ||
           lead.phone?.includes(search) ||
           lead.first_name?.toLowerCase().includes(searchLower) ||
-          lead.last_name?.toLowerCase().includes(searchLower)
+          lead.last_name?.toLowerCase().includes(searchLower) ||
+          lead.message?.toLowerCase().includes(searchLower)
 
         if (!matchesSearch) return false
       }
@@ -346,14 +304,8 @@ export default function FinanceLeadsPage() {
       let aVal: any = (a as any)[sortField]
       let bVal: any = (b as any)[sortField]
 
-      // Handle numeric values
-      if (['quality_score', 'loan_amount', 'property_value', 'ltv', 'credit_score', 'income'].includes(sortField)) {
-        aVal = aVal || 0
-        bVal = bVal || 0
-      }
-
       // Handle date strings
-      if (sortField === 'created_at') {
+      if (sortField === 'created_at' || sortField === 'required_by_date') {
         aVal = aVal ? new Date(aVal).getTime() : 0
         bVal = bVal ? new Date(bVal).getTime() : 0
       }
@@ -400,21 +352,15 @@ export default function FinanceLeadsPage() {
     return groups
   }, [sortedLeads, groupBy, paginatedLeads])
 
-  // Stats
+  // Stats based on actual status values
   const stats = useMemo(() => {
-    const totalLoanValue = financeLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0)
-    const avgLTV = financeLeads.length > 0
-      ? Math.round(financeLeads.reduce((sum, l) => sum + (l.ltv || 0), 0) / financeLeads.length)
-      : 0
-
     return {
       total: financeLeads.length,
       filtered: filteredLeads.length,
-      hot: financeLeads.filter((l) => (l.quality_score || 0) >= 80).length,
-      new: financeLeads.filter((l) => l.status === 'New').length,
-      qualified: financeLeads.filter((l) => l.status === 'Qualified' || l.status === 'Application').length,
-      totalLoanValue,
-      avgLTV,
+      contactPending: financeLeads.filter((l) => l.status === 'Contact Pending').length,
+      followUp: financeLeads.filter((l) => l.status === 'Follow-up').length,
+      awaitingDocs: financeLeads.filter((l) => l.status === 'Awaiting Documents').length,
+      notProceeding: financeLeads.filter((l) => l.status === 'Not Proceeding' || l.status === 'Duplicate').length,
     }
   }, [financeLeads, filteredLeads])
 
@@ -433,38 +379,15 @@ export default function FinanceLeadsPage() {
     ))
   }
 
-  const getScoreColor = (score: number | undefined) => {
-    if (!score) return 'text-muted-foreground'
-    if (score >= 80) return 'text-orange-500'
-    if (score >= 60) return 'text-success'
-    return 'text-muted-foreground'
-  }
-
-  const getCreditColor = (score: number | undefined) => {
-    if (!score) return 'text-muted-foreground'
-    if (score >= 750) return 'text-success'
-    if (score >= 650) return 'text-warning'
-    return 'text-destructive'
-  }
-
-  const getLTVColor = (ltv: number | undefined) => {
-    if (!ltv) return 'text-muted-foreground'
-    if (ltv <= 60) return 'text-success'
-    if (ltv <= 80) return 'text-warning'
-    return 'text-destructive'
-  }
-
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case 'New': return 'warning'
-      case 'Contacted': return 'secondary'
-      case 'Qualified': return 'success'
-      case 'Application': return 'default'
-      case 'Approved': return 'success'
+      case 'Contact Pending': return 'warning'
+      case 'Follow-up': return 'default'
+      case 'Awaiting Documents': return 'secondary'
+      case 'Not Proceeding': return 'destructive'
+      case 'Duplicate': return 'muted'
       case 'Completed': return 'success'
-      case 'Declined': return 'destructive'
-      case 'Lost': return 'destructive'
-      default: return 'muted'
+      default: return 'outline'
     }
   }
 
@@ -474,34 +397,49 @@ export default function FinanceLeadsPage() {
   // Quick filter presets
   const applyQuickFilter = (preset: string) => {
     switch (preset) {
-      case 'hot':
-        setFilterConditions([{
-          id: generateId(),
-          field: 'quality_score',
-          operator: 'greater_or_equal',
-          value: '80',
-        }])
-        break
-      case 'new':
+      case 'contact_pending':
         setFilterConditions([{
           id: generateId(),
           field: 'status',
           operator: 'equals',
-          value: 'New',
+          value: 'Contact Pending',
         }])
         break
-      case 'qualified':
+      case 'follow_up':
         setFilterConditions([{
           id: generateId(),
           field: 'status',
-          operator: 'is_any_of',
-          value: ['Qualified', 'Application'],
+          operator: 'equals',
+          value: 'Follow-up',
+        }])
+        break
+      case 'awaiting_docs':
+        setFilterConditions([{
+          id: generateId(),
+          field: 'status',
+          operator: 'equals',
+          value: 'Awaiting Documents',
         }])
         break
       default:
         setFilterConditions([])
     }
     setShowFilters(true)
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
+  const truncateText = (text: string | undefined, maxLength: number) => {
+    if (!text) return '-'
+    if (text.length <= maxLength) return text
+    return text.substring(0, maxLength) + '...'
   }
 
   return (
@@ -534,7 +472,7 @@ export default function FinanceLeadsPage() {
       </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="cursor-pointer hover:border-primary/50" onClick={() => clearFilters()}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
@@ -544,49 +482,40 @@ export default function FinanceLeadsPage() {
             <p className="text-xl font-bold">{stats.total.toLocaleString()}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('hot')}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('contact_pending')}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <Flame className="h-4 w-4 text-orange-500" />
-              <span className="text-xs text-muted-foreground">Hot</span>
+              <Phone className="h-4 w-4 text-yellow-500" />
+              <span className="text-xs text-muted-foreground">Contact Pending</span>
             </div>
-            <p className="text-xl font-bold text-orange-500">{stats.hot}</p>
+            <p className="text-xl font-bold text-yellow-500">{stats.contactPending}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('new')}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('follow_up')}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <UserPlus className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">New</span>
+              <Clock className="h-4 w-4 text-blue-500" />
+              <span className="text-xs text-muted-foreground">Follow-up</span>
             </div>
-            <p className="text-xl font-bold text-blue-500">{stats.new}</p>
+            <p className="text-xl font-bold text-blue-500">{stats.followUp}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('qualified')}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('awaiting_docs')}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <CreditCard className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">In Progress</span>
+              <FileText className="h-4 w-4 text-purple-500" />
+              <span className="text-xs text-muted-foreground">Awaiting Docs</span>
             </div>
-            <p className="text-xl font-bold text-success">{stats.qualified}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Loan Value</span>
-            </div>
-            <p className="text-xl font-bold">{formatCurrency(stats.totalLoanValue)}</p>
+            <p className="text-xl font-bold text-purple-500">{stats.awaitingDocs}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
-              <Percent className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Avg LTV</span>
+              <X className="h-4 w-4 text-destructive" />
+              <span className="text-xs text-muted-foreground">Not Proceeding</span>
             </div>
-            <p className="text-xl font-bold">{stats.avgLTV}%</p>
+            <p className="text-xl font-bold text-destructive">{stats.notProceeding}</p>
           </CardContent>
         </Card>
         <Card>
@@ -606,7 +535,7 @@ export default function FinanceLeadsPage() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, or phone..."
+              placeholder="Search by name, email, phone, or message..."
               className="pl-9"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -639,9 +568,6 @@ export default function FinanceLeadsPage() {
             >
               <option value="none">No Grouping</option>
               <option value="status">Group by Status</option>
-              <option value="source">Group by Source</option>
-              <option value="loan_type">Group by Loan Type</option>
-              <option value="employment_status">Group by Employment</option>
             </select>
           </div>
         </div>
@@ -764,14 +690,6 @@ export default function FinanceLeadsPage() {
                               value={condition.value as string}
                               onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
                             />
-                          ) : fieldConfig?.type === 'number' || fieldConfig?.type === 'currency' ? (
-                            <Input
-                              type="number"
-                              className="w-[120px]"
-                              placeholder={fieldConfig?.type === 'currency' ? '£ Value' : 'Value'}
-                              value={condition.value as string}
-                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
-                            />
                           ) : (
                             <Input
                               className="w-[200px]"
@@ -891,14 +809,9 @@ export default function FinanceLeadsPage() {
                         {visibleColumns.map((col) => (
                           <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
                             {col.key === 'full_name' && (
-                              <div className="flex items-center gap-2">
-                                {(lead.quality_score || 0) >= 80 && (
-                                  <Flame className="h-4 w-4 text-orange-500 shrink-0" />
-                                )}
-                                <span className="font-medium truncate">
-                                  {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
-                                </span>
-                              </div>
+                              <span className="font-medium">
+                                {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                              </span>
                             )}
                             {col.key === 'email' && (
                               <span className="truncate text-muted-foreground">{lead.email || '-'}</span>
@@ -906,52 +819,27 @@ export default function FinanceLeadsPage() {
                             {col.key === 'phone' && (
                               <span className="truncate">{lead.phone || '-'}</span>
                             )}
-                            {col.key === 'loan_amount' && (
-                              <span className="font-medium">{lead.loan_amount ? formatCurrency(lead.loan_amount) : '-'}</span>
+                            {col.key === 'required_by_date' && (
+                              <span className="text-muted-foreground">{formatDate(lead.required_by_date)}</span>
                             )}
-                            {col.key === 'loan_type' && (
-                              <Badge variant="secondary" className="text-[10px]">
-                                {lead.loan_type || 'N/A'}
-                              </Badge>
-                            )}
-                            {col.key === 'property_value' && (
-                              <span>{lead.property_value ? formatCurrency(lead.property_value) : '-'}</span>
-                            )}
-                            {col.key === 'ltv' && (
-                              <span className={`font-medium ${getLTVColor(lead.ltv)}`}>
-                                {lead.ltv ? `${lead.ltv}%` : '-'}
-                              </span>
-                            )}
-                            {col.key === 'credit_score' && (
-                              <span className={`font-medium ${getCreditColor(lead.credit_score)}`}>
-                                {lead.credit_score || '-'}
-                              </span>
-                            )}
-                            {col.key === 'quality_score' && (
-                              <span className={`font-medium ${getScoreColor(lead.quality_score)}`}>
-                                {lead.quality_score || 0}
+                            {col.key === 'message' && (
+                              <span className="text-muted-foreground" title={lead.message}>
+                                {truncateText(lead.message, 50)}
                               </span>
                             )}
                             {col.key === 'status' && (
                               <Badge variant={getStatusColor(lead.status) as any} className="text-[10px]">
-                                {lead.status || 'New'}
+                                {lead.status || 'Unknown'}
                               </Badge>
                             )}
-                            {col.key === 'source' && (
-                              <span className="truncate">{lead.source || '-'}</span>
-                            )}
-                            {col.key === 'employment_status' && (
-                              <span className="truncate">{lead.employment_status || '-'}</span>
-                            )}
-                            {col.key === 'income' && (
-                              <span>{lead.income ? formatCurrency(lead.income) : '-'}</span>
-                            )}
-                            {col.key === 'campaign' && (
-                              <span className="truncate text-muted-foreground">{lead.campaign || '-'}</span>
+                            {col.key === 'notes' && (
+                              <span className="text-muted-foreground" title={lead.notes}>
+                                {truncateText(lead.notes, 40)}
+                              </span>
                             )}
                             {col.key === 'created_at' && (
                               <span className="text-muted-foreground">
-                                {lead.created_at ? new Date(lead.created_at).toLocaleDateString() : '-'}
+                                {formatDate(lead.created_at)}
                               </span>
                             )}
                           </td>

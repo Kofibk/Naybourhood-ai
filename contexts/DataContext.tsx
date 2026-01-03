@@ -223,26 +223,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
             full_name: f.full_name || f['Full Name'] || combinedName || f['Name'] || f.name || 'Unknown',
             first_name: firstName,
             last_name: lastName,
-          email: f.email || f['Email'],
-          phone: f.phone || f['Phone'] || f['Phone Number'],
-          loan_amount: f.loan_amount || f['Loan Amount'] || f['loan_value'] || 0,
-          loan_type: f.loan_type || f['Loan Type'] || f['Product'],
-          property_value: f.property_value || f['Property Value'] || 0,
-          ltv: f.ltv || f['LTV'] || f['LTV %'] || 0,
-          credit_score: f.credit_score || f['Credit Score'] || 0,
-          employment_status: f.employment_status || f['Employment Status'] || f['Employment'],
-          income: f.income || f['Income'] || f['Annual Income'] || 0,
-          status: f.status || f['Status'] || 'New',
-          source: f.source || f['Source'] || f['Lead Source'],
-          campaign: f.campaign || f['Campaign'],
-          quality_score: f.quality_score || f['Quality Score'] || 0,
-          notes: f.notes || f['Notes'],
-          assigned_to: f.assigned_to,
-          assigned_user_name: f.assigned_user_name,
-          created_at: f.created_at || f['Created At'] || f['Date Added'],
-          updated_at: f.updated_at,
-          ...f,
-        }})
+            email: f.email || f['Email'],
+            phone: f.phone || f['Phone'] || f['Phone Number'],
+            required_by_date: f.required_by_date || f['Required By Date'] || f['required_by'],
+            message: f.message || f['Message'],
+            status: f.status || f['Status'] || 'Contact Pending',
+            notes: f.notes || f['Notes'],
+            created_at: f.created_at || f['Created At'] || f['Date Added'],
+            updated_at: f.updated_at,
+            ...f,
+          }
+        })
         setFinanceLeads(mappedFinanceLeads)
       } else if (financeLeadsResult.error) {
         // Table might not exist yet - not critical
