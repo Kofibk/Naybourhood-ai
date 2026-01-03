@@ -2,72 +2,33 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { formatCurrency } from '@/lib/utils'
-import type { Development } from '@/types'
 import {
   Plus,
   Search,
-  Filter,
   Building2,
   MapPin,
-  Users,
-  PoundSterling,
-  Calendar,
   Home,
-  Megaphone,
-  TrendingUp,
-  MoreVertical,
+  Calendar,
+  RefreshCw,
 } from 'lucide-react'
 
 export default function DevelopmentsPage() {
   const router = useRouter()
-  const { developments, campaigns, leads, isLoading } = useData()
+  const { developments, isLoading, refreshData } = useData()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Calculate stats for each development
-  const developmentsWithStats = useMemo(() => {
-    return developments.map((dev) => {
-      // Count campaigns for this development
-      const devCampaigns = campaigns.filter(
-        (c) =>
-          c.development === dev.name ||
-          c.client === dev.name ||
-          c.name?.includes(dev.name)
-      )
-
-      // Count leads for this development (via campaigns)
-      const devLeads = leads.filter(
-        (l) =>
-          l.campaign &&
-          devCampaigns.some((c) => c.name === l.campaign || c.id === l.campaign_id)
-      )
-
-      const totalSpend = devCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
-      const totalLeads = devCampaigns.reduce((sum, c) => sum + (c.leads || 0), 0)
-      const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
-
-      return {
-        ...dev,
-        campaignCount: devCampaigns.length,
-        calculatedLeads: totalLeads || dev.total_leads || 0,
-        calculatedSpend: totalSpend || dev.total_spend || 0,
-        avgCPL,
-      }
-    })
-  }, [developments, campaigns, leads])
-
   // Filter developments
   const filteredDevelopments = useMemo(() => {
-    return developmentsWithStats.filter((dev) => {
+    return developments.filter((dev) => {
       const matchesSearch =
         !search ||
-        dev.name.toLowerCase().includes(search.toLowerCase()) ||
+        dev.name?.toLowerCase().includes(search.toLowerCase()) ||
         dev.location?.toLowerCase().includes(search.toLowerCase()) ||
         dev.developer?.toLowerCase().includes(search.toLowerCase())
 
@@ -77,16 +38,21 @@ export default function DevelopmentsPage() {
 
       return matchesSearch && matchesStatus
     })
-  }, [developmentsWithStats, search, statusFilter])
+  }, [developments, search, statusFilter])
 
-  // Calculate totals
-  const totals = useMemo(() => ({
-    developments: developments.length,
-    totalUnits: developments.reduce((sum, d) => sum + (d.total_units || d.units || 0), 0),
-    availableUnits: developments.reduce((sum, d) => sum + (d.available_units || 0), 0),
-    totalSpend: developmentsWithStats.reduce((sum, d) => sum + (d.calculatedSpend || 0), 0),
-    totalLeads: developmentsWithStats.reduce((sum, d) => sum + (d.calculatedLeads || 0), 0),
-  }), [developments, developmentsWithStats])
+  // Calculate totals from development data only
+  const totals = useMemo(() => {
+    const totalUnits = developments.reduce((sum, d) => sum + (d.total_units || d.units || 0), 0)
+    const availableUnits = developments.reduce((sum, d) => sum + (d.available_units || 0), 0)
+    const soldUnits = totalUnits - availableUnits
+
+    return {
+      developments: developments.length,
+      totalUnits,
+      availableUnits,
+      soldUnits: soldUnits > 0 ? soldUnits : 0,
+    }
+  }, [developments])
 
   const getStatusColor = (status?: string) => {
     switch (status?.toLowerCase()) {
@@ -111,17 +77,23 @@ export default function DevelopmentsPage() {
         <div>
           <h2 className="text-2xl font-bold font-display">Developments</h2>
           <p className="text-sm text-muted-foreground">
-            {totals.developments} developments · {totals.totalUnits} total units
+            {totals.developments} developments · {totals.totalUnits.toLocaleString()} total units
           </p>
         </div>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          Add Development
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Development
+          </Button>
+        </div>
       </div>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -152,19 +124,10 @@ export default function DevelopmentsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
+              <Home className="h-4 w-4 text-blue-500" />
+              <span className="text-xs text-muted-foreground">Sold</span>
             </div>
-            <p className="text-2xl font-bold">{totals.totalLeads.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Spend</span>
-            </div>
-            <p className="text-2xl font-bold">{formatCurrency(totals.totalSpend)}</p>
+            <p className="text-2xl font-bold text-blue-500">{totals.soldUnits.toLocaleString()}</p>
           </CardContent>
         </Card>
       </div>
@@ -174,7 +137,7 @@ export default function DevelopmentsPage() {
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search developments..."
+            placeholder="Search by name, location, or developer..."
             className="pl-9"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -201,6 +164,13 @@ export default function DevelopmentsPage() {
             onClick={() => setStatusFilter('coming soon')}
           >
             Coming Soon
+          </Button>
+          <Button
+            variant={statusFilter === 'sold out' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setStatusFilter('sold out')}
+          >
+            Sold Out
           </Button>
         </div>
       </div>
@@ -244,7 +214,7 @@ export default function DevelopmentsPage() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <h3 className="font-semibold text-lg">{dev.name}</h3>
+                    <h3 className="font-semibold text-lg">{dev.name || 'Unnamed Development'}</h3>
                     {dev.location && (
                       <div className="flex items-center gap-1 text-sm text-muted-foreground">
                         <MapPin className="h-3 w-3" />
@@ -265,48 +235,39 @@ export default function DevelopmentsPage() {
                   </p>
                 )}
 
-                {/* Stats Grid */}
+                {/* Units Stats */}
                 <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-border">
                   <div className="text-center">
                     <p className="text-lg font-semibold">{dev.total_units || dev.units || 0}</p>
-                    <p className="text-xs text-muted-foreground">Units</p>
+                    <p className="text-xs text-muted-foreground">Total Units</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-lg font-semibold">{dev.campaignCount}</p>
-                    <p className="text-xs text-muted-foreground">Campaigns</p>
+                    <p className="text-lg font-semibold text-success">{dev.available_units || 0}</p>
+                    <p className="text-xs text-muted-foreground">Available</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-lg font-semibold">{dev.calculatedLeads}</p>
-                    <p className="text-xs text-muted-foreground">Leads</p>
+                    <p className="text-lg font-semibold text-blue-500">
+                      {(dev.total_units || dev.units || 0) - (dev.available_units || 0)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Sold</p>
                   </div>
-                </div>
-
-                {/* Bottom Stats */}
-                <div className="flex items-center justify-between mt-3">
-                  <div className="text-sm">
-                    <span className="text-muted-foreground">Spend: </span>
-                    <span className="font-semibold">
-                      {formatCurrency(dev.calculatedSpend)}
-                    </span>
-                  </div>
-                  {dev.avgCPL > 0 && (
-                    <div className="flex items-center gap-1">
-                      <span className={`text-sm font-semibold ${
-                        dev.avgCPL > 50 ? 'text-destructive' : 'text-success'
-                      }`}>
-                        £{dev.avgCPL} CPL
-                      </span>
-                      <TrendingUp className={`h-3 w-3 ${
-                        dev.avgCPL > 50 ? 'text-destructive' : 'text-success'
-                      }`} />
-                    </div>
-                  )}
                 </div>
 
                 {/* Price Range */}
                 {(dev.price_from || dev.price_to) && (
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    Prices from {dev.price_from || '?'} to {dev.price_to || '?'}
+                  <div className="mt-3 text-sm">
+                    <span className="text-muted-foreground">Price: </span>
+                    <span className="font-medium">
+                      {dev.price_from || '?'} - {dev.price_to || '?'}
+                    </span>
+                  </div>
+                )}
+
+                {/* Completion Date */}
+                {dev.completion_date && (
+                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                    <Calendar className="h-3 w-3" />
+                    <span>Completion: {dev.completion_date}</span>
                   </div>
                 )}
               </CardContent>

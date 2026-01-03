@@ -886,6 +886,7 @@ export default function FinanceLeadsPage() {
                       <tr
                         key={lead.id}
                         className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/admin/finance-leads/${lead.id}`)}
                       >
                         {visibleColumns.map((col) => (
                           <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
@@ -977,7 +978,7 @@ export default function FinanceLeadsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={(e) => { e.stopPropagation(); }}
+                              onClick={(e) => { e.stopPropagation(); router.push(`/admin/finance-leads/${lead.id}`) }}
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
