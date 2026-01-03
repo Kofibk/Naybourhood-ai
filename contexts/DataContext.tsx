@@ -169,19 +169,73 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Process DEVELOPMENTS
       if (!developmentsResult.error && developmentsResult.data) {
         console.log('[DataContext] Developments loaded:', developmentsResult.data.length)
-        setDevelopments(developmentsResult.data)
+        if (developmentsResult.data.length > 0) {
+          console.log('[DataContext] First development columns:', Object.keys(developmentsResult.data[0]))
+        }
+        // Map column names (supports both Supabase schema names and imported CSV names)
+        const mappedDevelopments = developmentsResult.data.map((d: any) => ({
+          id: d.id,
+          name: d.name || d['Development Name'] || d['development_name'] || 'Unnamed',
+          location: d.location || d['Location'] || d['area'],
+          address: d.address || d['Address'],
+          developer: d.developer || d['Developer'] || d['developer_name'],
+          status: d.status || d['Status'] || 'Active',
+          units: d.units || d['Units'] || d['total_units'] || 0,
+          total_units: d.total_units || d['Total Units'] || d['units'] || 0,
+          available_units: d.available_units || d['Available Units'] || 0,
+          price_from: d.price_from || d['Price From'] || d['min_price'],
+          price_to: d.price_to || d['Price To'] || d['max_price'],
+          completion_date: d.completion_date || d['Completion Date'],
+          description: d.description || d['Description'],
+          image_url: d.image_url || d['Image URL'] || d['image'],
+          total_leads: d.total_leads || d['Total Leads'] || 0,
+          total_spend: d.total_spend || d['Total Spend'] || 0,
+          created_at: d.created_at,
+          updated_at: d.updated_at,
+          ...d,
+        }))
+        setDevelopments(mappedDevelopments)
       } else if (developmentsResult.error) {
         // Table might not exist yet - not critical
-        console.log('[DataContext] Developments table not found (optional)')
+        console.log('[DataContext] Developments table error:', developmentsResult.error.message)
       }
 
       // Process FINANCE LEADS
       if (!financeLeadsResult.error && financeLeadsResult.data) {
         console.log('[DataContext] Finance Leads loaded:', financeLeadsResult.data.length)
-        setFinanceLeads(financeLeadsResult.data)
+        if (financeLeadsResult.data.length > 0) {
+          console.log('[DataContext] First finance lead columns:', Object.keys(financeLeadsResult.data[0]))
+        }
+        // Map column names
+        const mappedFinanceLeads = financeLeadsResult.data.map((f: any) => ({
+          id: f.id,
+          full_name: f.full_name || f['Full Name'] || f['Name'] || f.name || 'Unknown',
+          first_name: f.first_name || f['First Name'],
+          last_name: f.last_name || f['Last Name'],
+          email: f.email || f['Email'],
+          phone: f.phone || f['Phone'] || f['Phone Number'],
+          loan_amount: f.loan_amount || f['Loan Amount'] || f['loan_value'] || 0,
+          loan_type: f.loan_type || f['Loan Type'] || f['Product'],
+          property_value: f.property_value || f['Property Value'] || 0,
+          ltv: f.ltv || f['LTV'] || f['LTV %'] || 0,
+          credit_score: f.credit_score || f['Credit Score'] || 0,
+          employment_status: f.employment_status || f['Employment Status'] || f['Employment'],
+          income: f.income || f['Income'] || f['Annual Income'] || 0,
+          status: f.status || f['Status'] || 'New',
+          source: f.source || f['Source'] || f['Lead Source'],
+          campaign: f.campaign || f['Campaign'],
+          quality_score: f.quality_score || f['Quality Score'] || 0,
+          notes: f.notes || f['Notes'],
+          assigned_to: f.assigned_to,
+          assigned_user_name: f.assigned_user_name,
+          created_at: f.created_at || f['Created At'] || f['Date Added'],
+          updated_at: f.updated_at,
+          ...f,
+        }))
+        setFinanceLeads(mappedFinanceLeads)
       } else if (financeLeadsResult.error) {
         // Table might not exist yet - not critical
-        console.log('[DataContext] Finance Leads table not found (optional)')
+        console.log('[DataContext] Finance Leads table error:', financeLeadsResult.error.message)
       }
 
       // Process USERS
