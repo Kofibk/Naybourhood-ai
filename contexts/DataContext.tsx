@@ -14,11 +14,25 @@ interface DataContextType {
   isLoading: boolean
   error: string | null
   refreshData: () => Promise<void>
+  // Lead operations
   updateLead: (id: string, data: Partial<Buyer>) => Promise<Buyer | null>
-  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<Campaign | null>
   createLead: (data: Partial<Buyer>) => Promise<Buyer | null>
   deleteLead: (id: string) => Promise<boolean>
   assignLead: (leadId: string, userId: string) => Promise<boolean>
+  // Campaign operations
+  updateCampaign: (id: string, data: Partial<Campaign>) => Promise<Campaign | null>
+  createCampaign: (data: Partial<Campaign>) => Promise<Campaign | null>
+  deleteCampaign: (id: string) => Promise<boolean>
+  // Company operations
+  createCompany: (data: Partial<Company>) => Promise<Company | null>
+  updateCompany: (id: string, data: Partial<Company>) => Promise<Company | null>
+  deleteCompany: (id: string) => Promise<boolean>
+  // Development operations
+  createDevelopment: (data: Partial<Development>) => Promise<Development | null>
+  updateDevelopment: (id: string, data: Partial<Development>) => Promise<Development | null>
+  deleteDevelopment: (id: string) => Promise<boolean>
+  // Finance Lead operations
+  updateFinanceLead: (id: string, data: Partial<FinanceLead>) => Promise<FinanceLead | null>
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
@@ -388,6 +402,213 @@ export function DataProvider({ children }: { children: ReactNode }) {
     return !!result
   }, [updateLead, users])
 
+  // Create a campaign
+  const createCampaign = useCallback(async (data: Partial<Campaign>): Promise<Campaign | null> => {
+    try {
+      const supabase = createClient()
+      const { data: newData, error } = await supabase
+        .from('campaigns')
+        .insert(data)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DataContext] Create campaign error:', error)
+        return null
+      }
+
+      setCampaigns((prev) => [newData, ...prev])
+      return newData
+    } catch (e) {
+      console.error('[DataContext] Create campaign failed:', e)
+      return null
+    }
+  }, [])
+
+  // Delete a campaign
+  const deleteCampaign = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('campaigns')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('[DataContext] Delete campaign error:', error)
+        return false
+      }
+
+      setCampaigns((prev) => prev.filter((c) => c.id !== id))
+      return true
+    } catch (e) {
+      console.error('[DataContext] Delete campaign failed:', e)
+      return false
+    }
+  }, [])
+
+  // Create a company
+  const createCompany = useCallback(async (data: Partial<Company>): Promise<Company | null> => {
+    try {
+      const supabase = createClient()
+      const { data: newData, error } = await supabase
+        .from('companies')
+        .insert(data)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DataContext] Create company error:', error)
+        return null
+      }
+
+      setCompanies((prev) => [newData, ...prev])
+      return newData
+    } catch (e) {
+      console.error('[DataContext] Create company failed:', e)
+      return null
+    }
+  }, [])
+
+  // Update a company
+  const updateCompany = useCallback(async (id: string, data: Partial<Company>): Promise<Company | null> => {
+    try {
+      const supabase = createClient()
+      const { data: updatedData, error } = await supabase
+        .from('companies')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DataContext] Update company error:', error)
+        return null
+      }
+
+      setCompanies((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedData } : c)))
+      return updatedData
+    } catch (e) {
+      console.error('[DataContext] Update company failed:', e)
+      return null
+    }
+  }, [])
+
+  // Delete a company
+  const deleteCompany = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('companies')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('[DataContext] Delete company error:', error)
+        return false
+      }
+
+      setCompanies((prev) => prev.filter((c) => c.id !== id))
+      return true
+    } catch (e) {
+      console.error('[DataContext] Delete company failed:', e)
+      return false
+    }
+  }, [])
+
+  // Create a development
+  const createDevelopment = useCallback(async (data: Partial<Development>): Promise<Development | null> => {
+    try {
+      const supabase = createClient()
+      const { data: newData, error } = await supabase
+        .from('developments')
+        .insert(data)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DataContext] Create development error:', error)
+        return null
+      }
+
+      setDevelopments((prev) => [newData, ...prev])
+      return newData
+    } catch (e) {
+      console.error('[DataContext] Create development failed:', e)
+      return null
+    }
+  }, [])
+
+  // Update a development
+  const updateDevelopment = useCallback(async (id: string, data: Partial<Development>): Promise<Development | null> => {
+    try {
+      const supabase = createClient()
+      const { data: updatedData, error } = await supabase
+        .from('developments')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DataContext] Update development error:', error)
+        return null
+      }
+
+      setDevelopments((prev) => prev.map((d) => (d.id === id ? { ...d, ...updatedData } : d)))
+      return updatedData
+    } catch (e) {
+      console.error('[DataContext] Update development failed:', e)
+      return null
+    }
+  }, [])
+
+  // Delete a development
+  const deleteDevelopment = useCallback(async (id: string): Promise<boolean> => {
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('developments')
+        .delete()
+        .eq('id', id)
+
+      if (error) {
+        console.error('[DataContext] Delete development error:', error)
+        return false
+      }
+
+      setDevelopments((prev) => prev.filter((d) => d.id !== id))
+      return true
+    } catch (e) {
+      console.error('[DataContext] Delete development failed:', e)
+      return false
+    }
+  }, [])
+
+  // Update a finance lead
+  const updateFinanceLead = useCallback(async (id: string, data: Partial<FinanceLead>): Promise<FinanceLead | null> => {
+    try {
+      const supabase = createClient()
+      const { data: updatedData, error } = await supabase
+        .from('finance_leads')
+        .update(data)
+        .eq('id', id)
+        .select()
+        .single()
+
+      if (error) {
+        console.error('[DataContext] Update finance lead error:', error)
+        return null
+      }
+
+      setFinanceLeads((prev) => prev.map((f) => (f.id === id ? { ...f, ...updatedData } : f)))
+      return updatedData
+    } catch (e) {
+      console.error('[DataContext] Update finance lead failed:', e)
+      return null
+    }
+  }, [])
+
   return (
     <DataContext.Provider
       value={{
@@ -400,11 +621,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
         isLoading,
         error,
         refreshData,
+        // Lead operations
         updateLead,
-        updateCampaign,
         createLead,
         deleteLead,
         assignLead,
+        // Campaign operations
+        updateCampaign,
+        createCampaign,
+        deleteCampaign,
+        // Company operations
+        createCompany,
+        updateCompany,
+        deleteCompany,
+        // Development operations
+        createDevelopment,
+        updateDevelopment,
+        deleteDevelopment,
+        // Finance Lead operations
+        updateFinanceLead,
       }}
     >
       {children}

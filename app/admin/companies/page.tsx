@@ -43,7 +43,7 @@ interface EditingCompany {
 
 export default function CompaniesPage() {
   const router = useRouter()
-  const { companies, isLoading } = useData()
+  const { companies, isLoading, createCompany, updateCompany, deleteCompany } = useData()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -110,17 +110,37 @@ export default function CompaniesPage() {
 
     setIsSaving(true)
     try {
-      // In production, this would call an API to create/update the company
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const companyData = {
+        name: editingCompany.name,
+        type: editingCompany.type,
+        contact_name: editingCompany.contact_name,
+        contact_email: editingCompany.contact_email,
+        contact_phone: editingCompany.phone,
+        website: editingCompany.website,
+        status: editingCompany.status,
+        subscription_tier: editingCompany.tier,
+      }
 
-      setMessage({
-        type: 'success',
-        text: editingCompany.id ? 'Company updated successfully!' : 'Company created successfully!'
-      })
-      setIsModalOpen(false)
-      setEditingCompany(null)
+      let result
+      if (editingCompany.id) {
+        result = await updateCompany(editingCompany.id, companyData)
+      } else {
+        result = await createCompany(companyData)
+      }
+
+      if (result) {
+        setMessage({
+          type: 'success',
+          text: editingCompany.id ? 'Company updated successfully!' : 'Company created successfully!'
+        })
+        setIsModalOpen(false)
+        setEditingCompany(null)
+      } else {
+        setMessage({ type: 'error', text: 'Failed to save company. Please try again.' })
+      }
     } catch (e) {
-      setMessage({ type: 'error', text: 'Failed to save company.' })
+      console.error('Error saving company:', e)
+      setMessage({ type: 'error', text: 'An error occurred while saving.' })
     } finally {
       setIsSaving(false)
     }
@@ -131,11 +151,15 @@ export default function CompaniesPage() {
     if (!confirm('Are you sure you want to delete this company?')) return
 
     try {
-      // In production, this would call an API to delete the company
-      await new Promise((resolve) => setTimeout(resolve, 500))
-      setMessage({ type: 'success', text: 'Company deleted successfully!' })
+      const success = await deleteCompany(companyId)
+      if (success) {
+        setMessage({ type: 'success', text: 'Company deleted successfully!' })
+      } else {
+        setMessage({ type: 'error', text: 'Failed to delete company. Please try again.' })
+      }
     } catch (e) {
-      setMessage({ type: 'error', text: 'Failed to delete company.' })
+      console.error('Error deleting company:', e)
+      setMessage({ type: 'error', text: 'An error occurred while deleting.' })
     }
   }
 

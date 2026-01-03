@@ -32,7 +32,7 @@ import {
 export default function FinanceLeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { financeLeads, isLoading } = useData()
+  const { financeLeads, isLoading, updateFinanceLead } = useData()
 
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -62,13 +62,21 @@ export default function FinanceLeadDetailPage() {
     setIsSaving(true)
     setSaveMessage(null)
 
-    // TODO: Implement updateFinanceLead in DataContext
-    setTimeout(() => {
-      setSaveMessage({ type: 'success', text: 'Finance lead updated successfully!' })
-      setIsEditing(false)
-      setEditData({})
+    try {
+      const result = await updateFinanceLead(lead.id, editData)
+      if (result) {
+        setSaveMessage({ type: 'success', text: 'Finance lead updated successfully!' })
+        setIsEditing(false)
+        setEditData({})
+      } else {
+        setSaveMessage({ type: 'error', text: 'Failed to update finance lead. Please try again.' })
+      }
+    } catch (error) {
+      console.error('Error updating finance lead:', error)
+      setSaveMessage({ type: 'error', text: 'An error occurred while saving.' })
+    } finally {
       setIsSaving(false)
-    }, 500)
+    }
   }
 
   const updateField = (field: keyof FinanceLead, value: any) => {

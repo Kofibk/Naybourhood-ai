@@ -5,7 +5,9 @@ import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
+import { useData } from '@/contexts/DataContext'
 import { formatCurrency } from '@/lib/utils'
 import type { Campaign, Buyer } from '@/types'
 import {
@@ -22,14 +24,23 @@ import {
   Edit,
   Pause,
   Play,
+  X,
+  Save,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react'
 
 export default function CampaignDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const { updateCampaign } = useData()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [leads, setLeads] = useState<Buyer[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isUpdating, setIsUpdating] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editData, setEditData] = useState<Partial<Campaign>>({})
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
     async function fetchData() {
@@ -66,6 +77,59 @@ export default function CampaignDetailPage() {
 
     fetchData()
   }, [params.id])
+
+  const handleToggleStatus = async () => {
+    if (!campaign) return
+    setIsUpdating(true)
+    setMessage(null)
+
+    const newStatus = campaign.status === 'active' ? 'paused' : 'active'
+    try {
+      const result = await updateCampaign(campaign.id, { status: newStatus })
+      if (result) {
+        setCampaign({ ...campaign, status: newStatus })
+        setMessage({ type: 'success', text: `Campaign ${newStatus === 'active' ? 'activated' : 'paused'} successfully!` })
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update campaign status.' })
+      }
+    } catch (error) {
+      console.error('Error updating campaign:', error)
+      setMessage({ type: 'error', text: 'An error occurred.' })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
+
+  const handleEdit = () => {
+    if (campaign) {
+      setEditData({ ...campaign })
+      setIsEditing(true)
+      setMessage(null)
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!campaign) return
+    setIsUpdating(true)
+    setMessage(null)
+
+    try {
+      const result = await updateCampaign(campaign.id, editData)
+      if (result) {
+        setCampaign({ ...campaign, ...editData })
+        setMessage({ type: 'success', text: 'Campaign updated successfully!' })
+        setIsEditing(false)
+        setEditData({})
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update campaign.' })
+      }
+    } catch (error) {
+      console.error('Error updating campaign:', error)
+      setMessage({ type: 'error', text: 'An error occurred.' })
+    } finally {
+      setIsUpdating(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -127,22 +191,129 @@ export default function CampaignDetailPage() {
         </div>
         <div className="flex gap-2">
           {campaign.status === 'active' ? (
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={handleToggleStatus} disabled={isUpdating}>
               <Pause className="h-4 w-4 mr-2" />
-              Pause
+              {isUpdating ? 'Updating...' : 'Pause'}
             </Button>
           ) : (
-            <Button size="sm" variant="outline">
+            <Button size="sm" variant="outline" onClick={handleToggleStatus} disabled={isUpdating}>
               <Play className="h-4 w-4 mr-2" />
-              Activate
+              {isUpdating ? 'Updating...' : 'Activate'}
             </Button>
           )}
-          <Button size="sm" variant="outline">
+          <Button size="sm" variant="outline" onClick={handleEdit}>
             <Edit className="h-4 w-4 mr-2" />
             Edit
           </Button>
         </div>
       </div>
+
+      {/* Message */}
+      {message && (
+        <div className={`p-3 rounded-lg flex items-center gap-2 ${
+          message.type === 'success' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+        }`}>
+          {message.type === 'success' ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          <span className="text-sm">{message.text}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-6 w-6 ml-auto"
+            onClick={() => setMessage(null)}
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      {/* Edit Modal */}
+      {isEditing && (
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-medium">Edit Campaign</CardTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Campaign Name</label>
+                <Input
+                  value={editData.name || ''}
+                  onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Client/Development</label>
+                <Input
+                  value={editData.client || ''}
+                  onChange={(e) => setEditData({ ...editData, client: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Platform</label>
+                <select
+                  value={editData.platform || ''}
+                  onChange={(e) => setEditData({ ...editData, platform: e.target.value })}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">Select Platform</option>
+                  <option value="Meta">Meta</option>
+                  <option value="Google">Google</option>
+                  <option value="TikTok">TikTok</option>
+                  <option value="LinkedIn">LinkedIn</option>
+                  <option value="Rightmove">Rightmove</option>
+                  <option value="Zoopla">Zoopla</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Status</label>
+                <select
+                  value={editData.status || ''}
+                  onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="active">Active</option>
+                  <option value="paused">Paused</option>
+                  <option value="completed">Completed</option>
+                  <option value="draft">Draft</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Spend</label>
+                <Input
+                  type="number"
+                  value={editData.spend || editData.amount_spent || ''}
+                  onChange={(e) => setEditData({ ...editData, spend: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Lead Count</label>
+                <Input
+                  type="number"
+                  value={editData.leads || editData.lead_count || ''}
+                  onChange={(e) => setEditData({ ...editData, leads: parseInt(e.target.value) || 0 })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+              <Button onClick={handleSaveEdit} disabled={isUpdating}>
+                <Save className="h-4 w-4 mr-2" />
+                {isUpdating ? 'Saving...' : 'Save Changes'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Performance Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
