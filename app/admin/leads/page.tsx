@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -27,17 +27,113 @@ import {
   ArrowUpDown,
   SlidersHorizontal,
   UserPlus,
+  Plus,
+  Trash2,
 } from 'lucide-react'
 
 type SortField = 'full_name' | 'quality_score' | 'intent_score' | 'budget' | 'status' | 'created_at' | 'source'
 type SortDirection = 'asc' | 'desc'
 type GroupBy = 'none' | 'status' | 'source' | 'campaign' | 'location' | 'timeline'
 
+// Filter types for Airtable-style filtering
+type FilterOperator =
+  | 'contains'
+  | 'not_contains'
+  | 'equals'
+  | 'not_equals'
+  | 'starts_with'
+  | 'ends_with'
+  | 'is_empty'
+  | 'is_not_empty'
+  | 'greater_than'
+  | 'less_than'
+  | 'greater_or_equal'
+  | 'less_or_equal'
+  | 'is_any_of'
+  | 'is_none_of'
+
+type FilterFieldType = 'text' | 'number' | 'select' | 'date'
+
+interface FilterField {
+  key: string
+  label: string
+  type: FilterFieldType
+  options?: string[]
+}
+
+interface FilterCondition {
+  id: string
+  field: string
+  operator: FilterOperator
+  value: string | string[]
+}
+
 interface ColumnConfig {
   key: string
   label: string
   visible: boolean
   width?: string
+}
+
+// Define all filterable fields with their types
+const FILTER_FIELDS: FilterField[] = [
+  { key: 'full_name', label: 'Name', type: 'text' },
+  { key: 'email', label: 'Email', type: 'text' },
+  { key: 'phone', label: 'Phone', type: 'text' },
+  { key: 'budget', label: 'Budget', type: 'text' },
+  { key: 'quality_score', label: 'Quality Score', type: 'number' },
+  { key: 'intent_score', label: 'Intent Score', type: 'number' },
+  { key: 'status', label: 'Status', type: 'select', options: ['New', 'Contacted', 'Qualified', 'Viewing Booked', 'Offer Made', 'Completed', 'Lost'] },
+  { key: 'source', label: 'Source', type: 'select', options: ['Facebook', 'Google', 'Instagram', 'Referral', 'Website', 'Other'] },
+  { key: 'campaign', label: 'Campaign', type: 'text' },
+  { key: 'timeline', label: 'Timeline', type: 'text' },
+  { key: 'location', label: 'Location', type: 'text' },
+  { key: 'bedrooms', label: 'Bedrooms', type: 'number' },
+  { key: 'payment_method', label: 'Payment Method', type: 'text' },
+  { key: 'mortgage_status', label: 'Mortgage Status', type: 'text' },
+  { key: 'created_at', label: 'Created Date', type: 'date' },
+]
+
+// Operators available per field type
+const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label: string }[]> = {
+  text: [
+    { value: 'contains', label: 'contains' },
+    { value: 'not_contains', label: 'does not contain' },
+    { value: 'equals', label: 'is' },
+    { value: 'not_equals', label: 'is not' },
+    { value: 'starts_with', label: 'starts with' },
+    { value: 'ends_with', label: 'ends with' },
+    { value: 'is_empty', label: 'is empty' },
+    { value: 'is_not_empty', label: 'is not empty' },
+  ],
+  number: [
+    { value: 'equals', label: '=' },
+    { value: 'not_equals', label: '≠' },
+    { value: 'greater_than', label: '>' },
+    { value: 'less_than', label: '<' },
+    { value: 'greater_or_equal', label: '≥' },
+    { value: 'less_or_equal', label: '≤' },
+    { value: 'is_empty', label: 'is empty' },
+    { value: 'is_not_empty', label: 'is not empty' },
+  ],
+  select: [
+    { value: 'equals', label: 'is' },
+    { value: 'not_equals', label: 'is not' },
+    { value: 'is_any_of', label: 'is any of' },
+    { value: 'is_none_of', label: 'is none of' },
+    { value: 'is_empty', label: 'is empty' },
+    { value: 'is_not_empty', label: 'is not empty' },
+  ],
+  date: [
+    { value: 'equals', label: 'is' },
+    { value: 'not_equals', label: 'is not' },
+    { value: 'greater_than', label: 'is after' },
+    { value: 'less_than', label: 'is before' },
+    { value: 'greater_or_equal', label: 'is on or after' },
+    { value: 'less_or_equal', label: 'is on or before' },
+    { value: 'is_empty', label: 'is empty' },
+    { value: 'is_not_empty', label: 'is not empty' },
+  ],
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
@@ -58,18 +154,19 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'created_at', label: 'Created', visible: false, width: 'w-[100px]' },
 ]
 
-const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Viewing Booked', 'Offer Made', 'Completed', 'Lost']
-const SOURCE_OPTIONS = ['Facebook', 'Google', 'Instagram', 'Referral', 'Website', 'Other']
+// Helper to generate unique IDs
+const generateId = () => Math.random().toString(36).substring(2, 9)
 
 export default function LeadsPage() {
   const router = useRouter()
   const { leads, isLoading, refreshData } = useData()
 
-  // Filter states
+  // Search state
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<string[]>([])
-  const [sourceFilter, setSourceFilter] = useState<string[]>([])
-  const [scoreFilter, setScoreFilter] = useState<'all' | 'hot' | 'warm' | 'cold'>('all')
+
+  // Advanced filter conditions (Airtable-style)
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
+  const [filterLogic, setFilterLogic] = useState<'and' | 'or'>('and')
 
   // Sort state
   const [sortField, setSortField] = useState<SortField>('created_at')
@@ -87,45 +184,158 @@ export default function LeadsPage() {
   const [currentPage, setCurrentPage] = useState(1)
   const [pageSize, setPageSize] = useState(50)
 
-  // Filter leads
+  // Add a new filter condition
+  const addFilterCondition = useCallback(() => {
+    const newCondition: FilterCondition = {
+      id: generateId(),
+      field: 'full_name',
+      operator: 'contains',
+      value: '',
+    }
+    setFilterConditions([...filterConditions, newCondition])
+  }, [filterConditions])
+
+  // Update a filter condition
+  const updateFilterCondition = useCallback((id: string, updates: Partial<FilterCondition>) => {
+    setFilterConditions(filterConditions.map((c) => {
+      if (c.id !== id) return c
+
+      // If field changed, reset operator to first valid operator for new field type
+      if (updates.field && updates.field !== c.field) {
+        const fieldConfig = FILTER_FIELDS.find((f) => f.key === updates.field)
+        const operators = OPERATORS_BY_TYPE[fieldConfig?.type || 'text']
+        return {
+          ...c,
+          ...updates,
+          operator: operators[0].value,
+          value: fieldConfig?.type === 'select' && fieldConfig.options ? '' : '',
+        }
+      }
+
+      return { ...c, ...updates }
+    }))
+  }, [filterConditions])
+
+  // Remove a filter condition
+  const removeFilterCondition = useCallback((id: string) => {
+    setFilterConditions(filterConditions.filter((c) => c.id !== id))
+  }, [filterConditions])
+
+  // Clear all filters
+  const clearFilters = useCallback(() => {
+    setFilterConditions([])
+    setSearch('')
+  }, [])
+
+  // Check if a lead matches a single filter condition
+  const matchesCondition = useCallback((lead: Buyer, condition: FilterCondition): boolean => {
+    const fieldConfig = FILTER_FIELDS.find((f) => f.key === condition.field)
+    if (!fieldConfig) return true
+
+    // Get the raw value from the lead
+    let rawValue: any = (lead as any)[condition.field]
+
+    // Special handling for full_name (might be constructed from first_name + last_name)
+    if (condition.field === 'full_name') {
+      rawValue = lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || ''
+    }
+
+    // Handle location field (might also be in 'area')
+    if (condition.field === 'location') {
+      rawValue = lead.location || (lead as any).area || ''
+    }
+
+    const value = rawValue?.toString().toLowerCase() || ''
+    const conditionValue = typeof condition.value === 'string' ? condition.value.toLowerCase() : ''
+
+    switch (condition.operator) {
+      case 'contains':
+        return value.includes(conditionValue)
+      case 'not_contains':
+        return !value.includes(conditionValue)
+      case 'equals':
+        if (fieldConfig.type === 'number') {
+          return Number(rawValue) === Number(condition.value)
+        }
+        return value === conditionValue
+      case 'not_equals':
+        if (fieldConfig.type === 'number') {
+          return Number(rawValue) !== Number(condition.value)
+        }
+        return value !== conditionValue
+      case 'starts_with':
+        return value.startsWith(conditionValue)
+      case 'ends_with':
+        return value.endsWith(conditionValue)
+      case 'is_empty':
+        return !rawValue || rawValue === '' || rawValue === null || rawValue === undefined
+      case 'is_not_empty':
+        return rawValue && rawValue !== '' && rawValue !== null && rawValue !== undefined
+      case 'greater_than':
+        if (fieldConfig.type === 'date') {
+          return new Date(rawValue) > new Date(condition.value as string)
+        }
+        return Number(rawValue) > Number(condition.value)
+      case 'less_than':
+        if (fieldConfig.type === 'date') {
+          return new Date(rawValue) < new Date(condition.value as string)
+        }
+        return Number(rawValue) < Number(condition.value)
+      case 'greater_or_equal':
+        if (fieldConfig.type === 'date') {
+          return new Date(rawValue) >= new Date(condition.value as string)
+        }
+        return Number(rawValue) >= Number(condition.value)
+      case 'less_or_equal':
+        if (fieldConfig.type === 'date') {
+          return new Date(rawValue) <= new Date(condition.value as string)
+        }
+        return Number(rawValue) <= Number(condition.value)
+      case 'is_any_of':
+        const anyOfValues = Array.isArray(condition.value) ? condition.value : [condition.value]
+        return anyOfValues.some((v) => v.toLowerCase() === value)
+      case 'is_none_of':
+        const noneOfValues = Array.isArray(condition.value) ? condition.value : [condition.value]
+        return !noneOfValues.some((v) => v.toLowerCase() === value)
+      default:
+        return true
+    }
+  }, [])
+
+  // Filter leads based on all conditions
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       // Text search
-      const matchesSearch =
-        !search ||
-        lead.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-        lead.email?.toLowerCase().includes(search.toLowerCase()) ||
-        lead.phone?.includes(search) ||
-        lead.first_name?.toLowerCase().includes(search.toLowerCase()) ||
-        lead.last_name?.toLowerCase().includes(search.toLowerCase())
+      if (search) {
+        const searchLower = search.toLowerCase()
+        const matchesSearch =
+          lead.full_name?.toLowerCase().includes(searchLower) ||
+          lead.email?.toLowerCase().includes(searchLower) ||
+          lead.phone?.includes(search) ||
+          lead.first_name?.toLowerCase().includes(searchLower) ||
+          lead.last_name?.toLowerCase().includes(searchLower)
 
-      // Status filter
-      const matchesStatus =
-        statusFilter.length === 0 ||
-        statusFilter.includes(lead.status || 'New')
+        if (!matchesSearch) return false
+      }
 
-      // Source filter
-      const matchesSource =
-        sourceFilter.length === 0 ||
-        sourceFilter.includes(lead.source || '')
+      // Advanced filter conditions
+      if (filterConditions.length > 0) {
+        if (filterLogic === 'and') {
+          return filterConditions.every((condition) => matchesCondition(lead, condition))
+        } else {
+          return filterConditions.some((condition) => matchesCondition(lead, condition))
+        }
+      }
 
-      // Score filter
-      const score = lead.quality_score || 0
-      const matchesScore =
-        scoreFilter === 'all' ||
-        (scoreFilter === 'hot' && score >= 80) ||
-        (scoreFilter === 'warm' && score >= 60 && score < 80) ||
-        (scoreFilter === 'cold' && score < 60)
-
-      return matchesSearch && matchesStatus && matchesSource && matchesScore
+      return true
     })
-  }, [leads, search, statusFilter, sourceFilter, scoreFilter])
+  }, [leads, search, filterConditions, filterLogic, matchesCondition])
 
   // Sort leads
   const sortedLeads = useMemo(() => {
     return [...filteredLeads].sort((a, b) => {
-      let aVal: any = a[sortField]
-      let bVal: any = b[sortField]
+      let aVal: any = (a as any)[sortField]
+      let bVal: any = (b as any)[sortField]
 
       // Handle numeric values
       if (sortField === 'quality_score' || sortField === 'intent_score') {
@@ -158,12 +368,12 @@ export default function LeadsPage() {
   }, [sortedLeads, currentPage, pageSize])
 
   // Reset to page 1 when filters change
-  const filterKey = `${search}-${statusFilter.join()}-${sourceFilter.join()}-${scoreFilter}`
+  const filterKey = `${search}-${JSON.stringify(filterConditions)}-${filterLogic}`
   useMemo(() => {
     if (currentPage !== 1) setCurrentPage(1)
   }, [filterKey])
 
-  // Group leads (uses paginated data)
+  // Group leads
   const groupedLeads = useMemo(() => {
     if (groupBy === 'none') {
       return { 'All Leads': paginatedLeads }
@@ -171,7 +381,7 @@ export default function LeadsPage() {
 
     const groups: Record<string, Buyer[]> = {}
     sortedLeads.forEach((lead) => {
-      const groupValue = (lead[groupBy as keyof Buyer] as string) || 'Uncategorized'
+      const groupValue = ((lead as any)[groupBy] as string) || 'Uncategorized'
       if (!groups[groupValue]) {
         groups[groupValue] = []
       }
@@ -179,7 +389,7 @@ export default function LeadsPage() {
     })
 
     return groups
-  }, [sortedLeads, groupBy])
+  }, [sortedLeads, groupBy, paginatedLeads])
 
   // Stats
   const stats = useMemo(() => ({
@@ -205,29 +415,6 @@ export default function LeadsPage() {
     ))
   }
 
-  const toggleStatusFilter = (status: string) => {
-    setStatusFilter((prev) =>
-      prev.includes(status)
-        ? prev.filter((s) => s !== status)
-        : [...prev, status]
-    )
-  }
-
-  const toggleSourceFilter = (source: string) => {
-    setSourceFilter((prev) =>
-      prev.includes(source)
-        ? prev.filter((s) => s !== source)
-        : [...prev, source]
-    )
-  }
-
-  const clearFilters = () => {
-    setSearch('')
-    setStatusFilter([])
-    setSourceFilter([])
-    setScoreFilter('all')
-  }
-
   const getScoreColor = (score: number | undefined) => {
     if (!score) return 'text-muted-foreground'
     if (score >= 80) return 'text-orange-500'
@@ -249,7 +436,40 @@ export default function LeadsPage() {
   }
 
   const visibleColumns = columns.filter((c) => c.visible)
-  const hasActiveFilters = statusFilter.length > 0 || sourceFilter.length > 0 || scoreFilter !== 'all'
+  const hasActiveFilters = filterConditions.length > 0 || search.length > 0
+
+  // Quick filter presets
+  const applyQuickFilter = (preset: string) => {
+    switch (preset) {
+      case 'hot':
+        setFilterConditions([{
+          id: generateId(),
+          field: 'quality_score',
+          operator: 'greater_or_equal',
+          value: '80',
+        }])
+        break
+      case 'new':
+        setFilterConditions([{
+          id: generateId(),
+          field: 'status',
+          operator: 'equals',
+          value: 'New',
+        }])
+        break
+      case 'qualified':
+        setFilterConditions([{
+          id: generateId(),
+          field: 'status',
+          operator: 'equals',
+          value: 'Qualified',
+        }])
+        break
+      default:
+        setFilterConditions([])
+    }
+    setShowFilters(true)
+  }
 
   return (
     <div className="space-y-6">
@@ -282,7 +502,7 @@ export default function LeadsPage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setScoreFilter('all')}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => clearFilters()}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-muted-foreground" />
@@ -291,7 +511,7 @@ export default function LeadsPage() {
             <p className="text-xl font-bold">{stats.total.toLocaleString()}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setScoreFilter('hot')}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('hot')}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <Flame className="h-4 w-4 text-orange-500" />
@@ -300,7 +520,7 @@ export default function LeadsPage() {
             <p className="text-xl font-bold text-orange-500">{stats.hot}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => { setStatusFilter(['New']); setScoreFilter('all') }}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('new')}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <UserPlus className="h-4 w-4 text-blue-500" />
@@ -309,7 +529,7 @@ export default function LeadsPage() {
             <p className="text-xl font-bold text-blue-500">{stats.new}</p>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => { setStatusFilter(['Qualified']); setScoreFilter('all') }}>
+        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('qualified')}>
           <CardContent className="p-3">
             <div className="flex items-center gap-2">
               <Users className="h-4 w-4 text-success" />
@@ -348,9 +568,9 @@ export default function LeadsPage() {
             >
               <SlidersHorizontal className="h-4 w-4 mr-2" />
               Filters
-              {hasActiveFilters && (
+              {filterConditions.length > 0 && (
                 <Badge variant="secondary" className="ml-2 text-[10px]">
-                  {statusFilter.length + sourceFilter.length + (scoreFilter !== 'all' ? 1 : 0)}
+                  {filterConditions.length}
                 </Badge>
               )}
             </Button>
@@ -376,12 +596,27 @@ export default function LeadsPage() {
           </div>
         </div>
 
-        {/* Expanded Filters */}
+        {/* Advanced Filters Panel (Airtable-style) */}
         {showFilters && (
           <Card>
             <CardContent className="p-4 space-y-4">
               <div className="flex items-center justify-between">
-                <span className="text-sm font-medium">Filters</span>
+                <div className="flex items-center gap-4">
+                  <span className="text-sm font-medium">Filter conditions</span>
+                  {filterConditions.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground">Match</span>
+                      <select
+                        className="px-2 py-1 rounded-md border border-input bg-background text-xs"
+                        value={filterLogic}
+                        onChange={(e) => setFilterLogic(e.target.value as 'and' | 'or')}
+                      >
+                        <option value="and">ALL conditions (AND)</option>
+                        <option value="or">ANY condition (OR)</option>
+                      </select>
+                    </div>
+                  )}
+                </div>
                 {hasActiveFilters && (
                   <Button variant="ghost" size="sm" onClick={clearFilters}>
                     <X className="h-4 w-4 mr-1" />
@@ -390,56 +625,138 @@ export default function LeadsPage() {
                 )}
               </div>
 
-              <div className="space-y-3">
-                <div>
-                  <span className="text-xs text-muted-foreground mb-2 block">Score</span>
-                  <div className="flex flex-wrap gap-2">
-                    {['all', 'hot', 'warm', 'cold'].map((s) => (
-                      <Button
-                        key={s}
-                        variant={scoreFilter === s ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => setScoreFilter(s as any)}
-                      >
-                        {s === 'hot' && <Flame className="h-3 w-3 mr-1 text-orange-500" />}
-                        {s.charAt(0).toUpperCase() + s.slice(1)}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+              {/* Filter Conditions */}
+              <div className="space-y-2">
+                {filterConditions.map((condition, index) => {
+                  const fieldConfig = FILTER_FIELDS.find((f) => f.key === condition.field)
+                  const operators = OPERATORS_BY_TYPE[fieldConfig?.type || 'text']
+                  const needsValue = !['is_empty', 'is_not_empty'].includes(condition.operator)
+                  const isMultiSelect = ['is_any_of', 'is_none_of'].includes(condition.operator)
 
-                <div>
-                  <span className="text-xs text-muted-foreground mb-2 block">Status</span>
-                  <div className="flex flex-wrap gap-2">
-                    {STATUS_OPTIONS.map((status) => (
-                      <Button
-                        key={status}
-                        variant={statusFilter.includes(status) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleStatusFilter(status)}
-                      >
-                        {status}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                  return (
+                    <div key={condition.id} className="flex items-center gap-2 flex-wrap">
+                      {index > 0 && (
+                        <span className="text-xs text-muted-foreground w-10">
+                          {filterLogic === 'and' ? 'AND' : 'OR'}
+                        </span>
+                      )}
+                      {index === 0 && <span className="w-10 text-xs text-muted-foreground">Where</span>}
 
-                <div>
-                  <span className="text-xs text-muted-foreground mb-2 block">Source</span>
-                  <div className="flex flex-wrap gap-2">
-                    {SOURCE_OPTIONS.map((source) => (
-                      <Button
-                        key={source}
-                        variant={sourceFilter.includes(source) ? 'default' : 'outline'}
-                        size="sm"
-                        onClick={() => toggleSourceFilter(source)}
+                      {/* Field Select */}
+                      <select
+                        className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                        value={condition.field}
+                        onChange={(e) => updateFilterCondition(condition.id, { field: e.target.value })}
                       >
-                        {source}
+                        {FILTER_FIELDS.map((field) => (
+                          <option key={field.key} value={field.key}>
+                            {field.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Operator Select */}
+                      <select
+                        className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                        value={condition.operator}
+                        onChange={(e) => updateFilterCondition(condition.id, { operator: e.target.value as FilterOperator })}
+                      >
+                        {operators.map((op) => (
+                          <option key={op.value} value={op.value}>
+                            {op.label}
+                          </option>
+                        ))}
+                      </select>
+
+                      {/* Value Input */}
+                      {needsValue && (
+                        <>
+                          {fieldConfig?.type === 'select' && !isMultiSelect ? (
+                            <select
+                              className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                              value={condition.value as string}
+                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                            >
+                              <option value="">Select...</option>
+                              {fieldConfig.options?.map((opt) => (
+                                <option key={opt} value={opt}>
+                                  {opt}
+                                </option>
+                              ))}
+                            </select>
+                          ) : fieldConfig?.type === 'select' && isMultiSelect ? (
+                            <div className="flex flex-wrap gap-1 min-w-[200px]">
+                              {fieldConfig.options?.map((opt) => {
+                                const values = Array.isArray(condition.value) ? condition.value : []
+                                const isSelected = values.includes(opt)
+                                return (
+                                  <Button
+                                    key={opt}
+                                    variant={isSelected ? 'default' : 'outline'}
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => {
+                                      const newValues = isSelected
+                                        ? values.filter((v) => v !== opt)
+                                        : [...values, opt]
+                                      updateFilterCondition(condition.id, { value: newValues })
+                                    }}
+                                  >
+                                    {opt}
+                                  </Button>
+                                )
+                              })}
+                            </div>
+                          ) : fieldConfig?.type === 'date' ? (
+                            <Input
+                              type="date"
+                              className="w-[160px]"
+                              value={condition.value as string}
+                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                            />
+                          ) : fieldConfig?.type === 'number' ? (
+                            <Input
+                              type="number"
+                              className="w-[100px]"
+                              placeholder="Value"
+                              value={condition.value as string}
+                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                            />
+                          ) : (
+                            <Input
+                              className="w-[200px]"
+                              placeholder="Value"
+                              value={condition.value as string}
+                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                            />
+                          )}
+                        </>
+                      )}
+
+                      {/* Remove Button */}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        onClick={() => removeFilterCondition(condition.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
                       </Button>
-                    ))}
-                  </div>
-                </div>
+                    </div>
+                  )
+                })}
               </div>
+
+              {/* Add Filter Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={addFilterCondition}
+                className="mt-2"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Filter
+              </Button>
             </CardContent>
           </Card>
         )}
@@ -567,7 +884,7 @@ export default function LeadsPage() {
                               <span>{lead.timeline || '-'}</span>
                             )}
                             {col.key === 'location' && (
-                              <span className="truncate">{lead.location || lead.area || '-'}</span>
+                              <span className="truncate">{lead.location || (lead as any).area || '-'}</span>
                             )}
                             {col.key === 'bedrooms' && (
                               <span>{lead.bedrooms || '-'}</span>
