@@ -249,27 +249,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Finance Leads table error:', financeLeadsResult.error.message)
       }
 
-      // Process USERS
-      const demoUsers: AppUser[] = [
-        { id: 'user-1', name: 'Sarah Johnson', email: 'sarah@naybourhood.ai', role: 'admin', status: 'active' },
-        { id: 'user-2', name: 'James Wilson', email: 'james@naybourhood.ai', role: 'agent', status: 'active' },
-        { id: 'user-3', name: 'Emily Chen', email: 'emily@naybourhood.ai', role: 'agent', status: 'active' },
-      ]
-
-      if (!usersResult.error && usersResult.data && usersResult.data.length > 0) {
+      // Process USERS - no demo data, only real users from Supabase
+      if (!usersResult.error && usersResult.data) {
         const mappedUsers = usersResult.data.map((p: any) => ({
           id: p.id,
           name: p.full_name || p.email || 'Unknown',
           email: p.email || '',
           role: p.role || 'agent',
           company_id: p.company_id,
+          company: p.company_id,
           avatar_url: p.avatar_url,
-          status: 'active' as const,
+          status: (p.status || 'active') as 'active' | 'inactive',
+          last_active: p.last_active,
+          created_at: p.created_at,
         }))
         console.log('[DataContext] Users loaded:', mappedUsers.length)
         setUsers(mappedUsers)
-      } else {
-        setUsers(demoUsers)
+      } else if (usersResult.error) {
+        console.log('[DataContext] Users/profiles table error:', usersResult.error.message)
+        setUsers([])
       }
 
       const elapsed = Date.now() - startTime

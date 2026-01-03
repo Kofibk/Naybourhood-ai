@@ -9,36 +9,38 @@ import { useData } from '@/contexts/DataContext'
 import {
   Plus,
   Search,
-  Filter,
-  MoreVertical,
   UserCircle,
   Edit,
   Trash2,
   X,
-  Save,
   Mail,
   Building2,
   Shield,
   CheckCircle,
   AlertCircle,
+  Send,
+  RefreshCw,
 } from 'lucide-react'
 
-interface EditingUser {
-  id?: string
+interface InviteUser {
   name: string
   email: string
   role: 'admin' | 'developer' | 'agent' | 'broker'
-  company?: string
-  status: 'active' | 'inactive'
+  company_id?: string
 }
 
 export default function UsersPage() {
-  const { users, companies, isLoading } = useData()
+  const { users, companies, isLoading, refreshData } = useData()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<EditingUser | null>(null)
-  const [isSaving, setIsSaving] = useState(false)
+  const [inviteData, setInviteData] = useState<InviteUser>({
+    name: '',
+    email: '',
+    role: 'agent',
+    company_id: '',
+  })
+  const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Filter users
@@ -54,62 +56,85 @@ export default function UsersPage() {
     })
   }, [users, searchQuery, roleFilter])
 
-  const handleCreateUser = () => {
-    setEditingUser({
+  const handleOpenInviteModal = () => {
+    setInviteData({
       name: '',
       email: '',
       role: 'agent',
-      company: '',
-      status: 'active',
+      company_id: '',
     })
     setIsModalOpen(true)
     setMessage(null)
   }
 
-  const handleEditUser = (user: typeof users[0]) => {
-    setEditingUser({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      company: user.company || '',
-      status: user.status || 'active',
-    })
-    setIsModalOpen(true)
+  const handleSendInvite = async () => {
+    if (!inviteData.email) {
+      setMessage({ type: 'error', text: 'Email is required' })
+      return
+    }
+
+    setIsSending(true)
     setMessage(null)
-  }
 
-  const handleSaveUser = async () => {
-    if (!editingUser) return
-
-    setIsSaving(true)
     try {
-      // In production, this would call an API to create/update the user
-      // For now, we simulate the action
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const response = await fetch('/api/users/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: inviteData.email,
+          name: inviteData.name,
+          role: inviteData.role,
+          company_id: inviteData.company_id || null,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send invitation')
+      }
 
       setMessage({
         type: 'success',
-        text: editingUser.id ? 'User updated successfully!' : 'User created successfully!'
+        text: `Invitation sent to ${inviteData.email}! They will receive an email to set up their account.`
       })
       setIsModalOpen(false)
-      setEditingUser(null)
+      setInviteData({ name: '', email: '', role: 'agent', company_id: '' })
+
+      // Refresh users list
+      refreshData()
     } catch (e) {
-      setMessage({ type: 'error', text: 'Failed to save user.' })
+      setMessage({
+        type: 'error',
+        text: e instanceof Error ? e.message : 'Failed to send invitation'
+      })
     } finally {
-      setIsSaving(false)
+      setIsSending(false)
     }
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user?')) return
+    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
 
     try {
-      // In production, this would call an API to delete the user
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to delete user')
+      }
+
       setMessage({ type: 'success', text: 'User deleted successfully!' })
+      refreshData()
     } catch (e) {
-      setMessage({ type: 'error', text: 'Failed to delete user.' })
+      setMessage({
+        type: 'error',
+        text: e instanceof Error ? e.message : 'Failed to delete user'
+      })
     }
   }
 
@@ -126,6 +151,15 @@ export default function UsersPage() {
       default:
         return <Badge variant="outline">{role}</Badge>
     }
+  }
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return 'Never'
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
   }
 
   return (
@@ -160,10 +194,16 @@ export default function UsersPage() {
             Manage platform users and permissions ({filteredUsers.length} users)
           </p>
         </div>
-        <Button onClick={handleCreateUser}>
-          <Plus className="h-4 w-4 mr-2" />
-          Invite User
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={handleOpenInviteModal}>
+            <Plus className="h-4 w-4 mr-2" />
+            Invite User
+          </Button>
+        </div>
       </div>
 
       {/* Filters */}
@@ -257,18 +297,10 @@ export default function UsersPage() {
                         </Badge>
                       </td>
                       <td className="p-4 text-sm text-muted-foreground">
-                        {user.last_active || 'Never'}
+                        {formatDate(user.last_active)}
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
                           <Button
                             variant="ghost"
                             size="icon"
@@ -284,7 +316,9 @@ export default function UsersPage() {
                   {filteredUsers.length === 0 && (
                     <tr>
                       <td colSpan={6} className="p-8 text-center text-muted-foreground">
-                        No users found
+                        {users.length === 0
+                          ? 'No users found. Invite your first user to get started!'
+                          : 'No users match your search'}
                       </td>
                     </tr>
                   )}
@@ -295,14 +329,12 @@ export default function UsersPage() {
         </CardContent>
       </Card>
 
-      {/* Create/Edit Modal */}
-      {isModalOpen && editingUser && (
+      {/* Invite Modal */}
+      {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold">
-                {editingUser.id ? 'Edit User' : 'Invite New User'}
-              </h3>
+              <h3 className="font-semibold">Invite New User</h3>
               <Button
                 variant="ghost"
                 size="icon"
@@ -312,27 +344,30 @@ export default function UsersPage() {
               </Button>
             </div>
             <div className="p-4 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                The user will receive an email invitation to set up their account and password.
+              </p>
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <UserCircle className="h-4 w-4" />
-                  Full Name
+                  <Mail className="h-4 w-4" />
+                  Email Address *
                 </label>
                 <Input
-                  value={editingUser.name}
-                  onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
-                  placeholder="John Smith"
+                  type="email"
+                  value={inviteData.email}
+                  onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
+                  placeholder="john@example.com"
                 />
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <Mail className="h-4 w-4" />
-                  Email Address
+                  <UserCircle className="h-4 w-4" />
+                  Full Name (optional)
                 </label>
                 <Input
-                  type="email"
-                  value={editingUser.email}
-                  onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
-                  placeholder="john@example.com"
+                  value={inviteData.name}
+                  onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
+                  placeholder="John Smith"
                 />
               </div>
               <div className="space-y-2">
@@ -341,10 +376,10 @@ export default function UsersPage() {
                   Role
                 </label>
                 <select
-                  value={editingUser.role}
-                  onChange={(e) => setEditingUser({
-                    ...editingUser,
-                    role: e.target.value as EditingUser['role']
+                  value={inviteData.role}
+                  onChange={(e) => setInviteData({
+                    ...inviteData,
+                    role: e.target.value as InviteUser['role']
                   })}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
@@ -360,30 +395,16 @@ export default function UsersPage() {
                   Company (optional)
                 </label>
                 <select
-                  value={editingUser.company || ''}
-                  onChange={(e) => setEditingUser({ ...editingUser, company: e.target.value })}
+                  value={inviteData.company_id || ''}
+                  onChange={(e) => setInviteData({ ...inviteData, company_id: e.target.value })}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
                   <option value="">No company</option>
                   {companies.map((company) => (
-                    <option key={company.id} value={company.name}>
+                    <option key={company.id} value={company.id}>
                       {company.name}
                     </option>
                   ))}
-                </select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <select
-                  value={editingUser.status}
-                  onChange={(e) => setEditingUser({
-                    ...editingUser,
-                    status: e.target.value as 'active' | 'inactive'
-                  })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="active">Active</option>
-                  <option value="inactive">Inactive</option>
                 </select>
               </div>
             </div>
@@ -391,9 +412,9 @@ export default function UsersPage() {
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSaveUser} disabled={isSaving}>
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : editingUser.id ? 'Update User' : 'Send Invite'}
+              <Button onClick={handleSendInvite} disabled={isSending || !inviteData.email}>
+                <Send className="h-4 w-4 mr-2" />
+                {isSending ? 'Sending...' : 'Send Invitation'}
               </Button>
             </div>
           </div>
