@@ -61,9 +61,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Create all fetch promises - run in PARALLEL for speed
       const fetchPromises: Promise<void>[] = []
 
-      // BUYERS: Fetch from Airtable (primary) or Supabase (fallback)
+      // BUYERS: Fetch from Supabase (primary) - Airtable disabled for reliability
       const buyersFetch = async () => {
-        if (isAirtable) {
+        if (isSupabase) {
+          console.log('[DataContext] Fetching buyers from Supabase...')
+          const supabase = createClient()
+          const { data, error } = await supabase
+            .from('buyers')
+            .select('*')
+            .order('created_at', { ascending: false })
+          if (error) {
+            console.error('[DataContext] Supabase buyers error:', error.message)
+            errors.push(`Buyers: ${error.message}`)
+          } else if (data && data.length > 0) {
+            console.log('[DataContext] Fetched buyers from Supabase:', data.length)
+            setLeads(data)
+          } else {
+            console.log('[DataContext] No buyers in Supabase')
+          }
+        } else if (isAirtable) {
           console.log('[DataContext] Fetching buyers from Airtable...')
           try {
             const airtableLeads = await fetchAirtableLeads()
@@ -97,113 +113,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
             console.error('[DataContext] Airtable buyers fetch failed:', e)
             errors.push(`Airtable Buyers: ${e instanceof Error ? e.message : 'Failed'}`)
           }
-        } else if (isSupabase) {
-          console.log('[DataContext] Fetching buyers from Supabase...')
-          const supabase = createClient()
-          const { data, error } = await supabase
-            .from('buyers')
-            .select('*')
-            .order('created_at', { ascending: false })
-            .limit(5000)
-          if (error) {
-            errors.push(`Supabase Buyers: ${error.message}`)
-          } else if (data) {
-            // Map Supabase data with derived fields for frontend compatibility
-            const mappedLeads: Buyer[] = data.map((lead: any) => {
-              // Derive first_name/last_name from full_name if not present
-              let firstName = lead.first_name
-              let lastName = lead.last_name
-              if (!firstName && lead.full_name) {
-                const nameParts = lead.full_name.split(' ')
-                firstName = nameParts[0] || null
-                lastName = nameParts.slice(1).join(' ') || null
-              }
-              return {
-                ...lead,
-                first_name: firstName,
-                last_name: lastName,
-                // Ensure area is populated from location if missing
-                area: lead.area || lead.location,
-              }
-            })
-            console.log('[DataContext] Fetched buyers from Supabase:', mappedLeads.length)
-            setLeads(mappedLeads)
-          }
         }
       }
 
-      // CAMPAIGNS: Fetch from Airtable (primary) or Supabase (fallback)
+      // CAMPAIGNS: Fetch from Supabase (primary)
       const campaignsFetch = async () => {
-        if (isAirtable) {
-          console.log('[DataContext] Fetching campaigns from Airtable...')
-          try {
-            const airtableCampaigns = await fetchAirtableCampaigns()
-            if (airtableCampaigns && airtableCampaigns.length > 0) {
-              const mappedCampaigns: Campaign[] = airtableCampaigns.map((camp: any) => {
-                const getValue = (...keys: string[]) => {
-                  for (const key of keys) {
-                    if (camp[key] !== undefined && camp[key] !== null) return camp[key]
-                  }
-                  return null
-                }
-                const parseNum = (val: any) => {
-                  if (typeof val === 'string') return parseFloat(val.replace(/[£$,]/g, '')) || 0
-                  return Number(val) || 0
-                }
-
-                return {
-                  id: camp.id,
-                  name: getValue('name', 'Name', 'NAME', 'campaign_name', 'Campaign Name') || 'Unnamed',
-                  client: getValue('client', 'Client', 'CLIENT'),
-                  development: getValue('development', 'Development', 'development_name', 'Development Name'),
-                  company_id: getValue('company_id', 'companyId', 'Company ID'),
-                  platform: getValue('platform', 'Platform', 'PLATFORM'),
-                  status: getValue('status', 'Status', 'STATUS') || 'unknown',
-                  spend: parseNum(getValue('spend', 'Spend', 'amount_spent', 'Amount Spent', 'total_spend', 'Total Spend')),
-                  amount_spent: parseNum(getValue('spend', 'Spend', 'amount_spent', 'Amount Spent')),
-                  leads: parseNum(getValue('leads', 'Leads', 'lead_count', 'Lead Count', 'Leads Generated')),
-                  lead_count: parseNum(getValue('leads', 'Leads', 'lead_count', 'Lead Count')),
-                  cpl: parseNum(getValue('cpl', 'CPL', 'cost_per_lead', 'Cost Per Lead')),
-                  cost_per_lead: parseNum(getValue('cpl', 'CPL', 'cost_per_lead', 'Cost Per Lead')),
-                  impressions: parseNum(getValue('impressions', 'Impressions')),
-                  clicks: parseNum(getValue('clicks', 'Clicks')),
-                  ctr: parseNum(getValue('ctr', 'CTR')),
-                  start_date: getValue('startDate', 'start_date', 'Start Date'),
-                  end_date: getValue('endDate', 'end_date', 'End Date'),
-                  created_at: getValue('createdAt', 'created_at', 'Created'),
-                  updated_at: getValue('updatedAt', 'updated_at', 'Updated'),
-                  ...camp,
-                }
-              })
-              console.log('[DataContext] Fetched campaigns from Airtable:', mappedCampaigns.length)
-              setCampaigns(mappedCampaigns)
-            } else {
-              console.log('[DataContext] No campaigns in Airtable')
-              errors.push('No campaigns found in Airtable')
-            }
-          } catch (e) {
-            console.error('[DataContext] Airtable campaigns fetch failed:', e)
-            errors.push(`Airtable Campaigns: ${e instanceof Error ? e.message : 'Failed'}`)
-          }
-        } else if (isSupabase) {
+        if (isSupabase) {
+          console.log('[DataContext] Fetching campaigns from Supabase...')
           const supabase = createClient()
           const { data, error } = await supabase
             .from('campaigns')
             .select('*')
             .order('created_at', { ascending: false })
           if (error) {
-            errors.push(`Supabase Campaigns: ${error.message}`)
-          } else if (data) {
-            // Map Supabase columns to frontend expected fields
-            const mappedCampaigns: Campaign[] = data.map((c: any) => ({
-              ...c,
-              // Alias fields for frontend compatibility
-              amount_spent: c.spend,
-              lead_count: c.leads,
-              cost_per_lead: c.cpl,
-            }))
-            console.log('[DataContext] Fetched campaigns from Supabase:', mappedCampaigns.length)
-            setCampaigns(mappedCampaigns)
+            console.error('[DataContext] Supabase campaigns error:', error.message)
+            errors.push(`Campaigns: ${error.message}`)
+          } else if (data && data.length > 0) {
+            console.log('[DataContext] Fetched campaigns from Supabase:', data.length)
+            setCampaigns(data)
+          } else {
+            console.log('[DataContext] No campaigns in Supabase')
           }
         }
       }
