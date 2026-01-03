@@ -92,8 +92,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // COMPANIES
         supabase.from('companies').select('*').order('name', { ascending: true }),
 
-        // DEVELOPMENTS
-        supabase.from('developments').select('*').order('name', { ascending: true }),
+        // DEVELOPMENTS - don't order by name as column might not exist
+        supabase.from('developments').select('*'),
 
         // FINANCE LEADS
         supabase.from('finance_leads').select('*').order('created_at', { ascending: false }),
