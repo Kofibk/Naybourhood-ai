@@ -187,3 +187,28 @@ export interface DashboardMetrics {
   totalCompanies?: number
   qualifiedRate?: number
 }
+
+export interface FinanceLead {
+  id: string
+  full_name?: string
+  first_name?: string
+  last_name?: string
+  email?: string
+  phone?: string
+  loan_amount?: number
+  loan_type?: string
+  property_value?: number
+  ltv?: number
+  credit_score?: number
+  employment_status?: string
+  income?: number
+  status?: string
+  source?: string
+  campaign?: string
+  quality_score?: number
+  notes?: string
+  assigned_to?: string
+  assigned_user_name?: string
+  created_at?: string
+  updated_at?: string
+}

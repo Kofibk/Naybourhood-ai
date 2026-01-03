@@ -2,13 +2,14 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import type { Buyer, Campaign, Company, Development, AppUser } from '@/types'
+import type { Buyer, Campaign, Company, Development, AppUser, FinanceLead } from '@/types'
 
 interface DataContextType {
   leads: Buyer[]
   campaigns: Campaign[]
   companies: Company[]
   developments: Development[]
+  financeLeads: FinanceLead[]
   users: AppUser[]
   isLoading: boolean
   error: string | null
@@ -27,6 +28,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [companies, setCompanies] = useState<Company[]>([])
   const [developments, setDevelopments] = useState<Development[]>([])
+  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>([])
   const [users, setUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -53,7 +55,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const supabase = createClient()
 
       // Fetch all data in PARALLEL
-      const [buyersResult, campaignsResult, companiesResult, developmentsResult, usersResult] = await Promise.all([
+      const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
         // BUYERS - fetch all with pagination
         (async () => {
           let allBuyers: any[] = []
@@ -92,6 +94,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         // DEVELOPMENTS
         supabase.from('developments').select('*').order('name', { ascending: true }),
+
+        // FINANCE LEADS
+        supabase.from('finance_leads').select('*').order('created_at', { ascending: false }),
 
         // PROFILES/USERS
         supabase.from('profiles').select('*').order('full_name', { ascending: true }),
@@ -168,6 +173,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
       } else if (developmentsResult.error) {
         // Table might not exist yet - not critical
         console.log('[DataContext] Developments table not found (optional)')
+      }
+
+      // Process FINANCE LEADS
+      if (!financeLeadsResult.error && financeLeadsResult.data) {
+        console.log('[DataContext] Finance Leads loaded:', financeLeadsResult.data.length)
+        setFinanceLeads(financeLeadsResult.data)
+      } else if (financeLeadsResult.error) {
+        // Table might not exist yet - not critical
+        console.log('[DataContext] Finance Leads table not found (optional)')
       }
 
       // Process USERS
@@ -322,6 +336,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         campaigns,
         companies,
         developments,
+        financeLeads,
         users,
         isLoading,
         error,
