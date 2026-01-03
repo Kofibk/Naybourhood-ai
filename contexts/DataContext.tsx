@@ -106,12 +106,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (Array.isArray(buyersResult) && buyersResult.length > 0) {
         console.log('[DataContext] First buyer columns:', Object.keys(buyersResult[0]))
 
-        // Map column names (supports both Supabase schema names and Airtable CSV imports)
-        const mappedBuyers = buyersResult.map((b: any) => ({
-          id: b.id,
-          full_name: b.full_name || b['Lead Name'] || b['lead name'] || b.name || 'Unknown',
-          first_name: b.first_name || b['First Name'],
-          last_name: b.last_name || b['Last Name'],
+        // Map column names - combine first_name + last_name into full_name
+        const mappedBuyers = buyersResult.map((b: any) => {
+          const firstName = b.first_name || b['First Name'] || b['first name'] || ''
+          const lastName = b.last_name || b['Last Name'] || b['last name'] || ''
+          const combinedName = `${firstName} ${lastName}`.trim()
+
+          return {
+            id: b.id,
+            full_name: b.full_name || b['Lead Name'] || b['lead name'] || combinedName || b.name || 'Unknown',
+            first_name: firstName,
+            last_name: lastName,
           email: b.email || b['Email'],
           phone: b.phone || b['phone number'] || b['Phone Number'],
           budget: b.budget || b['budget range'] || b['Budget Range'],
@@ -138,7 +143,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           assigned_user_name: b.assigned_user_name,
           assigned_at: b.assigned_at,
           ...b,
-        }))
+        }})
         console.log('[DataContext] Buyers loaded:', mappedBuyers.length)
         setLeads(mappedBuyers)
       } else {
@@ -206,12 +211,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (financeLeadsResult.data.length > 0) {
           console.log('[DataContext] First finance lead columns:', Object.keys(financeLeadsResult.data[0]))
         }
-        // Map column names
-        const mappedFinanceLeads = financeLeadsResult.data.map((f: any) => ({
-          id: f.id,
-          full_name: f.full_name || f['Full Name'] || f['Name'] || f.name || 'Unknown',
-          first_name: f.first_name || f['First Name'],
-          last_name: f.last_name || f['Last Name'],
+        // Map column names - combine first_name + last_name into full_name
+        const mappedFinanceLeads = financeLeadsResult.data.map((f: any) => {
+          // Build full name from first_name + last_name if full_name doesn't exist
+          const firstName = f.first_name || f['First Name'] || f['first name'] || ''
+          const lastName = f.last_name || f['Last Name'] || f['last name'] || ''
+          const combinedName = `${firstName} ${lastName}`.trim()
+
+          return {
+            id: f.id,
+            full_name: f.full_name || f['Full Name'] || combinedName || f['Name'] || f.name || 'Unknown',
+            first_name: firstName,
+            last_name: lastName,
           email: f.email || f['Email'],
           phone: f.phone || f['Phone'] || f['Phone Number'],
           loan_amount: f.loan_amount || f['Loan Amount'] || f['loan_value'] || 0,
@@ -231,7 +242,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           created_at: f.created_at || f['Created At'] || f['Date Added'],
           updated_at: f.updated_at,
           ...f,
-        }))
+        }})
         setFinanceLeads(mappedFinanceLeads)
       } else if (financeLeadsResult.error) {
         // Table might not exist yet - not critical
