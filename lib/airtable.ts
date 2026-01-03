@@ -13,8 +13,8 @@ console.log('[Airtable Config] Base URL:', BASE_URL)
 
 // Table Configuration - Updated for Naybourhood
 export const TABLES = {
-  leads: 'buyers',
-  campaigns: 'campaigns previous data',
+  leads: 'Buyers',
+  campaigns: 'Campaigns Previous Data',
   companies: 'Companies',
   users: 'Users',
   developments: 'Developments',
