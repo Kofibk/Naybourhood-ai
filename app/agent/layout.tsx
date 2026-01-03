@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DataProvider } from '@/contexts/DataContext'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 interface User {
   id: string
@@ -48,15 +49,17 @@ export default function AgentLayout({
   }
 
   return (
-    <DataProvider>
-      <DashboardLayout
-        title={`Welcome back, ${user.name?.split(' ')[0] || 'Agent'}`}
-        userType="agent"
-        userName={user.name}
-        onLogout={handleLogout}
-      >
-        {children}
-      </DashboardLayout>
-    </DataProvider>
+    <AuthProvider>
+      <DataProvider>
+        <DashboardLayout
+          title={`Welcome back, ${user.name?.split(' ')[0] || 'Agent'}`}
+          userType="agent"
+          userName={user.name}
+          onLogout={handleLogout}
+        >
+          {children}
+        </DashboardLayout>
+      </DataProvider>
+    </AuthProvider>
   )
 }

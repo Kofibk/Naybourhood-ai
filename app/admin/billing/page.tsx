@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -22,7 +23,14 @@ import {
   Clock,
   XCircle,
   RefreshCw,
+  ShieldAlert,
 } from 'lucide-react'
+
+// Admins with billing access - must match Sidebar.tsx
+const BILLING_ACCESS_EMAILS = [
+  'kofi@naybourhood.ai',
+  'admin@naybourhood.ai',
+]
 
 // Pricing configuration
 const TIER_PRICES = {
@@ -33,9 +41,29 @@ const TIER_PRICES = {
 }
 
 export default function BillingPage() {
+  const router = useRouter()
   const { companies, isLoading, refreshData } = useData()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+
+  // Check user access on mount
+  useEffect(() => {
+    const stored = localStorage.getItem('naybourhood_user')
+    if (stored) {
+      try {
+        const user = JSON.parse(stored)
+        setUserEmail(user.email || null)
+      } catch {
+        setUserEmail(null)
+      }
+    }
+    setIsCheckingAuth(false)
+  }, [])
+
+  // Check if user has billing access
+  const hasAccess = userEmail && BILLING_ACCESS_EMAILS.includes(userEmail.toLowerCase())
 
   // Use real companies data for billing
   const subscribedCompanies = useMemo(() => {
@@ -163,6 +191,36 @@ export default function BillingPage() {
       default:
         return <Badge variant="muted">Free</Badge>
     }
+  }
+
+  // Show loading while checking auth
+  if (isCheckingAuth) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // Show unauthorized message if user doesn't have billing access
+  if (!hasAccess) {
+    return (
+      <div className="flex items-center justify-center py-12">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <ShieldAlert className="h-12 w-12 text-destructive mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
+            <p className="text-muted-foreground mb-4">
+              You do not have permission to view billing information.
+              Contact an administrator if you believe this is an error.
+            </p>
+            <Button onClick={() => router.push('/admin')}>
+              Return to Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    )
   }
 
   if (isLoading) {

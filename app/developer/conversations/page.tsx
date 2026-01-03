@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useAuth } from '@/contexts/AuthContext'
 import { Search, MessageSquare, Phone, Users } from 'lucide-react'
 
 function getTimeAgo(dateString: string): string {
@@ -24,10 +25,17 @@ function getTimeAgo(dateString: string): string {
 
 export default function ConversationsPage() {
   const { leads, isLoading } = useData()
+  const { user } = useAuth()
+
+  // Filter leads by company_id first
+  const myLeads = useMemo(() => {
+    if (!user?.company_id) return []
+    return leads.filter(lead => lead.company_id === user.company_id)
+  }, [leads, user?.company_id])
 
   // Get leads with recent activity as conversations
   const conversations = useMemo(() => {
-    return leads
+    return myLeads
       .filter(l => l.last_contact || l.created_at)
       .sort((a, b) => {
         const dateA = new Date(a.last_contact || a.created_at || 0)
@@ -42,7 +50,28 @@ export default function ConversationsPage() {
         time: getTimeAgo(lead.last_contact || lead.created_at || ''),
         status: lead.status,
       }))
-  }, [leads])
+  }, [myLeads])
+
+  // Show message if not assigned to company
+  if (!user?.company_id) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold font-display">Conversations</h2>
+          <p className="text-sm text-muted-foreground">Manage buyer communications</p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Your account is not linked to a company.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contact an administrator to assign you to a company.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">

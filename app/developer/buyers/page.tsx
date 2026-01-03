@@ -15,19 +15,12 @@ export default function BuyersPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Filter leads by company_id if user has one
+  // Filter leads by company_id - only show leads assigned to the user's company
   const myLeads = useMemo(() => {
     if (!user?.company_id) {
       return [] // No company = no leads
     }
-    // Filter leads that belong to this company
-    // Note: Leads may have company_id or be linked via campaign/development
-    return leads.filter(lead => {
-      // If lead has direct company_id match
-      if (lead.company_id === user.company_id) return true
-      // Otherwise show all for now (can be refined with campaign->company linking)
-      return true
-    })
+    return leads.filter(lead => lead.company_id === user.company_id)
   }, [leads, user?.company_id])
 
   const filteredLeads = useMemo(() => {

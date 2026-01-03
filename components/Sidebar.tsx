@@ -38,17 +38,28 @@ export type UserType = 'admin' | 'developer' | 'agent' | 'broker'
 interface SidebarProps {
   userType: UserType
   userName?: string
+  userEmail?: string
   onLogout?: () => void
 }
 
-export function Sidebar({ userType, userName = 'User', onLogout }: SidebarProps) {
+// Admins with billing access - add emails here
+const BILLING_ACCESS_EMAILS = [
+  'kofi@naybourhood.ai',
+  'admin@naybourhood.ai',
+  // Add more authorized billing admin emails here
+]
+
+export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const basePath = `/${userType}`
 
+  // Check if user has billing access
+  const hasBillingAccess = userEmail && BILLING_ACCESS_EMAILS.includes(userEmail.toLowerCase())
+
   const getNavItems = (): NavItem[] => {
     if (userType === 'admin') {
-      return [
+      const adminItems: NavItem[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
         { name: 'Developments', icon: Home, href: '/admin/developments' },
         { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
@@ -56,10 +67,19 @@ export function Sidebar({ userType, userName = 'User', onLogout }: SidebarProps)
         { name: 'Finance Leads', icon: Landmark, href: '/admin/finance-leads' },
         { name: 'Companies', icon: Building2, href: '/admin/companies' },
         { name: 'Users', icon: UserCog, href: '/admin/users' },
-        { name: 'Billing', icon: CreditCard, href: '/admin/billing' },
-        { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
-        { name: 'Settings', icon: Settings, href: '/admin/settings' },
       ]
+
+      // Only show billing for authorized admins
+      if (hasBillingAccess) {
+        adminItems.push({ name: 'Billing', icon: CreditCard, href: '/admin/billing' })
+      }
+
+      adminItems.push(
+        { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
+        { name: 'Settings', icon: Settings, href: '/admin/settings' }
+      )
+
+      return adminItems
     }
     // Broker gets Finance Leads
     if (userType === 'broker') {

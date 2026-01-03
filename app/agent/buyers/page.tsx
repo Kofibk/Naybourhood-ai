@@ -15,16 +15,12 @@ export default function AgentBuyersPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Filter leads by company_id
+  // Filter leads by company_id - only show leads assigned to the user's company
   const myLeads = useMemo(() => {
     if (!user?.company_id) {
       return []
     }
-    return leads.filter(lead => {
-      if (lead.company_id === user.company_id) return true
-      // Show all for now until company linking is refined
-      return true
-    })
+    return leads.filter(lead => lead.company_id === user.company_id)
   }, [leads, user?.company_id])
 
   const filteredLeads = useMemo(() => {

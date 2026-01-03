@@ -53,6 +53,7 @@ export default function AdminLayout({
         title={`Welcome back, ${user.name?.split(' ')[0] || 'Admin'}`}
         userType="admin"
         userName={user.name}
+        userEmail={user.email}
         onLogout={handleLogout}
       >
         {children}

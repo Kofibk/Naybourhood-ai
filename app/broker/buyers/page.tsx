@@ -15,17 +15,12 @@ export default function BrokerClientsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
 
-  // Filter leads by company_id
+  // Filter leads by company_id - only show leads assigned to the user's company
   const myLeads = useMemo(() => {
     if (!user?.company_id) {
       return []
     }
-    // Show leads assigned to this broker company
-    return leads.filter(lead => {
-      if (lead.company_id === user.company_id) return true
-      // Show all leads for now (can be refined with more specific linking)
-      return true
-    })
+    return leads.filter(lead => lead.company_id === user.company_id)
   }, [leads, user?.company_id])
 
   const filteredLeads = useMemo(() => {

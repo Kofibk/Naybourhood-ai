@@ -56,20 +56,26 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
   const { leads, isLoading } = useData()
   const typeConfig = config[userType]
 
+  // Filter leads by companyId for multi-tenant data isolation
+  const myLeads = useMemo(() => {
+    if (!companyId) return []
+    return leads.filter(lead => lead.company_id === companyId)
+  }, [leads, companyId])
+
   const hotLeads = useMemo(() =>
-    leads.filter((l) => (l.quality_score || 0) >= 85).slice(0, 3),
-    [leads]
+    myLeads.filter((l) => (l.quality_score || 0) >= 85).slice(0, 3),
+    [myLeads]
   )
 
-  // Calculate real metrics from data
+  // Calculate real metrics from filtered data
   const viewingsCount = useMemo(() =>
-    leads.filter(l => l.status === 'Viewing Booked').length,
-    [leads]
+    myLeads.filter(l => l.status === 'Viewing Booked').length,
+    [myLeads]
   )
 
-  // Get recent activity from real leads
+  // Get recent activity from filtered leads
   const recentActivity = useMemo(() => {
-    return leads
+    return myLeads
       .filter(l => l.created_at || l.last_contact)
       .sort((a, b) => {
         const dateA = new Date(a.last_contact || a.created_at || 0)
@@ -77,7 +83,30 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
         return dateB.getTime() - dateA.getTime()
       })
       .slice(0, 3)
-  }, [leads])
+  }, [myLeads])
+
+  // Show message if not assigned to a company
+  if (!companyId) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold font-display">
+            {getGreeting()}, {userName}
+          </h2>
+          <p className="text-sm text-muted-foreground">{getDateString()}</p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Your account is not linked to a company.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contact an administrator to assign you to a company to view your dashboard.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -99,7 +128,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                 +12%
               </Badge>
             </div>
-            <div className="text-2xl font-bold">{leads.length}</div>
+            <div className="text-2xl font-bold">{myLeads.length}</div>
             <div className="text-xs text-muted-foreground">
               {typeConfig.metricLabel}
             </div>
@@ -114,7 +143,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </Badge>
             </div>
             <div className="text-2xl font-bold text-orange-500">
-              {leads.filter((l) => (l.quality_score || 0) >= 85).length}
+              {myLeads.filter((l) => (l.quality_score || 0) >= 85).length}
             </div>
             <div className="text-xs text-muted-foreground">
               Hot {typeConfig.title}
@@ -135,7 +164,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             <div className="flex items-center justify-between mb-2">
               <MessageSquare className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{leads.filter(l => l.status === 'New').length}</div>
+            <div className="text-2xl font-bold">{myLeads.filter(l => l.status === 'New').length}</div>
             <div className="text-xs text-muted-foreground">New {typeConfig.title}</div>
           </CardContent>
         </Card>
@@ -219,7 +248,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             <div>
               <p className="font-medium text-sm">My Matches</p>
               <p className="text-xs text-muted-foreground">
-                {leads.filter(l => l.status === 'Qualified').length} qualified {typeConfig.title.toLowerCase()}
+                {myLeads.filter(l => l.status === 'Qualified').length} qualified {typeConfig.title.toLowerCase()}
               </p>
             </div>
           </CardContent>

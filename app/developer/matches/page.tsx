@@ -1,16 +1,49 @@
 'use client'
 
+import { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
-import { Heart, Phone, Mail, Eye, MapPin } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { Heart, Phone, Mail, Eye, MapPin, Users } from 'lucide-react'
 
 export default function MatchesPage() {
   const { leads } = useData()
+  const { user } = useAuth()
 
-  // Simulate matched leads
-  const matches = leads.slice(0, 6)
+  // Filter leads by company_id first
+  const myLeads = useMemo(() => {
+    if (!user?.company_id) return []
+    return leads.filter(lead => lead.company_id === user.company_id)
+  }, [leads, user?.company_id])
+
+  // Get top matches (highest quality scores)
+  const matches = useMemo(() => {
+    return [...myLeads]
+      .sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
+      .slice(0, 6)
+  }, [myLeads])
+
+  if (!user?.company_id) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold font-display">My Matches</h2>
+          <p className="text-sm text-muted-foreground">Buyers matched to your developments</p>
+        </div>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+            <p className="text-muted-foreground">Your account is not linked to a company.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Contact an administrator to assign you to a company.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
