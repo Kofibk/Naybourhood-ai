@@ -20,6 +20,7 @@ import {
 interface UserDashboardProps {
   userType: 'developer' | 'agent' | 'broker'
   userName: string
+  companyId?: string  // For future multi-tenant data filtering
 }
 
 const config = {
@@ -51,7 +52,7 @@ function getTimeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
-export function UserDashboard({ userType, userName }: UserDashboardProps) {
+export function UserDashboard({ userType, userName, companyId }: UserDashboardProps) {
   const { leads, isLoading } = useData()
   const typeConfig = config[userType]
 

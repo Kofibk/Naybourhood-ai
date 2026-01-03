@@ -1,18 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
 import { UserDashboard } from '@/components/UserDashboard'
+import { useAuth } from '@/contexts/AuthContext'
 
 export default function DeveloperDashboard() {
-  const [userName, setUserName] = useState('Developer')
+  const { user, isLoading } = useAuth()
 
-  useEffect(() => {
-    const stored = localStorage.getItem('naybourhood_user')
-    if (stored) {
-      const user = JSON.parse(stored)
-      setUserName(user.name?.split(' ')[0] || 'Developer')
-    }
-  }, [])
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
 
-  return <UserDashboard userType="developer" userName={userName} />
+  const userName = user?.name?.split(' ')[0] || 'Developer'
+
+  return <UserDashboard userType="developer" userName={userName} companyId={user?.company_id} />
 }

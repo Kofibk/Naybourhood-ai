@@ -589,9 +589,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateFinanceLead = useCallback(async (id: string, data: Partial<FinanceLead>): Promise<FinanceLead | null> => {
     try {
       const supabase = createClient()
+
+      // Only include valid database columns - filter out computed/mapped fields
+      const validColumns = [
+        'first_name', 'last_name', 'full_name', 'email', 'phone',
+        'finance_type', 'loan_amount', 'loan_amount_display',
+        'required_by_date', 'message', 'status', 'notes',
+        'assigned_agent', 'date_added', 'updated_at'
+      ]
+
+      const cleanData: Record<string, any> = {}
+      for (const key of validColumns) {
+        if (key in data && data[key as keyof FinanceLead] !== undefined) {
+          cleanData[key] = data[key as keyof FinanceLead]
+        }
+      }
+
+      // Add updated timestamp
+      cleanData.updated_at = new Date().toISOString()
+
+      console.log('[DataContext] Updating finance lead with:', cleanData)
+
       const { data: updatedData, error } = await supabase
         .from('finance_leads')
-        .update(data)
+        .update(cleanData)
         .eq('id', id)
         .select()
         .single()

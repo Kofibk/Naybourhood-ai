@@ -5,7 +5,8 @@ export interface User {
   name: string
   email: string
   role: UserRole
-  company?: string
+  company?: string      // Company name (display)
+  company_id?: string   // Company UUID for data filtering
   avatarUrl?: string
 }
 
