@@ -67,58 +67,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
           console.log('[DataContext] Fetching buyers from Airtable...')
           try {
             const airtableLeads = await fetchAirtableLeads()
-            if (airtableLeads && airtableLeads.length > 0) {
-              // Flexible mapping - use first available value from multiple field name variations
-              const mappedLeads: Buyer[] = airtableLeads.map((lead: any) => {
-                const getValue = (...keys: string[]) => {
-                  for (const key of keys) {
-                    if (lead[key] !== undefined && lead[key] !== null) return lead[key]
-                  }
-                  return null
-                }
-                // Get lead name and split into first/last
-                const leadName = getValue('Lead Name', 'lead name', 'lead_name', 'name', 'Name', 'full_name', 'Full Name')
-                const nameParts = leadName ? leadName.split(' ') : []
-                const derivedFirstName = nameParts[0] || null
-                const derivedLastName = nameParts.slice(1).join(' ') || null
+            console.log('[DataContext] Raw Airtable response:', airtableLeads?.length, 'records')
+            if (airtableLeads?.[0]) {
+              console.log('[DataContext] FIRST RECORD KEYS:', Object.keys(airtableLeads[0]))
+              console.log('[DataContext] FIRST RECORD DATA:', JSON.stringify(airtableLeads[0], null, 2))
+            }
 
-                return {
-                  id: lead.id,
-                  full_name: leadName,
-                  first_name: getValue('first_name', 'firstName', 'First Name') || derivedFirstName,
-                  last_name: getValue('last_name', 'lastName', 'Last Name') || derivedLastName,
-                  email: getValue('email', 'Email', 'EMAIL'),
-                  phone: getValue('phone number', 'Phone Number', 'phone', 'Phone', 'PHONE'),
-                  budget: getValue('budget range', 'budget_range', 'budget', 'Budget', 'BUDGET'),
-                  budget_min: getValue('budget_min', 'budgetMin', 'Budget Min'),
-                  budget_max: getValue('budget_max', 'budgetMax', 'Budget Max'),
-                  bedrooms: getValue('preferred bedrooms', 'preferred_bedrooms', 'bedrooms', 'Bedrooms', 'BEDROOMS'),
-                  location: getValue('preferred location', 'preferred_location', 'location', 'Location', 'area', 'Area'),
-                  area: getValue('preferred location', 'preferred_location', 'area', 'Area', 'location', 'Location'),
-                  timeline: getValue('timeline to purchase', 'timeline_to_purchase', 'timeline', 'Timeline', 'TIMELINE'),
-                  source: getValue('source platform', 'Source Platform', 'source', 'Source', 'meta'),
-                  campaign: getValue('development', 'campaign', 'Campaign', 'CAMPAIGN'),
-                  campaign_id: getValue('campaign_id', 'campaignId', 'Campaign ID'),
-                  status: getValue('status', 'Status', 'STATUS') || 'New',
-                  quality_score: getValue('quality_score', 'qualityScore', 'Quality Score', 'QualityScore'),
-                  intent_score: getValue('intent_score', 'intentScore', 'Intent Score', 'IntentScore'),
-                  payment_method: getValue('cash or mortgage', 'cash_or_mortgage', 'payment_method', 'paymentMethod', 'Payment Method'),
-                  proof_of_funds: getValue('proof_of_funds', 'proofOfFunds', 'Proof of Funds'),
-                  mortgage_status: getValue('manual update', 'manual_update', 'mortgage_status', 'mortgageStatus', 'Mortgage Status'),
-                  uk_broker: getValue('uk_broker', 'ukBroker', 'UK Broker'),
-                  uk_solicitor: getValue('uk_solicitor', 'ukSolicitor', 'UK Solicitor'),
-                  notes: getValue('notes', 'Notes', 'NOTES'),
-                  created_at: getValue('date added', 'date_added', 'createdAt', 'created_at', 'Created', 'created'),
-                  updated_at: getValue('updatedAt', 'updated_at', 'Updated', 'updated'),
-                  last_contact: getValue('lastContact', 'last_contact', 'Last Contact'),
-                  // Spread any remaining fields for maximum compatibility
-                  ...lead,
-                }
-              })
-              console.log('[DataContext] Fetched buyers from Airtable:', mappedLeads.length)
+            if (airtableLeads && airtableLeads.length > 0) {
+              // SIMPLIFIED: Just pass through raw data with basic normalization
+              const mappedLeads: Buyer[] = airtableLeads.map((lead: any) => ({
+                id: lead.id,
+                // Try common name fields
+                full_name: lead['Lead Name'] || lead['lead_name'] || lead['Name'] || lead['name'] || lead['Full Name'] || 'Unknown',
+                email: lead['email'] || lead['Email'] || lead['EMAIL'],
+                phone: lead['phone number'] || lead['Phone Number'] || lead['phone'] || lead['Phone'],
+                budget: lead['budget range'] || lead['Budget Range'] || lead['budget'] || lead['Budget'],
+                status: lead['status'] || lead['Status'] || 'New',
+                source: lead['source platform'] || lead['Source Platform'] || lead['source'] || lead['Source'],
+                // Pass through ALL raw fields
+                ...lead,
+              }))
+              console.log('[DataContext] Mapped leads sample:', mappedLeads[0])
               setLeads(mappedLeads)
             } else {
-              console.log('[DataContext] No buyers in Airtable')
+              console.log('[DataContext] No buyers found')
               errors.push('No buyers found in Airtable')
             }
           } catch (e) {
