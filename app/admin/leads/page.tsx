@@ -18,6 +18,8 @@ import {
   Flame,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
   X,
   Users,
   Download,
@@ -81,6 +83,10 @@ export default function LeadsPage() {
   const [showColumnSettings, setShowColumnSettings] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
 
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(50)
+
   // Filter leads
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
@@ -143,10 +149,24 @@ export default function LeadsPage() {
     })
   }, [filteredLeads, sortField, sortDirection])
 
-  // Group leads
+  // Pagination calculations
+  const totalPages = Math.ceil(sortedLeads.length / pageSize)
+  const paginatedLeads = useMemo(() => {
+    const start = (currentPage - 1) * pageSize
+    const end = start + pageSize
+    return sortedLeads.slice(start, end)
+  }, [sortedLeads, currentPage, pageSize])
+
+  // Reset to page 1 when filters change
+  const filterKey = `${search}-${statusFilter.join()}-${sourceFilter.join()}-${scoreFilter}`
+  useMemo(() => {
+    if (currentPage !== 1) setCurrentPage(1)
+  }, [filterKey])
+
+  // Group leads (uses paginated data)
   const groupedLeads = useMemo(() => {
     if (groupBy === 'none') {
-      return { 'All Leads': sortedLeads }
+      return { 'All Leads': paginatedLeads }
     }
 
     const groups: Record<string, Buyer[]> = {}
@@ -602,6 +622,91 @@ export default function LeadsPage() {
           </CardContent>
         </Card>
       ))}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t pt-4">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <span>
+              Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, sortedLeads.length)} of {sortedLeads.length}
+            </span>
+            <select
+              className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value))
+                setCurrentPage(1)
+              }}
+            >
+              <option value={25}>25 per page</option>
+              <option value={50}>50 per page</option>
+              <option value={100}>100 per page</option>
+              <option value={200}>200 per page</option>
+            </select>
+          </div>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+            >
+              First
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </Button>
+            <div className="flex items-center gap-1 px-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number
+                if (totalPages <= 5) {
+                  pageNum = i + 1
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i
+                } else {
+                  pageNum = currentPage - 2 + i
+                }
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    onClick={() => setCurrentPage(pageNum)}
+                  >
+                    {pageNum}
+                  </Button>
+                )
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8"
+              onClick={() => setCurrentPage(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+            >
+              Last
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
