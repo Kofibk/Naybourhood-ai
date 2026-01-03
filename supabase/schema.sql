@@ -37,7 +37,7 @@ create table if not exists public.companies (
   stripe_customer_id text,
   stripe_subscription_id text,
   -- Stats
-  total_spend numeric default 0,
+  ad_spend numeric default 0,
   total_leads integer default 0,
   campaign_count integer default 0,
   created_at timestamp with time zone default now(),

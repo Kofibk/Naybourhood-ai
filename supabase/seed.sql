@@ -2,7 +2,7 @@
 -- Run this after schema.sql to populate test data
 
 -- Insert companies
-insert into public.companies (id, name, type, contact_name, contact_email, status, subscription_tier, total_spend, total_leads, campaign_count) values
+insert into public.companies (id, name, type, contact_name, contact_email, status, subscription_tier, ad_spend, total_leads, campaign_count) values
   ('11111111-1111-1111-1111-111111111111', 'Berkeley Group', 'Developer', 'John Smith', 'j.smith@berkeley.com', 'Active', 'enterprise', 145000, 523, 8),
   ('22222222-2222-2222-2222-222222222222', 'Regal London', 'Developer', 'Alice Brown', 'a.brown@regallondon.com', 'Active', 'growth', 98000, 345, 5),
   ('33333333-3333-3333-3333-333333333333', 'JLL', 'Agent', 'Michael Davies', 'm.davies@jll.com', 'Active', 'enterprise', 120000, 456, 7),

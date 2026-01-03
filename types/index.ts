@@ -98,7 +98,7 @@ export interface Development {
   image_url?: string
   features?: string[]
   total_leads?: number
-  total_spend?: number
+  ad_spend?: number
   created_at?: string
   updated_at?: string
 }
@@ -114,7 +114,7 @@ export interface Company {
   contact_phone?: string
   phone?: string // Alias for contact_phone
   status?: string
-  total_spend?: number
+  ad_spend?: number
   total_leads?: number
   campaign_count?: number
   // Billing fields

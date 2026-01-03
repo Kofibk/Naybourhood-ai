@@ -194,7 +194,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           description: d.description || d['Description'],
           image_url: d.image_url || d['Image URL'] || d['image'],
           total_leads: d.total_leads || d['Total Leads'] || 0,
-          total_spend: d.total_spend || d['Total Spend'] || 0,
+          ad_spend: d.ad_spend || d['Ad Spend'] || d['total_spend'] || d['Total Spend'] || 0,
           created_at: d.created_at,
           updated_at: d.updated_at,
           ...d,

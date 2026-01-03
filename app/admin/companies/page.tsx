@@ -69,7 +69,7 @@ export default function CompaniesPage() {
     return {
       total: companies.length,
       active: companies.filter(c => c.status === 'Active').length,
-      totalSpend: companies.reduce((sum, c) => sum + (c.total_spend || 0), 0),
+      totalSpend: companies.reduce((sum, c) => sum + (c.ad_spend || 0), 0),
       totalLeads: companies.reduce((sum, c) => sum + (c.total_leads || 0), 0),
     }
   }, [companies])
@@ -222,7 +222,7 @@ export default function CompaniesPage() {
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Spend</span>
+              <span className="text-xs text-muted-foreground">Ad Spend</span>
             </div>
             <p className="text-2xl font-bold">{formatCurrency(totals.totalSpend)}</p>
           </CardContent>
@@ -321,9 +321,9 @@ export default function CompaniesPage() {
                     </div>
                     <div>
                       <div className="text-lg font-semibold">
-                        {formatCurrency(company.total_spend || 0)}
+                        {formatCurrency(company.ad_spend || 0)}
                       </div>
-                      <div className="text-xs text-muted-foreground">Spend</div>
+                      <div className="text-xs text-muted-foreground">Ad Spend</div>
                     </div>
                   </div>
                 </div>
