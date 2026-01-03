@@ -21,6 +21,10 @@ import {
   Megaphone,
   Users,
   PoundSterling,
+  X,
+  Save,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react'
 
 interface DevelopmentGroup {
@@ -32,11 +36,29 @@ interface DevelopmentGroup {
   activeCampaigns: number
 }
 
+interface NewCampaign {
+  name: string
+  client: string
+  platform: string
+  status: string
+  spend: number
+}
+
 export default function CampaignsPage() {
   const router = useRouter()
-  const { campaigns, isLoading } = useData()
+  const { campaigns, isLoading, createCampaign } = useData()
   const [search, setSearch] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [newCampaign, setNewCampaign] = useState<NewCampaign>({
+    name: '',
+    client: '',
+    platform: 'Meta',
+    status: 'active',
+    spend: 0,
+  })
 
   // Group campaigns by development name (not client)
   const groupedCampaigns = useMemo(() => {
@@ -139,6 +161,38 @@ export default function CampaignsPage() {
     totalLeads: campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0),
   }), [campaigns])
 
+  const handleCreateCampaign = async () => {
+    if (!newCampaign.name) return
+    setIsSaving(true)
+    setMessage(null)
+
+    try {
+      const result = await createCampaign({
+        name: newCampaign.name,
+        client: newCampaign.client,
+        development: newCampaign.client,
+        platform: newCampaign.platform,
+        status: newCampaign.status,
+        spend: newCampaign.spend,
+        leads: 0,
+        cpl: 0,
+      })
+
+      if (result) {
+        setMessage({ type: 'success', text: 'Campaign created successfully!' })
+        setIsModalOpen(false)
+        setNewCampaign({ name: '', client: '', platform: 'Meta', status: 'active', spend: 0 })
+      } else {
+        setMessage({ type: 'error', text: 'Failed to create campaign.' })
+      }
+    } catch (error) {
+      console.error('Error creating campaign:', error)
+      setMessage({ type: 'error', text: 'An error occurred.' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -149,11 +203,28 @@ export default function CampaignsPage() {
             {totalStats.totalCampaigns} campaigns across {groupedCampaigns.length} developments
           </p>
         </div>
-        <Button>
+        <Button onClick={() => setIsModalOpen(true)}>
           <Plus className="h-4 w-4 mr-2" />
           New Campaign
         </Button>
       </div>
+
+      {/* Message */}
+      {message && (
+        <div className={`p-3 rounded-lg flex items-center gap-2 ${
+          message.type === 'success' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+        }`}>
+          {message.type === 'success' ? (
+            <CheckCircle className="h-4 w-4" />
+          ) : (
+            <AlertCircle className="h-4 w-4" />
+          )}
+          <span className="text-sm">{message.text}</span>
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setMessage(null)}>
+            <X className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -336,6 +407,84 @@ export default function CampaignsPage() {
           })
         )}
       </div>
+
+      {/* Create Campaign Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="font-semibold">Create New Campaign</h3>
+              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="p-4 space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Campaign Name *</label>
+                <Input
+                  value={newCampaign.name}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
+                  placeholder="e.g., The Haydon - Meta Ads"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Development/Client</label>
+                <Input
+                  value={newCampaign.client}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, client: e.target.value })}
+                  placeholder="e.g., The Haydon"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Platform</label>
+                  <select
+                    value={newCampaign.platform}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, platform: e.target.value })}
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="Meta">Meta</option>
+                    <option value="Google">Google</option>
+                    <option value="TikTok">TikTok</option>
+                    <option value="LinkedIn">LinkedIn</option>
+                    <option value="Rightmove">Rightmove</option>
+                    <option value="Zoopla">Zoopla</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Status</label>
+                  <select
+                    value={newCampaign.status}
+                    onChange={(e) => setNewCampaign({ ...newCampaign, status: e.target.value })}
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="active">Active</option>
+                    <option value="paused">Paused</option>
+                    <option value="draft">Draft</option>
+                  </select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Initial Budget (£)</label>
+                <Input
+                  type="number"
+                  value={newCampaign.spend || ''}
+                  onChange={(e) => setNewCampaign({ ...newCampaign, spend: parseFloat(e.target.value) || 0 })}
+                  placeholder="0"
+                />
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+              <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateCampaign} disabled={isSaving || !newCampaign.name}>
+                <Save className="h-4 w-4 mr-2" />
+                {isSaving ? 'Creating...' : 'Create Campaign'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
