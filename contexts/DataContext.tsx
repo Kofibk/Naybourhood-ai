@@ -173,8 +173,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Map column names - support both Supabase schema names and legacy names
         const mappedCampaigns = campaignsResult.data.map((c: any) => ({
           ...c,
-          spend: c.spend || c.ad_spend || c.amount_spent || c['Ad Spend'] || c['Total Spend'] || 0,
-          leads: c.leads || c.lead_count || c['Lead Count'] || c['Leads'] || 0,
+          spend: c.spend || c.ad_spend || c.amount_spent || c.total_spend || c.budget || c.cost || c['Ad Spend'] || c['Total Spend'] || c['Spend'] || 0,
+          leads: c.leads || c.lead_count || c.total_leads || c['Lead Count'] || c['Leads'] || c['Total Leads'] || 0,
           cpl: c.cpl || c.cost_per_lead || c['CPL'] || c['Cost Per Lead'] || 0,
         }))
         setCampaigns(mappedCampaigns)
