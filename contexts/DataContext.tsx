@@ -124,7 +124,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process BUYERS
       if (Array.isArray(buyersResult) && buyersResult.length > 0) {
-        console.log('[DataContext] First buyer columns:', Object.keys(buyersResult[0]))
+        console.log('[DataContext] ========== BUYERS DEBUG ==========')
+        console.log('[DataContext] Total buyers fetched:', buyersResult.length)
+        console.log('[DataContext] First buyer RAW:', JSON.stringify(buyersResult[0], null, 2))
+        console.log('[DataContext] All column names:', Object.keys(buyersResult[0]))
 
         // Map column names - combine first_name + last_name into full_name
         const mappedBuyers = buyersResult.map((b: any) => {
@@ -148,6 +151,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           timeline: b.timeline || b['timeline to purchase'] || b['Timeline to Purchase'],
           source: b.source || b['source platform'] || b['Source Platform'],
           campaign: b.campaign || b['development'] || b['Development'],
+          campaign_id: b.campaign_id,
+          company_id: b.company_id,
           status: b.status || b['Status'] || 'New',
           quality_score: b.quality_score || b['Quality Score'] || 0,
           intent_score: b.intent_score || b['Intent Score'] || 0,
@@ -164,10 +169,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
           assigned_at: b.assigned_at,
           ...b,
         }})
+        console.log('[DataContext] First MAPPED buyer:', JSON.stringify(mappedBuyers[0], null, 2))
+        console.log('[DataContext] ====================================')
         console.log('[DataContext] Buyers loaded:', mappedBuyers.length)
         setLeads(mappedBuyers)
       } else {
-        console.log('[DataContext] No buyers found')
+        console.log('[DataContext] No buyers found or empty result')
       }
 
       // Process CAMPAIGNS
