@@ -97,7 +97,8 @@ export default function AdminDashboard() {
       ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
       : 0
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0)
-    const totalCampaignLeads = campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0)
+    // Use total buyers count as campaign leads (more accurate than campaigns table column)
+    const totalCampaignLeads = leads.length
     const avgCPL = totalCampaignLeads > 0 ? Math.round(totalSpend / totalCampaignLeads) : 0
     const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
@@ -496,30 +497,39 @@ export default function AdminDashboard() {
             campaigns
               .filter(c => c.status === 'active')
               .slice(0, 5)
-              .map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-card border"
-                >
-                  <div className="space-y-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm">{campaign.name}</span>
-                      {campaign.platform && <Badge variant="secondary">{campaign.platform}</Badge>}
+              .map((campaign) => {
+                // Calculate leads from buyers matching this campaign
+                const campaignLower = (campaign.name || '').toLowerCase()
+                const campaignLeads = leads.filter(lead => {
+                  const leadCampaign = (lead.campaign || lead.source || '').toLowerCase()
+                  return leadCampaign.includes(campaignLower) || campaignLower.includes(leadCampaign)
+                }).length
+
+                return (
+                  <div
+                    key={campaign.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-card border"
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-sm">{campaign.name}</span>
+                        {campaign.platform && <Badge variant="secondary">{campaign.platform}</Badge>}
+                      </div>
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                        <span>Spend: {formatCurrency(campaign.spend || campaign.amount_spent || 0)}</span>
+                        <span>Leads: {campaignLeads}</span>
+                        <span className={`font-medium ${(campaign.cpl || 0) > 50 ? 'text-warning' : 'text-success'}`}>
+                          CPL: £{campaign.cpl || campaign.cost_per_lead || 0}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>Spend: {formatCurrency(campaign.spend || campaign.amount_spent || 0)}</span>
-                      <span>Leads: {campaign.leads || campaign.lead_count || 0}</span>
-                      <span className={`font-medium ${(campaign.cpl || 0) > 50 ? 'text-warning' : 'text-success'}`}>
-                        CPL: £{campaign.cpl || campaign.cost_per_lead || 0}
-                      </span>
-                    </div>
+                    <Button size="sm" variant="outline">
+                      <Eye className="h-3.5 w-3.5 mr-1" />
+                      View
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Eye className="h-3.5 w-3.5 mr-1" />
-                    View
-                  </Button>
-                </div>
-              ))
+                )
+              })
           )}
         </CardContent>
       </Card>

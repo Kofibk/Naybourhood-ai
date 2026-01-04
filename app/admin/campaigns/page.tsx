@@ -46,7 +46,7 @@ interface NewCampaign {
 
 export default function CampaignsPage() {
   const router = useRouter()
-  const { campaigns, isLoading, createCampaign } = useData()
+  const { campaigns, leads, isLoading, createCampaign } = useData()
   const [search, setSearch] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -59,6 +59,16 @@ export default function CampaignsPage() {
     status: 'active',
     spend: 0,
   })
+
+  // Helper function to count leads from buyers for a campaign
+  const getLeadsForCampaign = (campaignName: string) => {
+    if (!campaignName) return 0
+    const campaignLower = campaignName.toLowerCase()
+    return leads.filter(lead => {
+      const leadCampaign = (lead.campaign || lead.source || '').toLowerCase()
+      return leadCampaign.includes(campaignLower) || campaignLower.includes(leadCampaign)
+    }).length
+  }
 
   // Group campaigns by development name (not client)
   const groupedCampaigns = useMemo(() => {
@@ -103,9 +113,15 @@ export default function CampaignsPage() {
         }
       }
 
-      groups[groupName].campaigns.push(campaign)
+      // Count leads from buyers data instead of campaigns table
+      const campaignLeads = getLeadsForCampaign(campaign.name) || getLeadsForCampaign(groupName)
+
+      // Add leads count to campaign object for display
+      const campaignWithLeads = { ...campaign, calculatedLeads: campaignLeads }
+
+      groups[groupName].campaigns.push(campaignWithLeads)
       groups[groupName].totalSpend += campaign.spend || campaign.amount_spent || 0
-      groups[groupName].totalLeads += campaign.leads || campaign.lead_count || 0
+      groups[groupName].totalLeads += campaignLeads
       if (campaign.status === 'active' || campaign.status === 'Active') {
         groups[groupName].activeCampaigns++
       }
@@ -124,7 +140,7 @@ export default function CampaignsPage() {
       if (b.name === 'Uncategorized Campaigns') return -1
       return b.totalSpend - a.totalSpend
     })
-  }, [campaigns])
+  }, [campaigns, leads])
 
   // Filter groups based on search
   const filteredGroups = useMemo(() => {
@@ -158,8 +174,9 @@ export default function CampaignsPage() {
     totalCampaigns: campaigns.length,
     activeCampaigns: campaigns.filter((c) => c.status === 'active').length,
     totalSpend: campaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0),
-    totalLeads: campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0),
-  }), [campaigns])
+    // Use total buyers count as campaign leads (more accurate than campaigns table column)
+    totalLeads: leads.length,
+  }), [campaigns, leads])
 
   const handleCreateCampaign = async () => {
     if (!newCampaign.name) return
@@ -377,7 +394,7 @@ export default function CampaignsPage() {
                             </div>
                             <div className="text-right">
                               <p className="text-sm font-medium">
-                                {campaign.leads || campaign.lead_count || 0}
+                                {(campaign as any).calculatedLeads || campaign.leads || campaign.lead_count || 0}
                               </p>
                               <p className="text-xs text-muted-foreground">Leads</p>
                             </div>
