@@ -5,7 +5,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get invitation details from request body
     const body = await request.json()
-    const { email, name, role, company_id, inviter_role } = body
+    const { email, name, role, company_id, is_internal, inviter_role } = body
 
     if (!email) {
       return NextResponse.json(
@@ -21,9 +21,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!company_id) {
+    // Company only required for external users
+    if (!is_internal && !company_id) {
       return NextResponse.json(
-        { error: 'Company is required' },
+        { error: 'Company is required for external users' },
         { status: 400 }
       )
     }
@@ -72,7 +73,8 @@ export async function POST(request: NextRequest) {
           data: {
             full_name: name,
             role: role || 'developer',
-            company_id: company_id,
+            company_id: company_id || null,
+            is_internal: is_internal || false,
           },
           redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
         })
@@ -88,7 +90,8 @@ export async function POST(request: NextRequest) {
               email: email,
               full_name: name,
               role: role || 'developer',
-              company_id: company_id,
+              company_id: company_id || null,
+              is_internal: is_internal || false,
             })
 
           if (profileError) {
@@ -115,7 +118,8 @@ export async function POST(request: NextRequest) {
               email: email,
               full_name: name,
               role: role || 'developer',
-              company_id: company_id,
+              company_id: company_id || null,
+              is_internal: is_internal || false,
             })
 
           if (profileError) {

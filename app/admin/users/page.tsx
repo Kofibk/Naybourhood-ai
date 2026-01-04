@@ -28,6 +28,7 @@ interface InviteUser {
   email: string
   role: 'admin' | 'developer' | 'agent' | 'broker'
   company_id?: string
+  is_internal?: boolean
 }
 
 export default function UsersPage() {
@@ -41,6 +42,7 @@ export default function UsersPage() {
     email: '',
     role: 'agent',
     company_id: '',
+    is_internal: false,
   })
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -64,6 +66,7 @@ export default function UsersPage() {
       email: '',
       role: 'agent',
       company_id: '',
+      is_internal: false,
     })
     setIsModalOpen(true)
     setMessage(null)
@@ -72,6 +75,15 @@ export default function UsersPage() {
   const handleSendInvite = async () => {
     if (!inviteData.email) {
       setMessage({ type: 'error', text: 'Email is required' })
+      return
+    }
+    if (!inviteData.name) {
+      setMessage({ type: 'error', text: 'Name is required' })
+      return
+    }
+    // Company only required for external users
+    if (!inviteData.is_internal && !inviteData.company_id) {
+      setMessage({ type: 'error', text: 'Company is required for external users' })
       return
     }
 
@@ -88,7 +100,8 @@ export default function UsersPage() {
           email: inviteData.email,
           name: inviteData.name,
           role: inviteData.role,
-          company_id: inviteData.company_id || null,
+          company_id: inviteData.is_internal ? null : (inviteData.company_id || null),
+          is_internal: inviteData.is_internal,
           inviter_role: currentUser?.role, // For demo mode admin access
         }),
       })
@@ -104,7 +117,7 @@ export default function UsersPage() {
         text: `Invitation sent to ${inviteData.email}! They will receive an email to set up their account.`
       })
       setIsModalOpen(false)
-      setInviteData({ name: '', email: '', role: 'agent', company_id: '' })
+      setInviteData({ name: '', email: '', role: 'agent', company_id: '', is_internal: false })
 
       // Refresh users list
       refreshData()
@@ -396,31 +409,52 @@ export default function UsersPage() {
                   <option value="broker">Broker</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Building2 className="h-4 w-4" />
-                  Company *
+              {/* Internal Team Toggle */}
+              <div className="flex items-center gap-3 p-3 rounded-md bg-muted/50">
+                <input
+                  type="checkbox"
+                  id="is_internal"
+                  checked={inviteData.is_internal}
+                  onChange={(e) => setInviteData({
+                    ...inviteData,
+                    is_internal: e.target.checked,
+                    company_id: e.target.checked ? '' : inviteData.company_id
+                  })}
+                  className="h-4 w-4 rounded border-input"
+                />
+                <label htmlFor="is_internal" className="text-sm cursor-pointer">
+                  <span className="font-medium">Internal Team Member</span>
+                  <p className="text-xs text-muted-foreground">Naybourhood staff (no company required)</p>
                 </label>
-                <select
-                  value={inviteData.company_id || ''}
-                  onChange={(e) => setInviteData({ ...inviteData, company_id: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
-                  required
-                >
-                  <option value="">Select a company</option>
-                  {companies.map((company) => (
-                    <option key={company.id} value={company.id}>
-                      {company.name}
-                    </option>
-                  ))}
-                </select>
               </div>
+
+              {/* Company - only show for external users */}
+              {!inviteData.is_internal && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Company *
+                  </label>
+                  <select
+                    value={inviteData.company_id || ''}
+                    onChange={(e) => setInviteData({ ...inviteData, company_id: e.target.value })}
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="">Select a company</option>
+                    {companies.map((company) => (
+                      <option key={company.id} value={company.id}>
+                        {company.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSendInvite} disabled={isSending || !inviteData.email || !inviteData.name || !inviteData.company_id}>
+              <Button onClick={handleSendInvite} disabled={isSending || !inviteData.email || !inviteData.name || (!inviteData.is_internal && !inviteData.company_id)}>
                 <Send className="h-4 w-4 mr-2" />
                 {isSending ? 'Sending...' : 'Send Invitation'}
               </Button>
