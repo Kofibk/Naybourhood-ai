@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoIcon } from '@/components/Logo'
 import { AuthHandler } from '@/components/AuthHandler'
-import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle, Shield, HardHat, Users, Briefcase } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -527,6 +527,45 @@ function LoginPageInner() {
             </>
           )}
         </p>
+
+        {/* Quick Access - Development/Testing */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-center text-muted-foreground mb-3 uppercase tracking-wider font-medium">
+              Quick Access (Dev/Testing)
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              <Link
+                href="/admin"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+              <Link
+                href="/developer"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <HardHat className="h-4 w-4" />
+                Developer
+              </Link>
+              <Link
+                href="/agent"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <Users className="h-4 w-4" />
+                Agent
+              </Link>
+              <Link
+                href="/broker"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <Briefcase className="h-4 w-4" />
+                Broker
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )
