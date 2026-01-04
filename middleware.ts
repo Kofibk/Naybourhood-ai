@@ -4,13 +4,22 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
-  // Handle Supabase auth code at root - redirect to /auth/callback
-  if (pathname === '/' && searchParams.has('code')) {
-    const code = searchParams.get('code')
-    const url = request.nextUrl.clone()
-    url.pathname = '/auth/callback'
-    url.searchParams.set('code', code!)
-    return NextResponse.redirect(url)
+  // Handle Supabase auth at root - redirect to /auth/callback
+  // This catches both PKCE codes and token_hash from invite emails
+  if (pathname === '/') {
+    // Handle PKCE code
+    if (searchParams.has('code')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth/callback'
+      return NextResponse.redirect(url)
+    }
+
+    // Handle token_hash (from invite emails)
+    if (searchParams.has('token_hash') && searchParams.has('type')) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/auth/callback'
+      return NextResponse.redirect(url)
+    }
   }
 
   // Update Supabase session if configured

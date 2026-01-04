@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LogoIcon } from '@/components/Logo'
+import { AuthHandler } from '@/components/AuthHandler'
 import { Loader2, Mail, CheckCircle, Zap } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -152,6 +153,8 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      {/* Handle auth tokens from URL hash */}
+      <AuthHandler />
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
         <div className="text-center">
