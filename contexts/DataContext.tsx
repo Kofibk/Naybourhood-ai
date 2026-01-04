@@ -172,13 +172,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
           // Debug: Show raw values for spend/leads columns
           const first = campaignsResult.data[0]
           console.log('[DataContext] First campaign raw values:', {
-            // Spend columns
+            // Spend columns (check 'total spend' with space first)
+            'total spend': first['total spend'],
             total_spend: first.total_spend,
             'Total Spend': first['Total Spend'],
             spend: first.spend,
             ad_spend: first.ad_spend,
             amount_spent: first.amount_spent,
             // Lead columns
+            'total leads': first['total leads'],
             total_leads: first.total_leads,
             'Total Leads': first['Total Leads'],
             leads: first.leads,
@@ -202,8 +204,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }
 
         const mappedCampaigns = campaignsResult.data.map((c: any) => {
-          const spendVal = c.total_spend ?? c['Total Spend'] ?? c.TotalSpend ?? c.spend ?? c.ad_spend ?? c.amount_spent
-          const leadsVal = c.total_leads ?? c['Total Leads'] ?? c.TotalLeads ?? c.leads ?? c.lead_count
+          const spendVal = c['total spend'] ?? c.total_spend ?? c['Total Spend'] ?? c.TotalSpend ?? c.spend ?? c.ad_spend ?? c.amount_spent
+          const leadsVal = c['total leads'] ?? c.total_leads ?? c['Total Leads'] ?? c.TotalLeads ?? c.leads ?? c.lead_count
           const cplVal = c.cpl ?? c.cost_per_lead ?? c.CPL
 
           return {
