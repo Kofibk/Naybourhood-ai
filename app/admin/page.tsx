@@ -256,7 +256,7 @@ export default function AdminDashboard() {
               <Users className="h-4 w-4 text-muted-foreground" />
             </div>
             <AnimatedNumber
-              value={metrics.totalCampaignLeads}
+              value={metrics.totalLeads}
               className="text-2xl font-bold"
             />
           </CardContent>

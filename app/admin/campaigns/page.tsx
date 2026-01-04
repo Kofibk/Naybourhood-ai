@@ -46,7 +46,7 @@ interface NewCampaign {
 
 export default function CampaignsPage() {
   const router = useRouter()
-  const { campaigns, isLoading, createCampaign } = useData()
+  const { campaigns, leads, isLoading, createCampaign } = useData()
   const [search, setSearch] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -161,9 +161,9 @@ export default function CampaignsPage() {
     totalCampaigns: campaigns.length,
     activeCampaigns: campaigns.filter((c) => c.status === 'active').length,
     totalSpend: campaigns.reduce((sum, c) => sum + (c.spend || 0), 0),
-    // Sum of 'total leads' column from campaigns table
-    totalLeads: campaigns.reduce((sum, c) => sum + (c.leads || 0), 0),
-  }), [campaigns])
+    // Use total buyers count for leads
+    totalLeads: leads.length,
+  }), [campaigns, leads])
 
   const handleCreateCampaign = async () => {
     if (!newCampaign.name) return
