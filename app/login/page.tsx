@@ -20,6 +20,8 @@ function LoginPageInner() {
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
+  const [isForgotPassword, setIsForgotPassword] = useState(false)
+  const [resetEmailSent, setResetEmailSent] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabaseConfigured = isSupabaseConfigured()
@@ -170,6 +172,64 @@ function LoginPageInner() {
     }
   }
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    setIsLoading(true)
+
+    try {
+      if (supabaseConfigured) {
+        const supabase = createClient()
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
+        })
+
+        if (error) {
+          setError(error.message)
+        } else {
+          setResetEmailSent(true)
+        }
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Reset email sent confirmation
+  if (resetEmailSent) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
+        <div className="w-full max-w-md space-y-6 text-center">
+          <LogoIcon className="w-16 h-16 mx-auto" variant="light" />
+          <div className="space-y-2">
+            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+              <CheckCircle className="w-8 h-8 text-primary" />
+            </div>
+            <h1 className="font-display text-2xl font-medium">Check your email</h1>
+            <p className="text-muted-foreground">
+              We&apos;ve sent a password reset link to <strong>{email}</strong>
+            </p>
+            <p className="text-sm text-muted-foreground">
+              Click the link in your email to reset your password.
+            </p>
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setResetEmailSent(false)
+              setIsForgotPassword(false)
+              setEmail('')
+            }}
+          >
+            Back to login
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
   if (magicLinkSent) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -236,48 +296,96 @@ function LoginPageInner() {
 
               {/* Password Login/Signup */}
               <TabsContent value="password">
-                <form onSubmit={handlePasswordAuth} className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Email address</label>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Password</label>
-                    <div className="relative">
+                {isForgotPassword ? (
+                  <form onSubmit={handleForgotPassword} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Email address</label>
                       <Input
-                        type={showPassword ? 'text' : 'password'}
-                        placeholder={isSignUp ? 'Create a password (min 6 chars)' : 'Enter your password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
                         required
-                        minLength={6}
-                        className="pr-10"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
                     </div>
-                  </div>
-                  {error && <p className="text-sm text-destructive">{error}</p>}
-                  <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Lock className="h-4 w-4" />
-                    )}
-                    {isSignUp ? 'Create Account' : 'Sign In'}
-                  </Button>
-                </form>
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Mail className="h-4 w-4" />
+                      )}
+                      Send Reset Link
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsForgotPassword(false)
+                        setError('')
+                      }}
+                      className="w-full text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      Back to login
+                    </button>
+                  </form>
+                ) : (
+                  <form onSubmit={handlePasswordAuth} className="space-y-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Email address</label>
+                      <Input
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Password</label>
+                        {!isSignUp && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setIsForgotPassword(true)
+                              setError('')
+                            }}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            Forgot password?
+                          </button>
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type={showPassword ? 'text' : 'password'}
+                          placeholder={isSignUp ? 'Create a password (min 6 chars)' : 'Enter your password'}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          required
+                          minLength={6}
+                          className="pr-10"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        >
+                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+                    {error && <p className="text-sm text-destructive">{error}</p>}
+                    <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                      {isLoading ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Lock className="h-4 w-4" />
+                      )}
+                      {isSignUp ? 'Create Account' : 'Sign In'}
+                    </Button>
+                  </form>
+                )}
               </TabsContent>
 
               {/* Magic Link */}
