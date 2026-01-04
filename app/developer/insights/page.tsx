@@ -19,9 +19,13 @@ export default function InsightsPage() {
     const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
     const conversionRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
+    // Calculate response rate from contacted leads
+    const contactedLeads = leads.filter(l => l.status === 'Contacted' || l.status === 'Qualified' || l.status === 'Viewing Booked' || l.last_contact).length
+    const responseRate = totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0
+
     return {
       leadQuality: avgScore,
-      responseRate: totalLeads > 0 ? Math.min(95, 70 + Math.round(Math.random() * 25)) : 0, // Placeholder until real messaging data
+      responseRate,
       conversion: conversionRate,
     }
   }, [leads])

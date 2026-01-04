@@ -17,43 +17,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Demo users for development/testing
-const demoUsers: Record<string, User> = {
-  'admin@naybourhood.ai': {
-    id: 'U001',
-    name: 'Kofi',
-    email: 'admin@naybourhood.ai',
-    role: 'admin',
-  },
-  'kofi@naybourhood.ai': {
-    id: 'U001',
-    name: 'Kofi',
-    email: 'kofi@naybourhood.ai',
-    role: 'admin',
-  },
-  'developer@test.com': {
-    id: 'U002',
-    name: 'John Smith',
-    email: 'developer@test.com',
-    role: 'developer',
-    company: 'Berkeley Group',
-  },
-  'agent@test.com': {
-    id: 'U003',
-    name: 'Michael Davies',
-    email: 'agent@test.com',
-    role: 'agent',
-    company: 'JLL',
-  },
-  'broker@test.com': {
-    id: 'U004',
-    name: 'Lisa Green',
-    email: 'broker@test.com',
-    role: 'broker',
-    company: 'Tudor Financial',
-  },
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -126,15 +89,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
             }
           } else {
-            // Fallback to localStorage for demo mode
-            const stored = localStorage.getItem('naybourhood_user')
-            if (stored) {
-              try {
-                setUser(JSON.parse(stored))
-              } catch {
-                localStorage.removeItem('naybourhood_user')
-              }
-            }
+            // No valid session - clear any stale data
+            localStorage.removeItem('naybourhood_user')
           }
 
           // Listen for auth state changes
@@ -161,26 +117,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error('[AuthContext] Init error:', error)
-          // Fallback to localStorage
-          const stored = localStorage.getItem('naybourhood_user')
-          if (stored) {
-            try {
-              setUser(JSON.parse(stored))
-            } catch {
-              localStorage.removeItem('naybourhood_user')
-            }
-          }
+          localStorage.removeItem('naybourhood_user')
         }
       } else {
-        // No Supabase - use localStorage only
-        const stored = localStorage.getItem('naybourhood_user')
-        if (stored) {
-          try {
-            setUser(JSON.parse(stored))
-          } catch {
-            localStorage.removeItem('naybourhood_user')
-          }
-        }
+        // Supabase not configured - show error
+        console.error('[AuthContext] Supabase not configured')
+        localStorage.removeItem('naybourhood_user')
       }
 
       setIsLoading(false)
@@ -209,46 +151,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
 
     try {
-      // If Supabase is configured, try Supabase auth
-      if (isSupabaseConfigured()) {
-        const supabase = createClient()
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        })
+      if (!isSupabaseConfigured()) {
+        console.error('[AuthContext] Cannot login - Supabase not configured')
+        setIsLoading(false)
+        return false
+      }
 
-        if (!error && data.user) {
-          const appUser = await fetchUserProfile(data.user.id, data.user.email || email)
+      const supabase = createClient()
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
-          if (appUser) {
-            setUser(appUser)
-            localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
-            setIsLoading(false)
-            return true
-          }
+      if (error) {
+        console.error('[AuthContext] Login error:', error)
+        setIsLoading(false)
+        return false
+      }
+
+      if (data.user) {
+        const appUser = await fetchUserProfile(data.user.id, data.user.email || email)
+
+        if (appUser) {
+          setUser(appUser)
+          localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+          setIsLoading(false)
+          return true
         }
       }
 
-      // Fallback to demo login
-      const demoUser = demoUsers[email.toLowerCase()]
-      if (demoUser) {
-        setUser(demoUser)
-        localStorage.setItem('naybourhood_user', JSON.stringify(demoUser))
-        setIsLoading(false)
-        return true
-      }
-
-      // Create user from email for demo purposes
-      const newUser: User = {
-        id: 'U999',
-        name: email.split('@')[0],
-        email: email,
-        role: 'developer',
-      }
-      setUser(newUser)
-      localStorage.setItem('naybourhood_user', JSON.stringify(newUser))
       setIsLoading(false)
-      return true
+      return false
     } catch (error) {
       console.error('Login error:', error)
       setIsLoading(false)
