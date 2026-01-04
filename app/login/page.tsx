@@ -535,34 +535,66 @@ function LoginPageInner() {
               Quick Access (Dev/Testing)
             </p>
             <div className="grid grid-cols-2 gap-2">
-              <Link
-                href="/admin"
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'test-admin',
+                    email: 'admin@test.com',
+                    name: 'Test Admin',
+                    role: 'admin',
+                  }))
+                  router.push('/admin')
+                }}
                 className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
               >
                 <Shield className="h-4 w-4" />
                 Admin
-              </Link>
-              <Link
-                href="/developer"
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'test-developer',
+                    email: 'developer@test.com',
+                    name: 'Test Developer',
+                    role: 'developer',
+                  }))
+                  router.push('/developer')
+                }}
                 className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
               >
                 <HardHat className="h-4 w-4" />
                 Developer
-              </Link>
-              <Link
-                href="/agent"
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'test-agent',
+                    email: 'agent@test.com',
+                    name: 'Test Agent',
+                    role: 'agent',
+                  }))
+                  router.push('/agent')
+                }}
                 className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
               >
                 <Users className="h-4 w-4" />
                 Agent
-              </Link>
-              <Link
-                href="/broker"
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'test-broker',
+                    email: 'broker@test.com',
+                    name: 'Test Broker',
+                    role: 'broker',
+                  }))
+                  router.push('/broker')
+                }}
                 className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
               >
                 <Briefcase className="h-4 w-4" />
                 Broker
-              </Link>
+              </button>
             </div>
           </CardContent>
         </Card>
