@@ -1,0 +1,3 @@
+-- Naybourhood Database
+-- This file is intentionally empty - all data should be managed through the application
+-- or Supabase dashboard. No seed/demo data is used in production.

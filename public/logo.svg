@@ -1,0 +1,14 @@
+<svg width="400" height="80" viewBox="0 0 400 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Celtic Knot Symbol -->
+  <g transform="translate(0, 5)">
+    <path d="M35 10C25 10 17 18 17 28C17 33 19 37 22 40C19 43 17 47 17 52C17 62 25 70 35 70C40 70 44 68 47 65C50 68 54 70 59 70C69 70 77 62 77 52C77 47 75 43 72 40C75 37 77 33 77 28C77 18 69 10 59 10C54 10 50 12 47 15C44 12 40 10 35 10Z" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M35 18C29 18 25 22 25 28C25 31 26 34 28 36L47 55C44 58 40 60 35 60C29 60 25 56 25 50" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M59 18C65 18 69 22 69 28C69 31 68 34 66 36L47 55C50 58 54 60 59 60C65 60 69 56 69 50" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M28 44C26 46 25 49 25 52C25 58 29 62 35 62" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M66 44C68 46 69 49 69 52C69 58 65 62 59 62" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M35 20C31 20 27 24 27 28C27 32 29 35 32 38" stroke="currentColor" stroke-width="3" fill="none"/>
+    <path d="M59 20C63 20 67 24 67 28C67 32 65 35 62 38" stroke="currentColor" stroke-width="3" fill="none"/>
+  </g>
+  <!-- Text -->
+  <text x="95" y="52" font-family="system-ui, -apple-system, sans-serif" font-size="32" font-weight="500" letter-spacing="0.1em" fill="currentColor">NAYBOURHOOD</text>
+</svg>

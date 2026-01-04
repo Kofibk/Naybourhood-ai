@@ -1,0 +1,235 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient, createClient, isSupabaseConfigured } from '@/lib/supabase/server'
+
+// DELETE user by ID
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = params.id
+
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'User ID is required' },
+        { status: 400 }
+      )
+    }
+
+    // Check authentication
+    let isAdmin = false
+    let currentUserId: string | null = null
+
+    if (isSupabaseConfigured()) {
+      const supabase = createClient()
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+      if (currentUser) {
+        currentUserId = currentUser.id
+
+        // Check if current user is admin
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single()
+
+        isAdmin = profile?.role === 'admin'
+      }
+    }
+
+    // For demo mode - check request headers for admin role
+    if (!isAdmin) {
+      const inviterRole = request.headers.get('x-user-role')
+      if (inviterRole === 'admin') {
+        isAdmin = true
+      }
+    }
+
+    if (!isAdmin) {
+      return NextResponse.json(
+        { error: 'Only admins can delete users' },
+        { status: 403 }
+      )
+    }
+
+    // Prevent self-deletion
+    if (currentUserId === userId) {
+      return NextResponse.json(
+        { error: 'You cannot delete your own account' },
+        { status: 400 }
+      )
+    }
+
+    if (isSupabaseConfigured()) {
+      try {
+        const adminClient = createAdminClient()
+
+        // Delete from profiles table first
+        const { error: profileError } = await adminClient
+          .from('profiles')
+          .delete()
+          .eq('id', userId)
+
+        if (profileError) {
+          console.error('[Delete User] Profile deletion error:', profileError)
+          return NextResponse.json(
+            { error: `Failed to delete user profile: ${profileError.message}` },
+            { status: 400 }
+          )
+        }
+
+        // Try to delete from Supabase Auth (may fail if user was created differently)
+        try {
+          await adminClient.auth.admin.deleteUser(userId)
+        } catch (authError) {
+          // Auth deletion may fail for demo users, that's ok
+          console.log('[Delete User] Auth deletion skipped (user may be demo-only)')
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: 'User deleted successfully',
+        })
+      } catch (adminError) {
+        console.error('[Delete User] Admin client error:', adminError)
+        return NextResponse.json(
+          { error: 'Failed to delete user. Check Supabase configuration.' },
+          { status: 500 }
+        )
+      }
+    } else {
+      // Demo mode - just return success
+      return NextResponse.json({
+        success: true,
+        message: 'Demo mode: User would be deleted',
+        demo: true,
+      })
+    }
+  } catch (error) {
+    console.error('[Delete User] Server error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// GET user by ID
+export async function GET(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = params.id
+
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({ user: null })
+    }
+
+    const supabase = createClient()
+
+    const { data: profile, error } = await supabase
+      .from('profiles')
+      .select('*, companies(name)')
+      .eq('id', userId)
+      .single()
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 404 }
+      )
+    }
+
+    return NextResponse.json({ user: profile })
+  } catch (error) {
+    console.error('[Get User] Server error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+
+// UPDATE user by ID
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const userId = params.id
+    const body = await request.json()
+
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({
+        success: true,
+        message: 'Demo mode: User would be updated',
+        demo: true,
+      })
+    }
+
+    const supabase = createClient()
+    const { data: { user: currentUser } } = await supabase.auth.getUser()
+
+    // Check if current user can update this profile
+    let canUpdate = false
+
+    if (currentUser) {
+      // Users can update their own profile
+      if (currentUser.id === userId) {
+        canUpdate = true
+      } else {
+        // Admins can update anyone
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('role')
+          .eq('id', currentUser.id)
+          .single()
+
+        canUpdate = profile?.role === 'admin'
+      }
+    }
+
+    // Demo mode fallback
+    if (!canUpdate) {
+      const inviterRole = request.headers.get('x-user-role')
+      canUpdate = inviterRole === 'admin'
+    }
+
+    if (!canUpdate) {
+      return NextResponse.json(
+        { error: 'Unauthorized to update this user' },
+        { status: 403 }
+      )
+    }
+
+    // Filter out read-only fields
+    const { id, created_at, email, ...updateData } = body
+
+    const { data, error } = await supabase
+      .from('profiles')
+      .update(updateData)
+      .eq('id', userId)
+      .select()
+      .single()
+
+    if (error) {
+      return NextResponse.json(
+        { error: error.message },
+        { status: 400 }
+      )
+    }
+
+    return NextResponse.json({
+      success: true,
+      user: data,
+    })
+  } catch (error) {
+    console.error('[Update User] Server error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
