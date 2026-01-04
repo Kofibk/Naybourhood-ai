@@ -124,6 +124,9 @@ export default function UsersPage() {
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
+        headers: {
+          'x-user-role': currentUser?.role || '',
+        },
       })
 
       if (!response.ok) {

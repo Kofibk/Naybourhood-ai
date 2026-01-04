@@ -4,26 +4,51 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
-  const next = searchParams.get('next') ?? '/'
 
   if (code) {
     const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
 
     if (!error && data.user) {
-      // Redirect based on email
       const email = data.user.email?.toLowerCase() || ''
 
+      // Fetch user profile from database to get their actual role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role, full_name, company_id')
+        .eq('id', data.user.id)
+        .single()
+
+      // Use database role if available, otherwise default to developer
+      const role = profile?.role || 'developer'
+
+      // Determine redirect path based on database role
       let redirectPath = '/developer'
-      if (email === 'kofi@naybourhood.ai' || email.includes('admin')) {
-        redirectPath = '/admin'
-      } else if (email.includes('agent')) {
-        redirectPath = '/agent'
-      } else if (email.includes('broker')) {
-        redirectPath = '/broker'
+      switch (role) {
+        case 'admin':
+          redirectPath = '/admin'
+          break
+        case 'agent':
+          redirectPath = '/agent'
+          break
+        case 'broker':
+          redirectPath = '/broker'
+          break
+        case 'developer':
+        default:
+          redirectPath = '/developer'
+          break
       }
 
-      return NextResponse.redirect(`${origin}${redirectPath}`)
+      // Redirect with role info in URL so client can store in localStorage
+      const redirectUrl = new URL(`${origin}${redirectPath}`)
+      redirectUrl.searchParams.set('auth', 'success')
+      redirectUrl.searchParams.set('userId', data.user.id)
+      redirectUrl.searchParams.set('email', email)
+      redirectUrl.searchParams.set('name', profile?.full_name || email.split('@')[0])
+      redirectUrl.searchParams.set('role', role)
+
+      return NextResponse.redirect(redirectUrl.toString())
     }
   }
 
