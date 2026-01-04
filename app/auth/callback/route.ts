@@ -6,6 +6,14 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
+  const error_code = searchParams.get('error_code')
+  const error_description = searchParams.get('error_description')
+
+  // Handle Supabase error redirects (e.g., expired links)
+  if (error_code || error_description) {
+    const errorMessage = error_description || 'Authentication link has expired or is invalid'
+    return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMessage)}&error_type=link_expired`)
+  }
 
   const supabase = await createClient()
   let authResult: { user: any } | null = null
@@ -16,6 +24,16 @@ export async function GET(request: Request) {
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     authResult = data
     authError = error
+
+    // Check for PKCE-specific errors
+    if (error && (
+      error.message?.includes('PKCE') ||
+      error.message?.includes('code verifier') ||
+      error.code === 'pkce_verification_failed'
+    )) {
+      const pkceError = 'This login link was opened in a different browser. Please request a new link using the same browser, or use password login instead.'
+      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(pkceError)}&error_type=pkce`)
+    }
   }
   // Handle token_hash (invite emails, password recovery, etc.)
   else if (token_hash && type) {

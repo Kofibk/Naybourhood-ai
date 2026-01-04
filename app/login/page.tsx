@@ -9,7 +9,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoIcon } from '@/components/Logo'
 import { AuthHandler } from '@/components/AuthHandler'
-import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff } from 'lucide-react'
+import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 function LoginPageInner() {
@@ -29,8 +30,19 @@ function LoginPageInner() {
   // Check for error in URL params
   useEffect(() => {
     const errorParam = searchParams.get('error')
+    const errorType = searchParams.get('error_type')
+
     if (errorParam) {
       setError(errorParam)
+
+      // If it's a PKCE error, auto-switch to password tab
+      if (errorType === 'pkce') {
+        // Clear the error params from URL without refresh
+        const url = new URL(window.location.href)
+        url.searchParams.delete('error')
+        url.searchParams.delete('error_type')
+        window.history.replaceState({}, '', url.toString())
+      }
     }
   }, [searchParams])
 
@@ -278,6 +290,14 @@ function LoginPageInner() {
             {isSignUp ? 'Get started with Naybourhood' : 'Sign in to your Naybourhood account'}
           </p>
         </div>
+
+        {/* Global Error Alert */}
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
 
         {/* Auth Card */}
         <Card>
