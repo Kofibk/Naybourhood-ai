@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Logo, LogoIcon } from '@/components/Logo'
+import { AuthHandler } from '@/components/AuthHandler'
 import {
   ArrowRight,
   Target,
@@ -142,6 +143,8 @@ const clients = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background">
+      {/* Handle auth tokens from URL hash */}
+      <AuthHandler />
       {/* Header */}
       <header className="border-b border-border">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
