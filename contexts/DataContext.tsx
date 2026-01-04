@@ -189,12 +189,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Map column names - prioritise total_spend and total_leads (confirmed Supabase columns)
         // Use ?? (nullish coalescing) so 0 values don't fall through
         // Check various naming patterns for compatibility
-        const mappedCampaigns = campaignsResult.data.map((c: any) => ({
-          ...c,
-          spend: c.total_spend ?? c['Total Spend'] ?? c.TotalSpend ?? c.spend ?? c.ad_spend ?? c.amount_spent ?? 0,
-          leads: c.total_leads ?? c['Total Leads'] ?? c.TotalLeads ?? c.leads ?? c.lead_count ?? 0,
-          cpl: c.cpl ?? c.cost_per_lead ?? c.CPL ?? 0,
-        }))
+        // Parse values as numbers in case they're stored as strings
+        const parseNumber = (val: any): number => {
+          if (typeof val === 'number') return val
+          if (typeof val === 'string') {
+            // Remove currency symbols, commas, and spaces
+            const cleaned = val.replace(/[£$€,\s]/g, '')
+            const parsed = parseFloat(cleaned)
+            return isNaN(parsed) ? 0 : parsed
+          }
+          return 0
+        }
+
+        const mappedCampaigns = campaignsResult.data.map((c: any) => {
+          const spendVal = c.total_spend ?? c['Total Spend'] ?? c.TotalSpend ?? c.spend ?? c.ad_spend ?? c.amount_spent
+          const leadsVal = c.total_leads ?? c['Total Leads'] ?? c.TotalLeads ?? c.leads ?? c.lead_count
+          const cplVal = c.cpl ?? c.cost_per_lead ?? c.CPL
+
+          return {
+            ...c,
+            spend: parseNumber(spendVal),
+            leads: parseNumber(leadsVal),
+            cpl: parseNumber(cplVal),
+          }
+        })
         console.log('[DataContext] First mapped campaign:', {
           spend: mappedCampaigns[0]?.spend,
           leads: mappedCampaigns[0]?.leads,
