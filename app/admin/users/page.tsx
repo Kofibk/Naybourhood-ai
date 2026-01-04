@@ -362,12 +362,13 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <UserCircle className="h-4 w-4" />
-                  Full Name (optional)
+                  Full Name *
                 </label>
                 <Input
                   value={inviteData.name}
                   onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
                   placeholder="John Smith"
+                  required
                 />
               </div>
               <div className="space-y-2">
@@ -392,14 +393,15 @@ export default function UsersPage() {
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
                   <Building2 className="h-4 w-4" />
-                  Company (optional)
+                  Company *
                 </label>
                 <select
                   value={inviteData.company_id || ''}
                   onChange={(e) => setInviteData({ ...inviteData, company_id: e.target.value })}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  required
                 >
-                  <option value="">No company</option>
+                  <option value="">Select a company</option>
                   {companies.map((company) => (
                     <option key={company.id} value={company.id}>
                       {company.name}
@@ -412,7 +414,7 @@ export default function UsersPage() {
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleSendInvite} disabled={isSending || !inviteData.email}>
+              <Button onClick={handleSendInvite} disabled={isSending || !inviteData.email || !inviteData.name || !inviteData.company_id}>
                 <Send className="h-4 w-4 mr-2" />
                 {isSending ? 'Sending...' : 'Send Invitation'}
               </Button>
