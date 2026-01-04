@@ -4,54 +4,90 @@ import { NextResponse } from 'next/server'
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
+  const token_hash = searchParams.get('token_hash')
+  const type = searchParams.get('type')
 
+  const supabase = await createClient()
+  let authResult: { user: any } | null = null
+  let authError: any = null
+
+  // Handle PKCE code exchange (magic link from signInWithOtp)
   if (code) {
-    const supabase = await createClient()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    authResult = data
+    authError = error
+  }
+  // Handle token_hash (invite emails, password recovery, etc.)
+  else if (token_hash && type) {
+    const { data, error } = await supabase.auth.verifyOtp({
+      token_hash,
+      type: type as 'invite' | 'email' | 'recovery' | 'magiclink',
+    })
+    authResult = data
+    authError = error
+  }
 
-    if (!error && data.user) {
-      const email = data.user.email?.toLowerCase() || ''
+  if (!authError && authResult?.user) {
+    const email = authResult.user.email?.toLowerCase() || ''
 
-      // Fetch user profile from database to get their actual role
-      const { data: profile } = await supabase
+    // Fetch user profile from database to get their actual role
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, full_name, company_id')
+      .eq('id', authResult.user.id)
+      .single()
+
+    // Use database role if available, otherwise check user metadata, then default to developer
+    let role = profile?.role || authResult.user.user_metadata?.role || 'developer'
+
+    // If this is an invite and profile doesn't exist, create it from user metadata
+    if (!profile && authResult.user.user_metadata) {
+      const metadata = authResult.user.user_metadata
+      const { error: profileError } = await supabase
         .from('profiles')
-        .select('role, full_name, company_id')
-        .eq('id', data.user.id)
-        .single()
+        .upsert({
+          id: authResult.user.id,
+          email: email,
+          full_name: metadata.full_name || email.split('@')[0],
+          role: metadata.role || 'developer',
+          company_id: metadata.company_id || null,
+        })
 
-      // Use database role if available, otherwise default to developer
-      const role = profile?.role || 'developer'
-
-      // Determine redirect path based on database role
-      let redirectPath = '/developer'
-      switch (role) {
-        case 'admin':
-          redirectPath = '/admin'
-          break
-        case 'agent':
-          redirectPath = '/agent'
-          break
-        case 'broker':
-          redirectPath = '/broker'
-          break
-        case 'developer':
-        default:
-          redirectPath = '/developer'
-          break
+      if (!profileError) {
+        role = metadata.role || 'developer'
       }
-
-      // Redirect with role info in URL so client can store in localStorage
-      const redirectUrl = new URL(`${origin}${redirectPath}`)
-      redirectUrl.searchParams.set('auth', 'success')
-      redirectUrl.searchParams.set('userId', data.user.id)
-      redirectUrl.searchParams.set('email', email)
-      redirectUrl.searchParams.set('name', profile?.full_name || email.split('@')[0])
-      redirectUrl.searchParams.set('role', role)
-
-      return NextResponse.redirect(redirectUrl.toString())
     }
+
+    // Determine redirect path based on role
+    let redirectPath = '/developer'
+    switch (role) {
+      case 'admin':
+        redirectPath = '/admin'
+        break
+      case 'agent':
+        redirectPath = '/agent'
+        break
+      case 'broker':
+        redirectPath = '/broker'
+        break
+      case 'developer':
+      default:
+        redirectPath = '/developer'
+        break
+    }
+
+    // Redirect with role info in URL so client can store in localStorage
+    const redirectUrl = new URL(`${origin}${redirectPath}`)
+    redirectUrl.searchParams.set('auth', 'success')
+    redirectUrl.searchParams.set('userId', authResult.user.id)
+    redirectUrl.searchParams.set('email', email)
+    redirectUrl.searchParams.set('name', profile?.full_name || authResult.user.user_metadata?.full_name || email.split('@')[0])
+    redirectUrl.searchParams.set('role', role)
+
+    return NextResponse.redirect(redirectUrl.toString())
   }
 
   // Return the user to an error page with instructions
-  return NextResponse.redirect(`${origin}/login?error=Could not authenticate user`)
+  const errorMessage = authError?.message || 'Could not authenticate user'
+  return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMessage)}`)
 }
