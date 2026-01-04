@@ -2,6 +2,17 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export async function middleware(request: NextRequest) {
+  const { pathname, searchParams } = request.nextUrl
+
+  // Handle Supabase auth code at root - redirect to /auth/callback
+  if (pathname === '/' && searchParams.has('code')) {
+    const code = searchParams.get('code')
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    url.searchParams.set('code', code!)
+    return NextResponse.redirect(url)
+  }
+
   // Update Supabase session if configured
   if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     return await updateSession(request)
