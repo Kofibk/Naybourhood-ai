@@ -18,25 +18,36 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create and merge PR
+      - name: Create PR and enable auto-merge
         run: |
-          # Configure git
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-
           # Get current branch name
           BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+          echo "Branch: $BRANCH_NAME"
 
           # Check if PR already exists
-          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' || echo "")
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' 2>/dev/null || echo "")
 
           if [ -z "$EXISTING_PR" ]; then
-            # Create PR
-            gh pr create --title "Auto-merge: $BRANCH_NAME" --body "Automated merge from Claude Code" --base main --head "$BRANCH_NAME"
+            echo "Creating new PR..."
+            gh pr create --title "Auto-merge: $BRANCH_NAME" --body "Automated merge from Claude Code" --base main --head "$BRANCH_NAME" || true
+          else
+            echo "PR #$EXISTING_PR already exists"
           fi
 
-          # Merge the PR immediately
-          gh pr merge "$BRANCH_NAME" --squash --delete-branch
+          # Wait a moment for PR to be created
+          sleep 2
+
+          # Try to merge - if checks are required, this will fail gracefully
+          echo "Attempting to merge PR..."
+          gh pr merge "$BRANCH_NAME" --squash --delete-branch 2>&1 || {
+            echo "Direct merge failed (checks may be pending). Trying auto-merge..."
+            # Enable auto-merge so it merges when checks pass
+            gh pr merge "$BRANCH_NAME" --squash --auto 2>&1 || {
+              echo "Auto-merge also failed. You may need to merge manually."
+              echo "This can happen if:"
+              echo "  - Branch protection requires status checks"
+              echo "  - Auto-merge is not enabled in repo settings"
+            }
+          }
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-# Auto-merge test - Sun Jan  4 16:17:50 UTC 2026
