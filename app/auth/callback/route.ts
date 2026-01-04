@@ -48,6 +48,11 @@ export async function GET(request: Request) {
   if (!authError && authResult?.user) {
     const email = authResult.user.email?.toLowerCase() || ''
 
+    // Handle password recovery - redirect to reset password page
+    if (type === 'recovery') {
+      return NextResponse.redirect(`${origin}/reset-password`)
+    }
+
     // Check if user has completed onboarding (user_profiles table)
     const { data: userProfile } = await supabase
       .from('user_profiles')
