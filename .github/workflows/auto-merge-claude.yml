@@ -1,8 +1,9 @@
 name: Auto-merge Claude branches
 
 on:
-  pull_request:
-    types: [opened, synchronize, reopened]
+  push:
+    branches:
+      - 'claude/**'
 
 permissions:
   contents: write
@@ -10,15 +11,31 @@ permissions:
 
 jobs:
   auto-merge:
-    # Only run for branches starting with 'claude/'
-    if: startsWith(github.head_ref, 'claude/')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Enable auto-merge
-        run: gh pr merge --auto --squash "$PR_URL"
+      - name: Create and merge PR
+        run: |
+          # Configure git
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Get current branch name
+          BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+
+          # Check if PR already exists
+          EXISTING_PR=$(gh pr list --head "$BRANCH_NAME" --json number --jq '.[0].number' || echo "")
+
+          if [ -z "$EXISTING_PR" ]; then
+            # Create PR
+            gh pr create --title "Auto-merge: $BRANCH_NAME" --body "Automated merge from Claude Code" --base main --head "$BRANCH_NAME"
+          fi
+
+          # Merge the PR immediately
+          gh pr merge "$BRANCH_NAME" --squash --delete-branch
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
