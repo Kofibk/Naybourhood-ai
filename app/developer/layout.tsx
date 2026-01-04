@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DataProvider } from '@/contexts/DataContext'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { createClient } from '@/lib/supabase/client'
 
 interface User {
   id: string
@@ -55,7 +56,13 @@ function DeveloperLayoutInner({ children }: { children: React.ReactNode }) {
     }
   }, [router, searchParams])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Sign out from Supabase
+    const supabase = createClient()
+    if (supabase) {
+      await supabase.auth.signOut()
+    }
+    // Clear localStorage
     localStorage.removeItem('naybourhood_user')
     router.push('/login')
   }

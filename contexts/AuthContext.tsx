@@ -18,43 +18,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Demo users for development - REMOVE IN PRODUCTION
-const demoUsers: Record<string, User> = {
-  'admin@naybourhood.ai': {
-    id: 'demo-admin',
-    name: 'Admin',
-    email: 'admin@naybourhood.ai',
-    role: 'admin',
-  },
-  'kofi@naybourhood.ai': {
-    id: 'demo-kofi',
-    name: 'Kofi',
-    email: 'kofi@naybourhood.ai',
-    role: 'admin',
-  },
-  'developer@test.com': {
-    id: 'demo-dev',
-    name: 'Developer',
-    email: 'developer@test.com',
-    role: 'developer',
-    company: 'Berkeley Group',
-  },
-  'agent@test.com': {
-    id: 'demo-agent',
-    name: 'Agent',
-    email: 'agent@test.com',
-    role: 'agent',
-    company: 'JLL',
-  },
-  'broker@test.com': {
-    id: 'demo-broker',
-    name: 'Broker',
-    email: 'broker@test.com',
-    role: 'broker',
-    company: 'Tudor Financial',
-  },
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -228,15 +191,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return true
           }
         }
-      }
-
-      // Fallback to demo login for development
-      const demoUser = demoUsers[email.toLowerCase()]
-      if (demoUser) {
-        setUser(demoUser)
-        localStorage.setItem('naybourhood_user', JSON.stringify(demoUser))
-        setIsLoading(false)
-        return true
       }
 
       setIsLoading(false)
