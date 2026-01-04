@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DataProvider } from '@/contexts/DataContext'
+import { AuthProvider } from '@/contexts/AuthContext'
 
 interface User {
   id: string
@@ -69,17 +70,19 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <DataProvider>
-      <DashboardLayout
-        title={`Welcome back, ${user.name?.split(' ')[0] || 'Admin'}`}
-        userType="admin"
-        userName={user.name}
-        userEmail={user.email}
-        onLogout={handleLogout}
-      >
-        {children}
-      </DashboardLayout>
-    </DataProvider>
+    <AuthProvider>
+      <DataProvider>
+        <DashboardLayout
+          title={`Welcome back, ${user.name?.split(' ')[0] || 'Admin'}`}
+          userType="admin"
+          userName={user.name}
+          userEmail={user.email}
+          onLogout={handleLogout}
+        >
+          {children}
+        </DashboardLayout>
+      </DataProvider>
+    </AuthProvider>
   )
 }
 
