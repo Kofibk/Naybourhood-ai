@@ -23,6 +23,10 @@ import {
   Heart,
   Home,
   Landmark,
+  ArrowRightLeft,
+  Shield,
+  Briefcase,
+  HardHat,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -106,6 +110,14 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   const navItems = getNavItems()
   const isActive = (href: string) => pathname === href
 
+  // Quick Access dashboards for admins
+  const quickAccessDashboards = [
+    { name: 'Admin', icon: Shield, href: '/admin', type: 'admin' as UserType },
+    { name: 'Developer', icon: HardHat, href: '/developer', type: 'developer' as UserType },
+    { name: 'Agent', icon: Users, href: '/agent', type: 'agent' as UserType },
+    { name: 'Broker', icon: Briefcase, href: '/broker', type: 'broker' as UserType },
+  ]
+
   const NavContent = () => (
     <div className="flex flex-col h-full bg-sidebar">
       {/* Logo */}
@@ -142,6 +154,34 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
           ))}
         </ul>
       </nav>
+
+      {/* Quick Access - Admin Only */}
+      {userType === 'admin' && (
+        <div className="p-3 border-t border-sidebar-border">
+          <div className="flex items-center gap-2 px-2 mb-2 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+            <ArrowRightLeft className="h-3 w-3" />
+            Quick Access
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {quickAccessDashboards.map((dashboard) => (
+              <Link
+                key={dashboard.type}
+                href={dashboard.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  'flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors',
+                  userType === dashboard.type
+                    ? 'bg-sidebar-accent text-white font-medium'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white'
+                )}
+              >
+                <dashboard.icon className="h-3.5 w-3.5" />
+                <span>{dashboard.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* User Profile */}
       <div className="p-3 border-t border-sidebar-border space-y-3">
