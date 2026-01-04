@@ -354,9 +354,32 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateLead = useCallback(async (id: string, data: Partial<Buyer>): Promise<Buyer | null> => {
     try {
       const supabase = createClient()
+
+      // Only include valid database columns - filter out computed/mapped fields
+      const validColumns = [
+        'first_name', 'last_name', 'full_name', 'email', 'phone',
+        'budget', 'budget_min', 'budget_max', 'bedrooms', 'location', 'area',
+        'timeline', 'source', 'campaign', 'status', 'quality_score', 'intent_score',
+        'payment_method', 'mortgage_status', 'proof_of_funds', 'uk_broker', 'uk_solicitor',
+        'notes', 'assigned_to', 'assigned_user_name', 'assigned_at',
+        'company_id', 'last_contact', 'updated_at'
+      ]
+
+      const cleanData: Record<string, any> = {}
+      for (const key of validColumns) {
+        if (key in data && data[key as keyof Buyer] !== undefined) {
+          cleanData[key] = data[key as keyof Buyer]
+        }
+      }
+
+      // Add updated timestamp
+      cleanData.updated_at = new Date().toISOString()
+
+      console.log('[DataContext] Updating lead with:', cleanData)
+
       const { data: updatedData, error } = await supabase
         .from('buyers')
-        .update(data)
+        .update(cleanData)
         .eq('id', id)
         .select()
         .single()
@@ -378,9 +401,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateCampaign = useCallback(async (id: string, data: Partial<Campaign>): Promise<Campaign | null> => {
     try {
       const supabase = createClient()
+
+      // Only include valid database columns - filter out computed/mapped fields
+      const validColumns = [
+        'name', 'client', 'development', 'platform', 'status',
+        'total spend', 'total leads', 'cpl', 'cost_per_lead',
+        'start_date', 'end_date', 'budget', 'notes', 'updated_at'
+      ]
+
+      const cleanData: Record<string, any> = {}
+      for (const key of validColumns) {
+        if (key in data && data[key as keyof Campaign] !== undefined) {
+          cleanData[key] = data[key as keyof Campaign]
+        }
+      }
+
+      // Add updated timestamp
+      cleanData.updated_at = new Date().toISOString()
+
+      console.log('[DataContext] Updating campaign with:', cleanData)
+
       const { data: updatedData, error } = await supabase
         .from('campaigns')
-        .update(data)
+        .update(cleanData)
         .eq('id', id)
         .select()
         .single()
@@ -526,9 +569,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateCompany = useCallback(async (id: string, data: Partial<Company>): Promise<Company | null> => {
     try {
       const supabase = createClient()
+
+      // Only include valid database columns - filter out computed/mapped fields
+      const validColumns = [
+        'name', 'email', 'contact_phone', 'address', 'website',
+        'type', 'subscription_tier', 'status', 'logo_url',
+        'notes', 'ad_spend', 'updated_at'
+      ]
+
+      const cleanData: Record<string, any> = {}
+      for (const key of validColumns) {
+        if (key in data && data[key as keyof Company] !== undefined) {
+          cleanData[key] = data[key as keyof Company]
+        }
+      }
+
+      // Add updated timestamp
+      cleanData.updated_at = new Date().toISOString()
+
+      console.log('[DataContext] Updating company with:', cleanData)
+
       const { data: updatedData, error } = await supabase
         .from('companies')
-        .update(data)
+        .update(cleanData)
         .eq('id', id)
         .select()
         .single()
@@ -595,9 +658,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const updateDevelopment = useCallback(async (id: string, data: Partial<Development>): Promise<Development | null> => {
     try {
       const supabase = createClient()
+
+      // Only include valid database columns - filter out computed/mapped fields
+      const validColumns = [
+        'name', 'location', 'address', 'developer', 'status',
+        'units', 'total_units', 'available_units', 'price_from', 'price_to',
+        'completion_date', 'description', 'image_url',
+        'total_leads', 'ad_spend', 'notes', 'updated_at'
+      ]
+
+      const cleanData: Record<string, any> = {}
+      for (const key of validColumns) {
+        if (key in data && data[key as keyof Development] !== undefined) {
+          cleanData[key] = data[key as keyof Development]
+        }
+      }
+
+      // Add updated timestamp
+      cleanData.updated_at = new Date().toISOString()
+
+      console.log('[DataContext] Updating development with:', cleanData)
+
       const { data: updatedData, error } = await supabase
         .from('developments')
-        .update(data)
+        .update(cleanData)
         .eq('id', id)
         .select()
         .single()
