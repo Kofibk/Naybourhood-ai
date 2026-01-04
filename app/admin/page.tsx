@@ -13,8 +13,6 @@ import {
   PoundSterling,
   TrendingDown,
   CheckCircle,
-  Lightbulb,
-  AlertCircle,
   Phone,
   MessageCircle,
   Calendar,
@@ -24,6 +22,7 @@ import {
   Building2,
   Megaphone,
 } from 'lucide-react'
+import { AIInsights } from '@/components/ai'
 
 const COLORS = {
   hot: '#ef4444',
@@ -164,40 +163,6 @@ export default function AdminDashboard() {
       { name: 'Offer', value: offer, color: '#a855f7' },
     ]
   }, [leads])
-
-  // AI recommendations based on real data
-  const aiRecommendations = useMemo(() => {
-    const recs: string[] = []
-
-    if (actionLeads.length > 0) {
-      const topLead = actionLeads[0]
-      recs.push(`Follow up with ${topLead.full_name || topLead.first_name} (Score: ${topLead.quality_score}) - High priority lead`)
-    }
-
-    const highCPLCampaigns = campaigns.filter(c => (c.cpl || 0) > 60)
-    if (highCPLCampaigns.length > 0) {
-      recs.push(`Review ${highCPLCampaigns.length} campaigns with CPL above £60`)
-    }
-
-    const newLeadsCount = leads.filter(l => l.status === 'New').length
-    if (newLeadsCount > 5) {
-      recs.push(`${newLeadsCount} new leads awaiting initial contact`)
-    }
-
-    const activeCampaigns = campaigns.filter(c => c.status === 'active')
-    if (activeCampaigns.length > 0) {
-      const bestCampaign = activeCampaigns.sort((a, b) => (a.cpl || 999) - (b.cpl || 999))[0]
-      if (bestCampaign) {
-        recs.push(`Best performing: ${bestCampaign.name} with £${bestCampaign.cpl || bestCampaign.cost_per_lead} CPL`)
-      }
-    }
-
-    if (metrics.qualifiedRate < 50) {
-      recs.push('Qualified rate below 50% - consider refining targeting')
-    }
-
-    return recs.length > 0 ? recs : ['All systems running smoothly - keep up the great work!']
-  }, [leads, campaigns, actionLeads, metrics.qualifiedRate])
 
   return (
     <div className="space-y-6">
@@ -412,25 +377,8 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* AI Recommendations */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-yellow-500" />
-            AI Recommendations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {aiRecommendations.map((rec, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      {/* AI Insights - Powered by AI Analysis */}
+      <AIInsights />
 
       {/* Action Required - Real Leads */}
       <Card>

@@ -27,6 +27,7 @@ import {
   Shield,
   Briefcase,
   HardHat,
+  Brain,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -77,6 +78,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       }
 
       adminItems.push(
+        { name: 'AI Analysis', icon: Brain, href: '/admin/ai-analysis' },
         { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
         { name: 'Settings', icon: Settings, href: '/admin/settings' }
       )
