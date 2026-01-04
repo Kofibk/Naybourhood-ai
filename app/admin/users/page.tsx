@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useAuth } from '@/contexts/AuthContext'
 import {
   Plus,
   Search,
@@ -31,6 +32,7 @@ interface InviteUser {
 
 export default function UsersPage() {
   const { users, companies, isLoading, refreshData } = useData()
+  const { user: currentUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -87,6 +89,7 @@ export default function UsersPage() {
           name: inviteData.name,
           role: inviteData.role,
           company_id: inviteData.company_id || null,
+          inviter_role: currentUser?.role, // For demo mode admin access
         }),
       })
 
