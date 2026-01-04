@@ -67,21 +67,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Fetch profile with company info
-      const { data: profile, error: profileError } = await supabase
+      // First check user_profiles (from onboarding)
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', authUserId)
+        .single()
+
+      // Also check profiles table (legacy or admin-created)
+      const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUserId)
         .single()
 
-      if (profileError) {
-        console.error('[AuthContext] Profile fetch error:', profileError)
-        return null
-      }
+      // Merge data from both tables, preferring user_profiles for onboarded users
+      const role = userProfile?.user_type || profile?.role || 'developer'
+      const fullName = userProfile?.first_name
+        ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
+        : profile?.full_name || email.split('@')[0]
 
       // If user has company_id, fetch company name
-      let companyName = undefined
-      if (profile?.company_id) {
+      let companyName = userProfile?.company_name
+      if (!companyName && profile?.company_id) {
         const { data: company } = await supabase
           .from('companies')
           .select('name')
@@ -94,11 +102,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const appUser: User = {
         id: authUserId,
         email: email,
-        name: profile?.full_name || email.split('@')[0],
-        role: (profile?.role as UserRole) || 'developer',
+        name: fullName,
+        role: role as UserRole,
         company_id: profile?.company_id,
         company: companyName,
-        avatarUrl: profile?.avatar_url,
+        avatarUrl: userProfile?.avatar_url || profile?.avatar_url,
       }
 
       return appUser
