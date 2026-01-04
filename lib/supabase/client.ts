@@ -14,18 +14,10 @@ export function createClient() {
 
   if (!url || !key) {
     console.warn('[Supabase] Not configured - missing URL or key')
-    // Return a mock client that won't crash
     return null as any
   }
 
-  // Use implicit flow so magic links work when opened in any browser
-  // The tokens will be in the URL hash fragment, which AuthHandler processes
-  return createBrowserClient(url, key, {
-    auth: {
-      flowType: 'implicit',
-      detectSessionInUrl: true,
-      autoRefreshToken: true,
-      persistSession: true,
-    }
-  })
+  // Create browser client with default settings
+  // The @supabase/ssr package handles cookies automatically
+  return createBrowserClient(url, key)
 }

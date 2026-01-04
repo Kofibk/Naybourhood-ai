@@ -95,6 +95,12 @@ function LoginPageInner() {
     try {
       if (supabaseConfigured) {
         const supabase = createClient()
+
+        if (!supabase) {
+          setError('Authentication service not available. Please try again later.')
+          return
+        }
+
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
@@ -109,8 +115,13 @@ function LoginPageInner() {
           setMagicLinkSent(true)
         }
       }
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err: unknown) {
+      console.error('[Auth] Magic link error:', err)
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -124,6 +135,11 @@ function LoginPageInner() {
     try {
       if (supabaseConfigured) {
         const supabase = createClient()
+
+        if (!supabase) {
+          setError('Authentication service not available. Please try again later.')
+          return
+        }
 
         if (isSignUp) {
           // Sign up with password
@@ -179,8 +195,13 @@ function LoginPageInner() {
           }
         }
       }
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err: unknown) {
+      console.error('[Auth] Password auth error:', err)
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -194,6 +215,12 @@ function LoginPageInner() {
     try {
       if (supabaseConfigured) {
         const supabase = createClient()
+
+        if (!supabase) {
+          setError('Authentication service not available. Please try again later.')
+          return
+        }
+
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
         })
@@ -204,8 +231,13 @@ function LoginPageInner() {
           setResetEmailSent(true)
         }
       }
-    } catch {
-      setError('Something went wrong. Please try again.')
+    } catch (err: unknown) {
+      console.error('[Auth] Forgot password error:', err)
+      if (err instanceof Error) {
+        setError(err.message)
+      } else {
+        setError('Something went wrong. Please try again.')
+      }
     } finally {
       setIsLoading(false)
     }
