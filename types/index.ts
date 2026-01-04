@@ -322,3 +322,138 @@ export interface AIAnalysis {
   }
   topRecommendations: string[]
 }
+
+// Lead Display Types (for buyers_view)
+export type LeadClassification = 'Hot' | 'Warm' | 'Low'
+
+export type LeadStatus =
+  | 'Contact Pending'
+  | 'Follow Up'
+  | 'Viewing Booked'
+  | 'Negotiating'
+  | 'Reserved'
+  | 'Exchanged'
+  | 'Completed'
+  | 'Not Proceeding'
+  | 'Duplicate'
+
+export type PaymentMethod = 'Cash' | 'Mortgage'
+
+export type NextActionType = 'call' | 'email' | 'whatsapp' | 'book_viewing' | 'confirm' | 'follow_up' | 're_engage'
+
+export interface Lead {
+  id: string
+  // Basic Info
+  fullName: string
+  firstName?: string
+  lastName?: string
+  email?: string
+  phone?: string
+  country?: string
+
+  // Scoring
+  qualityScore: number
+  intentScore: number
+  classification: LeadClassification
+  aiConfidence?: number
+
+  // Budget & Preferences
+  budgetRange?: string
+  budgetMin?: number
+  budgetMax?: number
+  paymentMethod?: PaymentMethod
+  bedrooms?: number
+  location?: string
+  purpose?: 'Investment' | 'Residence' | 'Both'
+  timeline?: string
+  readyIn28Days?: boolean
+
+  // Matching
+  budgetMatch?: boolean
+  bedroomMatch?: boolean
+
+  // Status & Assignment
+  status: LeadStatus
+  assignedCaller?: string
+  assignedCallerId?: string
+  daysInStatus?: number
+  slaMet?: boolean
+
+  // Development & Source
+  developmentName?: string
+  developmentId?: string
+  source?: string
+  campaign?: string
+  campaignId?: string
+
+  // Financial Readiness
+  proofOfFunds?: boolean
+  mortgageStatus?: string
+  ukBroker?: boolean
+  ukSolicitor?: boolean
+  brokerConnected?: boolean
+
+  // Viewing
+  viewingIntentConfirmed?: boolean
+  viewingBooked?: boolean
+  viewingDate?: string
+
+  // Communication
+  lastWaMessage?: string
+  transcript?: string
+  callSummary?: string
+  replied?: boolean
+  stopComms?: boolean
+  nextFollowUp?: string
+
+  // AI Summary
+  aiSummary?: string
+  aiNextAction?: string
+  aiRiskFlags?: string[]
+  aiRecommendations?: string[]
+
+  // Timestamps
+  createdAt?: string
+  updatedAt?: string
+  lastContactAt?: string
+}
+
+export interface LeadFilters {
+  classification?: LeadClassification
+  status?: LeadStatus
+  paymentMethod?: PaymentMethod
+  assignedCaller?: string
+  developmentName?: string
+  country?: string
+  search?: string
+  minScore?: number
+  maxScore?: number
+}
+
+export interface LeadPagination {
+  page: number
+  pageSize: number
+  total: number
+}
+
+export interface PipelineStats {
+  contactPending: number
+  followUp: number
+  viewingBooked: number
+  negotiating: number
+  reserved: number
+  exchanged: number
+  completed: number
+  notProceeding: number
+  duplicate: number
+}
+
+export interface PriorityAction {
+  id: string
+  leadId: string
+  leadName: string
+  score: number
+  actionType: NextActionType
+  description: string
+  urgency: 'now' | 'today' | 'soon'
+}
