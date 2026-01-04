@@ -4,6 +4,13 @@ import { updateSession } from '@/lib/supabase/middleware'
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
 
+  // Handle Supabase auth errors at any path - redirect to login with error
+  if (searchParams.has('error_code') || searchParams.has('error_description')) {
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
+
   // Handle Supabase auth at root - redirect to /auth/callback
   // This catches both PKCE codes and token_hash from invite emails
   if (pathname === '/') {
