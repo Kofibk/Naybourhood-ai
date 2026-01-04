@@ -169,15 +169,36 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Campaigns loaded:', campaignsResult.data.length)
         if (campaignsResult.data.length > 0) {
           console.log('[DataContext] First campaign columns:', Object.keys(campaignsResult.data[0]))
+          // Debug: Show raw values for spend/leads columns
+          const first = campaignsResult.data[0]
+          console.log('[DataContext] First campaign raw values:', {
+            // Spend columns
+            total_spend: first.total_spend,
+            'Total Spend': first['Total Spend'],
+            spend: first.spend,
+            ad_spend: first.ad_spend,
+            amount_spent: first.amount_spent,
+            // Lead columns
+            total_leads: first.total_leads,
+            'Total Leads': first['Total Leads'],
+            leads: first.leads,
+            lead_count: first.lead_count,
+          })
+          console.log('[DataContext] First campaign full object:', first)
         }
-        // Map column names - prioritise total_spend (confirmed Supabase column)
+        // Map column names - prioritise total_spend and total_leads (confirmed Supabase columns)
         // Use ?? (nullish coalescing) so 0 values don't fall through
+        // Check various naming patterns for compatibility
         const mappedCampaigns = campaignsResult.data.map((c: any) => ({
           ...c,
-          spend: c.total_spend ?? c.spend ?? c.ad_spend ?? c.amount_spent ?? 0,
-          leads: c.total_leads ?? c.leads ?? c.lead_count ?? 0,
-          cpl: c.cpl ?? c.cost_per_lead ?? 0,
+          spend: c.total_spend ?? c['Total Spend'] ?? c.TotalSpend ?? c.spend ?? c.ad_spend ?? c.amount_spent ?? 0,
+          leads: c.total_leads ?? c['Total Leads'] ?? c.TotalLeads ?? c.leads ?? c.lead_count ?? 0,
+          cpl: c.cpl ?? c.cost_per_lead ?? c.CPL ?? 0,
         }))
+        console.log('[DataContext] First mapped campaign:', {
+          spend: mappedCampaigns[0]?.spend,
+          leads: mappedCampaigns[0]?.leads,
+        })
         setCampaigns(mappedCampaigns)
       } else if (campaignsResult.error) {
         errors.push(`Campaigns: ${campaignsResult.error.message}`)
