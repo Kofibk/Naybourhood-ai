@@ -1,55 +1,79 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Card, CardContent } from '@/components/ui/card'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoIcon } from '@/components/Logo'
 import { AuthHandler } from '@/components/AuthHandler'
-import { Loader2, Mail, CheckCircle, Zap } from 'lucide-react'
+import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
-// Demo accounts for development - REMOVE IN PRODUCTION
-const demoAccounts = [
-  { email: 'kofi@naybourhood.ai', role: 'Admin', path: '/admin', name: 'Kofi' },
-  { email: 'developer@test.com', role: 'Developer', path: '/developer', name: 'Developer' },
-  { email: 'agent@test.com', role: 'Agent', path: '/agent', name: 'Agent' },
-  { email: 'broker@test.com', role: 'Broker', path: '/broker', name: 'Broker' },
-]
-
-export default function LoginPage() {
+function LoginPageInner() {
   const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
+  const [isSignUp, setIsSignUp] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const supabaseConfigured = isSupabaseConfigured()
+
+  // Check for error in URL params
+  useEffect(() => {
+    const errorParam = searchParams.get('error')
+    if (errorParam) {
+      setError(errorParam)
+    }
+  }, [searchParams])
 
   // Check if user is already logged in
   useEffect(() => {
-    const storedUser = localStorage.getItem('naybourhood_user')
-    if (storedUser) {
-      const user = JSON.parse(storedUser)
-      redirectBasedOnRole(user.role)
+    const checkAuth = async () => {
+      if (supabaseConfigured) {
+        const supabase = createClient()
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          // Check onboarding status
+          const { data: profile } = await supabase
+            .from('user_profiles')
+            .select('onboarding_completed, user_type')
+            .eq('id', user.id)
+            .single()
+
+          if (!profile?.onboarding_completed) {
+            router.push('/onboarding')
+          } else {
+            redirectBasedOnRole(profile.user_type || 'developer')
+          }
+        }
+      }
     }
-  }, [])
+    checkAuth()
+  }, [router, supabaseConfigured])
 
   const redirectBasedOnRole = (role: string) => {
-    if (role === 'admin') {
-      router.push('/admin')
-    } else if (role === 'agent') {
-      router.push('/agent')
-    } else if (role === 'broker') {
-      router.push('/broker')
-    } else {
-      router.push('/developer')
+    switch (role) {
+      case 'admin':
+        router.push('/admin')
+        break
+      case 'agent':
+        router.push('/agent')
+        break
+      case 'broker':
+        router.push('/broker')
+        break
+      default:
+        router.push('/developer')
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
     setError('')
     setIsLoading(true)
@@ -69,9 +93,6 @@ export default function LoginPage() {
         } else {
           setMagicLinkSent(true)
         }
-      } else {
-        // Demo mode - redirect based on email
-        handleDemoAccess(email)
       }
     } catch {
       setError('Something went wrong. Please try again.')
@@ -80,44 +101,73 @@ export default function LoginPage() {
     }
   }
 
-  // Quick demo access
-  const handleDemoAccess = (demoEmail: string) => {
-    const account = demoAccounts.find(a => a.email === demoEmail)
-    const emailLower = demoEmail.toLowerCase()
-
-    let role = 'developer'
-    let name = demoEmail.split('@')[0]
-    let path = '/developer'
-
-    if (account) {
-      role = account.role.toLowerCase()
-      name = account.name
-      path = account.path
-    } else if (emailLower.includes('admin') || emailLower === 'kofi@naybourhood.ai') {
-      role = 'admin'
-      path = '/admin'
-    } else if (emailLower.includes('agent')) {
-      role = 'agent'
-      path = '/agent'
-    } else if (emailLower.includes('broker')) {
-      role = 'broker'
-      path = '/broker'
-    }
-
-    // Store in localStorage for session
-    localStorage.setItem('naybourhood_user', JSON.stringify({
-      id: `demo-${Date.now()}`,
-      email: demoEmail,
-      name: name,
-      role: role,
-    }))
-
-    router.push(path)
-  }
-
-  const handleQuickAccess = (account: typeof demoAccounts[0]) => {
+  const handlePasswordAuth = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
     setIsLoading(true)
-    handleDemoAccess(account.email)
+
+    try {
+      if (supabaseConfigured) {
+        const supabase = createClient()
+
+        if (isSignUp) {
+          // Sign up with password
+          const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
+          })
+
+          if (error) {
+            setError(error.message)
+          } else if (data.user) {
+            // Check if email confirmation is required
+            if (data.user.identities?.length === 0) {
+              setError('An account with this email already exists. Please sign in instead.')
+            } else if (data.session) {
+              // User is signed in immediately (email confirmation disabled)
+              router.push('/onboarding')
+            } else {
+              // Email confirmation required
+              setMagicLinkSent(true)
+            }
+          }
+        } else {
+          // Sign in with password
+          const { data, error } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          })
+
+          if (error) {
+            if (error.message === 'Invalid login credentials') {
+              setError('Invalid email or password. Please try again.')
+            } else {
+              setError(error.message)
+            }
+          } else if (data.user) {
+            // Check onboarding status
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('onboarding_completed, user_type')
+              .eq('id', data.user.id)
+              .single()
+
+            if (!profile?.onboarding_completed) {
+              router.push('/onboarding')
+            } else {
+              redirectBasedOnRole(profile.user_type || 'developer')
+            }
+          }
+        }
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (magicLinkSent) {
@@ -131,10 +181,10 @@ export default function LoginPage() {
             </div>
             <h1 className="font-display text-2xl font-medium">Check your email</h1>
             <p className="text-muted-foreground">
-              We&apos;ve sent a magic link to <strong>{email}</strong>
+              We&apos;ve sent {isSignUp ? 'a confirmation link' : 'a magic link'} to <strong>{email}</strong>
             </p>
             <p className="text-sm text-muted-foreground">
-              Click the link in your email to sign in to your account.
+              Click the link in your email to {isSignUp ? 'verify your account' : 'sign in'}.
             </p>
           </div>
           <Button
@@ -142,6 +192,7 @@ export default function LoginPage() {
             onClick={() => {
               setMagicLinkSent(false)
               setEmail('')
+              setPassword('')
             }}
           >
             Use a different email
@@ -153,7 +204,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      {/* Handle auth tokens from URL hash */}
       <AuthHandler />
       <div className="w-full max-w-md space-y-6">
         {/* Logo */}
@@ -161,82 +211,149 @@ export default function LoginPage() {
           <Link href="/" className="inline-block">
             <LogoIcon className="w-14 h-14 mx-auto" variant="light" />
           </Link>
-          <h1 className="mt-4 font-display text-2xl font-medium">Welcome back</h1>
+          <h1 className="mt-4 font-display text-2xl font-medium">
+            {isSignUp ? 'Create your account' : 'Welcome back'}
+          </h1>
           <p className="text-sm text-muted-foreground mt-1">
-            Sign in to your Naybourhood account
+            {isSignUp ? 'Get started with Naybourhood' : 'Sign in to your Naybourhood account'}
           </p>
         </div>
 
-        {/* Login Form */}
+        {/* Auth Card */}
         <Card>
           <CardContent className="pt-6">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Email address</label>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
-              {error && <p className="text-sm text-destructive">{error}</p>}
-              <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Mail className="h-4 w-4" />
-                )}
-                {supabaseConfigured ? 'Send Magic Link' : 'Continue'}
-              </Button>
-              <p className="text-xs text-center text-muted-foreground">
-                {supabaseConfigured
-                  ? "We'll email you a secure link to sign in — no password needed."
-                  : "Demo mode - click continue to access the dashboard."
-                }
-              </p>
-            </form>
+            <Tabs defaultValue="password" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="password">
+                  <Lock className="w-4 h-4 mr-2" />
+                  Password
+                </TabsTrigger>
+                <TabsTrigger value="magic">
+                  <Mail className="w-4 h-4 mr-2" />
+                  Magic Link
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Password Login/Signup */}
+              <TabsContent value="password">
+                <form onSubmit={handlePasswordAuth} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email address</label>
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Password</label>
+                    <div className="relative">
+                      <Input
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder={isSignUp ? 'Create a password (min 6 chars)' : 'Enter your password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        minLength={6}
+                        className="pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Lock className="h-4 w-4" />
+                    )}
+                    {isSignUp ? 'Create Account' : 'Sign In'}
+                  </Button>
+                </form>
+              </TabsContent>
+
+              {/* Magic Link */}
+              <TabsContent value="magic">
+                <form onSubmit={handleMagicLink} className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Email address</label>
+                    <Input
+                      type="email"
+                      placeholder="you@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  {error && <p className="text-sm text-destructive">{error}</p>}
+                  <Button type="submit" className="w-full gap-2" disabled={isLoading}>
+                    {isLoading ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
+                    Send Magic Link
+                  </Button>
+                  <p className="text-xs text-center text-muted-foreground">
+                    We&apos;ll email you a secure link to sign in — no password needed.
+                  </p>
+                </form>
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
 
-        {/* Quick Access - For Development */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm flex items-center gap-2">
-              <Zap className="h-4 w-4 text-yellow-500" />
-              Quick Access
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Click to access dashboard instantly (Dev mode)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="grid grid-cols-2 gap-2">
-            {demoAccounts.map((account) => (
-              <Button
-                key={account.email}
-                variant="outline"
-                size="sm"
-                className="justify-start text-xs"
-                onClick={() => handleQuickAccess(account)}
-                disabled={isLoading}
-              >
-                <Badge variant="secondary" className="mr-2 text-[10px]">
-                  {account.role}
-                </Badge>
-                <span className="truncate">{account.name}</span>
-              </Button>
-            ))}
-          </CardContent>
-        </Card>
-
+        {/* Toggle Sign Up / Sign In */}
         <p className="text-center text-sm text-muted-foreground">
-          Don&apos;t have an account?{' '}
-          <a href="mailto:hello@naybourhood.ai" className="text-primary hover:underline">
-            Contact sales
-          </a>
+          {isSignUp ? (
+            <>
+              Already have an account?{' '}
+              <button
+                onClick={() => {
+                  setIsSignUp(false)
+                  setError('')
+                }}
+                className="text-primary hover:underline"
+              >
+                Sign in
+              </button>
+            </>
+          ) : (
+            <>
+              Don&apos;t have an account?{' '}
+              <button
+                onClick={() => {
+                  setIsSignUp(true)
+                  setError('')
+                }}
+                className="text-primary hover:underline"
+              >
+                Sign up
+              </button>
+            </>
+          )}
         </p>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    }>
+      <LoginPageInner />
+    </Suspense>
   )
 }

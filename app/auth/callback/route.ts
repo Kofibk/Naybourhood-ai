@@ -30,6 +30,23 @@ export async function GET(request: Request) {
   if (!authError && authResult?.user) {
     const email = authResult.user.email?.toLowerCase() || ''
 
+    // Check if user has completed onboarding (user_profiles table)
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('onboarding_completed, user_type')
+      .eq('id', authResult.user.id)
+      .single()
+
+    // If user hasn't completed onboarding, redirect to onboarding flow
+    if (!userProfile?.onboarding_completed) {
+      // Store basic auth info in URL params for client-side
+      const onboardingUrl = new URL(`${origin}/onboarding`)
+      onboardingUrl.searchParams.set('auth', 'success')
+      onboardingUrl.searchParams.set('userId', authResult.user.id)
+      onboardingUrl.searchParams.set('email', email)
+      return NextResponse.redirect(onboardingUrl.toString())
+    }
+
     // Fetch user profile from database to get their actual role
     const { data: profile } = await supabase
       .from('profiles')
@@ -37,8 +54,8 @@ export async function GET(request: Request) {
       .eq('id', authResult.user.id)
       .single()
 
-    // Use database role if available, otherwise check user metadata, then default to developer
-    let role = profile?.role || authResult.user.user_metadata?.role || 'developer'
+    // Use database role if available, otherwise check user metadata or user_type from onboarding
+    let role = profile?.role || userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
 
     // If this is an invite and profile doesn't exist, create it from user metadata
     if (!profile && authResult.user.user_metadata) {
