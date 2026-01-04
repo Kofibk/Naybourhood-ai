@@ -48,6 +48,20 @@ export function AuthHandler() {
             // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname)
 
+            // Check onboarding status first
+            const { data: userProfile } = await supabase
+              .from('user_profiles')
+              .select('onboarding_completed, user_type')
+              .eq('id', data.user.id)
+              .single()
+
+            // If onboarding not complete, redirect there
+            if (!userProfile?.onboarding_completed) {
+              console.log('[AuthHandler] Onboarding not complete, redirecting')
+              router.push('/onboarding')
+              return
+            }
+
             // Fetch user profile to get role
             const { data: profile } = await supabase
               .from('profiles')
@@ -55,7 +69,7 @@ export function AuthHandler() {
               .eq('id', data.user.id)
               .single()
 
-            const role = profile?.role || data.user.user_metadata?.role || 'developer'
+            const role = profile?.role || userProfile?.user_type || data.user.user_metadata?.role || 'developer'
             const name = profile?.full_name || data.user.user_metadata?.full_name || data.user.email?.split('@')[0]
 
             // Store user info in localStorage
