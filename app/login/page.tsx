@@ -143,13 +143,11 @@ function LoginPageInner() {
 
         if (isSignUp) {
           // Sign up with password
+          // Don't use emailRedirectTo - let Supabase use default token-based confirmation
+          // which works across browsers (PKCE requires same browser)
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: {
-              // Redirect to login page - AuthHandler will catch the hash fragment tokens
-              emailRedirectTo: `${window.location.origin}/login`,
-            },
           })
 
           if (error) {
