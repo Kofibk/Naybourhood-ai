@@ -5,10 +5,19 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 import { LogoIcon } from '@/components/Logo'
-import { Loader2, Mail, CheckCircle, AlertCircle } from 'lucide-react'
+import { Loader2, Mail, CheckCircle, Zap } from 'lucide-react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+
+// Demo accounts for development - REMOVE IN PRODUCTION
+const demoAccounts = [
+  { email: 'kofi@naybourhood.ai', role: 'Admin', path: '/admin', name: 'Kofi' },
+  { email: 'developer@test.com', role: 'Developer', path: '/developer', name: 'Developer' },
+  { email: 'agent@test.com', role: 'Agent', path: '/agent', name: 'Agent' },
+  { email: 'broker@test.com', role: 'Broker', path: '/broker', name: 'Broker' },
+]
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -20,28 +29,12 @@ export default function LoginPage() {
 
   // Check if user is already logged in
   useEffect(() => {
-    const checkSession = async () => {
-      if (supabaseConfigured) {
-        const supabase = createClient()
-        const { data: { session } } = await supabase.auth.getSession()
-
-        if (session?.user) {
-          // Fetch user profile to get role
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', session.user.id)
-            .single()
-
-          if (profile?.role) {
-            redirectBasedOnRole(profile.role)
-          }
-        }
-      }
+    const storedUser = localStorage.getItem('naybourhood_user')
+    if (storedUser) {
+      const user = JSON.parse(storedUser)
+      redirectBasedOnRole(user.role)
     }
-
-    checkSession()
-  }, [supabaseConfigured])
+  }, [])
 
   const redirectBasedOnRole = (role: string) => {
     if (role === 'admin') {
@@ -61,24 +54,23 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      if (!supabaseConfigured) {
-        setError('Authentication service not configured. Please contact support.')
-        setIsLoading(false)
-        return
-      }
+      if (supabaseConfigured) {
+        const supabase = createClient()
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: `${window.location.origin}/auth/callback`,
+          },
+        })
 
-      const supabase = createClient()
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
-      })
-
-      if (error) {
-        setError(error.message)
+        if (error) {
+          setError(error.message)
+        } else {
+          setMagicLinkSent(true)
+        }
       } else {
-        setMagicLinkSent(true)
+        // Demo mode - redirect based on email
+        handleDemoAccess(email)
       }
     } catch {
       setError('Something went wrong. Please try again.')
@@ -87,23 +79,44 @@ export default function LoginPage() {
     }
   }
 
-  if (!supabaseConfigured) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="w-full max-w-md space-y-6 text-center">
-          <LogoIcon className="w-16 h-16 mx-auto" variant="light" />
-          <div className="space-y-2">
-            <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center mx-auto">
-              <AlertCircle className="w-8 h-8 text-destructive" />
-            </div>
-            <h1 className="font-display text-2xl font-medium">Configuration Error</h1>
-            <p className="text-muted-foreground">
-              The authentication service is not configured. Please contact support.
-            </p>
-          </div>
-        </div>
-      </div>
-    )
+  // Quick demo access
+  const handleDemoAccess = (demoEmail: string) => {
+    const account = demoAccounts.find(a => a.email === demoEmail)
+    const emailLower = demoEmail.toLowerCase()
+
+    let role = 'developer'
+    let name = demoEmail.split('@')[0]
+    let path = '/developer'
+
+    if (account) {
+      role = account.role.toLowerCase()
+      name = account.name
+      path = account.path
+    } else if (emailLower.includes('admin') || emailLower === 'kofi@naybourhood.ai') {
+      role = 'admin'
+      path = '/admin'
+    } else if (emailLower.includes('agent')) {
+      role = 'agent'
+      path = '/agent'
+    } else if (emailLower.includes('broker')) {
+      role = 'broker'
+      path = '/broker'
+    }
+
+    // Store in localStorage for session
+    localStorage.setItem('naybourhood_user', JSON.stringify({
+      id: `demo-${Date.now()}`,
+      email: demoEmail,
+      name: name,
+      role: role,
+    }))
+
+    router.push(path)
+  }
+
+  const handleQuickAccess = (account: typeof demoAccounts[0]) => {
+    setIsLoading(true)
+    handleDemoAccess(account.email)
   }
 
   if (magicLinkSent) {
@@ -172,12 +185,45 @@ export default function LoginPage() {
                 ) : (
                   <Mail className="h-4 w-4" />
                 )}
-                Send Magic Link
+                {supabaseConfigured ? 'Send Magic Link' : 'Continue'}
               </Button>
               <p className="text-xs text-center text-muted-foreground">
-                We&apos;ll email you a secure link to sign in — no password needed.
+                {supabaseConfigured
+                  ? "We'll email you a secure link to sign in — no password needed."
+                  : "Demo mode - click continue to access the dashboard."
+                }
               </p>
             </form>
+          </CardContent>
+        </Card>
+
+        {/* Quick Access - For Development */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm flex items-center gap-2">
+              <Zap className="h-4 w-4 text-yellow-500" />
+              Quick Access
+            </CardTitle>
+            <CardDescription className="text-xs">
+              Click to access dashboard instantly (Dev mode)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-2">
+            {demoAccounts.map((account) => (
+              <Button
+                key={account.email}
+                variant="outline"
+                size="sm"
+                className="justify-start text-xs"
+                onClick={() => handleQuickAccess(account)}
+                disabled={isLoading}
+              >
+                <Badge variant="secondary" className="mr-2 text-[10px]">
+                  {account.role}
+                </Badge>
+                <span className="truncate">{account.name}</span>
+              </Button>
+            ))}
           </CardContent>
         </Card>
 

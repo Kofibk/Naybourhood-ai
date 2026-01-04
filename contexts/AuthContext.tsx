@@ -17,6 +17,43 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Demo users for development - REMOVE IN PRODUCTION
+const demoUsers: Record<string, User> = {
+  'admin@naybourhood.ai': {
+    id: 'demo-admin',
+    name: 'Admin',
+    email: 'admin@naybourhood.ai',
+    role: 'admin',
+  },
+  'kofi@naybourhood.ai': {
+    id: 'demo-kofi',
+    name: 'Kofi',
+    email: 'kofi@naybourhood.ai',
+    role: 'admin',
+  },
+  'developer@test.com': {
+    id: 'demo-dev',
+    name: 'Developer',
+    email: 'developer@test.com',
+    role: 'developer',
+    company: 'Berkeley Group',
+  },
+  'agent@test.com': {
+    id: 'demo-agent',
+    name: 'Agent',
+    email: 'agent@test.com',
+    role: 'agent',
+    company: 'JLL',
+  },
+  'broker@test.com': {
+    id: 'demo-broker',
+    name: 'Broker',
+    email: 'broker@test.com',
+    role: 'broker',
+    company: 'Tudor Financial',
+  },
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -89,8 +126,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
               localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
             }
           } else {
-            // No valid session - clear any stale data
-            localStorage.removeItem('naybourhood_user')
+            // No valid Supabase session - check localStorage for demo mode
+            const stored = localStorage.getItem('naybourhood_user')
+            if (stored) {
+              try {
+                setUser(JSON.parse(stored))
+              } catch {
+                localStorage.removeItem('naybourhood_user')
+              }
+            }
           }
 
           // Listen for auth state changes
@@ -120,9 +164,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           localStorage.removeItem('naybourhood_user')
         }
       } else {
-        // Supabase not configured - show error
-        console.error('[AuthContext] Supabase not configured')
-        localStorage.removeItem('naybourhood_user')
+        // Supabase not configured - use localStorage for demo mode
+        const stored = localStorage.getItem('naybourhood_user')
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored))
+          } catch {
+            localStorage.removeItem('naybourhood_user')
+          }
+        }
       }
 
       setIsLoading(false)
@@ -151,33 +201,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
 
     try {
-      if (!isSupabaseConfigured()) {
-        console.error('[AuthContext] Cannot login - Supabase not configured')
-        setIsLoading(false)
-        return false
-      }
+      // Try Supabase auth first if configured
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        })
 
-      const supabase = createClient()
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
+        if (!error && data.user) {
+          const appUser = await fetchUserProfile(data.user.id, data.user.email || email)
 
-      if (error) {
-        console.error('[AuthContext] Login error:', error)
-        setIsLoading(false)
-        return false
-      }
-
-      if (data.user) {
-        const appUser = await fetchUserProfile(data.user.id, data.user.email || email)
-
-        if (appUser) {
-          setUser(appUser)
-          localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
-          setIsLoading(false)
-          return true
+          if (appUser) {
+            setUser(appUser)
+            localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+            setIsLoading(false)
+            return true
+          }
         }
+      }
+
+      // Fallback to demo login for development
+      const demoUser = demoUsers[email.toLowerCase()]
+      if (demoUser) {
+        setUser(demoUser)
+        localStorage.setItem('naybourhood_user', JSON.stringify(demoUser))
+        setIsLoading(false)
+        return true
       }
 
       setIsLoading(false)
