@@ -48,6 +48,13 @@ export function AuthHandler() {
             // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname)
 
+            // Handle password recovery - redirect to reset password page
+            if (type === 'recovery') {
+              console.log('[AuthHandler] Recovery flow, redirecting to reset password')
+              router.push('/reset-password')
+              return
+            }
+
             // Check onboarding status first
             const { data: userProfile } = await supabase
               .from('user_profiles')
