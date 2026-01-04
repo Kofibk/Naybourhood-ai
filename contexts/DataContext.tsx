@@ -355,20 +355,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Only include valid database columns - filter out computed/mapped fields
-      const validColumns = [
-        'first_name', 'last_name', 'full_name', 'email', 'phone',
-        'budget', 'budget_min', 'budget_max', 'bedrooms', 'location', 'area',
-        'timeline', 'source', 'campaign', 'status', 'quality_score', 'intent_score',
-        'payment_method', 'mortgage_status', 'proof_of_funds', 'uk_broker', 'uk_solicitor',
-        'notes', 'assigned_to', 'assigned_user_name', 'assigned_at',
-        'company_id', 'last_contact', 'updated_at'
-      ]
+      // Exclude computed/mapped fields that don't exist in database
+      const excludeColumns = ['id', 'created_at']
 
       const cleanData: Record<string, any> = {}
-      for (const key of validColumns) {
-        if (key in data && data[key as keyof Buyer] !== undefined) {
-          cleanData[key] = data[key as keyof Buyer]
+      for (const [key, value] of Object.entries(data)) {
+        if (!excludeColumns.includes(key) && value !== undefined) {
+          cleanData[key] = value
         }
       }
 
@@ -402,17 +395,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Only include valid database columns - filter out computed/mapped fields
-      const validColumns = [
-        'name', 'client', 'development', 'platform', 'status',
-        'total spend', 'total leads', 'cpl', 'cost_per_lead',
-        'start_date', 'end_date', 'budget', 'notes', 'updated_at'
-      ]
+      // Exclude computed/mapped fields (spend, leads, cpl are mapped from total spend, total leads)
+      const excludeColumns = ['id', 'created_at', 'spend', 'leads', 'cpl']
 
       const cleanData: Record<string, any> = {}
-      for (const key of validColumns) {
-        if (key in data && data[key as keyof Campaign] !== undefined) {
-          cleanData[key] = data[key as keyof Campaign]
+      for (const [key, value] of Object.entries(data)) {
+        if (!excludeColumns.includes(key) && value !== undefined) {
+          cleanData[key] = value
         }
       }
 
@@ -570,17 +559,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Only include valid database columns - filter out computed/mapped fields
-      const validColumns = [
-        'name', 'email', 'contact_phone', 'address', 'website',
-        'type', 'subscription_tier', 'status', 'logo_url',
-        'notes', 'ad_spend', 'updated_at'
-      ]
+      // Exclude computed/mapped fields (phone, tier are mapped)
+      const excludeColumns = ['id', 'created_at', 'phone', 'tier']
 
       const cleanData: Record<string, any> = {}
-      for (const key of validColumns) {
-        if (key in data && data[key as keyof Company] !== undefined) {
-          cleanData[key] = data[key as keyof Company]
+      for (const [key, value] of Object.entries(data)) {
+        if (!excludeColumns.includes(key) && value !== undefined) {
+          cleanData[key] = value
         }
       }
 
@@ -659,18 +644,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Only include valid database columns - filter out computed/mapped fields
-      const validColumns = [
-        'name', 'location', 'address', 'developer', 'status',
-        'units', 'total_units', 'available_units', 'price_from', 'price_to',
-        'completion_date', 'description', 'image_url',
-        'total_leads', 'ad_spend', 'notes', 'updated_at'
-      ]
+      // Exclude computed/mapped fields
+      const excludeColumns = ['id', 'created_at']
 
       const cleanData: Record<string, any> = {}
-      for (const key of validColumns) {
-        if (key in data && data[key as keyof Development] !== undefined) {
-          cleanData[key] = data[key as keyof Development]
+      for (const [key, value] of Object.entries(data)) {
+        if (!excludeColumns.includes(key) && value !== undefined) {
+          cleanData[key] = value
         }
       }
 
@@ -726,18 +706,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Only include valid database columns - filter out computed/mapped fields
-      const validColumns = [
-        'first_name', 'last_name', 'full_name', 'email', 'phone',
-        'finance_type', 'loan_amount', 'loan_amount_display',
-        'required_by_date', 'message', 'status', 'notes',
-        'assigned_agent', 'company_id', 'date_added', 'updated_at'
-      ]
+      // Exclude computed/mapped fields
+      const excludeColumns = ['id', 'created_at']
 
       const cleanData: Record<string, any> = {}
-      for (const key of validColumns) {
-        if (key in data && data[key as keyof FinanceLead] !== undefined) {
-          cleanData[key] = data[key as keyof FinanceLead]
+      for (const [key, value] of Object.entries(data)) {
+        if (!excludeColumns.includes(key) && value !== undefined) {
+          cleanData[key] = value
         }
       }
 
