@@ -45,6 +45,14 @@ export interface Buyer {
   assigned_user_name?: string
   assigned_at?: string
   company_id?: string  // Company UUID for data filtering
+  // AI fields
+  ai_quality_score?: number
+  ai_intent_score?: number
+  ai_confidence?: number
+  ai_summary?: string
+  ai_next_action?: string
+  ai_risk_flags?: string[]
+  ai_scored_at?: string
 }
 
 export interface AppUser {
@@ -81,6 +89,11 @@ export interface Campaign {
   end_date?: string
   created_at?: string
   updated_at?: string
+  // AI fields
+  ai_performance_summary?: string
+  ai_recommendations?: string[]
+  ai_health_score?: number
+  ai_analyzed_at?: string
 }
 
 export interface Development {
@@ -209,4 +222,103 @@ export interface FinanceLead {
   date_added?: string
   created_at?: string
   updated_at?: string
+}
+
+// AI Types
+export interface AILeadScore {
+  quality: number      // 0-100: How good is this lead?
+  intent: number       // 0-100: How likely to buy?
+  confidence: number   // 0-1: How sure is the AI?
+}
+
+export interface AIRecommendation {
+  id: string
+  page_type: 'dashboard' | 'campaign' | 'campaign_detail' | 'buyer' | 'analysis'
+  related_buyer_id?: string
+  related_campaign_id?: string
+  related_development_id?: string
+  title: string
+  description?: string
+  action_type?: 'call' | 'email' | 'book_viewing' | 'follow_up' | 'escalate' | 'archive'
+  action_url?: string
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  dismissed: boolean
+  completed: boolean
+  completed_at?: string
+  created_at: string
+  expires_at?: string
+}
+
+export interface AIInsight {
+  id: string
+  insight_type: 'pipeline' | 'campaign' | 'performance' | 'alert' | 'trend'
+  title: string
+  description?: string
+  metric_value?: string
+  metric_change?: string
+  priority: 'critical' | 'high' | 'medium' | 'low'
+  dismissed: boolean
+  created_at: string
+}
+
+export interface AIBuyerSummary {
+  summary: string
+  quality_score: number
+  intent_score: number
+  confidence: number
+  next_action: string
+  risk_flags: string[]
+  recommendations: string[]
+}
+
+export interface AICampaignAnalysis {
+  summary: string
+  health_score: number
+  recommendations: string[]
+  prediction: {
+    currentTrajectory: { leads: number; viewings: number; reservations: number }
+    withRecommendations: { leads: number; viewings: number; reservations: number }
+  }
+}
+
+export interface AIDashboardInsights {
+  insights: Array<{
+    type: 'critical' | 'warning' | 'positive' | 'info'
+    title: string
+    description: string
+    action?: string
+  }>
+  recommendedActions: Array<{
+    priority: number
+    title: string
+    description: string
+    actionType: 'call' | 'email' | 'view_list' | 'book_viewing'
+    leadId?: string
+    leadIds?: string[]
+  }>
+}
+
+export interface AIAnalysis {
+  pipelineHealth: {
+    score: number
+    summary: string
+  }
+  sourcePerformance: Array<{
+    source: string
+    hotLeadPercent: number
+    recommendation: string
+  }>
+  bottlenecks: Array<{
+    stage: string
+    currentRate: number
+    benchmark: number
+    recommendation: string
+  }>
+  predictions: {
+    viewings: number
+    reservations: number
+    pipelineValue: string
+    atRiskLeads: number
+  }
+  topRecommendations: string[]
 }
