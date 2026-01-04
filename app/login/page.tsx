@@ -56,14 +56,27 @@ function LoginPageInner() {
           // Check onboarding status
           const { data: profile } = await supabase
             .from('user_profiles')
-            .select('onboarding_completed, user_type')
+            .select('*')
             .eq('id', user.id)
             .single()
 
           if (!profile?.onboarding_completed) {
             router.push('/onboarding')
           } else {
-            redirectBasedOnRole(profile.user_type || 'developer')
+            // Save user to localStorage before redirecting
+            const role = profile.user_type || 'developer'
+            const fullName = profile.first_name
+              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              : user.email?.split('@')[0] || 'User'
+
+            localStorage.setItem('naybourhood_user', JSON.stringify({
+              id: user.id,
+              email: user.email,
+              name: fullName,
+              role: role,
+            }))
+
+            redirectBasedOnRole(role)
           }
         }
       }
@@ -181,14 +194,27 @@ function LoginPageInner() {
             // Check onboarding status
             const { data: profile } = await supabase
               .from('user_profiles')
-              .select('onboarding_completed, user_type')
+              .select('*')
               .eq('id', data.user.id)
               .single()
 
             if (!profile?.onboarding_completed) {
               router.push('/onboarding')
             } else {
-              redirectBasedOnRole(profile.user_type || 'developer')
+              // Save user to localStorage before redirecting
+              const role = profile.user_type || 'developer'
+              const fullName = profile.first_name
+                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+                : data.user.email?.split('@')[0] || 'User'
+
+              localStorage.setItem('naybourhood_user', JSON.stringify({
+                id: data.user.id,
+                email: data.user.email,
+                name: fullName,
+                role: role,
+              }))
+
+              redirectBasedOnRole(role)
             }
           }
         }
