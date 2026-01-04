@@ -60,7 +60,7 @@ export default function CompanyDetailPage() {
 
         // Fetch leads from those campaigns
         if (campaignsData && campaignsData.length > 0) {
-          const campaignIds = campaignsData.map(c => c.id)
+          const campaignIds = campaignsData.map((c: { id: string }) => c.id)
           const { data: leadsData } = await supabase
             .from('buyers')
             .select('*')

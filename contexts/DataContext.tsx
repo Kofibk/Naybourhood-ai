@@ -68,6 +68,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
+      if (!supabase) {
+        console.warn('[DataContext] Supabase client not available')
+        setIsLoading(false)
+        return
+      }
+
       // Fetch all data in PARALLEL
       const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
         // BUYERS - fetch all with pagination
