@@ -128,6 +128,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Total buyers fetched:', buyersResult.length)
         console.log('[DataContext] First buyer RAW:', JSON.stringify(buyersResult[0], null, 2))
         console.log('[DataContext] All column names:', Object.keys(buyersResult[0]))
+      } else if (Array.isArray(buyersResult) && buyersResult.length === 0) {
+        console.warn('[DataContext] ⚠️ BUYERS: Empty result - this could be:')
+        console.warn('  1. No data in Supabase buyers table')
+        console.warn('  2. RLS blocking access (user not authenticated with Supabase)')
+        console.warn('  3. Quick Access test users bypass Supabase auth - use real login for data')
+      }
+
+      if (Array.isArray(buyersResult) && buyersResult.length > 0) {
 
         // Map column names - combine first_name + last_name into full_name
         const mappedBuyers = buyersResult.map((b: any) => {
