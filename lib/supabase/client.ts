@@ -18,5 +18,14 @@ export function createClient() {
     return null as any
   }
 
-  return createBrowserClient(url, key)
+  // Use implicit flow so magic links work when opened in any browser
+  // The tokens will be in the URL hash fragment, which AuthHandler processes
+  return createBrowserClient(url, key, {
+    auth: {
+      flowType: 'implicit',
+      detectSessionInUrl: true,
+      autoRefreshToken: true,
+      persistSession: true,
+    }
+  })
 }

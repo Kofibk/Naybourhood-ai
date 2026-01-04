@@ -98,7 +98,8 @@ function LoginPageInner() {
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            // Redirect to login page - AuthHandler will catch the hash fragment tokens
+            emailRedirectTo: `${window.location.origin}/login`,
           },
         })
 
@@ -130,7 +131,8 @@ function LoginPageInner() {
             email,
             password,
             options: {
-              emailRedirectTo: `${window.location.origin}/auth/callback`,
+              // Redirect to login page - AuthHandler will catch the hash fragment tokens
+              emailRedirectTo: `${window.location.origin}/login`,
             },
           })
 
