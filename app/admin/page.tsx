@@ -97,9 +97,8 @@ export default function AdminDashboard() {
       ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
       : 0
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
-    // Sum of 'total leads' column from campaigns table
-    const totalCampaignLeads = campaigns.reduce((sum, c) => sum + (c.leads || 0), 0)
-    const avgCPL = totalCampaignLeads > 0 ? Math.round(totalSpend / totalCampaignLeads) : 0
+    // Avg CPL = Total Spend / Total Leads (buyers count)
+    const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
     const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
@@ -108,7 +107,6 @@ export default function AdminDashboard() {
       hotLeads,
       avgScore,
       totalSpend,
-      totalCampaignLeads,
       avgCPL,
       qualifiedRate,
       totalCampaigns: campaigns.length,
