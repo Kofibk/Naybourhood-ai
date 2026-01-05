@@ -325,13 +325,15 @@ export default function LeadDetailPage() {
 
   // Auto-score lead if it doesn't have scores yet
   useEffect(() => {
+    // Early return if lead doesn't exist
+    if (!lead) return
+
     // Check if lead is unscored (null means unscored, 0 is a valid score)
     const isUnscored = (lead.ai_quality_score === null || lead.ai_quality_score === undefined) &&
                        (lead.quality_score === null || lead.quality_score === undefined) &&
                        !lead.ai_scored_at
 
-    const shouldAutoScore = lead &&
-      !hasAutoScored &&
+    const shouldAutoScore = !hasAutoScored &&
       !isRescoring &&
       !scoreResult &&
       isUnscored
@@ -507,7 +509,7 @@ export default function LeadDetailPage() {
           />
           <ScoreCard
             label="Confidence"
-            score={Math.round(confidenceScore)}
+            score={confidenceScore !== null ? Math.round(confidenceScore) : null}
             maxScore={10}
             explanation="AI certainty level"
           />
