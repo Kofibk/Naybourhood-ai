@@ -319,6 +319,8 @@ export default function LeadsPage() {
   const [pendingChanges, setPendingChanges] = useState<Record<string, Record<string, any>>>({})
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set())
   const [autoScoreEnabled, setAutoScoreEnabled] = useState(true)
+  // Store local score results so UI updates immediately (even if DB update fails)
+  const [localScores, setLocalScores] = useState<Record<string, { quality: number; intent: number; classification: string }>>({})
 
   // Auto-score leads without AI scores
   const { isScoring, scoredCount } = useAutoScore({
@@ -329,8 +331,23 @@ export default function LeadsPage() {
     onScoreComplete: (results) => {
       const successCount = results.filter(r => r.success).length
       if (successCount > 0) {
-        console.log(`[LeadsPage] Auto-scored ${successCount} leads, refreshing data...`)
-        refreshData()  // Refresh to get updated scores
+        console.log(`[LeadsPage] Auto-scored ${successCount} leads, updating local scores...`)
+        // Update local scores immediately for responsive UI
+        setLocalScores(prev => {
+          const updated = { ...prev }
+          results.forEach(r => {
+            if (r.success && r.quality_score !== undefined) {
+              updated[r.id] = {
+                quality: r.quality_score,
+                intent: r.intent_score || 0,
+                classification: r.classification || '',
+              }
+            }
+          })
+          return updated
+        })
+        // Also refresh from database
+        refreshData()
       }
     },
   })
@@ -469,15 +486,21 @@ export default function LeadsPage() {
   }, [])
 
   // Calculate lead classification counts - exclude duplicates from stats
+  // Use local scores if available (fresh from API), otherwise use database values
   const leadCounts = useMemo(() => {
     // Filter out duplicates for stats
     const activeLeads = leads.filter((l) => l.status !== 'Duplicate')
-    const hot = activeLeads.filter((l) => (l.quality_score || 0) >= 70).length
-    const warm = activeLeads.filter((l) => (l.quality_score || 0) >= 45 && (l.quality_score || 0) < 70).length
-    const low = activeLeads.filter((l) => (l.quality_score || 0) < 45).length
+    const getScore = (lead: Buyer) => {
+      const local = localScores[lead.id]
+      if (local?.quality !== undefined) return local.quality
+      return lead.ai_quality_score ?? lead.quality_score ?? 0
+    }
+    const hot = activeLeads.filter((l) => getScore(l) >= 70).length
+    const warm = activeLeads.filter((l) => getScore(l) >= 45 && getScore(l) < 70).length
+    const low = activeLeads.filter((l) => getScore(l) < 45).length
     const duplicates = leads.filter((l) => l.status === 'Duplicate').length
     return { hot, warm, low, total: activeLeads.length, duplicates }
-  }, [leads])
+  }, [leads, localScores])
 
   // Get unique values for dynamic filters
   const uniqueAssignees = useMemo(() => {
@@ -507,9 +530,10 @@ export default function LeadsPage() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      // Apply quick filter first
+      // Apply quick filter first - use local scores if available
       if (quickFilter !== 'all') {
-        const score = lead.quality_score || 0
+        const local = localScores[lead.id]
+        const score = local?.quality ?? lead.ai_quality_score ?? lead.quality_score ?? 0
         if (quickFilter === 'hot' && score < 70) return false
         if (quickFilter === 'warm' && (score < 45 || score >= 70)) return false
         if (quickFilter === 'low' && score >= 45) return false
@@ -537,13 +561,20 @@ export default function LeadsPage() {
       }
       return true
     })
-  }, [leads, search, quickFilter, filterConditions, filterLogic, matchesCondition])
+  }, [leads, search, quickFilter, filterConditions, filterLogic, matchesCondition, localScores])
 
   const sortedLeads = useMemo(() => {
     return [...filteredLeads].sort((a, b) => {
       let aVal: any = (a as any)[sortField]
       let bVal: any = (b as any)[sortField]
-      if (sortField === 'quality_score' || sortField === 'ai_confidence') { aVal = aVal || 0; bVal = bVal || 0 }
+      // Handle lead_score sorting - use local scores if available
+      if (sortField === 'lead_score' || sortField === 'quality_score') {
+        const aLocal = localScores[a.id]
+        const bLocal = localScores[b.id]
+        aVal = aLocal?.quality ?? a.ai_quality_score ?? a.quality_score ?? 0
+        bVal = bLocal?.quality ?? b.ai_quality_score ?? b.quality_score ?? 0
+      }
+      if (sortField === 'ai_confidence') { aVal = aVal || 0; bVal = bVal || 0 }
       // Handle date sorting - check both date_added and created_at
       if (sortField === 'created_at') {
         const aDate = (a as any).date_added || a.created_at
@@ -557,7 +588,7 @@ export default function LeadsPage() {
       if (aVal > bVal) return sortDirection === 'asc' ? 1 : -1
       return 0
     })
-  }, [filteredLeads, sortField, sortDirection])
+  }, [filteredLeads, sortField, sortDirection, localScores])
 
   const totalPages = Math.ceil(sortedLeads.length / pageSize)
   const paginatedLeads = useMemo(() => {
@@ -610,11 +641,15 @@ export default function LeadsPage() {
       if (lead.budget_max) return `Up to £${lead.budget_max.toLocaleString()}`
       return ''
     }
-    // Handle Lead Score - uses AI score if available, falls back to quality_score
+    // Handle Lead Score - check local scores first (fresh from API), then database values
     if (field === 'lead_score') {
+      const local = localScores[lead.id]
+      if (local?.quality !== undefined) return local.quality
       return lead.ai_quality_score ?? lead.quality_score ?? 0
     }
     if (field === 'ai_classification') {
+      const local = localScores[lead.id]
+      if (local?.classification) return local.classification
       return lead.ai_classification ?? null
     }
     // Handle assigned user - try multiple fields
@@ -655,6 +690,11 @@ export default function LeadsPage() {
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm">
               <Bot className="h-4 w-4 animate-pulse" />
               <span>AI scoring leads...</span>
+            </div>
+          )}
+          {Object.keys(localScores).length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              {Object.keys(localScores).length} scored
             </div>
           )}
           <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
