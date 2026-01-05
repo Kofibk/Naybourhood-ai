@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 
+// Check if service role key is configured (required for invites)
+function isServiceRoleConfigured(): boolean {
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  return !!(key && key !== 'your-supabase-service-role-key' && key.length > 20)
+}
+
 export async function POST(request: NextRequest) {
   try {
     // Get invitation details from request body
@@ -62,97 +68,133 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // If Supabase is configured, use the full invite flow
-    if (isSupabaseConfigured()) {
-      try {
-        // Create admin client for invitation
-        const adminClient = createAdminClient()
+    // Check Supabase configuration
+    if (!isSupabaseConfigured()) {
+      return NextResponse.json({
+        success: false,
+        error: 'Supabase is not configured. Please add NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY to your environment variables.',
+      }, { status: 500 })
+    }
 
-        // Send invitation email via Supabase Auth
-        const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-          data: {
+    // Check service role key (required for email invites)
+    if (!isServiceRoleConfigured()) {
+      console.error('[Invite API] Missing SUPABASE_SERVICE_ROLE_KEY')
+      return NextResponse.json({
+        success: false,
+        error: 'Email invitations require SUPABASE_SERVICE_ROLE_KEY. Add it to your environment variables (find it in Supabase Dashboard > Settings > API > service_role key).',
+      }, { status: 500 })
+    }
+
+    try {
+      // Create admin client for invitation
+      const adminClient = createAdminClient()
+
+      // Send invitation email via Supabase Auth
+      const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
+      console.log('[Invite API] Sending invite to:', email, 'with redirect:', redirectUrl)
+
+      const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
+        data: {
+          full_name: name,
+          role: role || 'developer',
+          company_id: company_id || null,
+          is_internal: is_internal || false,
+        },
+        redirectTo: redirectUrl,
+      })
+
+      if (error) {
+        console.error('[Invite API] Supabase invite error:', error.message, error)
+
+        // Check for specific error types
+        if (error.message.includes('already registered')) {
+          return NextResponse.json({
+            success: false,
+            error: `User ${email} is already registered. They can log in directly.`,
+          }, { status: 400 })
+        }
+
+        if (error.message.includes('rate limit')) {
+          return NextResponse.json({
+            success: false,
+            error: 'Too many invitations sent. Please wait a moment and try again.',
+          }, { status: 429 })
+        }
+
+        // If invite fails, try to just create the profile as fallback
+        const { error: profileError } = await adminClient
+          .from('profiles')
+          .insert({
+            id: crypto.randomUUID(),
+            email: email,
             full_name: name,
             role: role || 'developer',
             company_id: company_id || null,
             is_internal: is_internal || false,
-          },
-          redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`,
-        })
-
-        if (error) {
-          console.error('[Invite API] Supabase invite error:', error)
-
-          // If invite fails, try to just create the profile
-          const { error: profileError } = await adminClient
-            .from('profiles')
-            .insert({
-              id: crypto.randomUUID(),
-              email: email,
-              full_name: name,
-              role: role || 'developer',
-              company_id: company_id || null,
-              is_internal: is_internal || false,
-            })
-
-          if (profileError) {
-            console.error('[Invite API] Profile creation fallback error:', profileError)
-            return NextResponse.json(
-              { error: `Invite failed: ${error.message}` },
-              { status: 400 }
-            )
-          }
-
-          return NextResponse.json({
-            success: true,
-            message: `User profile created for ${email}. They will need to sign up separately.`,
-            note: 'Email invitation failed - profile created only',
           })
-        }
 
-        // Create profile entry for the invited user
-        if (data.user) {
-          const { error: profileError } = await adminClient
-            .from('profiles')
-            .upsert({
-              id: data.user.id,
-              email: email,
-              full_name: name,
-              role: role || 'developer',
-              company_id: company_id || null,
-              is_internal: is_internal || false,
-            })
-
-          if (profileError) {
-            console.error('[Invite API] Profile creation error:', profileError)
-          }
+        if (profileError) {
+          console.error('[Invite API] Profile creation fallback error:', profileError)
+          return NextResponse.json({
+            success: false,
+            error: `Invite failed: ${error.message}. Check Supabase email settings.`,
+          }, { status: 400 })
         }
 
         return NextResponse.json({
           success: true,
-          message: `Invitation sent to ${email}`,
-          user: data.user,
+          message: `User profile created for ${email}. Email invite failed - they will need to sign up separately.`,
+          note: 'Email invitation failed - profile created only. Check Supabase email configuration.',
+          emailSent: false,
         })
-      } catch (adminError) {
-        console.error('[Invite API] Admin client error:', adminError)
-        return NextResponse.json(
-          { error: 'Failed to send invitation. Check Supabase configuration.' },
-          { status: 500 }
-        )
       }
-    } else {
-      // Demo mode - just return success (no actual invite sent)
+
+      // Create profile entry for the invited user
+      if (data.user) {
+        const { error: profileError } = await adminClient
+          .from('profiles')
+          .upsert({
+            id: data.user.id,
+            email: email,
+            full_name: name,
+            role: role || 'developer',
+            company_id: company_id || null,
+            is_internal: is_internal || false,
+          })
+
+        if (profileError) {
+          console.error('[Invite API] Profile creation error:', profileError)
+        }
+      }
+
       return NextResponse.json({
         success: true,
-        message: `Demo mode: Invitation would be sent to ${email}`,
-        demo: true,
+        message: `Invitation email sent to ${email}`,
+        emailSent: true,
+        user: data.user,
       })
+    } catch (adminError: any) {
+      console.error('[Invite API] Admin client error:', adminError)
+
+      // Check if it's a configuration error
+      if (adminError.message?.includes('Missing Supabase')) {
+        return NextResponse.json({
+          success: false,
+          error: 'Supabase admin credentials are missing. Please add SUPABASE_SERVICE_ROLE_KEY to your environment variables.',
+        }, { status: 500 })
+      }
+
+      return NextResponse.json({
+        success: false,
+        error: `Failed to send invitation: ${adminError.message || 'Unknown error'}`,
+      }, { status: 500 })
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('[Invite API] Server error:', error)
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: false,
+      error: error.message || 'Internal server error',
+    }, { status: 500 })
   }
 }
 

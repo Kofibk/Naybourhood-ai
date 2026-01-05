@@ -128,6 +128,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Total buyers fetched:', buyersResult.length)
         console.log('[DataContext] First buyer RAW:', JSON.stringify(buyersResult[0], null, 2))
         console.log('[DataContext] All column names:', Object.keys(buyersResult[0]))
+        // Debug score fields specifically
+        const firstBuyer = buyersResult[0]
+        console.log('[DataContext] Score fields in raw data:', {
+          quality_score: firstBuyer.quality_score,
+          'Quality Score': firstBuyer['Quality Score'],
+          ai_quality_score: firstBuyer.ai_quality_score,
+          intent_score: firstBuyer.intent_score,
+          'Intent Score': firstBuyer['Intent Score'],
+          ai_intent_score: firstBuyer.ai_intent_score,
+          ai_confidence: firstBuyer.ai_confidence,
+        })
       } else if (Array.isArray(buyersResult) && buyersResult.length === 0) {
         console.warn('[DataContext] ⚠️ BUYERS: Empty result - this could be:')
         console.warn('  1. No data in Supabase buyers table')
@@ -166,8 +177,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
           campaign_id: b.campaign_id,
           company_id: b.company_id,
           status: b.status || b['Status'] || 'New',
-          quality_score: b.quality_score || b['Quality Score'] || 0,
-          intent_score: b.intent_score || b['Intent Score'] || 0,
+          // Scores - check both standard and AI-generated columns
+          quality_score: b.quality_score ?? b.ai_quality_score ?? b['Quality Score'] ?? b['quality score'] ?? 0,
+          intent_score: b.intent_score ?? b.ai_intent_score ?? b['Intent Score'] ?? b['intent score'] ?? 0,
+          ai_quality_score: b.ai_quality_score ?? b.quality_score ?? 0,
+          ai_intent_score: b.ai_intent_score ?? b.intent_score ?? 0,
+          ai_confidence: b.ai_confidence ?? b.confidence ?? 0,
+          ai_summary: b.ai_summary,
+          ai_next_action: b.ai_next_action,
+          ai_risk_flags: b.ai_risk_flags,
+          ai_recommendations: b.ai_recommendations,
+          ai_classification: b.ai_classification,
+          ai_priority: b.ai_priority,
+          ai_scored_at: b.ai_scored_at,
           payment_method: b.payment_method || b['cash or mortgage'] || b['Cash or Mortgage'],
           mortgage_status: b.mortgage_status || b['manual update'] || b['Manual Update'],
           proof_of_funds: b.proof_of_funds,
