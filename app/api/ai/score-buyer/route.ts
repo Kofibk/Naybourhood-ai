@@ -1,7 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 import type { Buyer } from '@/types'
+
+// Get admin client for database operations (bypasses RLS)
+function getSupabaseClient() {
+  try {
+    // Try admin client first (service role) - works for all users including Quick Access
+    return createAdminClient()
+  } catch {
+    // Fall back to regular client if service role key not configured
+    console.log('[AI Score] Using regular Supabase client (service role not configured)')
+    return createClient()
+  }
+}
 
 // Initialize Anthropic client
 function getAnthropicClient() {
@@ -291,7 +303,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Buyer ID required' }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = getSupabaseClient()
 
     // Fetch buyer data
     const { data: buyer, error } = await supabase
@@ -376,7 +388,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Buyer IDs array required' }, { status: 400 })
     }
 
-    const supabase = createClient()
+    const supabase = getSupabaseClient()
     const client = getAnthropicClient()
 
     // Fetch all buyers
