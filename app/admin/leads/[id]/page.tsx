@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import type { Buyer } from '@/types'
+import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import {
   ArrowLeft,
   Phone,
@@ -28,7 +29,10 @@ import {
   ArrowRight,
   CheckCircle,
   XCircle,
-  Flame,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Zap,
 } from 'lucide-react'
 
 // Status options
@@ -46,6 +50,25 @@ const STATUS_OPTIONS = [
   'Duplicate',
 ]
 
+// Classification colors and labels
+const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
+  'Hot': { bg: 'bg-red-500', text: 'text-white', label: 'Hot' },
+  'Warm-Qualified': { bg: 'bg-orange-500', text: 'text-white', label: 'Warm (Qualified)' },
+  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm (Engaged)' },
+  'Nurture-Premium': { bg: 'bg-blue-500', text: 'text-white', label: 'Nurture (Premium)' },
+  'Nurture-Standard': { bg: 'bg-blue-400', text: 'text-white', label: 'Nurture' },
+  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold' },
+  'Disqualified': { bg: 'bg-gray-600', text: 'text-white', label: 'Disqualified' },
+  'Spam': { bg: 'bg-red-700', text: 'text-white', label: 'Spam' },
+}
+
+const PRIORITY_CONFIG: Record<string, { bg: string; label: string; time: string }> = {
+  'P1': { bg: 'bg-red-100 text-red-800 border-red-300', label: 'P1 - Urgent', time: '< 1 hour' },
+  'P2': { bg: 'bg-orange-100 text-orange-800 border-orange-300', label: 'P2 - High', time: '< 4 hours' },
+  'P3': { bg: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: 'P3 - Medium', time: '< 24 hours' },
+  'P4': { bg: 'bg-gray-100 text-gray-800 border-gray-300', label: 'P4 - Low', time: '48+ hours' },
+}
+
 // Boolean Indicator Component
 function BooleanIndicator({ value }: { value: boolean | undefined | null }) {
   return value ? (
@@ -60,21 +83,22 @@ function BooleanIndicator({ value }: { value: boolean | undefined | null }) {
 }
 
 // Score Card with Progress Bar
-function ScoreCard({ label, score }: { label: string; score: number }) {
-  const getColor = (s: number) => {
-    if (s >= 70) return 'bg-red-500'
-    if (s >= 45) return 'bg-orange-500'
+function ScoreCard({ label, score, maxScore = 100 }: { label: string; score: number; maxScore?: number }) {
+  const percentage = (score / maxScore) * 100
+  const getColor = (p: number) => {
+    if (p >= 70) return 'bg-green-500'
+    if (p >= 45) return 'bg-orange-500'
     return 'bg-gray-400'
   }
 
   return (
     <div className="border rounded-lg p-3 min-w-[120px] bg-card">
       <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="text-2xl font-bold">{score}</div>
+      <div className="text-2xl font-bold">{score}{maxScore !== 100 && <span className="text-sm text-muted-foreground">/{maxScore}</span>}</div>
       <div className="w-full h-2 bg-muted rounded-full mt-1">
         <div
-          className={`h-2 rounded-full transition-all ${getColor(score)}`}
-          style={{ width: `${Math.min(score, 100)}%` }}
+          className={`h-2 rounded-full transition-all ${getColor(percentage)}`}
+          style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
     </div>
@@ -82,20 +106,27 @@ function ScoreCard({ label, score }: { label: string; score: number }) {
 }
 
 // Classification Badge
-function ClassificationBadge({ score, size = 'sm' }: { score: number; size?: 'sm' | 'lg' }) {
-  const getClassification = (s: number) => {
-    if (s >= 70) return { label: 'Hot', icon: '🔥', bg: 'bg-red-500' }
-    if (s >= 45) return { label: 'Warm', icon: '🟠', bg: 'bg-orange-500' }
-    return { label: 'Low', icon: '⚪', bg: 'bg-gray-400' }
-  }
-
-  const { label, icon, bg } = getClassification(score)
+function ClassificationBadge({ classification, size = 'sm' }: { classification: string; size?: 'sm' | 'lg' }) {
+  const config = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Cold']
   const sizeClasses = size === 'lg' ? 'px-4 py-2 text-lg' : 'px-3 py-1.5 text-sm'
 
   return (
-    <span className={`rounded-lg font-medium text-white ${bg} ${sizeClasses}`}>
-      {icon} {label}
+    <span className={`rounded-lg font-medium ${config.bg} ${config.text} ${sizeClasses}`}>
+      {config.label}
     </span>
+  )
+}
+
+// Priority Badge
+function PriorityBadge({ priority }: { priority: string }) {
+  const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG['P4']
+
+  return (
+    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bg}`}>
+      <Clock className="w-4 h-4" />
+      <span className="font-medium">{config.label}</span>
+      <span className="text-xs opacity-75">({config.time})</span>
+    </div>
   )
 }
 
@@ -110,12 +141,83 @@ function PaymentBadge({ method }: { method: string | undefined | null }) {
   )
 }
 
+// Score Breakdown Component
+function ScoreBreakdown({
+  title,
+  breakdown,
+  isOpen,
+  onToggle
+}: {
+  title: string
+  breakdown: { score: number; maxScore: number; details: string[] }[]
+  isOpen: boolean
+  onToggle: () => void
+}) {
+  const total = breakdown.reduce((sum, b) => sum + b.score, 0)
+  const maxTotal = breakdown.reduce((sum, b) => sum + b.maxScore, 0)
+
+  return (
+    <div className="border rounded-lg overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-3 bg-muted/50 hover:bg-muted transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{title}</span>
+          <span className="text-sm text-muted-foreground">({total}/{maxTotal})</span>
+        </div>
+        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+      </button>
+      {isOpen && (
+        <div className="p-3 space-y-3">
+          {breakdown.map((item, i) => (
+            <div key={i} className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">{getBreakdownLabel(title, i)}</span>
+                <span className="font-medium">{item.score}/{item.maxScore}</span>
+              </div>
+              <div className="w-full h-1.5 bg-muted rounded-full">
+                <div
+                  className="h-1.5 rounded-full bg-primary transition-all"
+                  style={{ width: `${(item.score / item.maxScore) * 100}%` }}
+                />
+              </div>
+              {item.details.length > 0 && (
+                <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                  {item.details.map((d, j) => (
+                    <li key={j}>{d}</li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function getBreakdownLabel(title: string, index: number): string {
+  if (title === 'Quality Score') {
+    return ['Profile Completeness', 'Financial Qualification', 'Verification Status', 'Inventory Fit'][index] || ''
+  }
+  if (title === 'Intent Score') {
+    return ['Timeline', 'Purpose', 'Engagement', 'Commitment', 'Negative Modifiers'][index] || ''
+  }
+  if (title === 'Confidence Score') {
+    return ['Data Completeness', 'Verification Level', 'Engagement Data', 'Transcript Quality'][index] || ''
+  }
+  return ''
+}
+
 export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { leads, users, isLoading, updateLead } = useData()
+  const { leads, users, isLoading, updateLead, refreshData } = useData()
 
   const [isRescoring, setIsRescoring] = useState(false)
+  const [scoreResult, setScoreResult] = useState<ScoreBuyerResponse | null>(null)
+  const [openBreakdown, setOpenBreakdown] = useState<string | null>(null)
 
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
@@ -132,9 +234,27 @@ export default function LeadDetailPage() {
   }
 
   const handleRescore = async () => {
+    if (!lead) return
+
     setIsRescoring(true)
-    // TODO: Call AI scoring API
-    setTimeout(() => setIsRescoring(false), 2000)
+    try {
+      const response = await fetch('/api/ai/score-buyer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ buyerId: lead.id })
+      })
+
+      if (response.ok) {
+        const result = await response.json() as ScoreBuyerResponse
+        setScoreResult(result)
+        // Refresh data to get updated lead
+        await refreshData()
+      }
+    } catch (error) {
+      console.error('Failed to score lead:', error)
+    } finally {
+      setIsRescoring(false)
+    }
   }
 
   const handleArchive = async () => {
@@ -177,9 +297,16 @@ export default function LeadDetailPage() {
     )
   }
 
-  const qualityScore = lead.quality_score || 0
-  const intentScore = lead.intent_score || 0
-  const confidence = lead.ai_confidence || 0
+  // Use score result if available, otherwise use stored values
+  const qualityScore = scoreResult?.quality_score ?? lead.ai_quality_score ?? lead.quality_score ?? 0
+  const intentScore = scoreResult?.intent_score ?? lead.ai_intent_score ?? lead.intent_score ?? 0
+  const confidenceScore = scoreResult?.confidence ?? (lead.ai_confidence ? lead.ai_confidence * 10 : 0)
+  const classification = scoreResult?.classification ?? lead.ai_classification ?? 'Cold'
+  const priority = scoreResult?.priority ?? lead.ai_priority ?? 'P4'
+  const summary = scoreResult?.summary ?? lead.ai_summary
+  const nextAction = scoreResult?.next_action ?? lead.ai_next_action
+  const riskFlags = scoreResult?.risk_flags ?? lead.ai_risk_flags ?? []
+  const recommendations = scoreResult?.recommendations ?? lead.ai_recommendations ?? []
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -217,19 +344,33 @@ export default function LeadDetailPage() {
         <div className="flex gap-4 items-center flex-wrap">
           <ScoreCard label="Quality" score={qualityScore} />
           <ScoreCard label="Intent" score={intentScore} />
-          <ClassificationBadge score={qualityScore} size="lg" />
+          <ScoreCard label="Confidence" score={confidenceScore} maxScore={10} />
+          <ClassificationBadge classification={classification} size="lg" />
         </div>
 
-        {/* Confidence + Rescore */}
-        <div className="flex justify-between items-center">
-          <span className="text-sm text-muted-foreground">
-            AI Confidence: {confidence ? `${Math.round(confidence * 100)}%` : '-'}
-          </span>
-          <Button variant="ghost" size="sm" onClick={handleRescore} disabled={isRescoring}>
+        {/* Priority + Rescore */}
+        <div className="flex justify-between items-center flex-wrap gap-4">
+          <PriorityBadge priority={priority} />
+          <Button variant="outline" size="sm" onClick={handleRescore} disabled={isRescoring}>
             <RefreshCw className={`w-4 h-4 mr-1 ${isRescoring ? 'animate-spin' : ''}`} />
-            {isRescoring ? 'Scoring...' : 'Re-score'}
+            {isRescoring ? 'Scoring...' : 'Re-score with AI'}
           </Button>
         </div>
+
+        {/* Spam Warning */}
+        {scoreResult?.is_spam && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+            <div>
+              <h4 className="font-medium text-red-800">Potential Spam Detected</h4>
+              <ul className="text-sm text-red-700 mt-1">
+                {scoreResult.spam_flags.map((flag, i) => (
+                  <li key={i}>• {flag}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
@@ -250,7 +391,7 @@ export default function LeadDetailPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                {lead.ai_summary || 'No AI summary available. Click Re-score to generate.'}
+                {summary || 'No AI summary available. Click "Re-score with AI" to generate.'}
               </p>
             </CardContent>
           </Card>
@@ -264,9 +405,11 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm mb-3">{lead.ai_next_action || 'No action recommended'}</p>
-              {lead.ai_next_action && (
-                <Button size="sm">Do It</Button>
+              <p className="text-sm mb-3">{nextAction || 'No action recommended'}</p>
+              {nextAction && (
+                <Button size="sm">
+                  <Zap className="w-4 h-4 mr-1" /> Do It
+                </Button>
               )}
             </CardContent>
           </Card>
@@ -280,9 +423,9 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 ? (
+              {recommendations.length > 0 ? (
                 <ul className="space-y-2">
-                  {lead.ai_risk_flags.map((rec, i) => (
+                  {recommendations.map((rec, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
                       <span>{rec}</span>
@@ -290,29 +433,77 @@ export default function LeadDetailPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-sm text-muted-foreground">No recommendations yet</p>
+                <p className="text-sm text-muted-foreground">No recommendations yet. Re-score to generate.</p>
               )}
             </CardContent>
           </Card>
 
           {/* Risk Flags */}
-          {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
+          {riskFlags.length > 0 && (
             <Card className="border-yellow-500/50 bg-yellow-500/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2 text-yellow-600">
                   <AlertTriangle className="w-4 h-4" />
-                  Risk Flags
+                  Risk Flags ({riskFlags.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <ul className="space-y-1">
-                  {lead.ai_risk_flags.map((flag, i) => (
+                  {riskFlags.map((flag, i) => (
                     <li key={i} className="flex items-center gap-2 text-sm">
                       <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
                       {flag}
                     </li>
                   ))}
                 </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Score Breakdown */}
+          {scoreResult?.score_breakdown && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <BarChart3 className="w-4 h-4" />
+                  Score Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <ScoreBreakdown
+                  title="Quality Score"
+                  breakdown={[
+                    scoreResult.score_breakdown.quality.profileCompleteness,
+                    scoreResult.score_breakdown.quality.financialQualification,
+                    scoreResult.score_breakdown.quality.verificationStatus,
+                    scoreResult.score_breakdown.quality.inventoryFit,
+                  ]}
+                  isOpen={openBreakdown === 'quality'}
+                  onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
+                />
+                <ScoreBreakdown
+                  title="Intent Score"
+                  breakdown={[
+                    scoreResult.score_breakdown.intent.timeline,
+                    scoreResult.score_breakdown.intent.purpose,
+                    scoreResult.score_breakdown.intent.engagement,
+                    scoreResult.score_breakdown.intent.commitment,
+                    scoreResult.score_breakdown.intent.negativeModifiers,
+                  ]}
+                  isOpen={openBreakdown === 'intent'}
+                  onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
+                />
+                <ScoreBreakdown
+                  title="Confidence Score"
+                  breakdown={[
+                    scoreResult.score_breakdown.confidence.dataCompleteness,
+                    scoreResult.score_breakdown.confidence.verificationLevel,
+                    scoreResult.score_breakdown.confidence.engagementData,
+                    scoreResult.score_breakdown.confidence.transcriptQuality,
+                  ]}
+                  isOpen={openBreakdown === 'confidence'}
+                  onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
+                />
               </CardContent>
             </Card>
           )}
@@ -411,6 +602,10 @@ export default function LeadDetailPage() {
                 <PaymentBadge method={lead.payment_method} />
               </div>
               <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Mortgage Status</span>
+                <span>{lead.mortgage_status || '-'}</span>
+              </div>
+              <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Bedrooms</span>
                 <span>{lead.preferred_bedrooms || lead.bedrooms || '-'}</span>
               </div>
@@ -496,6 +691,12 @@ export default function LeadDetailPage() {
                 <span className="text-muted-foreground">Date Added</span>
                 <span>{formatDate(lead.date_added || lead.created_at)}</span>
               </div>
+              {lead.ai_scored_at && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Last Scored</span>
+                  <span>{formatDate(lead.ai_scored_at)}</span>
+                </div>
+              )}
             </CardContent>
           </Card>
 

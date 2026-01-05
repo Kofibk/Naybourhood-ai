@@ -1,6 +1,48 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
-import type { AIBuyerSummary } from '@/types'
+import { scoreLead } from '@/lib/scoring'
+import { generateAISummaryWithLLM } from '@/lib/scoring/ai-summary'
+import type { Buyer } from '@/types'
+
+export interface ScoreBuyerResponse {
+  success: boolean
+  summary: string
+  quality_score: number
+  intent_score: number
+  confidence: number
+  classification: string
+  priority: string
+  priority_response_time: string
+  next_action: string
+  risk_flags: string[]
+  recommendations: string[]
+  is_spam: boolean
+  spam_flags: string[]
+  score_breakdown: {
+    quality: {
+      total: number
+      profileCompleteness: { score: number; maxScore: number; details: string[] }
+      financialQualification: { score: number; maxScore: number; details: string[] }
+      verificationStatus: { score: number; maxScore: number; details: string[] }
+      inventoryFit: { score: number; maxScore: number; details: string[] }
+    }
+    intent: {
+      total: number
+      timeline: { score: number; maxScore: number; details: string[] }
+      purpose: { score: number; maxScore: number; details: string[] }
+      engagement: { score: number; maxScore: number; details: string[] }
+      commitment: { score: number; maxScore: number; details: string[] }
+      negativeModifiers: { score: number; maxScore: number; details: string[] }
+    }
+    confidence: {
+      total: number
+      dataCompleteness: { score: number; maxScore: number; details: string[] }
+      verificationLevel: { score: number; maxScore: number; details: string[] }
+      engagementData: { score: number; maxScore: number; details: string[] }
+      transcriptQuality: { score: number; maxScore: number; details: string[] }
+    }
+  }
+}
 
 // Score a buyer and generate AI summary
 export async function POST(request: NextRequest) {
@@ -24,141 +66,104 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Buyer not found' }, { status: 404 })
     }
 
-    // Calculate Quality Score (0-100)
-    let qualityScore = 50 // Base score
+    // Run comprehensive scoring
+    const scores = scoreLead(buyer as Buyer)
 
-    // Budget fit (+25)
-    if (buyer.budget || buyer.budget_min || buyer.budget_max) {
-      qualityScore += 15
-      if (buyer.budget_min && buyer.budget_min >= 500000) qualityScore += 10
+    // Generate AI summary
+    const aiSummary = await generateAISummaryWithLLM(buyer as Buyer, scores)
+
+    // Prepare score breakdown for response
+    const scoreBreakdown = {
+      quality: {
+        total: scores.qualityScore.total,
+        profileCompleteness: {
+          score: scores.qualityScore.breakdown.profileCompleteness.score,
+          maxScore: scores.qualityScore.breakdown.profileCompleteness.maxScore,
+          details: scores.qualityScore.breakdown.profileCompleteness.details
+        },
+        financialQualification: {
+          score: scores.qualityScore.breakdown.financialQualification.score,
+          maxScore: scores.qualityScore.breakdown.financialQualification.maxScore,
+          details: scores.qualityScore.breakdown.financialQualification.details
+        },
+        verificationStatus: {
+          score: scores.qualityScore.breakdown.verificationStatus.score,
+          maxScore: scores.qualityScore.breakdown.verificationStatus.maxScore,
+          details: scores.qualityScore.breakdown.verificationStatus.details
+        },
+        inventoryFit: {
+          score: scores.qualityScore.breakdown.inventoryFit.score,
+          maxScore: scores.qualityScore.breakdown.inventoryFit.maxScore,
+          details: scores.qualityScore.breakdown.inventoryFit.details
+        }
+      },
+      intent: {
+        total: scores.intentScore.total,
+        timeline: {
+          score: scores.intentScore.breakdown.timeline.score,
+          maxScore: scores.intentScore.breakdown.timeline.maxScore,
+          details: scores.intentScore.breakdown.timeline.details
+        },
+        purpose: {
+          score: scores.intentScore.breakdown.purpose.score,
+          maxScore: scores.intentScore.breakdown.purpose.maxScore,
+          details: scores.intentScore.breakdown.purpose.details
+        },
+        engagement: {
+          score: scores.intentScore.breakdown.engagement.score,
+          maxScore: scores.intentScore.breakdown.engagement.maxScore,
+          details: scores.intentScore.breakdown.engagement.details
+        },
+        commitment: {
+          score: scores.intentScore.breakdown.commitment.score,
+          maxScore: scores.intentScore.breakdown.commitment.maxScore,
+          details: scores.intentScore.breakdown.commitment.details
+        },
+        negativeModifiers: {
+          score: scores.intentScore.breakdown.negativeModifiers.score,
+          maxScore: scores.intentScore.breakdown.negativeModifiers.maxScore,
+          details: scores.intentScore.breakdown.negativeModifiers.details
+        }
+      },
+      confidence: {
+        total: scores.confidenceScore.total,
+        dataCompleteness: {
+          score: scores.confidenceScore.breakdown.dataCompleteness.score,
+          maxScore: scores.confidenceScore.breakdown.dataCompleteness.maxScore,
+          details: scores.confidenceScore.breakdown.dataCompleteness.details
+        },
+        verificationLevel: {
+          score: scores.confidenceScore.breakdown.verificationLevel.score,
+          maxScore: scores.confidenceScore.breakdown.verificationLevel.maxScore,
+          details: scores.confidenceScore.breakdown.verificationLevel.details
+        },
+        engagementData: {
+          score: scores.confidenceScore.breakdown.engagementData.score,
+          maxScore: scores.confidenceScore.breakdown.engagementData.maxScore,
+          details: scores.confidenceScore.breakdown.engagementData.details
+        },
+        transcriptQuality: {
+          score: scores.confidenceScore.breakdown.transcriptQuality.score,
+          maxScore: scores.confidenceScore.breakdown.transcriptQuality.maxScore,
+          details: scores.confidenceScore.breakdown.transcriptQuality.details
+        }
+      }
     }
 
-    // Financial readiness (+25)
-    if (buyer.payment_method === 'Cash' || buyer.payment_method === 'cash') {
-      qualityScore += 20
-    } else if (buyer.mortgage_status === 'Approved' || buyer.mortgage_status === 'AIP') {
-      qualityScore += 15
-    }
-    if (buyer.proof_of_funds) qualityScore += 5
-
-    // Profile completeness (+20)
-    let completeness = 0
-    if (buyer.full_name || buyer.first_name) completeness += 5
-    if (buyer.email) completeness += 5
-    if (buyer.phone) completeness += 5
-    if (buyer.location || buyer.area) completeness += 5
-    qualityScore += completeness
-
-    // Source quality (+15)
-    const highIntentSources = ['WhatsApp', 'Referral', 'Website', 'Direct']
-    if (highIntentSources.includes(buyer.source || '')) {
-      qualityScore += 15
-    } else if (buyer.source) {
-      qualityScore += 8
-    }
-
-    // Calculate Intent Score (0-100)
-    let intentScore = 40 // Base score
-
-    // Timeline urgency (+30)
-    const urgentTimelines = ['Immediately', 'ASAP', '1-3 months', 'Ready now', '28 days']
-    if (urgentTimelines.some(t => (buyer.timeline || '').toLowerCase().includes(t.toLowerCase()))) {
-      intentScore += 30
-    } else if (buyer.timeline) {
-      intentScore += 15
-    }
-
-    // Action taken (+25)
-    if (buyer.status === 'Viewing Booked' || buyer.status === 'Offer Made') {
-      intentScore += 25
-    } else if (buyer.status === 'Qualified') {
-      intentScore += 15
-    } else if (buyer.status === 'Contacted') {
-      intentScore += 10
-    }
-
-    // Has preferences specified (+25)
-    if (buyer.bedrooms) intentScore += 10
-    if (buyer.location || buyer.area) intentScore += 10
-    if (buyer.budget) intentScore += 5
-
-    // Calculate Confidence (0-1)
-    let confidence = 0.5 // Base
-
-    // More data = higher confidence
-    const dataPoints = [
-      buyer.full_name || buyer.first_name,
-      buyer.email,
-      buyer.phone,
-      buyer.budget,
-      buyer.timeline,
-      buyer.location || buyer.area,
-      buyer.payment_method,
-      buyer.notes
-    ].filter(Boolean).length
-
-    confidence = Math.min(1, 0.3 + (dataPoints * 0.1))
-
-    // Clamp scores
-    qualityScore = Math.max(0, Math.min(100, Math.round(qualityScore)))
-    intentScore = Math.max(0, Math.min(100, Math.round(intentScore)))
-    confidence = Math.round(confidence * 100) / 100
-
-    // Generate risk flags
-    const riskFlags: string[] = []
-    if (!buyer.proof_of_funds && buyer.payment_method !== 'Cash') {
-      riskFlags.push('No proof of funds received')
-    }
-    if (buyer.source?.toLowerCase().includes('international') || buyer.location?.toLowerCase().includes('uae') || buyer.location?.toLowerCase().includes('dubai')) {
-      riskFlags.push('International buyer - may need extended timeline')
-    }
-    if (!buyer.phone && !buyer.email) {
-      riskFlags.push('Limited contact information')
-    }
-
-    // Generate next action
-    let nextAction = 'Follow up to qualify further'
-    if (qualityScore >= 70 && intentScore >= 60) {
-      nextAction = 'Book viewing within 48 hours'
-    } else if (qualityScore >= 70) {
-      nextAction = 'Confirm budget and timeline'
-    } else if (intentScore >= 70) {
-      nextAction = 'Request proof of funds or AIP'
-    }
-
-    // Generate summary
-    const budgetStr = buyer.budget || (buyer.budget_min ? `£${(buyer.budget_min / 1000).toFixed(0)}k+` : 'Unknown')
-    const paymentStr = buyer.payment_method || 'Unknown payment method'
-    const locationStr = buyer.location || buyer.area || 'location not specified'
-
-    const summary = `${buyer.full_name || buyer.first_name || 'Lead'} is a ${paymentStr.toLowerCase()} buyer looking in ${locationStr}. Budget: ${budgetStr}. Timeline: ${buyer.timeline || 'not specified'}. ${riskFlags.length > 0 ? 'Note: ' + riskFlags[0] + '.' : ''}`
-
-    // Generate recommendations
-    const recommendations: string[] = []
-    if (!buyer.proof_of_funds) {
-      recommendations.push('Request proof of funds before viewing')
-    }
-    if (buyer.bedrooms) {
-      recommendations.push(`Prepare ${buyer.bedrooms}-bed options in ${locationStr}`)
-    }
-    if (qualityScore >= 70) {
-      recommendations.push('Introduce to solicitor early in process')
-    }
-    if (buyer.source?.toLowerCase().includes('international')) {
-      recommendations.push('Set up currency exchange consultation')
-    }
-
-    // Update buyer in database
+    // Update buyer in database with scores
     const { error: updateError } = await supabase
       .from('buyers')
       .update({
-        ai_quality_score: qualityScore,
-        ai_intent_score: intentScore,
-        ai_confidence: confidence,
-        ai_summary: summary,
-        ai_next_action: nextAction,
-        ai_risk_flags: riskFlags,
-        ai_scored_at: new Date().toISOString()
+        ai_quality_score: scores.qualityScore.total,
+        ai_intent_score: scores.intentScore.total,
+        ai_confidence: scores.confidenceScore.total / 10,  // Normalize to 0-1
+        ai_summary: aiSummary.summary,
+        ai_next_action: aiSummary.nextAction,
+        ai_risk_flags: scores.riskFlags,
+        ai_scored_at: new Date().toISOString(),
+        // Also update the standard score fields
+        quality_score: scores.qualityScore.total,
+        intent_score: scores.intentScore.total
       })
       .eq('id', buyerId)
 
@@ -166,14 +171,21 @@ export async function POST(request: NextRequest) {
       console.error('[AI Score] Update error:', updateError)
     }
 
-    const response: AIBuyerSummary = {
-      summary,
-      quality_score: qualityScore,
-      intent_score: intentScore,
-      confidence,
-      next_action: nextAction,
-      risk_flags: riskFlags,
-      recommendations
+    const response: ScoreBuyerResponse = {
+      success: true,
+      summary: aiSummary.summary,
+      quality_score: scores.qualityScore.total,
+      intent_score: scores.intentScore.total,
+      confidence: scores.confidenceScore.total,
+      classification: scores.classification,
+      priority: scores.priority.priority,
+      priority_response_time: scores.priority.responseTime,
+      next_action: aiSummary.nextAction,
+      risk_flags: scores.riskFlags,
+      recommendations: aiSummary.recommendations,
+      is_spam: scores.spamCheck.isSpam,
+      spam_flags: scores.spamCheck.flags,
+      score_breakdown: scoreBreakdown
     }
 
     return NextResponse.json(response)
@@ -181,6 +193,82 @@ export async function POST(request: NextRequest) {
     console.error('[AI Score] Error:', error)
     return NextResponse.json(
       { error: 'Failed to score buyer' },
+      { status: 500 }
+    )
+  }
+}
+
+// Batch scoring endpoint
+export async function PUT(request: NextRequest) {
+  try {
+    const { buyerIds } = await request.json()
+
+    if (!buyerIds || !Array.isArray(buyerIds)) {
+      return NextResponse.json({ error: 'Buyer IDs array required' }, { status: 400 })
+    }
+
+    const supabase = createClient()
+
+    // Fetch all buyers
+    const { data: buyers, error } = await supabase
+      .from('buyers')
+      .select('*')
+      .in('id', buyerIds)
+
+    if (error) {
+      return NextResponse.json({ error: 'Failed to fetch buyers' }, { status: 500 })
+    }
+
+    const results = []
+
+    for (const buyer of buyers || []) {
+      try {
+        // Run scoring
+        const scores = scoreLead(buyer as Buyer)
+        const aiSummary = await generateAISummaryWithLLM(buyer as Buyer, scores)
+
+        // Update in database
+        await supabase
+          .from('buyers')
+          .update({
+            ai_quality_score: scores.qualityScore.total,
+            ai_intent_score: scores.intentScore.total,
+            ai_confidence: scores.confidenceScore.total / 10,
+            ai_summary: aiSummary.summary,
+            ai_next_action: aiSummary.nextAction,
+            ai_risk_flags: scores.riskFlags,
+            ai_scored_at: new Date().toISOString(),
+            quality_score: scores.qualityScore.total,
+            intent_score: scores.intentScore.total
+          })
+          .eq('id', buyer.id)
+
+        results.push({
+          id: buyer.id,
+          success: true,
+          classification: scores.classification,
+          quality_score: scores.qualityScore.total,
+          intent_score: scores.intentScore.total
+        })
+      } catch (err) {
+        results.push({
+          id: buyer.id,
+          success: false,
+          error: 'Scoring failed'
+        })
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      scored: results.filter(r => r.success).length,
+      failed: results.filter(r => !r.success).length,
+      results
+    })
+  } catch (error) {
+    console.error('[AI Score Batch] Error:', error)
+    return NextResponse.json(
+      { error: 'Failed to batch score buyers' },
       { status: 500 }
     )
   }

@@ -56,6 +56,9 @@ export interface Buyer {
   ai_summary?: string
   ai_next_action?: string
   ai_risk_flags?: string[]
+  ai_recommendations?: string[]
+  ai_classification?: string
+  ai_priority?: string
   ai_scored_at?: string
 }
 
