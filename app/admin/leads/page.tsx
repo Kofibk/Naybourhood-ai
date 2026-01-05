@@ -228,7 +228,7 @@ function PaymentBadge({ method }: { method: string | undefined | null }) {
 
 export default function LeadsPage() {
   const router = useRouter()
-  const { leads, isLoading, refreshData } = useData()
+  const { leads, users, isLoading, refreshData, updateLead } = useData()
 
   const [search, setSearch] = useState('')
   const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
@@ -246,16 +246,21 @@ export default function LeadsPage() {
 
   const handleCellSave = useCallback(async (rowId: string, field: string, value: string | number): Promise<boolean> => {
     try {
+      // Update locally first for immediate feedback
       setPendingChanges(prev => ({
         ...prev,
         [rowId]: { ...prev[rowId], [field]: value }
       }))
+      // Actually save to database
+      if (updateLead) {
+        await updateLead(rowId, { [field]: value })
+      }
       return true
     } catch (error) {
       console.error('Error saving cell:', error)
       return false
     }
-  }, [])
+  }, [updateLead])
 
   const addFilterCondition = useCallback(() => {
     const newCondition: FilterCondition = {
@@ -455,6 +460,20 @@ export default function LeadsPage() {
     const pending = pendingChanges[lead.id]
     if (pending && field in pending) return pending[field]
     if (field === 'full_name') return lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
+    // Handle budget - show budget string or format budget_min/budget_max
+    if (field === 'budget') {
+      if (lead.budget) return lead.budget
+      if (lead.budget_min && lead.budget_max) {
+        return `£${(lead.budget_min / 1000000).toFixed(1)}M - £${(lead.budget_max / 1000000).toFixed(1)}M`
+      }
+      if (lead.budget_min) return `£${lead.budget_min.toLocaleString()}+`
+      if (lead.budget_max) return `Up to £${lead.budget_max.toLocaleString()}`
+      return ''
+    }
+    // Handle confidence - try ai_confidence first
+    if (field === 'ai_confidence') {
+      return lead.ai_confidence ?? null
+    }
     // Handle assigned user - try multiple fields
     if (field === 'assigned_user_name') {
       return lead.assigned_user_name || lead.assigned_user || lead.assigned_to || ''
@@ -800,7 +819,16 @@ export default function LeadsPage() {
                         if (col.key === 'status') {
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <StatusBadge status={cellValue} />
+                              <select
+                                value={cellValue || ''}
+                                onChange={(e) => handleCellSave(lead.id, 'status', e.target.value)}
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                              >
+                                <option value="">Select...</option>
+                                {(uniqueStatuses.length > 0 ? uniqueStatuses : STATUS_OPTIONS).map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
                             </td>
                           )
                         }
@@ -808,7 +836,33 @@ export default function LeadsPage() {
                         if (col.key === 'payment_method') {
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <PaymentBadge method={cellValue} />
+                              <select
+                                value={cellValue || ''}
+                                onChange={(e) => handleCellSave(lead.id, 'payment_method', e.target.value)}
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                              >
+                                <option value="">Select...</option>
+                                {PAYMENT_OPTIONS.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
+                            </td>
+                          )
+                        }
+
+                        if (col.key === 'assigned_user_name') {
+                          return (
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
+                              <select
+                                value={lead.assigned_to || ''}
+                                onChange={(e) => handleCellSave(lead.id, 'assigned_to', e.target.value)}
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary max-w-[120px]"
+                              >
+                                <option value="">Unassigned</option>
+                                {users.map(user => (
+                                  <option key={user.id} value={user.id}>{user.name}</option>
+                                ))}
+                              </select>
                             </td>
                           )
                         }

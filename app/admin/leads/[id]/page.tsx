@@ -169,7 +169,17 @@ export default function LeadDetailPage() {
     })
   }
 
-  const STATUS_OPTIONS = ['New', 'Contacted', 'Qualified', 'Viewing Booked', 'Offer Made', 'Completed', 'Lost']
+  const STATUS_OPTIONS = [
+    'Contact Pending',
+    'Follow Up',
+    'Viewing Booked',
+    'Negotiating',
+    'Reserved',
+    'Exchanged',
+    'Completed',
+    'Not Proceeding',
+    'Duplicate',
+  ]
 
   return (
     <div className="space-y-6">
