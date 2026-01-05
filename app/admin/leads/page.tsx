@@ -770,8 +770,12 @@ export default function LeadsPage() {
                   <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-muted-foreground">No leads found</td></tr>
                 ) : (
                   paginatedLeads.map((lead) => (
-                    <tr key={lead.id} className="border-b border-border hover:bg-muted/50 transition-colors">
-                      <td className="p-3 w-[40px]">
+                    <tr
+                      key={lead.id}
+                      className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                      onClick={() => router.push(`/admin/leads/${lead.id}`)}
+                    >
+                      <td className="p-3 w-[40px]" onClick={(e) => e.stopPropagation()}>
                         <Checkbox
                           checked={selectedLeads.has(lead.id)}
                           onCheckedChange={() => toggleSelectLead(lead.id)}
@@ -818,7 +822,7 @@ export default function LeadsPage() {
 
                         if (col.key === 'status') {
                           return (
-                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`} onClick={(e) => e.stopPropagation()}>
                               <select
                                 value={cellValue || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'status', e.target.value)}
@@ -835,7 +839,7 @@ export default function LeadsPage() {
 
                         if (col.key === 'payment_method') {
                           return (
-                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`} onClick={(e) => e.stopPropagation()}>
                               <select
                                 value={cellValue || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'payment_method', e.target.value)}
@@ -852,7 +856,7 @@ export default function LeadsPage() {
 
                         if (col.key === 'assigned_user_name') {
                           return (
-                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`} onClick={(e) => e.stopPropagation()}>
                               <select
                                 value={lead.assigned_to || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'assigned_to', e.target.value)}
