@@ -33,7 +33,7 @@ import {
   Thermometer,
 } from 'lucide-react'
 
-type SortField = 'full_name' | 'quality_score' | 'confidence' | 'budget' | 'status' | 'created_at' | 'assigned_caller'
+type SortField = 'full_name' | 'quality_score' | 'ai_confidence' | 'budget' | 'status' | 'created_at' | 'assigned_user_name' | 'source' | 'campaign'
 type SortDirection = 'asc' | 'desc'
 type QuickFilter = 'all' | 'hot' | 'warm' | 'low'
 
@@ -100,10 +100,12 @@ const FILTER_FIELDS: FilterField[] = [
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'budget', label: 'Budget', type: 'text' },
   { key: 'quality_score', label: 'Lead Score', type: 'number' },
-  { key: 'confidence', label: 'Confidence', type: 'number' },
+  { key: 'ai_confidence', label: 'Confidence', type: 'number' },
   { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', type: 'select', options: PAYMENT_OPTIONS },
-  { key: 'assigned_caller', label: 'Assigned', type: 'text' },
+  { key: 'assigned_user_name', label: 'Assigned', type: 'text' },
+  { key: 'source', label: 'Source', type: 'text' },
+  { key: 'campaign', label: 'Campaign', type: 'text' },
   { key: 'created_at', label: 'Date Added', type: 'date' },
 ]
 
@@ -148,18 +150,20 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
   ],
 }
 
-// Updated columns to match specification exactly
+// Updated columns to match Buyer type fields
 const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'full_name', label: 'Full Name', visible: true, width: 'w-[180px]', editable: true, type: 'text' },
   { key: 'phone', label: 'Mobile', visible: true, width: 'w-[140px]', editable: true, type: 'text' },
   { key: 'email', label: 'Email', visible: true, width: 'w-[200px]', editable: true, type: 'text' },
   { key: 'budget', label: 'Budget', visible: true, width: 'w-[130px]', editable: true, type: 'text' },
   { key: 'quality_score', label: 'Score', visible: true, width: 'w-[80px]', editable: true, type: 'number' },
-  { key: 'confidence', label: 'Conf', visible: true, width: 'w-[90px]', editable: false },
+  { key: 'ai_confidence', label: 'Conf', visible: true, width: 'w-[90px]', editable: false },
   { key: 'status', label: 'Status', visible: true, width: 'w-[120px]', editable: true, type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', visible: true, width: 'w-[90px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
   { key: 'created_at', label: 'Added', visible: true, width: 'w-[100px]', editable: false },
-  { key: 'assigned_caller', label: 'Assigned', visible: true, width: 'w-[120px]', editable: true, type: 'text' },
+  { key: 'assigned_user_name', label: 'Assigned', visible: true, width: 'w-[120px]', editable: true, type: 'text' },
+  { key: 'source', label: 'Source', visible: false, width: 'w-[100px]', editable: true, type: 'text' },
+  { key: 'campaign', label: 'Campaign', visible: false, width: 'w-[150px]', editable: true, type: 'text' },
 ]
 
 const generateId = () => Math.random().toString(36).substring(2, 9)
@@ -293,6 +297,9 @@ export default function LeadsPage() {
     if (condition.field === 'full_name') {
       rawValue = lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || ''
     }
+    if (condition.field === 'assigned_user_name') {
+      rawValue = lead.assigned_user_name || lead.assigned_user || lead.assigned_to || ''
+    }
 
     const value = rawValue?.toString().toLowerCase() || ''
     const conditionValue = typeof condition.value === 'string' ? condition.value.toLowerCase() : ''
@@ -334,6 +341,32 @@ export default function LeadsPage() {
     return { hot, warm, low, total: leads.length }
   }, [leads])
 
+  // Get unique values for dynamic filters
+  const uniqueAssignees = useMemo(() => {
+    const assignees = new Set<string>()
+    leads.forEach((lead) => {
+      const name = lead.assigned_user_name || lead.assigned_user || lead.assigned_to
+      if (name) assignees.add(name)
+    })
+    return Array.from(assignees).sort()
+  }, [leads])
+
+  const uniqueStatuses = useMemo(() => {
+    const statuses = new Set<string>()
+    leads.forEach((lead) => {
+      if (lead.status) statuses.add(lead.status)
+    })
+    return Array.from(statuses).sort()
+  }, [leads])
+
+  const uniqueSources = useMemo(() => {
+    const sources = new Set<string>()
+    leads.forEach((lead) => {
+      if (lead.source) sources.add(lead.source)
+    })
+    return Array.from(sources).sort()
+  }, [leads])
+
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       // Apply quick filter first
@@ -372,7 +405,7 @@ export default function LeadsPage() {
     return [...filteredLeads].sort((a, b) => {
       let aVal: any = (a as any)[sortField]
       let bVal: any = (b as any)[sortField]
-      if (sortField === 'quality_score' || sortField === 'confidence') { aVal = aVal || 0; bVal = bVal || 0 }
+      if (sortField === 'quality_score' || sortField === 'ai_confidence') { aVal = aVal || 0; bVal = bVal || 0 }
       if (sortField === 'created_at') { aVal = aVal ? new Date(aVal).getTime() : 0; bVal = bVal ? new Date(bVal).getTime() : 0 }
       if (typeof aVal === 'string') aVal = aVal.toLowerCase()
       if (typeof bVal === 'string') bVal = bVal.toLowerCase()
@@ -422,6 +455,10 @@ export default function LeadsPage() {
     const pending = pendingChanges[lead.id]
     if (pending && field in pending) return pending[field]
     if (field === 'full_name') return lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
+    // Handle assigned user - try multiple fields
+    if (field === 'assigned_user_name') {
+      return lead.assigned_user_name || lead.assigned_user || lead.assigned_to || ''
+    }
     return (lead as any)[field]
   }
 
@@ -492,25 +529,29 @@ export default function LeadsPage() {
         </Button>
 
         {/* Dropdown Filters */}
-        <div className="flex gap-2 ml-auto">
+        <div className="flex gap-2 ml-auto flex-wrap">
           <select
             className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
             onChange={(e) => {
               if (e.target.value) {
-                setFilterConditions([{ id: generateId(), field: 'status', operator: 'equals', value: e.target.value }])
+                setFilterConditions(prev => [...prev.filter(c => c.field !== 'status'), { id: generateId(), field: 'status', operator: 'equals', value: e.target.value }])
               } else {
                 setFilterConditions(filterConditions.filter(c => c.field !== 'status'))
               }
             }}
           >
             <option value="">Status ▾</option>
-            {STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+            {/* Show actual statuses from data first, then fallback options */}
+            {uniqueStatuses.length > 0
+              ? uniqueStatuses.map(opt => <option key={opt} value={opt}>{opt}</option>)
+              : STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
+            }
           </select>
           <select
             className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
             onChange={(e) => {
               if (e.target.value) {
-                setFilterConditions([{ id: generateId(), field: 'payment_method', operator: 'equals', value: e.target.value }])
+                setFilterConditions(prev => [...prev.filter(c => c.field !== 'payment_method'), { id: generateId(), field: 'payment_method', operator: 'equals', value: e.target.value }])
               } else {
                 setFilterConditions(filterConditions.filter(c => c.field !== 'payment_method'))
               }
@@ -518,6 +559,19 @@ export default function LeadsPage() {
           >
             <option value="">Payment ▾</option>
             {PAYMENT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          <select
+            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            onChange={(e) => {
+              if (e.target.value) {
+                setFilterConditions(prev => [...prev.filter(c => c.field !== 'assigned_user_name'), { id: generateId(), field: 'assigned_user_name', operator: 'equals', value: e.target.value }])
+              } else {
+                setFilterConditions(filterConditions.filter(c => c.field !== 'assigned_user_name'))
+              }
+            }}
+          >
+            <option value="">Assigned ▾</option>
+            {uniqueAssignees.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
           <div className="relative flex-1 min-w-[200px]">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -732,7 +786,7 @@ export default function LeadsPage() {
                           )
                         }
 
-                        if (col.key === 'confidence') {
+                        if (col.key === 'ai_confidence') {
                           const conf = cellValue as number | undefined
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
