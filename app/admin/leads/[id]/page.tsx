@@ -41,15 +41,23 @@ import {
   Zap,
 } from 'lucide-react'
 
+// Status options matching Supabase - categorized by color
+// Green = Positive, Amber = Pending, Red = Negative, Grey = Duplicate
 const STATUS_OPTIONS = [
+  // Amber - Pending statuses
   'Contact Pending',
   'Follow Up',
   'Viewing Booked',
   'Negotiating',
+  // Green - Positive statuses
   'Reserved',
   'Exchanged',
   'Completed',
+  // Red - Negative statuses
   'Not Proceeding',
+  'Fake',
+  'Cant Verify',
+  // Grey - Duplicates
   'Duplicate',
 ]
 

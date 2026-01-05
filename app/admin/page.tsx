@@ -32,6 +32,14 @@ const COLORS = {
   cold: '#6b7280',
 }
 
+// Status categories - matching leads page
+const STATUS_CATEGORIES = {
+  positive: ['Reserved', 'Exchanged', 'Completed'],
+  pending: ['Contact Pending', 'Follow Up', 'Viewing Booked', 'Negotiating'],
+  negative: ['Not Proceeding', 'Fake', 'Cant Verify'],
+  duplicate: ['Duplicate'],
+}
+
 // Animated counter hook
 function useAnimatedCounter(target: number, duration: number = 2000) {
   const [count, setCount] = useState(0)
@@ -88,17 +96,27 @@ export default function AdminDashboard() {
 
   const userName = user.name?.split(' ')[0] || 'there'
 
-  // Calculate real metrics from data
+  // Calculate real metrics from data - excluding duplicates
   const metrics = useMemo(() => {
-    const totalLeads = leads.length
-    const hotLeads = leads.filter(l => (l.quality_score || 0) >= 80).length
+    // Exclude duplicates from all stats
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.duplicate.includes(l.status || ''))
+    const duplicateCount = leads.filter(l => STATUS_CATEGORIES.duplicate.includes(l.status || '')).length
+
+    const totalLeads = activeLeads.length
+    const hotLeads = activeLeads.filter(l => (l.quality_score || 0) >= 80).length
     const avgScore = totalLeads > 0
-      ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
+      ? Math.round(activeLeads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
       : 0
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
     // Avg CPL = Total Spend / Total Leads (buyers count)
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
-    const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+
+    // Status category counts
+    const positiveLeads = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
+    const pendingLeads = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
+    const negativeLeads = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
+
+    const qualifiedLeads = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '') || (l.quality_score || 0) >= 70).length
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
     return {
@@ -111,30 +129,49 @@ export default function AdminDashboard() {
       totalCampaigns: campaigns.length,
       activeCampaigns: campaigns.filter(c => c.status === 'active').length,
       totalCompanies: companies.length,
+      positiveLeads,
+      pendingLeads,
+      negativeLeads,
+      duplicateCount,
     }
   }, [leads, campaigns, companies])
 
-  // Calculate lead classifications from real data
+  // Calculate lead classifications by status category - excluding duplicates
   const classificationData = useMemo(() => {
-    const hot = leads.filter(l => (l.quality_score || 0) >= 85).length
-    const warm = leads.filter(l => (l.quality_score || 0) >= 70 && (l.quality_score || 0) < 85).length
-    const qualified = leads.filter(l => l.status === 'Qualified').length
-    const newLeads = leads.filter(l => l.status === 'New').length
-    const cold = leads.filter(l => (l.quality_score || 0) < 50).length
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.duplicate.includes(l.status || ''))
+
+    // By status category
+    const positive = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
+    const pending = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
+    const negative = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
+    const uncategorized = activeLeads.filter(l => {
+      const status = l.status || ''
+      return !STATUS_CATEGORIES.positive.includes(status) &&
+             !STATUS_CATEGORIES.pending.includes(status) &&
+             !STATUS_CATEGORIES.negative.includes(status)
+    }).length
+    const duplicates = leads.filter(l => STATUS_CATEGORIES.duplicate.includes(l.status || '')).length
 
     return [
-      { name: 'Hot (85+)', value: hot, color: COLORS.hot },
-      { name: 'Warm (70-84)', value: warm, color: COLORS.warm },
-      { name: 'Qualified', value: qualified, color: COLORS.qualified },
-      { name: 'New', value: newLeads, color: COLORS.new },
-      { name: 'Cold (<50)', value: cold, color: COLORS.cold },
+      { name: 'Positive', value: positive, color: '#22c55e' },  // Green
+      { name: 'In Progress', value: pending, color: '#f59e0b' },  // Amber
+      { name: 'Not Proceeding', value: negative, color: '#ef4444' },  // Red
+      { name: 'New/Other', value: uncategorized, color: '#3b82f6' },  // Blue
+      { name: 'Duplicates', value: duplicates, color: '#6b7280' },  // Grey
     ]
   }, [leads])
 
-  // Get leads requiring action (high score, not yet contacted)
+  // Get leads requiring action - exclude duplicates and completed/negative
   const actionLeads = useMemo(() => {
     return leads
-      .filter(l => (l.quality_score || 0) >= 75 && l.status !== 'Completed')
+      .filter(l => {
+        const status = l.status || ''
+        // Exclude duplicates, completed, and negative statuses
+        if (STATUS_CATEGORIES.duplicate.includes(status)) return false
+        if (STATUS_CATEGORIES.negative.includes(status)) return false
+        if (status === 'Completed') return false
+        return (l.quality_score || 0) >= 75
+      })
       .sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
       .slice(0, 5)
   }, [leads])
@@ -147,20 +184,23 @@ export default function AdminDashboard() {
       .slice(0, 3)
   }, [campaigns])
 
-  // Build funnel from real data
+  // Build funnel from real data - using actual status values, excluding duplicates
   const funnelData = useMemo(() => {
-    const total = leads.length
-    const contacted = leads.filter(l => l.status !== 'New').length
-    const qualified = leads.filter(l => l.status === 'Qualified' || l.status === 'Viewing Booked').length
-    const viewing = leads.filter(l => l.status === 'Viewing Booked').length
-    const offer = leads.filter(l => l.status === 'Offer Made' || l.status === 'Completed').length
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.duplicate.includes(l.status || ''))
+    const total = activeLeads.length
+    const contacted = activeLeads.filter(l => l.status && l.status !== 'Contact Pending').length
+    const followUp = activeLeads.filter(l => ['Follow Up', 'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const viewing = activeLeads.filter(l => ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const reserved = activeLeads.filter(l => ['Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const completed = activeLeads.filter(l => l.status === 'Completed').length
 
     return [
       { name: 'Total', value: total, color: '#ffffff' },
       { name: 'Contacted', value: contacted, color: '#3b82f6' },
-      { name: 'Qualified', value: qualified, color: '#22c55e' },
-      { name: 'Viewing', value: viewing, color: '#f59e0b' },
-      { name: 'Offer', value: offer, color: '#a855f7' },
+      { name: 'Follow Up', value: followUp, color: '#f59e0b' },
+      { name: 'Viewing', value: viewing, color: '#a855f7' },
+      { name: 'Reserved', value: reserved, color: '#22c55e' },
+      { name: 'Completed', value: completed, color: '#10b981' },
     ]
   }, [leads])
 

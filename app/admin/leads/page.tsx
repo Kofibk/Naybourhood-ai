@@ -37,18 +37,30 @@ type SortField = 'full_name' | 'quality_score' | 'ai_confidence' | 'budget' | 's
 type SortDirection = 'asc' | 'desc'
 type QuickFilter = 'all' | 'hot' | 'warm' | 'low'
 
-// Updated status options to match specification
-const STATUS_OPTIONS = [
-  'Contact Pending',
-  'Follow Up',
-  'Viewing Booked',
-  'Negotiating',
-  'Reserved',
-  'Exchanged',
-  'Completed',
-  'Not Proceeding',
-  'Duplicate',
-]
+// Status categories with colors matching Supabase
+// Green = Positive outcomes
+// Amber = In progress/pending
+// Red = Negative outcomes
+// Grey = Duplicates (excluded from stats)
+const STATUS_CONFIG = {
+  // Green - Positive statuses
+  'Reserved': { color: 'green', category: 'positive' },
+  'Exchanged': { color: 'green', category: 'positive' },
+  'Completed': { color: 'green', category: 'positive' },
+  // Amber - Middle/Pending statuses
+  'Contact Pending': { color: 'amber', category: 'pending' },
+  'Follow Up': { color: 'amber', category: 'pending' },
+  'Viewing Booked': { color: 'amber', category: 'pending' },
+  'Negotiating': { color: 'amber', category: 'pending' },
+  // Red - Negative statuses
+  'Not Proceeding': { color: 'red', category: 'negative' },
+  'Fake': { color: 'red', category: 'negative' },
+  'Cant Verify': { color: 'red', category: 'negative' },
+  // Grey - Duplicates (excluded from stats)
+  'Duplicate': { color: 'grey', category: 'duplicate' },
+} as const
+
+const STATUS_OPTIONS = Object.keys(STATUS_CONFIG)
 
 const PAYMENT_OPTIONS = ['Cash', 'Mortgage']
 
@@ -187,24 +199,25 @@ function ScoreBadge({ score }: { score: number | undefined | null }) {
   )
 }
 
-// Status Badge Component - matches specification colors
+// Status Badge Component - color coded by category
+// Green = Positive, Amber = Pending, Red = Negative, Grey = Duplicate
 function StatusBadge({ status }: { status: string | undefined | null }) {
   if (!status) return <span className="text-muted-foreground">-</span>
 
-  const styles: Record<string, string> = {
-    'Contact Pending': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
-    'Follow Up': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
-    'Viewing Booked': 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-    'Negotiating': 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400',
-    'Reserved': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
-    'Exchanged': 'bg-green-200 text-green-900 dark:bg-green-900/40 dark:text-green-300',
-    'Completed': 'bg-emerald-200 text-emerald-900 dark:bg-emerald-900/40 dark:text-emerald-300',
-    'Not Proceeding': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-    'Duplicate': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+  const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
+
+  // Color styles by category
+  const colorStyles = {
+    green: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+    amber: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+    red: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+    grey: 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
   }
 
+  const style = config ? colorStyles[config.color] : 'bg-gray-100 dark:bg-gray-800'
+
   return (
-    <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${styles[status] || 'bg-gray-100 dark:bg-gray-800'}`}>
+    <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${style}`}>
       {status}
     </span>
   )
@@ -338,12 +351,15 @@ export default function LeadsPage() {
     }
   }, [])
 
-  // Calculate lead classification counts
+  // Calculate lead classification counts - exclude duplicates from stats
   const leadCounts = useMemo(() => {
-    const hot = leads.filter((l) => (l.quality_score || 0) >= 70).length
-    const warm = leads.filter((l) => (l.quality_score || 0) >= 45 && (l.quality_score || 0) < 70).length
-    const low = leads.filter((l) => (l.quality_score || 0) < 45).length
-    return { hot, warm, low, total: leads.length }
+    // Filter out duplicates for stats
+    const activeLeads = leads.filter((l) => l.status !== 'Duplicate')
+    const hot = activeLeads.filter((l) => (l.quality_score || 0) >= 70).length
+    const warm = activeLeads.filter((l) => (l.quality_score || 0) >= 45 && (l.quality_score || 0) < 70).length
+    const low = activeLeads.filter((l) => (l.quality_score || 0) < 45).length
+    const duplicates = leads.filter((l) => l.status === 'Duplicate').length
+    return { hot, warm, low, total: activeLeads.length, duplicates }
   }, [leads])
 
   // Get unique values for dynamic filters
