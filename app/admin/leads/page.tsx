@@ -293,6 +293,18 @@ export default function LeadsPage() {
         const operators = OPERATORS_BY_TYPE[fieldConfig?.type || 'text']
         return { ...c, ...updates, operator: operators[0].value, value: '' }
       }
+      // When switching to multi-select operators, initialize value as empty array
+      if (updates.operator && (updates.operator === 'is_any_of' || updates.operator === 'is_none_of')) {
+        if (!Array.isArray(c.value)) {
+          return { ...c, ...updates, value: [] }
+        }
+      }
+      // When switching away from multi-select operators, reset to string
+      if (updates.operator && updates.operator !== 'is_any_of' && updates.operator !== 'is_none_of') {
+        if (Array.isArray(c.value)) {
+          return { ...c, ...updates, value: '' }
+        }
+      }
       return { ...c, ...updates }
     }))
   }, [filterConditions])
@@ -685,14 +697,48 @@ export default function LeadsPage() {
                     </select>
                     {needsValue && (
                       fieldConfig?.type === 'select' ? (
-                        <select
-                          className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
-                          value={condition.value as string}
-                          onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
-                        >
-                          <option value="">Select...</option>
-                          {fieldConfig.options?.map((opt) => <option key={opt} value={opt}>{opt}</option>)}
-                        </select>
+                        // Multi-select for is_any_of and is_none_of operators
+                        (condition.operator === 'is_any_of' || condition.operator === 'is_none_of') ? (
+                          <div className="flex flex-wrap gap-1 min-w-[200px] max-w-[400px] p-2 rounded-md border border-input bg-background">
+                            {(fieldConfig.key === 'status' ? STATUS_OPTIONS : fieldConfig.options || []).map((opt) => {
+                              const selectedValues = Array.isArray(condition.value) ? condition.value : []
+                              const isSelected = selectedValues.includes(opt)
+                              return (
+                                <button
+                                  key={opt}
+                                  type="button"
+                                  className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
+                                    isSelected
+                                      ? 'bg-primary text-primary-foreground'
+                                      : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                                  }`}
+                                  onClick={() => {
+                                    const newValues = isSelected
+                                      ? selectedValues.filter((v: string) => v !== opt)
+                                      : [...selectedValues, opt]
+                                    updateFilterCondition(condition.id, { value: newValues })
+                                  }}
+                                >
+                                  {opt}
+                                </button>
+                              )
+                            })}
+                            {Array.isArray(condition.value) && condition.value.length > 0 && (
+                              <span className="text-xs text-muted-foreground ml-2 self-center">
+                                ({condition.value.length} selected)
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <select
+                            className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                            value={condition.value as string}
+                            onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                          >
+                            <option value="">Select...</option>
+                            {(fieldConfig.key === 'status' ? STATUS_OPTIONS : fieldConfig.options || []).map((opt) => <option key={opt} value={opt}>{opt}</option>)}
+                          </select>
+                        )
                       ) : fieldConfig?.type === 'number' ? (
                         <Input
                           type="number"
