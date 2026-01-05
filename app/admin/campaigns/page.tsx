@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { formatCurrency } from '@/lib/utils'
+import { AIOverview } from '@/components/ai/AIOverview'
+import { EditableCell } from '@/components/ui/editable-cell'
 import type { Campaign } from '@/types'
 import {
   Plus,
@@ -25,6 +27,7 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  Pencil,
 } from 'lucide-react'
 
 interface DevelopmentGroup {
@@ -46,7 +49,7 @@ interface NewCampaign {
 
 export default function CampaignsPage() {
   const router = useRouter()
-  const { campaigns, leads, isLoading, createCampaign } = useData()
+  const { campaigns, leads, isLoading, createCampaign, updateCampaign } = useData()
   const [search, setSearch] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -59,6 +62,59 @@ export default function CampaignsPage() {
     status: 'active',
     spend: 0,
   })
+
+  // Count leads from buyers table for each campaign
+  const leadCountBycampaign = useMemo(() => {
+    const counts: Record<string, number> = {}
+
+    leads.forEach((lead) => {
+      // Match by campaign_id or campaign name
+      const campaignKey = lead.campaign_id || lead.campaign
+      if (campaignKey) {
+        counts[campaignKey] = (counts[campaignKey] || 0) + 1
+      }
+    })
+
+    // Also match by campaign name (case insensitive)
+    campaigns.forEach((campaign) => {
+      if (!counts[campaign.id]) {
+        const matchedLeads = leads.filter(
+          (lead) =>
+            lead.campaign?.toLowerCase() === campaign.name?.toLowerCase() ||
+            lead.campaign_id === campaign.id
+        ).length
+        if (matchedLeads > 0) {
+          counts[campaign.id] = matchedLeads
+        }
+      }
+    })
+
+    return counts
+  }, [leads, campaigns])
+
+  // Get actual lead count for a campaign
+  const getLeadCount = useCallback((campaign: Campaign): number => {
+    return leadCountBycampaign[campaign.id] ||
+           leadCountBycampaign[campaign.name] ||
+           0
+  }, [leadCountBycampaign])
+
+  // Handler for inline cell editing
+  const handleCellSave = async (rowId: string, field: string, value: string | number): Promise<boolean> => {
+    try {
+      if (updateCampaign) {
+        await updateCampaign(rowId, { [field]: value })
+        setMessage({ type: 'success', text: 'Campaign updated successfully!' })
+        setTimeout(() => setMessage(null), 2000)
+        return true
+      }
+      return false
+    } catch (error) {
+      console.error('Error updating campaign:', error)
+      setMessage({ type: 'error', text: 'Failed to update campaign.' })
+      return false
+    }
+  }
 
   // Group campaigns by development name (not client)
   const groupedCampaigns = useMemo(() => {
@@ -103,8 +159,10 @@ export default function CampaignsPage() {
         }
       }
 
-      // Use 'total leads' column from campaigns table
-      const campaignLeads = campaign.leads || 0
+      // Count leads from buyers table instead of campaigns table
+      const campaignLeads = leadCountBycampaign[campaign.id] ||
+                            leadCountBycampaign[campaign.name] ||
+                            0
 
       groups[groupName].campaigns.push(campaign)
       groups[groupName].totalSpend += campaign.spend || 0
@@ -127,7 +185,7 @@ export default function CampaignsPage() {
       if (b.name === 'Uncategorized Campaigns') return -1
       return b.totalSpend - a.totalSpend
     })
-  }, [campaigns])
+  }, [campaigns, leadCountBycampaign])
 
   // Filter groups based on search
   const filteredGroups = useMemo(() => {
@@ -199,12 +257,22 @@ export default function CampaignsPage() {
 
   return (
     <div className="space-y-6">
+      {/* AI Overview */}
+      <AIOverview
+        pageType="campaigns"
+        className="mb-2"
+      />
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Campaigns</h2>
           <p className="text-sm text-muted-foreground">
             {totalStats.totalCampaigns} campaigns across {groupedCampaigns.length} developments
+          </p>
+          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+            <Pencil className="h-3 w-3" />
+            Double-click any cell to edit inline
           </p>
         </div>
         <Button onClick={() => setIsModalOpen(true)}>
@@ -373,31 +441,46 @@ export default function CampaignsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-6">
-                            <div className="text-right">
-                              <p className="text-sm font-medium">
-                                {formatCurrency(campaign.spend || campaign.amount_spent || 0)}
-                              </p>
+                            <div className="text-right" onClick={(e) => e.stopPropagation()}>
+                              <EditableCell
+                                value={campaign.spend || campaign.amount_spent || 0}
+                                field="spend"
+                                rowId={campaign.id}
+                                type="number"
+                                onSave={handleCellSave}
+                                displayValue={formatCurrency(campaign.spend || campaign.amount_spent || 0)}
+                                className="text-sm font-medium justify-end"
+                              />
                               <p className="text-xs text-muted-foreground">Spend</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-medium">
-                                {campaign.leads || 0}
+                              <p className="text-sm font-medium text-primary">
+                                {getLeadCount(campaign)}
                               </p>
                               <p className="text-xs text-muted-foreground">Leads</p>
                             </div>
                             <div className="text-right w-16">
-                              <div className="flex items-center justify-end gap-1">
-                                <span className={`text-sm font-medium ${
-                                  (campaign.cpl || 0) > 50 ? 'text-destructive' : 'text-success'
-                                }`}>
-                                  £{campaign.cpl || campaign.cost_per_lead || 0}
-                                </span>
-                                {(campaign.cpl || 0) < 50 ? (
-                                  <TrendingDown className="h-3 w-3 text-success" />
-                                ) : (
-                                  <TrendingUp className="h-3 w-3 text-destructive" />
-                                )}
-                              </div>
+                              {(() => {
+                                const actualLeads = getLeadCount(campaign)
+                                const spend = campaign.spend || campaign.amount_spent || 0
+                                const actualCPL = actualLeads > 0 ? Math.round(spend / actualLeads) : 0
+                                return (
+                                  <>
+                                    <div className="flex items-center justify-end gap-1">
+                                      <span className={`text-sm font-medium ${
+                                        actualCPL > 50 ? 'text-destructive' : 'text-success'
+                                      }`}>
+                                        £{actualCPL}
+                                      </span>
+                                      {actualCPL < 50 ? (
+                                        <TrendingDown className="h-3 w-3 text-success" />
+                                      ) : (
+                                        <TrendingUp className="h-3 w-3 text-destructive" />
+                                      )}
+                                    </div>
+                                  </>
+                                )
+                              })()}
                               <p className="text-xs text-muted-foreground">CPL</p>
                             </div>
                           </div>
