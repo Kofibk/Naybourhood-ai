@@ -539,8 +539,8 @@ function LoginPageInner() {
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
                     id: 'test-admin',
-                    email: 'admin@test.com',
-                    name: 'Test Admin',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'admin',
                   }))
                   router.push('/admin')
