@@ -10,6 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { useData } from '@/contexts/DataContext'
 import { AIOverview } from '@/components/ai/AIOverview'
 import { EditableCell, EditableScore } from '@/components/ui/editable-cell'
+import { useAutoScore } from '@/hooks/useAutoScore'
 import type { Buyer } from '@/types'
 import {
   Search,
@@ -31,6 +32,8 @@ import {
   Plus,
   Trash2,
   Thermometer,
+  Zap,
+  Bot,
 } from 'lucide-react'
 
 type SortField = 'full_name' | 'quality_score' | 'ai_confidence' | 'budget' | 'status' | 'created_at' | 'assigned_user_name' | 'source' | 'campaign'
@@ -315,6 +318,22 @@ export default function LeadsPage() {
   const [pageSize, setPageSize] = useState(DEFAULT_PREFERENCES.pageSize)
   const [pendingChanges, setPendingChanges] = useState<Record<string, Record<string, any>>>({})
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set())
+  const [autoScoreEnabled, setAutoScoreEnabled] = useState(true)
+
+  // Auto-score leads without AI scores
+  const { isScoring, scoredCount } = useAutoScore({
+    leads,
+    enabled: autoScoreEnabled && !isLoading && leads.length > 0,
+    batchSize: 3,  // Score 3 leads at a time
+    delayBetweenBatches: 500,  // 500ms between batches
+    onScoreComplete: (results) => {
+      const successCount = results.filter(r => r.success).length
+      if (successCount > 0) {
+        console.log(`[LeadsPage] Auto-scored ${successCount} leads, refreshing data...`)
+        refreshData()  // Refresh to get updated scores
+      }
+    },
+  })
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -627,7 +646,14 @@ export default function LeadsPage() {
               : `Showing ${filteredLeads.length.toLocaleString()} of ${leads.length.toLocaleString()} leads`}
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex items-center gap-2">
+          {/* Auto-scoring indicator */}
+          {isScoring && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/10 text-primary text-sm">
+              <Bot className="h-4 w-4 animate-pulse" />
+              <span>AI scoring leads...</span>
+            </div>
+          )}
           <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
