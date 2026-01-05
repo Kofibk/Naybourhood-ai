@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Textarea } from '@/components/ui/textarea'
 import { useData } from '@/contexts/DataContext'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
@@ -33,6 +34,14 @@ import {
   ChevronUp,
   Clock,
   Zap,
+  DollarSign,
+  MapPin,
+  FileText,
+  Hash,
+  Globe,
+  Briefcase,
+  Home,
+  Save,
 } from 'lucide-react'
 
 // Status options
@@ -51,39 +60,38 @@ const STATUS_OPTIONS = [
 ]
 
 // Classification colors and labels
-const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  'Hot': { bg: 'bg-red-500', text: 'text-white', label: 'Hot' },
-  'Warm-Qualified': { bg: 'bg-orange-500', text: 'text-white', label: 'Warm (Qualified)' },
-  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm (Engaged)' },
-  'Nurture-Premium': { bg: 'bg-blue-500', text: 'text-white', label: 'Nurture (Premium)' },
-  'Nurture-Standard': { bg: 'bg-blue-400', text: 'text-white', label: 'Nurture' },
-  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold' },
-  'Disqualified': { bg: 'bg-gray-600', text: 'text-white', label: 'Disqualified' },
-  'Spam': { bg: 'bg-red-700', text: 'text-white', label: 'Spam' },
+const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string; description: string }> = {
+  'Hot': { bg: 'bg-red-500', text: 'text-white', label: 'Hot', description: 'Quality ≥70 AND Intent ≥70. Ready to buy. Respond within 1 hour.' },
+  'Warm-Qualified': { bg: 'bg-orange-500', text: 'text-white', label: 'Warm (Qualified)', description: 'Quality ≥70, Intent ≥45. Financially ready but needs nurturing.' },
+  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm (Engaged)', description: 'Quality ≥45, Intent ≥70. Highly interested but needs qualification.' },
+  'Nurture': { bg: 'bg-blue-400', text: 'text-white', label: 'Nurture', description: 'Quality 35-69, Intent 35-69. Requires longer-term engagement.' },
+  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold', description: 'Lower scores. May need re-engagement or qualification.' },
+  'Disqualified': { bg: 'bg-gray-600', text: 'text-white', label: 'Disqualified', description: 'Quality <20 OR Intent <20. Not suitable for current inventory.' },
+  'Spam': { bg: 'bg-red-700', text: 'text-white', label: 'Spam', description: 'Detected as spam or fake lead.' },
 }
 
-const PRIORITY_CONFIG: Record<string, { bg: string; label: string; time: string }> = {
-  'P1': { bg: 'bg-red-100 text-red-800 border-red-300', label: 'P1 - Urgent', time: '< 1 hour' },
-  'P2': { bg: 'bg-orange-100 text-orange-800 border-orange-300', label: 'P2 - High', time: '< 4 hours' },
-  'P3': { bg: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: 'P3 - Medium', time: '< 24 hours' },
-  'P4': { bg: 'bg-gray-100 text-gray-800 border-gray-300', label: 'P4 - Low', time: '48+ hours' },
+const PRIORITY_CONFIG: Record<string, { bg: string; label: string; time: string; description: string }> = {
+  'P1': { bg: 'bg-red-100 text-red-800 border-red-300', label: 'P1 - Urgent', time: '< 1 hour', description: 'Hot leads - respond immediately' },
+  'P2': { bg: 'bg-orange-100 text-orange-800 border-orange-300', label: 'P2 - High', time: '< 4 hours', description: 'Warm leads - respond same day' },
+  'P3': { bg: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: 'P3 - Medium', time: '< 24 hours', description: 'Nurture leads - respond within a day' },
+  'P4': { bg: 'bg-gray-100 text-gray-800 border-gray-300', label: 'P4 - Low', time: '48+ hours', description: 'Cold/Disqualified - low priority' },
 }
 
 // Boolean Indicator Component
-function BooleanIndicator({ value }: { value: boolean | undefined | null }) {
+function BooleanIndicator({ value, showText = true }: { value: boolean | undefined | null; showText?: boolean }) {
   return value ? (
-    <span className="text-green-500 flex items-center gap-1">
-      <CheckCircle className="h-4 w-4" /> Yes
+    <span className="text-green-600 flex items-center gap-1">
+      <CheckCircle className="h-4 w-4" /> {showText && 'Yes'}
     </span>
   ) : (
-    <span className="text-red-500 flex items-center gap-1">
-      <XCircle className="h-4 w-4" /> No
+    <span className="text-red-400 flex items-center gap-1">
+      <XCircle className="h-4 w-4" /> {showText && 'No'}
     </span>
   )
 }
 
 // Score Card with Progress Bar
-function ScoreCard({ label, score, maxScore = 100 }: { label: string; score: number; maxScore?: number }) {
+function ScoreCard({ label, score, maxScore = 100, explanation }: { label: string; score: number; maxScore?: number; explanation?: string }) {
   const percentage = (score / maxScore) * 100
   const getColor = (p: number) => {
     if (p >= 70) return 'bg-green-500'
@@ -92,40 +100,52 @@ function ScoreCard({ label, score, maxScore = 100 }: { label: string; score: num
   }
 
   return (
-    <div className="border rounded-lg p-3 min-w-[120px] bg-card">
-      <div className="text-sm text-muted-foreground">{label}</div>
-      <div className="text-2xl font-bold">{score}{maxScore !== 100 && <span className="text-sm text-muted-foreground">/{maxScore}</span>}</div>
-      <div className="w-full h-2 bg-muted rounded-full mt-1">
+    <div className="border rounded-lg p-4 min-w-[140px] bg-card">
+      <div className="text-sm text-muted-foreground mb-1">{label}</div>
+      <div className="text-3xl font-bold">{score}{maxScore !== 100 && <span className="text-lg text-muted-foreground">/{maxScore}</span>}</div>
+      <div className="w-full h-2 bg-muted rounded-full mt-2">
         <div
           className={`h-2 rounded-full transition-all ${getColor(percentage)}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
+      {explanation && (
+        <p className="text-xs text-muted-foreground mt-2">{explanation}</p>
+      )}
     </div>
   )
 }
 
-// Classification Badge
-function ClassificationBadge({ classification, size = 'sm' }: { classification: string; size?: 'sm' | 'lg' }) {
+// Classification Badge with Explanation
+function ClassificationBadge({ classification, showExplanation = false }: { classification: string; showExplanation?: boolean }) {
   const config = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Cold']
-  const sizeClasses = size === 'lg' ? 'px-4 py-2 text-lg' : 'px-3 py-1.5 text-sm'
 
   return (
-    <span className={`rounded-lg font-medium ${config.bg} ${config.text} ${sizeClasses}`}>
-      {config.label}
-    </span>
+    <div>
+      <span className={`rounded-lg font-medium px-4 py-2 text-lg ${config.bg} ${config.text}`}>
+        {config.label}
+      </span>
+      {showExplanation && (
+        <p className="text-xs text-muted-foreground mt-2 max-w-xs">{config.description}</p>
+      )}
+    </div>
   )
 }
 
-// Priority Badge
-function PriorityBadge({ priority }: { priority: string }) {
+// Priority Badge with Explanation
+function PriorityBadge({ priority, showExplanation = false }: { priority: string; showExplanation?: boolean }) {
   const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG['P4']
 
   return (
-    <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bg}`}>
-      <Clock className="w-4 h-4" />
-      <span className="font-medium">{config.label}</span>
-      <span className="text-xs opacity-75">({config.time})</span>
+    <div>
+      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bg}`}>
+        <Clock className="w-4 h-4" />
+        <span className="font-medium">{config.label}</span>
+        <span className="text-xs opacity-75">({config.time})</span>
+      </div>
+      {showExplanation && (
+        <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
+      )}
     </div>
   )
 }
@@ -133,7 +153,7 @@ function PriorityBadge({ priority }: { priority: string }) {
 // Payment Badge
 function PaymentBadge({ method }: { method: string | undefined | null }) {
   if (!method) return <span className="text-muted-foreground">-</span>
-  const isCash = method === 'Cash'
+  const isCash = method.toLowerCase() === 'cash'
   return (
     <span className={`px-2 py-1 rounded text-xs font-medium ${isCash ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
       {method} {isCash && '✓'}
@@ -141,51 +161,75 @@ function PaymentBadge({ method }: { method: string | undefined | null }) {
   )
 }
 
-// Score Breakdown Component
-function ScoreBreakdown({
+// Data Row Component for consistent styling
+function DataRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground flex items-center gap-2">
+        {Icon && <Icon className="w-4 h-4" />}
+        {label}
+      </span>
+      <span className="text-sm font-medium text-right max-w-[60%] truncate">{value || '-'}</span>
+    </div>
+  )
+}
+
+// Score Breakdown Section
+function ScoreBreakdownSection({
   title,
-  breakdown,
+  items,
   isOpen,
   onToggle
 }: {
   title: string
-  breakdown: { score: number; maxScore: number; details: string[] }[]
+  items: Array<{ label: string; score: number; maxScore: number; details?: string[] }>
   isOpen: boolean
   onToggle: () => void
 }) {
-  const total = breakdown.reduce((sum, b) => sum + b.score, 0)
-  const maxTotal = breakdown.reduce((sum, b) => sum + b.maxScore, 0)
+  const total = items.reduce((sum, item) => sum + item.score, 0)
+  const maxTotal = items.reduce((sum, item) => sum + item.maxScore, 0)
+  const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0
 
   return (
     <div className="border rounded-lg overflow-hidden">
       <button
         onClick={onToggle}
-        className="w-full flex items-center justify-between p-3 bg-muted/50 hover:bg-muted transition-colors"
+        className="w-full flex items-center justify-between p-3 bg-muted/50 hover:bg-muted transition-colors text-left"
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="font-medium">{title}</span>
-          <span className="text-sm text-muted-foreground">({total}/{maxTotal})</span>
+          <span className="text-sm text-muted-foreground">{total}/{maxTotal} pts</span>
         </div>
-        {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        <div className="flex items-center gap-2">
+          <div className="w-20 h-2 bg-muted rounded-full">
+            <div
+              className={`h-2 rounded-full ${percentage >= 70 ? 'bg-green-500' : percentage >= 45 ? 'bg-orange-500' : 'bg-gray-400'}`}
+              style={{ width: `${percentage}%` }}
+            />
+          </div>
+          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+        </div>
       </button>
       {isOpen && (
-        <div className="p-3 space-y-3">
-          {breakdown.map((item, i) => (
+        <div className="p-3 space-y-3 bg-card">
+          {items.map((item, i) => (
             <div key={i} className="space-y-1">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{getBreakdownLabel(title, i)}</span>
+                <span className="text-muted-foreground">{item.label}</span>
                 <span className="font-medium">{item.score}/{item.maxScore}</span>
               </div>
               <div className="w-full h-1.5 bg-muted rounded-full">
                 <div
                   className="h-1.5 rounded-full bg-primary transition-all"
-                  style={{ width: `${(item.score / item.maxScore) * 100}%` }}
+                  style={{ width: `${item.maxScore > 0 ? (item.score / item.maxScore) * 100 : 0}%` }}
                 />
               </div>
-              {item.details.length > 0 && (
-                <ul className="text-xs text-muted-foreground mt-1 space-y-0.5">
+              {item.details && item.details.length > 0 && (
+                <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 pl-2">
                   {item.details.map((d, j) => (
-                    <li key={j}>{d}</li>
+                    <li key={j} className="flex items-start gap-1">
+                      <span className="text-primary">•</span> {d}
+                    </li>
                   ))}
                 </ul>
               )}
@@ -197,19 +241,6 @@ function ScoreBreakdown({
   )
 }
 
-function getBreakdownLabel(title: string, index: number): string {
-  if (title === 'Quality Score') {
-    return ['Profile Completeness', 'Financial Qualification', 'Verification Status', 'Inventory Fit'][index] || ''
-  }
-  if (title === 'Intent Score') {
-    return ['Timeline', 'Purpose', 'Engagement', 'Commitment', 'Negative Modifiers'][index] || ''
-  }
-  if (title === 'Confidence Score') {
-    return ['Data Completeness', 'Verification Level', 'Engagement Data', 'Transcript Quality'][index] || ''
-  }
-  return ''
-}
-
 export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -217,12 +248,21 @@ export default function LeadDetailPage() {
 
   const [isRescoring, setIsRescoring] = useState(false)
   const [scoreResult, setScoreResult] = useState<ScoreBuyerResponse | null>(null)
-  const [openBreakdown, setOpenBreakdown] = useState<string | null>(null)
+  const [openBreakdown, setOpenBreakdown] = useState<string | null>('quality')
   const [hasAutoScored, setHasAutoScored] = useState(false)
+  const [editingNotes, setEditingNotes] = useState(false)
+  const [notesValue, setNotesValue] = useState('')
 
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
   }, [leads, params.id])
+
+  // Initialize notes value when lead loads
+  useEffect(() => {
+    if (lead?.notes) {
+      setNotesValue(lead.notes)
+    }
+  }, [lead?.notes])
 
   const handleStatusChange = async (status: string) => {
     if (!lead) return
@@ -232,6 +272,12 @@ export default function LeadDetailPage() {
   const handleAssigneeChange = async (assignee: string) => {
     if (!lead) return
     await updateLead(lead.id, { assigned_to: assignee })
+  }
+
+  const handleSaveNotes = async () => {
+    if (!lead) return
+    await updateLead(lead.id, { notes: notesValue })
+    setEditingNotes(false)
   }
 
   const handleRescore = async () => {
@@ -247,15 +293,17 @@ export default function LeadDetailPage() {
 
       if (response.ok) {
         const result = await response.json() as ScoreBuyerResponse
+        console.log('[LeadDetail] Score result:', result)
         setScoreResult(result)
-        // Refresh data to get updated lead
         await refreshData()
       } else {
         const errorData = await response.json()
         console.error('[LeadDetail] Score API error:', errorData)
+        alert(`Scoring failed: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Failed to score lead:', error)
+      alert('Failed to score lead. Check console for details.')
     } finally {
       setIsRescoring(false)
     }
@@ -274,7 +322,6 @@ export default function LeadDetailPage() {
     if (shouldAutoScore) {
       console.log('[LeadDetail] Auto-scoring lead:', lead.id)
       setHasAutoScored(true)
-      // Delay to avoid race conditions
       setTimeout(() => {
         handleRescore()
       }, 500)
@@ -295,6 +342,17 @@ export default function LeadDetailPage() {
     })
   }
 
+  const formatDateTime = (dateString?: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -306,7 +364,7 @@ export default function LeadDetailPage() {
   // Show scoring indicator if auto-scoring on first load
   if (isRescoring && !scoreResult) {
     return (
-      <div className="max-w-6xl mx-auto space-y-6">
+      <div className="max-w-7xl mx-auto space-y-6">
         <Link href="/admin/leads" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" />
           Back to Leads
@@ -350,9 +408,32 @@ export default function LeadDetailPage() {
   const nextAction = scoreResult?.next_action ?? lead.ai_next_action
   const riskFlags = scoreResult?.risk_flags ?? lead.ai_risk_flags ?? []
   const recommendations = scoreResult?.recommendations ?? lead.ai_recommendations ?? []
+  const scoreBreakdown = scoreResult?.score_breakdown
+
+  // Generate explanation for why scores are what they are
+  const getScoreExplanation = () => {
+    const reasons: string[] = []
+
+    // Quality factors
+    if (lead.payment_method?.toLowerCase() === 'cash') reasons.push('Cash buyer (+15 quality)')
+    if (lead.proof_of_funds) reasons.push('Proof of funds verified (+10 quality)')
+    if (lead.uk_broker) reasons.push('UK Broker connected (+8 quality)')
+    if (lead.uk_solicitor) reasons.push('UK Solicitor in place (+7 quality)')
+    if (!lead.email && !lead.phone) reasons.push('Missing contact info (-10 quality)')
+
+    // Intent factors
+    if (lead.status === 'Viewing Booked' || lead.status === 'Negotiating') reasons.push('Active engagement (+25 intent)')
+    if (lead.status === 'Reserved' || lead.status === 'Exchanged') reasons.push('Committed stage (+25 intent)')
+    if (lead.timeline?.toLowerCase().includes('immediate') || lead.timeline?.toLowerCase().includes('asap')) reasons.push('Immediate timeline (+30 intent)')
+    if (lead.status === 'Not Proceeding') reasons.push('Not proceeding (-50 intent)')
+
+    return reasons
+  }
+
+  const scoreReasons = getScoreExplanation()
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-7xl mx-auto space-y-6">
       {/* ═══════════════════════════════════════════════════════════════════
           HEADER SECTION
       ═══════════════════════════════════════════════════════════════════ */}
@@ -364,41 +445,82 @@ export default function LeadDetailPage() {
             Back to Leads
           </Link>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={() => router.push(`/admin/leads/${lead.id}/edit`)}>
-              <Edit className="w-4 h-4 mr-1" /> Edit
-            </Button>
             <Button variant="outline" size="sm" onClick={handleArchive}>
               <Archive className="w-4 h-4 mr-1" /> Archive
             </Button>
           </div>
         </div>
 
-        {/* Lead Info */}
+        {/* Lead Name & Contact */}
         <div>
-          <h1 className="text-2xl font-bold">
+          <h1 className="text-3xl font-bold">
             {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
           </h1>
-          <p className="text-muted-foreground">
-            {lead.email || '-'} · {lead.phone || '-'} · {lead.country || '-'}
-          </p>
+          <div className="flex flex-wrap gap-4 text-muted-foreground mt-1">
+            {lead.email && (
+              <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-foreground">
+                <Mail className="w-4 h-4" /> {lead.email}
+              </a>
+            )}
+            {lead.phone && (
+              <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-foreground">
+                <Phone className="w-4 h-4" /> {lead.phone}
+              </a>
+            )}
+            {lead.country && (
+              <span className="flex items-center gap-1">
+                <Globe className="w-4 h-4" /> {lead.country}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Score Cards Row */}
-        <div className="flex gap-4 items-center flex-wrap">
-          <ScoreCard label="Quality" score={qualityScore} />
-          <ScoreCard label="Intent" score={intentScore} />
-          <ScoreCard label="Confidence" score={confidenceScore} maxScore={10} />
-          <ClassificationBadge classification={classification} size="lg" />
+        <div className="flex gap-4 items-start flex-wrap">
+          <ScoreCard
+            label="Quality Score"
+            score={qualityScore}
+            explanation="How qualified is this lead?"
+          />
+          <ScoreCard
+            label="Intent Score"
+            score={intentScore}
+            explanation="How ready to buy?"
+          />
+          <ScoreCard
+            label="Confidence"
+            score={Math.round(confidenceScore)}
+            maxScore={10}
+            explanation="AI certainty level"
+          />
+          <ClassificationBadge classification={classification} showExplanation />
         </div>
 
         {/* Priority + Rescore */}
-        <div className="flex justify-between items-center flex-wrap gap-4">
-          <PriorityBadge priority={priority} />
-          <Button variant="outline" size="sm" onClick={handleRescore} disabled={isRescoring}>
-            <RefreshCw className={`w-4 h-4 mr-1 ${isRescoring ? 'animate-spin' : ''}`} />
+        <div className="flex justify-between items-start flex-wrap gap-4">
+          <PriorityBadge priority={priority} showExplanation />
+          <Button variant="default" onClick={handleRescore} disabled={isRescoring}>
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRescoring ? 'animate-spin' : ''}`} />
             {isRescoring ? 'Scoring...' : 'Re-score with AI'}
           </Button>
         </div>
+
+        {/* Score Reasons Summary */}
+        {scoreReasons.length > 0 && (
+          <div className="bg-muted/50 rounded-lg p-4">
+            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-yellow-500" />
+              Why these scores?
+            </h4>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
+              {scoreReasons.map((reason, i) => (
+                <li key={i} className="text-sm text-muted-foreground flex items-center gap-1">
+                  <span className="text-primary">•</span> {reason}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Spam Warning */}
         {scoreResult?.is_spam && (
@@ -417,56 +539,74 @@ export default function LeadDetailPage() {
       </div>
 
       {/* ═══════════════════════════════════════════════════════════════════
-          TWO COLUMN LAYOUT
+          THREE COLUMN LAYOUT
       ═══════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* ─────────────────────────────────────────────────────────────────
-            LEFT COLUMN - AI INSIGHTS
+            COLUMN 1 - AI INSIGHTS & ACTIONS
         ───────────────────────────────────────────────────────────────── */}
         <div className="space-y-4">
           {/* AI Summary */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="w-4 h-4" />
+                <Bot className="w-4 h-4 text-primary" />
                 AI Summary
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground leading-relaxed">
+              <p className="text-sm leading-relaxed">
                 {summary || 'No AI summary available. Click "Re-score with AI" to generate.'}
               </p>
             </CardContent>
           </Card>
 
           {/* Next Action */}
-          <Card>
+          <Card className="border-primary/50 bg-primary/5">
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Target className="w-4 h-4" />
-                Next Action
+                <Target className="w-4 h-4 text-primary" />
+                Recommended Next Action
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm mb-3">{nextAction || 'No action recommended'}</p>
-              {nextAction && (
-                <Button size="sm">
-                  <Zap className="w-4 h-4 mr-1" /> Do It
-                </Button>
-              )}
+              <p className="text-sm font-medium mb-3">{nextAction || 'No action recommended'}</p>
+              <div className="flex gap-2 flex-wrap">
+                {lead.phone && (
+                  <Button size="sm" asChild>
+                    <a href={`tel:${lead.phone}`}>
+                      <Phone className="w-4 h-4 mr-1" /> Call
+                    </a>
+                  </Button>
+                )}
+                {lead.email && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`mailto:${lead.email}`}>
+                      <Mail className="w-4 h-4 mr-1" /> Email
+                    </a>
+                  </Button>
+                )}
+                {lead.phone && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
+                      <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
+                    </a>
+                  </Button>
+                )}
+              </div>
             </CardContent>
           </Card>
 
           {/* Recommendations */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Lightbulb className="w-4 h-4" />
-                Recommendations
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {recommendations.length > 0 ? (
+          {recommendations.length > 0 && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Lightbulb className="w-4 h-4" />
+                  AI Recommendations
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
                 <ul className="space-y-2">
                   {recommendations.map((rec, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
@@ -475,11 +615,9 @@ export default function LeadDetailPage() {
                     </li>
                   ))}
                 </ul>
-              ) : (
-                <p className="text-sm text-muted-foreground">No recommendations yet. Re-score to generate.</p>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Risk Flags */}
           {riskFlags.length > 0 && (
@@ -504,200 +642,155 @@ export default function LeadDetailPage() {
           )}
 
           {/* Score Breakdown */}
-          {scoreResult?.score_breakdown && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BarChart3 className="w-4 h-4" />
-                  Score Breakdown
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <ScoreBreakdown
-                  title="Quality Score"
-                  breakdown={[
-                    scoreResult.score_breakdown.quality.profileCompleteness,
-                    scoreResult.score_breakdown.quality.financialQualification,
-                    scoreResult.score_breakdown.quality.verificationStatus,
-                    scoreResult.score_breakdown.quality.inventoryFit,
-                  ]}
-                  isOpen={openBreakdown === 'quality'}
-                  onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
-                />
-                <ScoreBreakdown
-                  title="Intent Score"
-                  breakdown={[
-                    scoreResult.score_breakdown.intent.timeline,
-                    scoreResult.score_breakdown.intent.purpose,
-                    scoreResult.score_breakdown.intent.engagement,
-                    scoreResult.score_breakdown.intent.commitment,
-                    scoreResult.score_breakdown.intent.negativeModifiers,
-                  ]}
-                  isOpen={openBreakdown === 'intent'}
-                  onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
-                />
-                <ScoreBreakdown
-                  title="Confidence Score"
-                  breakdown={[
-                    scoreResult.score_breakdown.confidence.dataCompleteness,
-                    scoreResult.score_breakdown.confidence.verificationLevel,
-                    scoreResult.score_breakdown.confidence.engagementData,
-                    scoreResult.score_breakdown.confidence.transcriptQuality,
-                  ]}
-                  isOpen={openBreakdown === 'confidence'}
-                  onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
-                />
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Viewing */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Calendar className="w-4 h-4" />
-                Viewing
+                <BarChart3 className="w-4 h-4" />
+                Score Breakdown
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Intent Confirmed</span>
-                <BooleanIndicator value={lead.status === 'Viewing Booked' || lead.status === 'Negotiating'} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Viewing Booked</span>
-                <BooleanIndicator value={lead.status === 'Viewing Booked'} />
-              </div>
-              {lead.status !== 'Viewing Booked' && (
-                <Button size="sm" className="w-full mt-2" onClick={() => handleStatusChange('Viewing Booked')}>
-                  Book Viewing
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Communication History */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Communication History
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {lead.notes ? (
-                <div>
-                  <p className="text-xs text-muted-foreground mb-1">Notes</p>
-                  <div className="bg-muted rounded-lg p-3 max-h-[200px] overflow-y-auto">
-                    <pre className="text-xs whitespace-pre-wrap font-sans">{lead.notes}</pre>
-                  </div>
-                </div>
+            <CardContent className="space-y-2">
+              {scoreBreakdown ? (
+                <>
+                  <ScoreBreakdownSection
+                    title="Quality Score"
+                    items={[
+                      { label: 'Profile Completeness', ...scoreBreakdown.quality.profileCompleteness },
+                      { label: 'Financial Qualification', ...scoreBreakdown.quality.financialQualification },
+                      { label: 'Verification Status', ...scoreBreakdown.quality.verificationStatus },
+                      { label: 'Inventory Fit', ...scoreBreakdown.quality.inventoryFit },
+                    ]}
+                    isOpen={openBreakdown === 'quality'}
+                    onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
+                  />
+                  <ScoreBreakdownSection
+                    title="Intent Score"
+                    items={[
+                      { label: 'Timeline', ...scoreBreakdown.intent.timeline },
+                      { label: 'Purpose/Payment', ...scoreBreakdown.intent.purpose },
+                      { label: 'Engagement', ...scoreBreakdown.intent.engagement },
+                      { label: 'Commitment', ...scoreBreakdown.intent.commitment },
+                      { label: 'Negative Modifiers', ...scoreBreakdown.intent.negativeModifiers },
+                    ]}
+                    isOpen={openBreakdown === 'intent'}
+                    onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
+                  />
+                  <ScoreBreakdownSection
+                    title="Confidence Score"
+                    items={[
+                      { label: 'Data Completeness', ...scoreBreakdown.confidence.dataCompleteness },
+                      { label: 'Verification Level', ...scoreBreakdown.confidence.verificationLevel },
+                      { label: 'Engagement Data', ...scoreBreakdown.confidence.engagementData },
+                      { label: 'Transcript Quality', ...scoreBreakdown.confidence.transcriptQuality },
+                    ]}
+                    isOpen={openBreakdown === 'confidence'}
+                    onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
+                  />
+                </>
               ) : (
-                <p className="text-sm text-muted-foreground">No communication history</p>
+                <p className="text-sm text-muted-foreground">Re-score to see detailed breakdown</p>
               )}
-              {/* Quick Actions */}
-              <div className="flex gap-2 pt-2">
-                {lead.phone && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`tel:${lead.phone}`}>
-                      <Phone className="w-4 h-4 mr-1" /> Call
-                    </a>
-                  </Button>
-                )}
-                {lead.email && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`mailto:${lead.email}`}>
-                      <Mail className="w-4 h-4 mr-1" /> Email
-                    </a>
-                  </Button>
-                )}
-                {lead.phone && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
-                      <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
-                    </a>
-                  </Button>
-                )}
-              </div>
             </CardContent>
           </Card>
         </div>
 
         {/* ─────────────────────────────────────────────────────────────────
-            RIGHT COLUMN - BUYER DATA
+            COLUMN 2 - BUYER PROFILE & REQUIREMENTS
         ───────────────────────────────────────────────────────────────── */}
         <div className="space-y-4">
-          {/* Buyer Profile */}
+          {/* Contact Information */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <User className="w-4 h-4" />
-                Buyer Profile
+                Contact Information
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Budget</span>
-                <span>{lead.budget_range || lead.budget || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Payment</span>
-                <PaymentBadge method={lead.payment_method} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Mortgage Status</span>
-                <span>{lead.mortgage_status || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Bedrooms</span>
-                <span>{lead.preferred_bedrooms || lead.bedrooms || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Location</span>
-                <span>{lead.location || lead.area || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Timeline</span>
-                <span>{lead.timeline || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Country</span>
-                <span>{lead.country || '-'}</span>
-              </div>
-
-              <div className="border-t border-border my-3" />
-
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Proof of Funds</span>
-                <BooleanIndicator value={lead.proof_of_funds} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">UK Broker</span>
-                <BooleanIndicator value={lead.uk_broker} />
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">UK Solicitor</span>
-                <BooleanIndicator value={lead.uk_solicitor} />
-              </div>
+            <CardContent className="space-y-0">
+              <DataRow label="Full Name" value={lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim()} icon={User} />
+              <DataRow label="First Name" value={lead.first_name} />
+              <DataRow label="Last Name" value={lead.last_name} />
+              <DataRow label="Email" value={lead.email} icon={Mail} />
+              <DataRow label="Phone" value={lead.phone} icon={Phone} />
+              <DataRow label="Country" value={lead.country} icon={Globe} />
             </CardContent>
           </Card>
 
-          {/* Status */}
+          {/* Property Requirements */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Home className="w-4 h-4" />
+                Property Requirements
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0">
+              <DataRow label="Budget" value={lead.budget_range || lead.budget} icon={DollarSign} />
+              {(lead.budget_min || lead.budget_max) && (
+                <DataRow
+                  label="Budget Range"
+                  value={`£${lead.budget_min?.toLocaleString() || '0'} - £${lead.budget_max?.toLocaleString() || '∞'}`}
+                />
+              )}
+              <DataRow label="Bedrooms" value={lead.preferred_bedrooms || lead.bedrooms} icon={Home} />
+              <DataRow label="Location" value={lead.location || lead.area} icon={MapPin} />
+              <DataRow label="Timeline" value={lead.timeline} icon={Calendar} />
+            </CardContent>
+          </Card>
+
+          {/* Financial Qualification */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="w-4 h-4" />
+                Financial Qualification
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0">
+              <DataRow label="Payment Method" value={<PaymentBadge method={lead.payment_method} />} />
+              <DataRow label="Mortgage Status" value={lead.mortgage_status} />
+              <DataRow label="Proof of Funds" value={<BooleanIndicator value={lead.proof_of_funds} />} />
+              <DataRow label="UK Broker" value={<BooleanIndicator value={lead.uk_broker} />} />
+              <DataRow label="UK Solicitor" value={<BooleanIndicator value={lead.uk_solicitor} />} />
+            </CardContent>
+          </Card>
+
+          {/* Source & Campaign */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Briefcase className="w-4 h-4" />
+                Source & Campaign
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0">
+              <DataRow label="Source" value={lead.source} />
+              <DataRow label="Campaign/Development" value={lead.campaign} />
+              <DataRow label="Campaign ID" value={lead.campaign_id ? lead.campaign_id.substring(0, 8) + '...' : '-'} icon={Hash} />
+              <DataRow label="Company ID" value={lead.company_id ? lead.company_id.substring(0, 8) + '...' : '-'} icon={Building} />
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* ─────────────────────────────────────────────────────────────────
+            COLUMN 3 - STATUS, NOTES & HISTORY
+        ───────────────────────────────────────────────────────────────── */}
+        <div className="space-y-4">
+          {/* Status & Assignment */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" />
-                Status
+                Status & Assignment
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              {/* Status Dropdown */}
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Status</span>
+              <div className="space-y-1">
+                <label className="text-sm text-muted-foreground">Status</label>
                 <select
                   value={lead.status || ''}
                   onChange={(e) => handleStatusChange(e.target.value)}
-                  className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                 >
                   {STATUS_OPTIONS.map((s) => (
                     <option key={s} value={s}>{s}</option>
@@ -705,13 +798,12 @@ export default function LeadDetailPage() {
                 </select>
               </div>
 
-              {/* Assigned Dropdown */}
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-muted-foreground">Assigned</span>
+              <div className="space-y-1">
+                <label className="text-sm text-muted-foreground">Assigned To</label>
                 <select
                   value={lead.assigned_to || ''}
                   onChange={(e) => handleAssigneeChange(e.target.value)}
-                  className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
                 >
                   <option value="">Unassigned</option>
                   {users.map((u) => (
@@ -720,72 +812,137 @@ export default function LeadDetailPage() {
                 </select>
               </div>
 
-              <div className="border-t border-border my-2" />
+              {lead.assigned_user_name && (
+                <DataRow label="Assigned User" value={lead.assigned_user_name} />
+              )}
+              {lead.assigned_at && (
+                <DataRow label="Assigned At" value={formatDateTime(lead.assigned_at)} />
+              )}
+            </CardContent>
+          </Card>
 
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Development</span>
-                <span>{lead.campaign || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Source</span>
-                <span>{lead.source || '-'}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Date Added</span>
-                <span>{formatDate(lead.date_added || lead.created_at)}</span>
-              </div>
-              {lead.ai_scored_at && (
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Last Scored</span>
-                  <span>{formatDate(lead.ai_scored_at)}</span>
+          {/* Notes */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2 justify-between">
+                <span className="flex items-center gap-2">
+                  <FileText className="w-4 h-4" />
+                  Notes
+                </span>
+                {!editingNotes && (
+                  <Button variant="ghost" size="sm" onClick={() => setEditingNotes(true)}>
+                    <Edit className="w-4 h-4" />
+                  </Button>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {editingNotes ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={notesValue}
+                    onChange={(e) => setNotesValue(e.target.value)}
+                    placeholder="Add notes about this lead..."
+                    rows={6}
+                    className="text-sm"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button variant="outline" size="sm" onClick={() => setEditingNotes(false)}>
+                      Cancel
+                    </Button>
+                    <Button size="sm" onClick={handleSaveNotes}>
+                      <Save className="w-4 h-4 mr-1" /> Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-muted rounded-lg p-3 min-h-[100px] max-h-[300px] overflow-y-auto">
+                  {lead.notes ? (
+                    <pre className="text-sm whitespace-pre-wrap font-sans">{lead.notes}</pre>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">No notes yet. Click edit to add.</p>
+                  )}
                 </div>
               )}
             </CardContent>
           </Card>
 
-          {/* Follow-up */}
+          {/* Timestamps */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Phone className="w-4 h-4" />
-                Follow-up
+                <Clock className="w-4 h-4" />
+                Timeline
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Last Contact</span>
-                <span>{formatDate(lead.last_contact)}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Last Updated</span>
-                <span>{formatDate(lead.updated_at)}</span>
-              </div>
+            <CardContent className="space-y-0">
+              <DataRow label="Date Added" value={formatDateTime(lead.date_added || lead.created_at)} icon={Calendar} />
+              <DataRow label="Last Updated" value={formatDateTime(lead.updated_at)} />
+              <DataRow label="Last Contact" value={formatDateTime(lead.last_contact)} icon={Phone} />
+              <DataRow label="Last AI Score" value={formatDateTime(lead.ai_scored_at)} icon={Bot} />
             </CardContent>
           </Card>
 
-          {/* Broker */}
+          {/* AI Classification Details */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
-                <Building className="w-4 h-4" />
-                Broker
+                <Bot className="w-4 h-4" />
+                AI Classification Details
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex justify-between text-sm mb-3">
-                <span className="text-muted-foreground">Connected</span>
-                <BooleanIndicator value={lead.uk_broker} />
-              </div>
-              {!lead.uk_broker && (
+            <CardContent className="space-y-0">
+              <DataRow label="Classification" value={lead.ai_classification || classification} />
+              <DataRow label="Priority" value={lead.ai_priority || priority} />
+              <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
+              <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
+              <DataRow label="Confidence" value={lead.ai_confidence ? `${(lead.ai_confidence * 100).toFixed(0)}%` : '-'} />
+            </CardContent>
+          </Card>
+
+          {/* Quick Actions */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Quick Actions</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {lead.status !== 'Viewing Booked' && (
                 <Button
-                  variant="outline"
-                  size="sm"
                   className="w-full"
-                  onClick={() => updateLead(lead.id, { uk_broker: true })}
+                  variant="outline"
+                  onClick={() => handleStatusChange('Viewing Booked')}
                 >
-                  Refer to Broker
+                  <Calendar className="w-4 h-4 mr-2" /> Book Viewing
                 </Button>
               )}
+              {!lead.uk_broker && (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => updateLead(lead.id, { uk_broker: true })}
+                >
+                  <Building className="w-4 h-4 mr-2" /> Refer to Broker
+                </Button>
+              )}
+              {!lead.proof_of_funds && (
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={() => updateLead(lead.id, { proof_of_funds: true })}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" /> Mark Funds Verified
+                </Button>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Lead ID */}
+          <Card>
+            <CardContent className="py-3">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Lead ID:</span>
+                <code className="bg-muted px-2 py-1 rounded">{lead.id}</code>
+              </div>
             </CardContent>
           </Card>
         </div>
