@@ -507,6 +507,10 @@ export default function LeadsPage() {
     if (field === 'assigned_user_name') {
       return lead.assigned_user_name || lead.assigned_user || lead.assigned_to || ''
     }
+    // Handle date - check date_added first (Supabase column name)
+    if (field === 'created_at') {
+      return (lead as any).date_added || lead.created_at || ''
+    }
     return (lead as any)[field]
   }
 

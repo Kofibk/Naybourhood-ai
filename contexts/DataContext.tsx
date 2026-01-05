@@ -172,6 +172,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           proof_of_funds: b.proof_of_funds,
           uk_broker: b.uk_broker,
           uk_solicitor: b.uk_solicitor,
+          date_added: b.date_added || b['date added'] || b['Date Added'],
           created_at: b.date_added || b.created_at || b['date added'] || b['Date Added'],
           updated_at: b.updated_at,
           notes: b.notes,
