@@ -91,7 +91,21 @@ function BooleanIndicator({ value, showText = true }: { value: boolean | undefin
 }
 
 // Score Card with Progress Bar
-function ScoreCard({ label, score, maxScore = 100, explanation }: { label: string; score: number; maxScore?: number; explanation?: string }) {
+function ScoreCard({ label, score, maxScore = 100, explanation }: { label: string; score: number | null | undefined; maxScore?: number; explanation?: string }) {
+  // Handle null/undefined scores - show as unscored
+  if (score === null || score === undefined) {
+    return (
+      <div className="border rounded-lg p-4 min-w-[140px] bg-card">
+        <div className="text-sm text-muted-foreground mb-1">{label}</div>
+        <div className="text-3xl font-bold text-muted-foreground">-</div>
+        <div className="w-full h-2 bg-muted rounded-full mt-2" />
+        {explanation && (
+          <p className="text-xs text-muted-foreground mt-2">Scoring...</p>
+        )}
+      </div>
+    )
+  }
+
   const percentage = (score / maxScore) * 100
   const getColor = (p: number) => {
     if (p >= 70) return 'bg-green-500'
@@ -311,13 +325,16 @@ export default function LeadDetailPage() {
 
   // Auto-score lead if it doesn't have scores yet
   useEffect(() => {
+    // Check if lead is unscored (null means unscored, 0 is a valid score)
+    const isUnscored = (lead.ai_quality_score === null || lead.ai_quality_score === undefined) &&
+                       (lead.quality_score === null || lead.quality_score === undefined) &&
+                       !lead.ai_scored_at
+
     const shouldAutoScore = lead &&
       !hasAutoScored &&
       !isRescoring &&
       !scoreResult &&
-      !lead.ai_scored_at &&
-      (lead.ai_quality_score === 0 || lead.ai_quality_score === undefined) &&
-      (lead.quality_score === 0 || lead.quality_score === undefined)
+      isUnscored
 
     if (shouldAutoScore) {
       console.log('[LeadDetail] Auto-scoring lead:', lead.id)
@@ -399,9 +416,10 @@ export default function LeadDetailPage() {
   }
 
   // Use score result if available, otherwise use stored values
-  const qualityScore = scoreResult?.quality_score ?? lead.ai_quality_score ?? lead.quality_score ?? 0
-  const intentScore = scoreResult?.intent_score ?? lead.ai_intent_score ?? lead.intent_score ?? 0
-  const confidenceScore = scoreResult?.confidence ?? (lead.ai_confidence ? lead.ai_confidence * 10 : 0)
+  // Use null for unscored leads (will trigger auto-scoring)
+  const qualityScore = scoreResult?.quality_score ?? lead.ai_quality_score ?? lead.quality_score
+  const intentScore = scoreResult?.intent_score ?? lead.ai_intent_score ?? lead.intent_score
+  const confidenceScore = scoreResult?.confidence ?? (lead.ai_confidence ? lead.ai_confidence * 10 : null)
   const classification = scoreResult?.classification ?? lead.ai_classification ?? 'Cold'
   const priority = scoreResult?.priority ?? lead.ai_priority ?? 'P4'
   const summary = scoreResult?.summary ?? lead.ai_summary
