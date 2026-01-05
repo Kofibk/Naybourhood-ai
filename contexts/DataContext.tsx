@@ -144,6 +144,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const combinedName = `${firstName} ${lastName}`.trim()
 
           return {
+            ...b,  // Spread first so explicit mappings override
             id: b.id,
             full_name: b.full_name || b['Lead Name'] || b['lead name'] || combinedName || b.name || 'Unknown',
             first_name: firstName,
@@ -179,7 +180,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
           assigned_to: b.assigned_to,
           assigned_user_name: b.assigned_user_name,
           assigned_at: b.assigned_at,
-          ...b,
         }})
         console.log('[DataContext] First MAPPED buyer:', JSON.stringify(mappedBuyers[0], null, 2))
         console.log('[DataContext] ====================================')
