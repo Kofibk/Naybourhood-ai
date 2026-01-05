@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -218,6 +218,7 @@ export default function LeadDetailPage() {
   const [isRescoring, setIsRescoring] = useState(false)
   const [scoreResult, setScoreResult] = useState<ScoreBuyerResponse | null>(null)
   const [openBreakdown, setOpenBreakdown] = useState<string | null>(null)
+  const [hasAutoScored, setHasAutoScored] = useState(false)
 
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
@@ -249,6 +250,9 @@ export default function LeadDetailPage() {
         setScoreResult(result)
         // Refresh data to get updated lead
         await refreshData()
+      } else {
+        const errorData = await response.json()
+        console.error('[LeadDetail] Score API error:', errorData)
       }
     } catch (error) {
       console.error('Failed to score lead:', error)
@@ -256,6 +260,26 @@ export default function LeadDetailPage() {
       setIsRescoring(false)
     }
   }
+
+  // Auto-score lead if it doesn't have scores yet
+  useEffect(() => {
+    const shouldAutoScore = lead &&
+      !hasAutoScored &&
+      !isRescoring &&
+      !scoreResult &&
+      !lead.ai_scored_at &&
+      (lead.ai_quality_score === 0 || lead.ai_quality_score === undefined) &&
+      (lead.quality_score === 0 || lead.quality_score === undefined)
+
+    if (shouldAutoScore) {
+      console.log('[LeadDetail] Auto-scoring lead:', lead.id)
+      setHasAutoScored(true)
+      // Delay to avoid race conditions
+      setTimeout(() => {
+        handleRescore()
+      }, 500)
+    }
+  }, [lead, hasAutoScored, isRescoring, scoreResult])
 
   const handleArchive = async () => {
     if (!lead || !confirm('Archive this lead?')) return
@@ -275,6 +299,25 @@ export default function LeadDetailPage() {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
+  // Show scoring indicator if auto-scoring on first load
+  if (isRescoring && !scoreResult) {
+    return (
+      <div className="max-w-6xl mx-auto space-y-6">
+        <Link href="/admin/leads" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Leads
+        </Link>
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Bot className="w-12 h-12 mx-auto mb-4 text-primary animate-pulse" />
+            <h3 className="text-lg font-medium mb-2">AI is analyzing this lead...</h3>
+            <p className="text-muted-foreground">Generating quality score, intent score, and recommendations</p>
+          </CardContent>
+        </Card>
       </div>
     )
   }
