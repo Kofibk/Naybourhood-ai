@@ -360,18 +360,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process USERS - no demo data, only real users from Supabase
       if (!usersResult.error && usersResult.data) {
-        const mappedUsers = usersResult.data.map((p: any) => ({
-          id: p.id,
-          name: p.full_name || p.email || 'Unknown',
-          email: p.email || '',
-          role: p.role || 'agent',
-          company_id: p.company_id,
-          company: p.company_id,
-          avatar_url: p.avatar_url,
-          status: (p.status || 'active') as 'active' | 'inactive',
-          last_active: p.last_active,
-          created_at: p.created_at,
-        }))
+        const mappedUsers = usersResult.data.map((p: any) => {
+          // Determine user status based on last_active
+          // - No last_active = pending (invited but hasn't logged in yet)
+          // - last_active within 30 days = active
+          // - last_active older than 30 days = inactive
+          let status: 'active' | 'inactive' | 'pending' = 'pending'
+          const emailConfirmed = p.email_confirmed ?? (p.last_active ? true : false)
+
+          if (p.last_active) {
+            const lastActiveDate = new Date(p.last_active)
+            const thirtyDaysAgo = new Date()
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+            status = lastActiveDate > thirtyDaysAgo ? 'active' : 'inactive'
+          } else if (p.status === 'active') {
+            // If explicitly set to active in database but no last_active, treat as active
+            status = 'active'
+          }
+
+          return {
+            id: p.id,
+            name: p.full_name || p.email || 'Unknown',
+            email: p.email || '',
+            role: p.role || 'agent',
+            company_id: p.company_id,
+            company: p.company_id,
+            avatar_url: p.avatar_url,
+            status,
+            email_confirmed: emailConfirmed,
+            last_active: p.last_active,
+            created_at: p.created_at,
+            invited_at: p.created_at,
+          }
+        })
         console.log('[DataContext] Users loaded:', mappedUsers.length)
         setUsers(mappedUsers)
       } else if (usersResult.error) {

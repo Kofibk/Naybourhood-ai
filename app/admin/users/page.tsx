@@ -21,6 +21,9 @@ import {
   AlertCircle,
   Send,
   RefreshCw,
+  Clock,
+  UserCheck,
+  UserX,
 } from 'lucide-react'
 
 interface InviteUser {
@@ -36,6 +39,7 @@ export default function UsersPage() {
   const { user: currentUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
+  const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [inviteData, setInviteData] = useState<InviteUser>({
     name: '',
@@ -47,6 +51,15 @@ export default function UsersPage() {
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // Calculate status counts
+  const statusCounts = useMemo(() => {
+    return {
+      pending: users.filter(u => u.status === 'pending').length,
+      active: users.filter(u => u.status === 'active').length,
+      inactive: users.filter(u => u.status === 'inactive').length,
+    }
+  }, [users])
+
   // Filter users
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {
@@ -55,10 +68,11 @@ export default function UsersPage() {
         user.email.toLowerCase().includes(searchQuery.toLowerCase())
 
       const matchesRole = roleFilter === 'all' || user.role === roleFilter
+      const matchesStatus = statusFilter === 'all' || user.status === statusFilter
 
-      return matchesSearch && matchesRole
+      return matchesSearch && matchesRole && matchesStatus
     })
-  }, [users, searchQuery, roleFilter])
+  }, [users, searchQuery, roleFilter, statusFilter])
 
   const handleOpenInviteModal = () => {
     setInviteData({
@@ -247,6 +261,16 @@ export default function UsersPage() {
           <option value="agent">Agent</option>
           <option value="broker">Broker</option>
         </select>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+        >
+          <option value="all">All Status ({users.length})</option>
+          <option value="pending">Pending ({statusCounts.pending})</option>
+          <option value="active">Active ({statusCounts.active})</option>
+          <option value="inactive">Inactive ({statusCounts.inactive})</option>
+        </select>
       </div>
 
       {/* Users Table */}
@@ -311,9 +335,22 @@ export default function UsersPage() {
                       </td>
                       <td className="p-4 text-sm">{user.company || '-'}</td>
                       <td className="p-4">
-                        <Badge variant={user.status === 'active' ? 'success' : 'secondary'}>
-                          {user.status === 'active' ? 'Active' : 'Inactive'}
-                        </Badge>
+                        {user.status === 'pending' ? (
+                          <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Pending
+                          </Badge>
+                        ) : user.status === 'active' ? (
+                          <Badge variant="default" className="bg-green-600">
+                            <UserCheck className="h-3 w-3 mr-1" />
+                            Active
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <UserX className="h-3 w-3 mr-1" />
+                            Inactive
+                          </Badge>
+                        )}
                       </td>
                       <td className="p-4 text-sm text-muted-foreground">
                         {formatDate(user.last_active)}

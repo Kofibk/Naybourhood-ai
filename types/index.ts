@@ -70,9 +70,11 @@ export interface AppUser {
   company?: string
   company_id?: string
   avatar_url?: string
-  status?: 'active' | 'inactive'
+  status?: 'active' | 'inactive' | 'pending'
+  email_confirmed?: boolean
   last_active?: string
   created_at?: string
+  invited_at?: string
 }
 
 export interface Campaign {
