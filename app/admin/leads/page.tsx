@@ -460,8 +460,9 @@ export default function LeadsPage() {
     const pending = pendingChanges[lead.id]
     if (pending && field in pending) return pending[field]
     if (field === 'full_name') return lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
-    // Handle budget - show budget string or format budget_min/budget_max
+    // Handle budget - check budget_range first (Supabase field name), then budget
     if (field === 'budget') {
+      if (lead.budget_range) return lead.budget_range
       if (lead.budget) return lead.budget
       if (lead.budget_min && lead.budget_max) {
         return `£${(lead.budget_min / 1000000).toFixed(1)}M - £${(lead.budget_max / 1000000).toFixed(1)}M`

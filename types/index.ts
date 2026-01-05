@@ -18,11 +18,14 @@ export interface Buyer {
   email?: string
   phone?: string
   budget?: string
+  budget_range?: string  // Supabase field name
   budget_min?: number
   budget_max?: number
   bedrooms?: number
+  preferred_bedrooms?: number  // Supabase field name
   location?: string
   area?: string
+  country?: string
   timeline?: string
   source?: string
   campaign?: string

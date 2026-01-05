@@ -206,6 +206,8 @@ export default function LeadDetailPage() {
   }
 
   const formatBudget = () => {
+    // Check budget_range first (Supabase field name), then budget
+    if (displayData.budget_range) return displayData.budget_range
     if (displayData.budget) return displayData.budget
     if (displayData.budget_min && displayData.budget_max) {
       return `£${displayData.budget_min.toLocaleString()} - £${displayData.budget_max.toLocaleString()}`
@@ -543,6 +545,18 @@ export default function LeadDetailPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">Country</span>
+              {isEditing ? (
+                <Input
+                  value={editData.country ?? displayData.country ?? ''}
+                  onChange={(e) => updateField('country', e.target.value)}
+                  className="max-w-[220px] h-8"
+                />
+              ) : (
+                <span className="text-sm font-medium">{displayData.country || '-'}</span>
+              )}
+            </div>
+            <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Timeline</span>
               {isEditing ? (
                 <Input
@@ -572,12 +586,12 @@ export default function LeadDetailPage() {
               {isEditing ? (
                 <Input
                   type="number"
-                  value={editData.bedrooms ?? displayData.bedrooms ?? ''}
-                  onChange={(e) => updateField('bedrooms', parseInt(e.target.value) || undefined)}
+                  value={editData.preferred_bedrooms ?? editData.bedrooms ?? displayData.preferred_bedrooms ?? displayData.bedrooms ?? ''}
+                  onChange={(e) => updateField('preferred_bedrooms', parseInt(e.target.value) || undefined)}
                   className="max-w-[100px] h-8"
                 />
               ) : (
-                <span className="text-sm font-medium">{displayData.bedrooms || '-'}</span>
+                <span className="text-sm font-medium">{displayData.preferred_bedrooms || displayData.bedrooms || '-'}</span>
               )}
             </div>
             <div className="flex items-center justify-between">
