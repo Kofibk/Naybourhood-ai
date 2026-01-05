@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -180,6 +180,63 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 
 const generateId = () => Math.random().toString(36).substring(2, 9)
 
+// LocalStorage key for persisting preferences
+const LEADS_PREFERENCES_KEY = 'naybourhood_leads_preferences'
+
+interface LeadsPreferences {
+  sortField: SortField
+  sortDirection: SortDirection
+  quickFilter: QuickFilter
+  filterConditions: FilterCondition[]
+  filterLogic: 'and' | 'or'
+  columns: ColumnConfig[]
+  pageSize: number
+}
+
+const DEFAULT_PREFERENCES: LeadsPreferences = {
+  sortField: 'created_at',  // Default: newest first
+  sortDirection: 'desc',
+  quickFilter: 'all',
+  filterConditions: [],
+  filterLogic: 'and',
+  columns: DEFAULT_COLUMNS,
+  pageSize: 50,
+}
+
+function loadPreferences(): LeadsPreferences {
+  if (typeof window === 'undefined') return DEFAULT_PREFERENCES
+  try {
+    const stored = localStorage.getItem(LEADS_PREFERENCES_KEY)
+    if (stored) {
+      const parsed = JSON.parse(stored)
+      // Merge with defaults to handle any new fields
+      return {
+        ...DEFAULT_PREFERENCES,
+        ...parsed,
+        // Ensure columns have all required fields by merging with defaults
+        columns: DEFAULT_COLUMNS.map(defaultCol => {
+          const storedCol = parsed.columns?.find((c: ColumnConfig) => c.key === defaultCol.key)
+          return storedCol ? { ...defaultCol, visible: storedCol.visible } : defaultCol
+        }),
+      }
+    }
+  } catch (e) {
+    console.error('Failed to load leads preferences:', e)
+  }
+  return DEFAULT_PREFERENCES
+}
+
+function savePreferences(prefs: Partial<LeadsPreferences>) {
+  if (typeof window === 'undefined') return
+  try {
+    const current = loadPreferences()
+    const updated = { ...current, ...prefs }
+    localStorage.setItem(LEADS_PREFERENCES_KEY, JSON.stringify(updated))
+  } catch (e) {
+    console.error('Failed to save leads preferences:', e)
+  }
+}
+
 // Score Badge Component - matches specification colors
 function ScoreBadge({ score }: { score: number | undefined | null }) {
   if (score === undefined || score === null) {
@@ -243,19 +300,48 @@ export default function LeadsPage() {
   const router = useRouter()
   const { leads, users, isLoading, refreshData, updateLead } = useData()
 
+  // Initialize state with defaults, will be updated from localStorage
+  const [prefsLoaded, setPrefsLoaded] = useState(false)
   const [search, setSearch] = useState('')
-  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
-  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
-  const [filterLogic, setFilterLogic] = useState<'and' | 'or'>('and')
-  const [sortField, setSortField] = useState<SortField>('quality_score')
-  const [sortDirection, setSortDirection] = useState<SortDirection>('desc')
-  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_COLUMNS)
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>(DEFAULT_PREFERENCES.quickFilter)
+  const [filterConditions, setFilterConditions] = useState<FilterCondition[]>(DEFAULT_PREFERENCES.filterConditions)
+  const [filterLogic, setFilterLogic] = useState<'and' | 'or'>(DEFAULT_PREFERENCES.filterLogic)
+  const [sortField, setSortField] = useState<SortField>(DEFAULT_PREFERENCES.sortField)
+  const [sortDirection, setSortDirection] = useState<SortDirection>(DEFAULT_PREFERENCES.sortDirection)
+  const [columns, setColumns] = useState<ColumnConfig[]>(DEFAULT_PREFERENCES.columns)
   const [showColumnSettings, setShowColumnSettings] = useState(false)
   const [showFilters, setShowFilters] = useState(false)
   const [currentPage, setCurrentPage] = useState(1)
-  const [pageSize, setPageSize] = useState(50)
+  const [pageSize, setPageSize] = useState(DEFAULT_PREFERENCES.pageSize)
   const [pendingChanges, setPendingChanges] = useState<Record<string, Record<string, any>>>({})
   const [selectedLeads, setSelectedLeads] = useState<Set<string>>(new Set())
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    const prefs = loadPreferences()
+    setQuickFilter(prefs.quickFilter)
+    setFilterConditions(prefs.filterConditions)
+    setFilterLogic(prefs.filterLogic)
+    setSortField(prefs.sortField)
+    setSortDirection(prefs.sortDirection)
+    setColumns(prefs.columns)
+    setPageSize(prefs.pageSize)
+    setPrefsLoaded(true)
+  }, [])
+
+  // Save preferences to localStorage when they change
+  useEffect(() => {
+    if (!prefsLoaded) return  // Don't save until initial load is complete
+    savePreferences({
+      sortField,
+      sortDirection,
+      quickFilter,
+      filterConditions,
+      filterLogic,
+      columns,
+      pageSize,
+    })
+  }, [prefsLoaded, sortField, sortDirection, quickFilter, filterConditions, filterLogic, columns, pageSize])
 
   const handleCellSave = useCallback(async (rowId: string, field: string, value: string | number): Promise<boolean> => {
     try {
@@ -439,7 +525,13 @@ export default function LeadsPage() {
       let aVal: any = (a as any)[sortField]
       let bVal: any = (b as any)[sortField]
       if (sortField === 'quality_score' || sortField === 'ai_confidence') { aVal = aVal || 0; bVal = bVal || 0 }
-      if (sortField === 'created_at') { aVal = aVal ? new Date(aVal).getTime() : 0; bVal = bVal ? new Date(bVal).getTime() : 0 }
+      // Handle date sorting - check both date_added and created_at
+      if (sortField === 'created_at') {
+        const aDate = (a as any).date_added || a.created_at
+        const bDate = (b as any).date_added || b.created_at
+        aVal = aDate ? new Date(aDate).getTime() : 0
+        bVal = bDate ? new Date(bDate).getTime() : 0
+      }
       if (typeof aVal === 'string') aVal = aVal.toLowerCase()
       if (typeof bVal === 'string') bVal = bVal.toLowerCase()
       if (aVal < bVal) return sortDirection === 'asc' ? -1 : 1
