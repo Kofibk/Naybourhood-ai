@@ -178,11 +178,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
           company_id: b.company_id,
           status: b.status || b['Status'] || 'New',
           // Scores - check both standard and AI-generated columns
-          quality_score: b.quality_score ?? b.ai_quality_score ?? b['Quality Score'] ?? b['quality score'] ?? 0,
-          intent_score: b.intent_score ?? b.ai_intent_score ?? b['Intent Score'] ?? b['intent score'] ?? 0,
-          ai_quality_score: b.ai_quality_score ?? b.quality_score ?? 0,
-          ai_intent_score: b.ai_intent_score ?? b.intent_score ?? 0,
-          ai_confidence: b.ai_confidence ?? b.confidence ?? 0,
+          // Don't default to 0 - null means unscored, 0 means actually scored as 0
+          quality_score: b.quality_score ?? b.ai_quality_score ?? b['Quality Score'] ?? b['quality score'] ?? null,
+          intent_score: b.intent_score ?? b.ai_intent_score ?? b['Intent Score'] ?? b['intent score'] ?? null,
+          ai_quality_score: b.ai_quality_score ?? b.quality_score ?? null,
+          ai_intent_score: b.ai_intent_score ?? b.intent_score ?? null,
+          ai_confidence: b.ai_confidence ?? b.confidence ?? null,
           ai_summary: b.ai_summary,
           ai_next_action: b.ai_next_action,
           ai_risk_flags: b.ai_risk_flags,

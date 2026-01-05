@@ -46,8 +46,9 @@ export function useAutoScore({
       if (scoredIdsRef.current.has(lead.id)) return false
 
       // Check if lead has been AI scored
-      const hasScore = (lead.ai_quality_score && lead.ai_quality_score > 0) ||
-                       (lead.quality_score && lead.quality_score > 0) ||
+      // Check for non-null scores (0 is a valid score, null means unscored)
+      const hasScore = (lead.ai_quality_score !== null && lead.ai_quality_score !== undefined) ||
+                       (lead.quality_score !== null && lead.quality_score !== undefined) ||
                        lead.ai_scored_at
 
       return !hasScore

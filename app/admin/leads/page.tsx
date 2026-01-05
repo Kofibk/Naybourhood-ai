@@ -487,17 +487,20 @@ export default function LeadsPage() {
 
   // Calculate lead classification counts - exclude duplicates from stats
   // Use local scores if available (fresh from API), otherwise use database values
+  // Unscored leads (null) are NOT counted in hot/warm/low - only scored leads
   const leadCounts = useMemo(() => {
     // Filter out duplicates for stats
     const activeLeads = leads.filter((l) => l.status !== 'Duplicate')
-    const getScore = (lead: Buyer) => {
+    const getScore = (lead: Buyer): number | null => {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
-      return lead.ai_quality_score ?? lead.quality_score ?? 0
+      if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
+      if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
+      return null  // Unscored
     }
-    const hot = activeLeads.filter((l) => getScore(l) >= 70).length
-    const warm = activeLeads.filter((l) => getScore(l) >= 45 && getScore(l) < 70).length
-    const low = activeLeads.filter((l) => getScore(l) < 45).length
+    const hot = activeLeads.filter((l) => { const s = getScore(l); return s !== null && s >= 70 }).length
+    const warm = activeLeads.filter((l) => { const s = getScore(l); return s !== null && s >= 45 && s < 70 }).length
+    const low = activeLeads.filter((l) => { const s = getScore(l); return s !== null && s < 45 }).length
     const duplicates = leads.filter((l) => l.status === 'Duplicate').length
     return { hot, warm, low, total: activeLeads.length, duplicates }
   }, [leads, localScores])
@@ -531,9 +534,16 @@ export default function LeadsPage() {
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       // Apply quick filter first - use local scores if available
+      // Unscored leads (null) only appear in 'all', not in hot/warm/low filters
       if (quickFilter !== 'all') {
         const local = localScores[lead.id]
-        const score = local?.quality ?? lead.ai_quality_score ?? lead.quality_score ?? 0
+        let score: number | null = null
+        if (local?.quality !== undefined) score = local.quality
+        else if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) score = lead.ai_quality_score
+        else if (lead.quality_score !== undefined && lead.quality_score !== null) score = lead.quality_score
+
+        // If unscored, exclude from hot/warm/low filters
+        if (score === null) return false
         if (quickFilter === 'hot' && score < 70) return false
         if (quickFilter === 'warm' && (score < 45 || score >= 70)) return false
         if (quickFilter === 'low' && score >= 45) return false
@@ -568,11 +578,22 @@ export default function LeadsPage() {
       let aVal: any = (a as any)[sortField]
       let bVal: any = (b as any)[sortField]
       // Handle lead_score sorting - use local scores if available
+      // Null scores sort to bottom
       if (sortField === 'lead_score' || sortField === 'quality_score') {
         const aLocal = localScores[a.id]
         const bLocal = localScores[b.id]
-        aVal = aLocal?.quality ?? a.ai_quality_score ?? a.quality_score ?? 0
-        bVal = bLocal?.quality ?? b.ai_quality_score ?? b.quality_score ?? 0
+        const getScoreVal = (local: typeof aLocal, lead: Buyer): number | null => {
+          if (local?.quality !== undefined) return local.quality
+          if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
+          if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
+          return null
+        }
+        aVal = getScoreVal(aLocal, a)
+        bVal = getScoreVal(bLocal, b)
+        // Sort nulls to bottom
+        if (aVal === null && bVal === null) return 0
+        if (aVal === null) return 1
+        if (bVal === null) return -1
       }
       if (sortField === 'ai_confidence') { aVal = aVal || 0; bVal = bVal || 0 }
       // Handle date sorting - check both date_added and created_at
@@ -642,10 +663,13 @@ export default function LeadsPage() {
       return ''
     }
     // Handle Lead Score - check local scores first (fresh from API), then database values
+    // Return null (not 0) when unscored so UI shows "-" instead of "0"
     if (field === 'lead_score') {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
-      return lead.ai_quality_score ?? lead.quality_score ?? 0
+      if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
+      if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
+      return null  // Unscored - will display as "-"
     }
     if (field === 'ai_classification') {
       const local = localScores[lead.id]
