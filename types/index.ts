@@ -39,6 +39,7 @@ export interface Buyer {
   uk_broker?: boolean
   uk_solicitor?: boolean
   notes?: string
+  date_added?: string  // Supabase field name
   created_at?: string
   updated_at?: string
   last_contact?: string
