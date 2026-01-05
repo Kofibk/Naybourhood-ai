@@ -171,12 +171,12 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'phone', label: 'Mobile', visible: true, width: 'w-[140px]', editable: true, type: 'text' },
   { key: 'email', label: 'Email', visible: true, width: 'w-[200px]', editable: true, type: 'text' },
   { key: 'budget', label: 'Budget', visible: true, width: 'w-[130px]', editable: true, type: 'text' },
-  { key: 'quality_score', label: 'Score', visible: true, width: 'w-[80px]', editable: true, type: 'number' },
-  { key: 'ai_confidence', label: 'Conf', visible: true, width: 'w-[90px]', editable: false },
+  { key: 'lead_score', label: 'Lead Score', visible: true, width: 'w-[100px]', editable: false, type: 'number' },
+  { key: 'ai_classification', label: 'Class', visible: true, width: 'w-[100px]', editable: false },
   { key: 'status', label: 'Status', visible: true, width: 'w-[120px]', editable: true, type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', visible: true, width: 'w-[90px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
   { key: 'created_at', label: 'Added', visible: true, width: 'w-[100px]', editable: false },
-  { key: 'assigned_user_name', label: 'Assigned', visible: true, width: 'w-[120px]', editable: true, type: 'text' },
+  { key: 'assigned_user_name', label: 'Assigned', visible: false, width: 'w-[120px]', editable: true, type: 'text' },
   { key: 'source', label: 'Source', visible: false, width: 'w-[100px]', editable: true, type: 'text' },
   { key: 'campaign', label: 'Campaign', visible: false, width: 'w-[150px]', editable: true, type: 'text' },
 ]
@@ -610,9 +610,12 @@ export default function LeadsPage() {
       if (lead.budget_max) return `Up to £${lead.budget_max.toLocaleString()}`
       return ''
     }
-    // Handle confidence - try ai_confidence first
-    if (field === 'ai_confidence') {
-      return lead.ai_confidence ?? null
+    // Handle Lead Score - uses AI score if available, falls back to quality_score
+    if (field === 'lead_score') {
+      return lead.ai_quality_score ?? lead.quality_score ?? 0
+    }
+    if (field === 'ai_classification') {
+      return lead.ai_classification ?? null
     }
     // Handle assigned user - try multiple fields
     if (field === 'assigned_user_name') {
@@ -986,21 +989,46 @@ export default function LeadsPage() {
                           )
                         }
 
-                        if (col.key === 'quality_score') {
+                        if (col.key === 'lead_score') {
+                          const score = cellValue as number
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <ScoreBadge score={cellValue} />
+                              <ScoreBadge score={score} />
                             </td>
                           )
                         }
 
-                        if (col.key === 'ai_confidence') {
-                          const conf = cellValue as number | undefined
+                        if (col.key === 'ai_classification') {
+                          const classification = cellValue as string | undefined
+                          const getClassBadge = (c: string | undefined) => {
+                            if (!c) return <span className="text-muted-foreground text-xs">-</span>
+                            const colors: Record<string, string> = {
+                              'Hot': 'bg-red-500 text-white',
+                              'Warm-Qualified': 'bg-orange-500 text-white',
+                              'Warm-Engaged': 'bg-amber-500 text-white',
+                              'Nurture': 'bg-blue-400 text-white',
+                              'Cold': 'bg-gray-400 text-white',
+                              'Disqualified': 'bg-gray-600 text-white',
+                              'Spam': 'bg-red-700 text-white',
+                            }
+                            const shortLabels: Record<string, string> = {
+                              'Hot': 'Hot',
+                              'Warm-Qualified': 'Warm-Q',
+                              'Warm-Engaged': 'Warm-E',
+                              'Nurture': 'Nurture',
+                              'Cold': 'Cold',
+                              'Disqualified': 'Disq',
+                              'Spam': 'Spam',
+                            }
+                            return (
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[c] || 'bg-gray-400 text-white'}`}>
+                                {shortLabels[c] || c}
+                              </span>
+                            )
+                          }
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <span className="text-muted-foreground">
-                                {conf ? `${Math.round(conf * 100)}%` : '-'}
-                              </span>
+                              {getClassBadge(classification)}
                             </td>
                           )
                         }

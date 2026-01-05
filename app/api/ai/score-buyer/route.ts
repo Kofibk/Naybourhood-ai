@@ -341,6 +341,8 @@ export async function POST(request: NextRequest) {
         ai_summary: scores.summary,
         ai_next_action: scores.next_action,
         ai_risk_flags: scores.risk_flags,
+        ai_classification: scores.classification,
+        ai_priority: scores.priority,
         ai_scored_at: new Date().toISOString(),
         // Also update the standard score fields
         quality_score: scores.quality_score,
@@ -425,6 +427,8 @@ export async function PUT(request: NextRequest) {
             ai_summary: scores.summary,
             ai_next_action: scores.next_action,
             ai_risk_flags: scores.risk_flags,
+            ai_classification: scores.classification,
+            ai_priority: scores.priority,
             ai_scored_at: new Date().toISOString(),
             quality_score: scores.quality_score,
             intent_score: scores.intent_score
