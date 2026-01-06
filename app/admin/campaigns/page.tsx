@@ -64,28 +64,62 @@ export default function CampaignsPage() {
   })
 
   // Count leads from buyers table for each campaign
-  const leadCountBycampaign = useMemo(() => {
+  // Match by: campaign_id, campaign name, development name, or client name
+  const leadCountByCampaign = useMemo(() => {
     const counts: Record<string, number> = {}
 
+    // First pass: count leads by their campaign/development field
+    const leadsByDevelopment: Record<string, number> = {}
     leads.forEach((lead) => {
-      // Match by campaign_id or campaign name
-      const campaignKey = lead.campaign_id || lead.campaign
-      if (campaignKey) {
-        counts[campaignKey] = (counts[campaignKey] || 0) + 1
+      const devName = (lead.campaign || '').toLowerCase().trim()
+      if (devName) {
+        leadsByDevelopment[devName] = (leadsByDevelopment[devName] || 0) + 1
+      }
+      // Also count by campaign_id if present
+      if (lead.campaign_id) {
+        counts[lead.campaign_id] = (counts[lead.campaign_id] || 0) + 1
       }
     })
 
-    // Also match by campaign name (case insensitive)
+    // Second pass: match campaigns to lead counts
     campaigns.forEach((campaign) => {
-      if (!counts[campaign.id]) {
-        const matchedLeads = leads.filter(
-          (lead) =>
-            lead.campaign?.toLowerCase() === campaign.name?.toLowerCase() ||
-            lead.campaign_id === campaign.id
-        ).length
-        if (matchedLeads > 0) {
-          counts[campaign.id] = matchedLeads
+      let matchedLeads = 0
+
+      // Try matching by campaign ID first
+      if (counts[campaign.id]) {
+        matchedLeads = counts[campaign.id]
+      }
+
+      // Try matching by development name (most common for lead data)
+      if (matchedLeads === 0 && campaign.development) {
+        const devKey = campaign.development.toLowerCase().trim()
+        matchedLeads = leadsByDevelopment[devKey] || 0
+      }
+
+      // Try matching by client name
+      if (matchedLeads === 0 && campaign.client) {
+        const clientKey = campaign.client.toLowerCase().trim()
+        matchedLeads = leadsByDevelopment[clientKey] || 0
+      }
+
+      // Try matching by campaign name
+      if (matchedLeads === 0 && campaign.name) {
+        const nameKey = campaign.name.toLowerCase().trim()
+        matchedLeads = leadsByDevelopment[nameKey] || 0
+
+        // Also try extracting development name from campaign name
+        // e.g., "Chelsea Island - Facebook" -> "Chelsea Island"
+        if (matchedLeads === 0) {
+          const dashMatch = campaign.name.match(/^([^-–]+?)(?:\s*[-–])/)
+          if (dashMatch && dashMatch[1]) {
+            const extractedDev = dashMatch[1].toLowerCase().trim()
+            matchedLeads = leadsByDevelopment[extractedDev] || 0
+          }
         }
+      }
+
+      if (matchedLeads > 0) {
+        counts[campaign.id] = matchedLeads
       }
     })
 
@@ -94,10 +128,8 @@ export default function CampaignsPage() {
 
   // Get actual lead count for a campaign
   const getLeadCount = useCallback((campaign: Campaign): number => {
-    return leadCountBycampaign[campaign.id] ||
-           leadCountBycampaign[campaign.name] ||
-           0
-  }, [leadCountBycampaign])
+    return leadCountByCampaign[campaign.id] || 0
+  }, [leadCountByCampaign])
 
   // Handler for inline cell editing
   const handleCellSave = async (rowId: string, field: string, value: string | number): Promise<boolean> => {
@@ -160,9 +192,7 @@ export default function CampaignsPage() {
       }
 
       // Count leads from buyers table instead of campaigns table
-      const campaignLeads = leadCountBycampaign[campaign.id] ||
-                            leadCountBycampaign[campaign.name] ||
-                            0
+      const campaignLeads = leadCountByCampaign[campaign.id] || 0
 
       groups[groupName].campaigns.push(campaign)
       groups[groupName].totalSpend += campaign.spend || 0
@@ -185,7 +215,7 @@ export default function CampaignsPage() {
       if (b.name === 'Uncategorized Campaigns') return -1
       return b.totalSpend - a.totalSpend
     })
-  }, [campaigns, leadCountBycampaign])
+  }, [campaigns, leadCountByCampaign])
 
   // Filter groups based on search
   const filteredGroups = useMemo(() => {
