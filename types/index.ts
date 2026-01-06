@@ -12,43 +12,73 @@ export interface User {
 
 export interface Buyer {
   id: string
+  lead_id?: number  // Supabase integer ID
   first_name?: string
   last_name?: string
   full_name?: string
   email?: string
   phone?: string
+  country?: string
+  linkedin?: string
+  company_website?: string
+  // Budget fields
   budget?: string
   budget_range?: string  // Supabase field name
   budget_min?: number
   budget_max?: number
+  // Property preferences
   bedrooms?: number
   preferred_bedrooms?: number  // Supabase field name
   location?: string
+  preferred_location?: string  // Supabase field name
   area?: string
-  country?: string
+  preferred_communication?: string
+  // Timeline & Purpose
   timeline?: string
-  source?: string
-  campaign?: string
-  campaign_id?: string
-  status?: string
+  timeline_to_purchase?: string  // Supabase field name
+  purpose?: string
+  purchase_purpose?: string  // Supabase field name (enum)
+  ready_in_28_days?: boolean
+  ready_within_28_days?: boolean  // Supabase field name
+  intent?: string
+  // Scoring
+  score?: number  // Legacy score field
   quality_score?: number
   intent_score?: number
+  budget_match?: boolean
+  bedroom_match?: boolean
+  buyer_summary?: string
+  // Source & Campaign
+  source?: string
+  source_platform?: string  // Supabase field name
+  campaign?: string
+  source_campaign?: string  // Supabase field name
+  source_creative?: string
+  channel?: string
+  campaign_id?: string
+  // Development
+  development_id?: string
+  development_name?: string
+  // Status
+  status?: string
+  enquiry_type?: string
+  days_in_status?: number
+  status_last_modified?: string
+  contact_sla_met?: boolean
+  // Financial qualification
   payment_method?: string
   proof_of_funds?: boolean
   mortgage_status?: string
   uk_broker?: boolean
   uk_solicitor?: boolean
   notes?: string
-  date_added?: string  // Supabase field name
-  created_at?: string
-  updated_at?: string
-  last_contact?: string
-  // Assignment fields
+  // Assignment
   assigned_to?: string
   assigned_user?: string
   assigned_user_name?: string
+  assigned_caller?: string  // Supabase field name
   assigned_at?: string
-  company_id?: string  // Company UUID for data filtering
+  company_id?: string
   // AI fields
   ai_quality_score?: number
   ai_intent_score?: number
@@ -60,20 +90,36 @@ export interface Buyer {
   ai_classification?: string
   ai_priority?: string
   ai_scored_at?: string
-  // Additional engagement fields
-  purpose?: string
-  ready_in_28_days?: boolean
+  // Engagement & Viewing
   viewing_intent_confirmed?: boolean
   viewing_booked?: boolean
   viewing_date?: string
+  viewing_end_time?: string
+  viewing_confirmation?: string
   replied?: boolean
   stop_comms?: boolean
-  next_follow_up?: string
+  stop_agent_communication?: boolean  // Supabase field name
   broker_connected?: boolean
+  connect_to_broker?: boolean  // Supabase field name
+  // Follow-up
+  next_follow_up?: string
+  followup_date?: string  // Supabase field name
+  followup_start?: string
+  last_followup_attempt?: string
+  first_agent_call?: string
+  last_email_sent?: string
   // Communication history
   last_wa_message?: string
+  wa_nurture_reply_status?: string
   transcript?: string
+  agent_transcript?: string  // Supabase field name
+  transcription?: string
   call_summary?: string
+  // Timestamps
+  date_added?: string
+  created_at?: string
+  updated_at?: string
+  last_contact?: string
 }
 
 export interface AppUser {

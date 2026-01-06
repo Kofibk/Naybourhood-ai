@@ -178,7 +178,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'ai_classification', label: 'Class', visible: true, width: 'w-[100px]', editable: false },
   { key: 'status', label: 'Status', visible: true, width: 'w-[120px]', editable: true, type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', visible: true, width: 'w-[90px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
-  { key: 'created_at', label: 'Added', visible: true, width: 'w-[100px]', editable: false },
+  { key: 'created_at', label: 'Date Added', visible: true, width: 'w-[110px]', editable: false },
   { key: 'assigned_user_name', label: 'Assigned', visible: false, width: 'w-[120px]', editable: true, type: 'text' },
   { key: 'source', label: 'Source', visible: false, width: 'w-[100px]', editable: true, type: 'text' },
   { key: 'campaign', label: 'Campaign', visible: false, width: 'w-[150px]', editable: true, type: 'text' },
@@ -695,7 +695,7 @@ export default function LeadsPage() {
   const formatDate = (dateStr: string | undefined | null) => {
     if (!dateStr) return '-'
     const date = new Date(dateStr)
-    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
   }
 
   return (
