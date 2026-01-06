@@ -30,6 +30,52 @@ export const VALID_STATUSES = [
 export type ValidStatus = typeof VALID_STATUSES[number]
 
 // ═══════════════════════════════════════════════════════════════════
+// CONNECTION STATUS - For broker/solicitor fields
+// ═══════════════════════════════════════════════════════════════════
+
+export const CONNECTION_STATUSES = [
+  'yes',        // Already has one
+  'introduced', // Introduction made by us
+  'no',         // Doesn't have one
+  'unknown',    // Not yet determined (default)
+] as const
+
+export type ConnectionStatus = typeof CONNECTION_STATUSES[number]
+
+/**
+ * Normalize broker/solicitor connection status
+ * Handles boolean values from legacy data and various string formats
+ */
+export function normalizeConnectionStatus(value: boolean | string | null | undefined): ConnectionStatus {
+  // Handle null/undefined - default to 'unknown'
+  if (value === null || value === undefined || value === '') {
+    return 'unknown'
+  }
+
+  // Handle boolean values (legacy data)
+  if (typeof value === 'boolean') {
+    return value ? 'yes' : 'unknown'  // true = yes, false = unknown (not definitively 'no')
+  }
+
+  // Handle string values
+  const normalized = String(value).toLowerCase().trim()
+
+  // Direct matches
+  if (normalized === 'yes' || normalized === 'true' || normalized === 'already has') {
+    return 'yes'
+  }
+  if (normalized === 'introduced' || normalized === 'introduction made') {
+    return 'introduced'
+  }
+  if (normalized === 'no' || normalized === 'false' || normalized === 'none' || normalized === "doesn't have") {
+    return 'no'
+  }
+
+  // Default to unknown
+  return 'unknown'
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // STATUS MAPPING - Maps various input statuses to standard statuses
 // ═══════════════════════════════════════════════════════════════════
 
@@ -251,8 +297,8 @@ export interface NormalizedLead {
   payment_method: string | null
   proof_of_funds: boolean
   mortgage_status: string | null
-  uk_broker: boolean
-  uk_solicitor: boolean
+  uk_broker: ConnectionStatus
+  uk_solicitor: ConnectionStatus
 
   // Notes
   notes: string | null
@@ -421,8 +467,8 @@ export function normalizeLead(source: SourceLead): NormalizedLead {
     payment_method: source.payment_method || source.paymentMethod || null,
     proof_of_funds: Boolean(source.proof_of_funds || source.proofOfFunds),
     mortgage_status: source.mortgage_status || source.mortgageStatus || null,
-    uk_broker: Boolean(source.uk_broker || source.ukBroker),
-    uk_solicitor: Boolean(source.uk_solicitor || source.ukSolicitor),
+    uk_broker: normalizeConnectionStatus(source.uk_broker ?? source.ukBroker),
+    uk_solicitor: normalizeConnectionStatus(source.uk_solicitor ?? source.ukSolicitor),
 
     // Notes
     notes: source.notes || null,

@@ -91,6 +91,64 @@ function BooleanIndicator({ value, showText = true }: { value: boolean | undefin
   )
 }
 
+// Connection Status Options for Broker/Solicitor
+const CONNECTION_STATUS_OPTIONS = [
+  { value: 'yes', label: 'Yes, already has', icon: CheckCircle, color: 'text-green-600' },
+  { value: 'introduced', label: 'Introduction made', icon: CheckCircle, color: 'text-green-600' },
+  { value: 'no', label: "No, doesn't have", icon: XCircle, color: 'text-red-400' },
+  { value: 'unknown', label: 'Unknown', icon: null, color: 'text-muted-foreground' },
+] as const
+
+// Connection Status Display Component
+function ConnectionStatusDisplay({ value }: { value: string | boolean | undefined | null }) {
+  // Handle legacy boolean values
+  if (typeof value === 'boolean') {
+    value = value ? 'yes' : 'unknown'
+  }
+
+  const status = CONNECTION_STATUS_OPTIONS.find(s => s.value === value) || CONNECTION_STATUS_OPTIONS[3]
+  const Icon = status.icon
+
+  return (
+    <span className={`flex items-center gap-1 ${status.color}`}>
+      {Icon ? <Icon className="h-4 w-4" /> : <span className="h-4 w-4 inline-flex items-center justify-center">—</span>}
+      <span className="text-xs">{status.label}</span>
+    </span>
+  )
+}
+
+// Editable Connection Status Component
+function EditableConnectionStatus({
+  value,
+  onChange,
+  label
+}: {
+  value: string | boolean | undefined | null
+  onChange: (newValue: string) => void
+  label: string
+}) {
+  // Handle legacy boolean values
+  const currentValue = typeof value === 'boolean' ? (value ? 'yes' : 'unknown') : (value || 'unknown')
+
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <select
+        value={currentValue}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-sm bg-background border border-input rounded-md px-2 py-1 max-w-[180px]"
+      >
+        {CONNECTION_STATUS_OPTIONS.map(option => (
+          <option key={option.value} value={option.value}>
+            {option.value === 'yes' || option.value === 'introduced' ? '✓ ' : option.value === 'no' ? '✗ ' : '— '}
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
 // Score Card with Progress Bar
 function ScoreCard({ label, score, maxScore = 100, explanation }: { label: string; score: number | null | undefined; maxScore?: number; explanation?: string }) {
   // Handle null/undefined scores - show as unscored
@@ -432,6 +490,12 @@ export default function LeadDetailPage() {
   const recommendations = scoreResult?.recommendations ?? lead.ai_recommendations ?? []
   const scoreBreakdown = scoreResult?.score_breakdown
 
+  // Helper to check if broker/solicitor has positive status
+  const hasPositiveConnection = (status: string | boolean | undefined | null): boolean => {
+    if (typeof status === 'boolean') return status
+    return status === 'yes' || status === 'introduced'
+  }
+
   // Generate explanation for why scores are what they are
   const getScoreExplanation = () => {
     const reasons: string[] = []
@@ -439,8 +503,8 @@ export default function LeadDetailPage() {
     // Quality factors
     if (lead.payment_method?.toLowerCase() === 'cash') reasons.push('Cash buyer (+15 quality)')
     if (lead.proof_of_funds) reasons.push('Proof of funds verified (+10 quality)')
-    if (lead.uk_broker) reasons.push('UK Broker connected (+8 quality)')
-    if (lead.uk_solicitor) reasons.push('UK Solicitor in place (+7 quality)')
+    if (hasPositiveConnection(lead.uk_broker)) reasons.push('UK Broker connected (+8 quality)')
+    if (hasPositiveConnection(lead.uk_solicitor)) reasons.push('UK Solicitor in place (+7 quality)')
     if (!lead.email && !lead.phone) reasons.push('Missing contact info (-10 quality)')
 
     // Intent factors
@@ -772,8 +836,16 @@ export default function LeadDetailPage() {
               <DataRow label="Payment Method" value={<PaymentBadge method={lead.payment_method} />} />
               <DataRow label="Mortgage Status" value={lead.mortgage_status} />
               <DataRow label="Proof of Funds" value={<BooleanIndicator value={lead.proof_of_funds} />} />
-              <DataRow label="UK Broker" value={<BooleanIndicator value={lead.uk_broker} />} />
-              <DataRow label="UK Solicitor" value={<BooleanIndicator value={lead.uk_solicitor} />} />
+              <EditableConnectionStatus
+                label="UK Broker"
+                value={lead.uk_broker}
+                onChange={(newValue) => updateLead(lead.id, { uk_broker: newValue })}
+              />
+              <EditableConnectionStatus
+                label="UK Solicitor"
+                value={lead.uk_solicitor}
+                onChange={(newValue) => updateLead(lead.id, { uk_solicitor: newValue })}
+              />
             </CardContent>
           </Card>
 
@@ -988,11 +1060,11 @@ export default function LeadDetailPage() {
                   <Calendar className="w-4 h-4 mr-2" /> Book Viewing
                 </Button>
               )}
-              {!lead.uk_broker && (
+              {(!lead.uk_broker || lead.uk_broker === 'no' || lead.uk_broker === 'unknown') && (
                 <Button
                   className="w-full"
                   variant="outline"
-                  onClick={() => updateLead(lead.id, { uk_broker: true })}
+                  onClick={() => updateLead(lead.id, { uk_broker: 'introduced' })}
                 >
                   <Building className="w-4 h-4 mr-2" /> Refer to Broker
                 </Button>

@@ -69,8 +69,8 @@ export interface Buyer {
   payment_method?: string
   proof_of_funds?: boolean
   mortgage_status?: string
-  uk_broker?: boolean
-  uk_solicitor?: boolean
+  uk_broker?: string  // ConnectionStatus: 'yes' | 'introduced' | 'no' | 'unknown'
+  uk_solicitor?: string  // ConnectionStatus: 'yes' | 'introduced' | 'no' | 'unknown'
   notes?: string
   // Assignment
   assigned_to?: string
@@ -413,6 +413,13 @@ export type LeadStatus =
 
 export type PaymentMethod = 'Cash' | 'Mortgage'
 
+// Broker/Solicitor connection status
+export type ConnectionStatus =
+  | 'yes'           // Already has one
+  | 'introduced'    // Introduction made by us
+  | 'no'            // Doesn't have one
+  | 'unknown'       // Not yet determined (default)
+
 export type NextActionType = 'call' | 'email' | 'whatsapp' | 'book_viewing' | 'confirm' | 'follow_up' | 're_engage'
 
 export interface Lead {
@@ -463,8 +470,8 @@ export interface Lead {
   // Financial Readiness
   proofOfFunds?: boolean
   mortgageStatus?: string
-  ukBroker?: boolean
-  ukSolicitor?: boolean
+  ukBroker?: ConnectionStatus
+  ukSolicitor?: ConnectionStatus
   brokerConnected?: boolean
 
   // Viewing

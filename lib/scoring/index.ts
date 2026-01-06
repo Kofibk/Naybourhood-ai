@@ -89,6 +89,21 @@ export interface LeadScoreResult {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Check if broker/solicitor status is positive (yes or introduced)
+ * Both 'yes' and 'introduced' count as having the connection
+ */
+function hasConnection(status: string | boolean | undefined | null): boolean {
+  if (typeof status === 'boolean') return status
+  if (!status) return false
+  const normalized = String(status).toLowerCase().trim()
+  return normalized === 'yes' || normalized === 'introduced' || normalized === 'true'
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // SPAM DETECTION
 // ═══════════════════════════════════════════════════════════════════
 
@@ -320,13 +335,13 @@ function calculateVerificationStatus(buyer: Buyer): ScoreBreakdown {
   const maxScore = 20
 
   // UK Broker connected (8 points)
-  if (buyer.uk_broker) {
+  if (hasConnection(buyer.uk_broker)) {
     score += 8
     details.push('+8: UK broker connected')
   }
 
   // UK Solicitor (7 points)
-  if (buyer.uk_solicitor) {
+  if (hasConnection(buyer.uk_solicitor)) {
     score += 7
     details.push('+7: UK solicitor appointed')
   }
@@ -511,7 +526,7 @@ function calculateCommitmentIntent(buyer: Buyer): ScoreBreakdown {
   }
 
   // Legal team in place
-  if (buyer.uk_solicitor) {
+  if (hasConnection(buyer.uk_solicitor)) {
     score += 5
     details.push('+5: Solicitor appointed')
   }
@@ -624,13 +639,13 @@ function calculateVerificationConfidence(buyer: Buyer): ScoreBreakdown {
   }
 
   // UK Broker (3 points)
-  if (buyer.uk_broker) {
+  if (hasConnection(buyer.uk_broker)) {
     score += 3
     details.push('+3: UK broker connected')
   }
 
   // UK Solicitor (3 points)
-  if (buyer.uk_solicitor) {
+  if (hasConnection(buyer.uk_solicitor)) {
     score += 3
     details.push('+3: UK solicitor appointed')
   }
@@ -819,7 +834,7 @@ export function generateRiskFlags(buyer: Buyer, scores: {
   }
 
   // Verification risks
-  if (!buyer.uk_broker && buyer.payment_method?.toLowerCase() === 'mortgage') {
+  if (!hasConnection(buyer.uk_broker) && buyer.payment_method?.toLowerCase() === 'mortgage') {
     flags.push('No UK broker connected (mortgage buyer)')
   }
 
