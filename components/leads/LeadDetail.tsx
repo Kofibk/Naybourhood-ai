@@ -79,6 +79,27 @@ export function LeadDetail({
       <XCircle className="h-4 w-4 text-muted-foreground" />
     )
 
+  // Connection status icon for broker/solicitor (handles string values)
+  const ConnectionIcon = ({ status }: { status?: string | boolean }) => {
+    // Handle boolean values (legacy)
+    if (typeof status === 'boolean') {
+      return status ? (
+        <CheckCircle className="h-4 w-4 text-green-500" />
+      ) : (
+        <span className="h-4 w-4 text-muted-foreground">—</span>
+      )
+    }
+    // Handle string values
+    if (status === 'yes' || status === 'introduced') {
+      return <CheckCircle className="h-4 w-4 text-green-500" />
+    }
+    if (status === 'no') {
+      return <XCircle className="h-4 w-4 text-red-400" />
+    }
+    // unknown or undefined
+    return <span className="h-4 w-4 text-muted-foreground inline-flex items-center justify-center">—</span>
+  }
+
   return (
     <div className={cn('space-y-6', className)}>
       {/* Header */}
@@ -455,11 +476,11 @@ export function LeadDetail({
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">UK Broker</span>
-                <CheckIcon checked={lead.ukBroker} />
+                <ConnectionIcon status={lead.ukBroker} />
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">UK Solicitor</span>
-                <CheckIcon checked={lead.ukSolicitor} />
+                <ConnectionIcon status={lead.ukSolicitor} />
               </div>
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Proof of Funds</span>

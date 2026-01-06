@@ -64,6 +64,34 @@ function BooleanIndicator({ value }: { value: boolean | undefined | null }) {
   )
 }
 
+// Connection Status Display for Broker/Solicitor
+const CONNECTION_STATUS_CONFIG: Record<string, { icon: typeof CheckCircle | null; color: string; label: string }> = {
+  'yes': { icon: CheckCircle, color: 'text-green-600', label: 'Yes, already has' },
+  'introduced': { icon: CheckCircle, color: 'text-green-600', label: 'Introduction made' },
+  'no': { icon: XCircle, color: 'text-red-400', label: "No, doesn't have" },
+  'unknown': { icon: null, color: 'text-muted-foreground', label: 'Unknown' },
+}
+
+function ConnectionStatusDisplay({ value }: { value: string | boolean | undefined | null }) {
+  // Handle legacy boolean values
+  let statusKey = 'unknown'
+  if (typeof value === 'boolean') {
+    statusKey = value ? 'yes' : 'unknown'
+  } else if (typeof value === 'string') {
+    statusKey = value
+  }
+
+  const config = CONNECTION_STATUS_CONFIG[statusKey] || CONNECTION_STATUS_CONFIG['unknown']
+  const Icon = config.icon
+
+  return (
+    <span className={`flex items-center gap-1 ${config.color}`}>
+      {Icon ? <Icon className="h-4 w-4" /> : <span className="h-4 w-4 inline-flex items-center justify-center">—</span>}
+      <span className="text-xs">{config.label}</span>
+    </span>
+  )
+}
+
 function ScoreCard({ label, score, maxScore = 100 }: { label: string; score: number | null | undefined; maxScore?: number }) {
   if (score === null || score === undefined) {
     return (
@@ -424,8 +452,8 @@ export default function DeveloperLeadDetailPage() {
             <CardContent className="space-y-0">
               <DataRow label="Payment Method" value={lead.payment_method} />
               <DataRow label="Proof of Funds" value={<BooleanIndicator value={lead.proof_of_funds} />} />
-              <DataRow label="UK Broker" value={<BooleanIndicator value={lead.uk_broker} />} />
-              <DataRow label="UK Solicitor" value={<BooleanIndicator value={lead.uk_solicitor} />} />
+              <DataRow label="UK Broker" value={<ConnectionStatusDisplay value={lead.uk_broker} />} />
+              <DataRow label="UK Solicitor" value={<ConnectionStatusDisplay value={lead.uk_solicitor} />} />
             </CardContent>
           </Card>
 

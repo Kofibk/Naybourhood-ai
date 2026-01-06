@@ -81,8 +81,8 @@ export function transformBuyerToLead(buyer: Record<string, unknown>): Lead {
 
     proofOfFunds: buyer.proof_of_funds as boolean,
     mortgageStatus: buyer.mortgage_status as string,
-    ukBroker: buyer.uk_broker as boolean,
-    ukSolicitor: buyer.uk_solicitor as boolean,
+    ukBroker: (buyer.uk_broker || 'unknown') as 'yes' | 'introduced' | 'no' | 'unknown',
+    ukSolicitor: (buyer.uk_solicitor || 'unknown') as 'yes' | 'introduced' | 'no' | 'unknown',
     brokerConnected: buyer.broker_connected as boolean,
 
     viewingIntentConfirmed: buyer.viewing_intent_confirmed as boolean,
