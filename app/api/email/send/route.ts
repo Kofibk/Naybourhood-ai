@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Resend } from 'resend'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
+import { EMAIL_TEMPLATES, getTemplatesByStage, STAGES } from '@/lib/templates/messages'
 
 // Initialize Resend if API key exists
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
@@ -155,71 +156,46 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// GET endpoint for email templates
-export async function GET() {
-  const templates = [
-    {
-      id: 'introduction',
-      name: 'Introduction',
-      subject: 'Your Property Search - Naybourhood',
-      body: `Hi {{name}},
+// GET endpoint for email templates - grouped by stage
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  const stage = searchParams.get('stage')
 
-Thank you for your interest in finding your perfect property. I'm reaching out to help you with your property search.
+  // If stage specified, return templates for that stage
+  if (stage) {
+    const templates = getTemplatesByStage(stage)
+    return NextResponse.json({
+      stage,
+      templates: templates.map(t => ({
+        id: t.id,
+        name: t.name,
+        subject: t.subject || '',
+        body: t.body,
+        placeholders: t.placeholders,
+      }))
+    })
+  }
 
-Based on your requirements, I'd love to discuss some options that might be perfect for you.
+  // Return all email templates grouped by stage
+  const templatesByStage: Record<string, any[]> = {}
 
-Would you be available for a quick call this week?
+  for (const stageName of STAGES) {
+    const stageTemplates = EMAIL_TEMPLATES.filter(t => t.stage === stageName)
+    if (stageTemplates.length > 0) {
+      templatesByStage[stageName] = stageTemplates.map(t => ({
+        id: t.id,
+        name: t.name,
+        stage: t.stage,
+        subject: t.subject || '',
+        body: t.body,
+        placeholders: t.placeholders,
+      }))
+    }
+  }
 
-Best regards`,
-    },
-    {
-      id: 'viewing_invite',
-      name: 'Viewing Invitation',
-      subject: 'Property Viewing Invitation - {{development}}',
-      body: `Hi {{name}},
-
-I'm excited to invite you for a viewing at {{development}}.
-
-This property matches your criteria and I believe you'll love it.
-
-Please let me know your availability and I'll arrange a convenient time for you.
-
-Looking forward to showing you around!
-
-Best regards`,
-    },
-    {
-      id: 'follow_up',
-      name: 'Follow Up',
-      subject: 'Following Up - Your Property Search',
-      body: `Hi {{name}},
-
-I wanted to check in and see how your property search is going.
-
-Have you had any thoughts on the properties we discussed? I'm here to answer any questions you might have.
-
-Feel free to reach out whenever convenient.
-
-Best regards`,
-    },
-    {
-      id: 'documents_request',
-      name: 'Documents Request',
-      subject: 'Document Request - Next Steps',
-      body: `Hi {{name}},
-
-Thank you for your interest in proceeding with the property.
-
-To move forward, we'll need the following documents:
-- Proof of funds / Mortgage agreement in principle
-- Photo ID
-- Proof of address
-
-Please send these at your earliest convenience so we can secure your position.
-
-Best regards`,
-    },
-  ]
-
-  return NextResponse.json({ templates })
+  return NextResponse.json({
+    stages: STAGES,
+    templatesByStage,
+    totalTemplates: EMAIL_TEMPLATES.length,
+  })
 }

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { EmailComposer } from '@/components/EmailComposer'
+import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
@@ -46,6 +47,7 @@ export default function BrokerFinanceLeadsPage() {
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [emailLead, setEmailLead] = useState<any>(null)
+  const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   // Filter finance leads by broker's company_id
@@ -159,8 +161,7 @@ export default function BrokerFinanceLeadsPage() {
   const handleQuickWhatsApp = (lead: any, e: React.MouseEvent) => {
     e.stopPropagation()
     if (lead.phone) {
-      const phone = lead.phone.replace(/[^0-9]/g, '')
-      window.open(`https://wa.me/${phone}`, '_blank')
+      setWhatsappLead(lead)
     } else {
       toast.error('No phone number available')
     }
@@ -419,6 +420,22 @@ export default function BrokerFinanceLeadsPage() {
           recipientEmail={emailLead.email || ''}
           recipientName={emailLead.full_name || `${emailLead.first_name || ''} ${emailLead.last_name || ''}`.trim() || 'Client'}
           leadId={emailLead.id}
+          leadStage={emailLead.status || 'Contact Pending'}
+          agentName={user?.name || ''}
+          companyName="Naybourhood"
+        />
+      )}
+
+      {/* WhatsApp Template Selector Modal */}
+      {whatsappLead && (
+        <WhatsAppTemplateSelector
+          open={!!whatsappLead}
+          onOpenChange={(open) => !open && setWhatsappLead(null)}
+          recipientPhone={whatsappLead.phone || ''}
+          recipientName={whatsappLead.full_name || `${whatsappLead.first_name || ''} ${whatsappLead.last_name || ''}`.trim() || 'Client'}
+          leadStage={whatsappLead.status || 'Contact Pending'}
+          agentName={user?.name || ''}
+          companyName="Naybourhood"
         />
       )}
     </div>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { EmailComposer } from '@/components/EmailComposer'
+import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import {
   Search, Phone, Mail, MessageCircle, Eye, Flame, Users,
   ChevronRight, Target, TrendingUp, CheckCircle, Clock
@@ -58,6 +59,7 @@ export default function DeveloperBuyersPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [classificationFilter, setClassificationFilter] = useState<string>('all')
   const [emailLead, setEmailLead] = useState<any>(null)
+  const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   // Filter leads by company_id - only show leads assigned to the user's company
@@ -138,8 +140,7 @@ export default function DeveloperBuyersPage() {
   const handleQuickWhatsApp = (lead: any, e: React.MouseEvent) => {
     e.stopPropagation()
     if (lead.phone) {
-      const phone = lead.phone.replace(/[^0-9]/g, '')
-      window.open(`https://wa.me/${phone}`, '_blank')
+      setWhatsappLead(lead)
     } else {
       toast.error('No phone number available')
     }
@@ -393,6 +394,23 @@ export default function DeveloperBuyersPage() {
           recipientName={emailLead.full_name || 'Lead'}
           leadId={emailLead.id}
           developmentName={emailLead.campaign}
+          leadStage={emailLead.status || 'Contact Pending'}
+          agentName={user?.name || ''}
+          companyName="Naybourhood"
+        />
+      )}
+
+      {/* WhatsApp Template Selector Modal */}
+      {whatsappLead && (
+        <WhatsAppTemplateSelector
+          open={!!whatsappLead}
+          onOpenChange={(open) => !open && setWhatsappLead(null)}
+          recipientPhone={whatsappLead.phone || ''}
+          recipientName={whatsappLead.full_name || 'Lead'}
+          leadStage={whatsappLead.status || 'Contact Pending'}
+          developmentName={whatsappLead.campaign}
+          agentName={user?.name || ''}
+          companyName="Naybourhood"
         />
       )}
     </div>
