@@ -42,7 +42,6 @@ import {
   Globe,
   Briefcase,
   Home,
-  Save,
 } from 'lucide-react'
 
 // Status options
@@ -55,10 +54,237 @@ const STATUS_OPTIONS = [
   'Exchanged',
   'Completed',
   'Not Proceeding',
-  'Fake',
-  'Cant Verify',
-  'Duplicate',
+  'Disqualified',
 ]
+
+// Editable Text Field Component
+function EditableTextField({
+  label,
+  value,
+  field,
+  onSave,
+  icon: Icon,
+  type = 'text'
+}: {
+  label: string
+  value: string | number | null | undefined
+  field: string
+  onSave: (field: string, value: string) => void
+  icon?: any
+  type?: 'text' | 'email' | 'tel' | 'number'
+}) {
+  const [editing, setEditing] = useState(false)
+  const [tempValue, setTempValue] = useState(String(value || ''))
+
+  const handleSave = () => {
+    onSave(field, tempValue)
+    setEditing(false)
+  }
+
+  const handleCancel = () => {
+    setTempValue(String(value || ''))
+    setEditing(false)
+  }
+
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 group">
+      <span className="text-sm text-muted-foreground flex items-center gap-2">
+        {Icon && <Icon className="w-4 h-4" />}
+        {label}
+      </span>
+      {editing ? (
+        <div className="flex items-center gap-2">
+          <input
+            type={type}
+            value={tempValue}
+            onChange={(e) => setTempValue(e.target.value)}
+            className="text-sm bg-background border border-input rounded-md px-2 py-1 w-40"
+            autoFocus
+          />
+          <Button size="sm" variant="ghost" onClick={handleSave}><CheckCircle className="h-4 w-4 text-green-600" /></Button>
+          <Button size="sm" variant="ghost" onClick={handleCancel}><XCircle className="h-4 w-4 text-red-400" /></Button>
+        </div>
+      ) : (
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-right max-w-[50%] truncate">{value || '-'}</span>
+          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0" onClick={() => setEditing(true)}>
+            <Edit className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Editable Boolean Field Component
+function EditableBooleanField({
+  label,
+  value,
+  field,
+  onSave,
+}: {
+  label: string
+  value: boolean | undefined | null
+  field: string
+  onSave: (field: string, value: boolean) => void
+}) {
+  const isTrue = Boolean(value)
+
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <button
+        onClick={() => onSave(field, !isTrue)}
+        className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
+          isTrue
+            ? 'text-green-600 hover:bg-green-50'
+            : 'text-red-400 hover:bg-red-50'
+        }`}
+      >
+        {isTrue ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+        {isTrue ? 'Yes' : 'No'}
+      </button>
+    </div>
+  )
+}
+
+// Editable Select Field Component
+function EditableSelectField({
+  label,
+  value,
+  field,
+  options,
+  onSave,
+  icon: Icon,
+}: {
+  label: string
+  value: string | undefined | null
+  field: string
+  options: { value: string; label: string }[]
+  onSave: (field: string, value: string) => void
+  icon?: any
+}) {
+  return (
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
+      <span className="text-sm text-muted-foreground flex items-center gap-2">
+        {Icon && <Icon className="w-4 h-4" />}
+        {label}
+      </span>
+      <select
+        value={value || ''}
+        onChange={(e) => onSave(field, e.target.value)}
+        className="text-sm bg-background border border-input rounded-md px-2 py-1 max-w-[180px]"
+      >
+        <option value="">-</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+    </div>
+  )
+}
+
+// Comment type for notes
+interface Comment {
+  id: string
+  text: string
+  author: string
+  timestamp: string
+}
+
+// Notes/Comments Component
+function NotesComments({
+  notes,
+  onSave,
+  userName = 'Admin'
+}: {
+  notes: string | null | undefined
+  onSave: (notes: string) => void
+  userName?: string
+}) {
+  const [newComment, setNewComment] = useState('')
+
+  // Parse existing notes as comments (JSON array) or convert legacy text
+  const parseComments = (): Comment[] => {
+    if (!notes) return []
+    try {
+      const parsed = JSON.parse(notes)
+      if (Array.isArray(parsed)) return parsed
+      // Legacy text format - convert to single comment
+      return [{ id: '1', text: notes, author: 'System', timestamp: new Date().toISOString() }]
+    } catch {
+      // Legacy text format
+      if (notes.trim()) {
+        return [{ id: '1', text: notes, author: 'Imported', timestamp: new Date().toISOString() }]
+      }
+      return []
+    }
+  }
+
+  const comments = parseComments()
+
+  const handleAddComment = () => {
+    if (!newComment.trim()) return
+
+    const newCommentObj: Comment = {
+      id: Date.now().toString(),
+      text: newComment.trim(),
+      author: userName,
+      timestamp: new Date().toISOString()
+    }
+
+    const updatedComments = [...comments, newCommentObj]
+    onSave(JSON.stringify(updatedComments))
+    setNewComment('')
+  }
+
+  const formatTimestamp = (ts: string) => {
+    return new Date(ts).toLocaleString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  }
+
+  return (
+    <div className="space-y-3">
+      {/* Existing Comments */}
+      <div className="space-y-3 max-h-[400px] overflow-y-auto">
+        {comments.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic py-4 text-center">No comments yet</p>
+        ) : (
+          comments.map((comment) => (
+            <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
+              <div className="flex justify-between items-start mb-1">
+                <span className="text-xs font-medium text-primary">{comment.author}</span>
+                <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
+              </div>
+              <p className="text-sm whitespace-pre-wrap">{comment.text}</p>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Add New Comment */}
+      <div className="border-t pt-3">
+        <Textarea
+          value={newComment}
+          onChange={(e) => setNewComment(e.target.value)}
+          placeholder="Add a comment..."
+          rows={3}
+          className="text-sm mb-2"
+        />
+        <div className="flex justify-end">
+          <Button size="sm" onClick={handleAddComment} disabled={!newComment.trim()}>
+            <MessageSquare className="w-4 h-4 mr-1" /> Add Comment
+          </Button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // Classification colors and labels
 const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string; description: string }> = {
@@ -323,20 +549,11 @@ export default function LeadDetailPage() {
   const [scoreResult, setScoreResult] = useState<ScoreBuyerResponse | null>(null)
   const [openBreakdown, setOpenBreakdown] = useState<string | null>('quality')
   const [hasAutoScored, setHasAutoScored] = useState(false)
-  const [editingNotes, setEditingNotes] = useState(false)
-  const [notesValue, setNotesValue] = useState('')
   const [showEmailComposer, setShowEmailComposer] = useState(false)
 
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
   }, [leads, params.id])
-
-  // Initialize notes value when lead loads
-  useEffect(() => {
-    if (lead?.notes) {
-      setNotesValue(lead.notes)
-    }
-  }, [lead?.notes])
 
   const handleStatusChange = async (status: string) => {
     if (!lead) return
@@ -346,12 +563,6 @@ export default function LeadDetailPage() {
   const handleAssigneeChange = async (assignee: string) => {
     if (!lead) return
     await updateLead(lead.id, { assigned_to: assignee })
-  }
-
-  const handleSaveNotes = async () => {
-    if (!lead) return
-    await updateLead(lead.id, { notes: notesValue })
-    setEditingNotes(false)
   }
 
   const handleRescore = async () => {
@@ -410,6 +621,12 @@ export default function LeadDetailPage() {
   const handleArchive = async () => {
     if (!lead || !confirm('Archive this lead?')) return
     await updateLead(lead.id, { status: 'Not Proceeding' })
+  }
+
+  // Generic field save handler for editable fields
+  const handleFieldSave = async (field: string, value: string | boolean | number | null) => {
+    if (!lead) return
+    await updateLead(lead.id, { [field]: value })
   }
 
   const formatDate = (dateString?: string) => {
@@ -791,12 +1008,12 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              <DataRow label="Full Name" value={lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim()} icon={User} />
-              <DataRow label="First Name" value={lead.first_name} />
-              <DataRow label="Last Name" value={lead.last_name} />
-              <DataRow label="Email" value={lead.email} icon={Mail} />
-              <DataRow label="Phone" value={lead.phone} icon={Phone} />
-              <DataRow label="Country" value={lead.country} icon={Globe} />
+              <EditableTextField label="Full Name" value={lead.full_name} field="full_name" onSave={handleFieldSave} icon={User} />
+              <EditableTextField label="First Name" value={lead.first_name} field="first_name" onSave={handleFieldSave} />
+              <EditableTextField label="Last Name" value={lead.last_name} field="last_name" onSave={handleFieldSave} />
+              <EditableTextField label="Email" value={lead.email} field="email" onSave={handleFieldSave} icon={Mail} type="email" />
+              <EditableTextField label="Phone" value={lead.phone} field="phone" onSave={handleFieldSave} icon={Phone} type="tel" />
+              <EditableTextField label="Country" value={lead.country} field="country" onSave={handleFieldSave} icon={Globe} />
             </CardContent>
           </Card>
 
@@ -809,18 +1026,53 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              <DataRow label="Budget" value={lead.budget_range || lead.budget} icon={DollarSign} />
-              {(lead.budget_min || lead.budget_max) && (
-                <DataRow
-                  label="Budget Range"
-                  value={`£${lead.budget_min?.toLocaleString() || '0'} - £${lead.budget_max?.toLocaleString() || '∞'}`}
-                />
-              )}
-              <DataRow label="Bedrooms" value={lead.preferred_bedrooms || lead.bedrooms} icon={Home} />
-              <DataRow label="Location" value={lead.location || lead.area} icon={MapPin} />
-              <DataRow label="Timeline" value={lead.timeline} icon={Calendar} />
-              <DataRow label="Purpose" value={lead.purpose} />
-              <DataRow label="Ready in 28 Days" value={<BooleanIndicator value={lead.ready_in_28_days} />} />
+              <EditableTextField label="Budget" value={lead.budget_range || lead.budget} field="budget_range" onSave={handleFieldSave} icon={DollarSign} />
+              <EditableTextField label="Min Budget" value={lead.budget_min} field="budget_min" onSave={(f, v) => handleFieldSave(f, v ? Number(v) : null)} type="number" />
+              <EditableTextField label="Max Budget" value={lead.budget_max} field="budget_max" onSave={(f, v) => handleFieldSave(f, v ? Number(v) : null)} type="number" />
+              <EditableSelectField
+                label="Bedrooms"
+                value={String(lead.preferred_bedrooms || lead.bedrooms || '')}
+                field="preferred_bedrooms"
+                onSave={handleFieldSave}
+                icon={Home}
+                options={[
+                  { value: 'Studio', label: 'Studio' },
+                  { value: '1', label: '1 Bedroom' },
+                  { value: '2', label: '2 Bedrooms' },
+                  { value: '3', label: '3 Bedrooms' },
+                  { value: '4', label: '4 Bedrooms' },
+                  { value: '5+', label: '5+ Bedrooms' },
+                ]}
+              />
+              <EditableTextField label="Location" value={lead.preferred_location || lead.location || lead.area} field="preferred_location" onSave={handleFieldSave} icon={MapPin} />
+              <EditableSelectField
+                label="Timeline"
+                value={lead.timeline_to_purchase || lead.timeline}
+                field="timeline_to_purchase"
+                onSave={handleFieldSave}
+                icon={Calendar}
+                options={[
+                  { value: 'Immediately', label: 'Immediately' },
+                  { value: 'Within 1 month', label: 'Within 1 month' },
+                  { value: 'Within 3 months', label: 'Within 3 months' },
+                  { value: 'Within 6 months', label: 'Within 6 months' },
+                  { value: 'Within 12 months', label: 'Within 12 months' },
+                  { value: '12+ months', label: '12+ months' },
+                  { value: 'Just browsing', label: 'Just browsing' },
+                ]}
+              />
+              <EditableSelectField
+                label="Purpose"
+                value={lead.purchase_purpose || lead.purpose}
+                field="purchase_purpose"
+                onSave={handleFieldSave}
+                options={[
+                  { value: 'Investment', label: 'Investment' },
+                  { value: 'Residence', label: 'Residence' },
+                  { value: 'Both', label: 'Both' },
+                ]}
+              />
+              <EditableBooleanField label="Ready in 28 Days" value={lead.ready_within_28_days || lead.ready_in_28_days} field="ready_within_28_days" onSave={handleFieldSave} />
             </CardContent>
           </Card>
 
@@ -833,9 +1085,31 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              <DataRow label="Payment Method" value={<PaymentBadge method={lead.payment_method} />} />
-              <DataRow label="Mortgage Status" value={lead.mortgage_status} />
-              <DataRow label="Proof of Funds" value={<BooleanIndicator value={lead.proof_of_funds} />} />
+              <EditableSelectField
+                label="Payment Method"
+                value={lead.payment_method}
+                field="payment_method"
+                onSave={handleFieldSave}
+                icon={DollarSign}
+                options={[
+                  { value: 'Cash', label: 'Cash' },
+                  { value: 'Mortgage', label: 'Mortgage' },
+                  { value: 'Cash & Mortgage', label: 'Cash & Mortgage' },
+                ]}
+              />
+              <EditableSelectField
+                label="Mortgage Status"
+                value={lead.mortgage_status}
+                field="mortgage_status"
+                onSave={handleFieldSave}
+                options={[
+                  { value: 'Pre-approved', label: 'Pre-approved' },
+                  { value: 'In process', label: 'In process' },
+                  { value: 'Not started', label: 'Not started' },
+                  { value: 'N/A - Cash buyer', label: 'N/A - Cash buyer' },
+                ]}
+              />
+              <EditableBooleanField label="Proof of Funds" value={lead.proof_of_funds} field="proof_of_funds" onSave={handleFieldSave} />
               <EditableConnectionStatus
                 label="UK Broker"
                 value={lead.uk_broker}
@@ -858,8 +1132,10 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              <DataRow label="Source" value={lead.source} />
-              <DataRow label="Campaign/Development" value={lead.campaign} />
+              <EditableTextField label="Source" value={lead.source_platform || lead.source} field="source_platform" onSave={handleFieldSave} />
+              <EditableTextField label="Campaign/Development" value={lead.source_campaign || lead.campaign || lead.development_name} field="source_campaign" onSave={handleFieldSave} />
+              <EditableTextField label="Development Name" value={lead.development_name} field="development_name" onSave={handleFieldSave} icon={Building} />
+              <EditableTextField label="Enquiry Type" value={lead.enquiry_type} field="enquiry_type" onSave={handleFieldSave} />
               <DataRow label="Campaign ID" value={lead.campaign_id ? lead.campaign_id.substring(0, 8) + '...' : '-'} icon={Hash} />
               <DataRow label="Company ID" value={lead.company_id ? lead.company_id.substring(0, 8) + '...' : '-'} icon={Building} />
             </CardContent>
@@ -874,13 +1150,13 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              <DataRow label="Viewing Intent" value={(lead as any).viewing_intent_confirmed ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
-              <DataRow label="Viewing Booked" value={(lead as any).viewing_booked ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
-              <DataRow label="Viewing Date" value={formatDate((lead as any).viewing_date)} icon={Calendar} />
-              <DataRow label="Has Replied" value={(lead as any).replied ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
-              <DataRow label="Stop Comms" value={(lead as any).stop_comms ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
-              <DataRow label="Next Follow-up" value={formatDate((lead as any).next_follow_up)} icon={Clock} />
-              <DataRow label="Broker Connected" value={(lead as any).broker_connected ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
+              <EditableBooleanField label="Viewing Intent" value={(lead as any).viewing_intent_confirmed} field="viewing_intent_confirmed" onSave={handleFieldSave} />
+              <EditableBooleanField label="Viewing Booked" value={(lead as any).viewing_booked} field="viewing_booked" onSave={handleFieldSave} />
+              <EditableTextField label="Viewing Date" value={(lead as any).viewing_date} field="viewing_date" onSave={handleFieldSave} icon={Calendar} />
+              <EditableBooleanField label="Has Replied" value={(lead as any).replied} field="replied" onSave={handleFieldSave} />
+              <EditableBooleanField label="Stop Comms" value={(lead as any).stop_agent_communication || (lead as any).stop_comms} field="stop_agent_communication" onSave={handleFieldSave} />
+              <EditableTextField label="Next Follow-up" value={(lead as any).next_follow_up} field="next_follow_up" onSave={handleFieldSave} icon={Clock} />
+              <EditableBooleanField label="Broker Connected" value={(lead as any).connect_to_broker || (lead as any).broker_connected} field="connect_to_broker" onSave={handleFieldSave} />
             </CardContent>
           </Card>
 
@@ -966,49 +1242,20 @@ export default function LeadDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Notes */}
+          {/* Notes & Comments */}
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2 justify-between">
-                <span className="flex items-center gap-2">
-                  <FileText className="w-4 h-4" />
-                  Notes
-                </span>
-                {!editingNotes && (
-                  <Button variant="ghost" size="sm" onClick={() => setEditingNotes(true)}>
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                )}
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageSquare className="w-4 h-4" />
+                Notes & Comments
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {editingNotes ? (
-                <div className="space-y-2">
-                  <Textarea
-                    value={notesValue}
-                    onChange={(e) => setNotesValue(e.target.value)}
-                    placeholder="Add notes about this lead..."
-                    rows={6}
-                    className="text-sm"
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <Button variant="outline" size="sm" onClick={() => setEditingNotes(false)}>
-                      Cancel
-                    </Button>
-                    <Button size="sm" onClick={handleSaveNotes}>
-                      <Save className="w-4 h-4 mr-1" /> Save
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-muted rounded-lg p-3 min-h-[100px] max-h-[300px] overflow-y-auto">
-                  {lead.notes ? (
-                    <pre className="text-sm whitespace-pre-wrap font-sans">{lead.notes}</pre>
-                  ) : (
-                    <p className="text-sm text-muted-foreground italic">No notes yet. Click edit to add.</p>
-                  )}
-                </div>
-              )}
+              <NotesComments
+                notes={lead.notes}
+                onSave={(notes) => updateLead(lead.id, { notes })}
+                userName="Admin"
+              />
             </CardContent>
           </Card>
 
