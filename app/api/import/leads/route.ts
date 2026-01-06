@@ -82,39 +82,73 @@ export async function POST(request: NextRequest) {
       const batch = leads.slice(i, i + batchSize)
 
       const processedBatch = batch.map((lead: any) => {
-        // Map fields to Supabase schema
+        // Parse date_added - handles formats like "6/1/2026 1:20pm"
+        let parsedDate = new Date().toISOString()
+        if (lead.date_added) {
+          try {
+            // Parse UK date format: "6/1/2026 1:20pm" = 6th Jan 2026
+            const dateMatch = lead.date_added.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{1,2}):(\d{2})(am|pm)?/i)
+            if (dateMatch) {
+              const [, day, month, year, hours, minutes, ampm] = dateMatch
+              let hour = parseInt(hours)
+              if (ampm?.toLowerCase() === 'pm' && hour < 12) hour += 12
+              if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0
+              parsedDate = new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes)).toISOString()
+            } else {
+              parsedDate = new Date(lead.date_added).toISOString()
+            }
+          } catch {
+            parsedDate = new Date().toISOString()
+          }
+        }
+
+        // Map JSON fields to actual Supabase column names
         const mappedLead: any = {
+          // Name fields
           full_name: lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || null,
           first_name: lead.first_name || null,
           last_name: lead.last_name || null,
+          // Contact
           email: lead.email || null,
           phone: lead.phone || null,
+          country: lead.country || null,
+          // Budget
           budget_range: lead.budget_range || null,
           budget_min: lead.budget_min || null,
           budget_max: lead.budget_max || null,
+          // Property preferences - map to Supabase column names
           preferred_bedrooms: lead.preferred_bedrooms || null,
-          area: lead.area || lead.location || null,
-          country: lead.country || null,
-          timeline: lead.timeline || null,
-          source: lead.source || null,
-          campaign: lead.campaign || lead.development || null,
+          preferred_location: lead.location || lead.area || null,
+          // Timeline & Purpose - map to Supabase column names
+          timeline_to_purchase: lead.timeline || null,
+          purchase_purpose: lead.purpose || null,
+          ready_within_28_days: lead.ready_in_28_days || false,
+          // Source & Campaign - map to Supabase column names
+          source_platform: lead.source || null,
+          source_campaign: lead.campaign || null,
+          development_name: lead.development || null,
+          enquiry_type: lead.enquiry_type || null,
+          // Status
           status: lead.status || 'Contact Pending',
+          // Financial qualification
           payment_method: lead.payment_method || null,
           proof_of_funds: lead.proof_of_funds || false,
           mortgage_status: lead.mortgage_status || null,
           uk_broker: lead.uk_broker || false,
           uk_solicitor: lead.uk_solicitor || false,
+          // Notes & Transcript
           notes: lead.notes || null,
-          purpose: lead.purpose || null,
-          ready_in_28_days: lead.ready_in_28_days || false,
+          agent_transcript: lead.transcript || null,
+          // Viewing
           viewing_intent_confirmed: lead.viewing_intent_confirmed || false,
           viewing_booked: lead.viewing_booked || false,
           viewing_date: lead.viewing_date || null,
+          // Communication flags - map to Supabase column names
           replied: lead.replied || false,
-          stop_comms: lead.stop_comms || false,
-          broker_connected: lead.broker_connected || false,
-          transcript: lead.transcript || null,
-          date_added: lead.date_added ? new Date(lead.date_added).toISOString() : new Date().toISOString(),
+          stop_agent_communication: lead.stop_comms || false,
+          connect_to_broker: lead.broker_connected || false,
+          // Timestamps
+          date_added: parsedDate,
         }
 
         // Score the lead if not skipping
