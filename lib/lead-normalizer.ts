@@ -251,11 +251,13 @@ const STATUS_MAP: Record<string, ValidStatus> = {
   'lost': 'Not Proceeding',
   'dead': 'Not Proceeding',
   'unqualified': 'Not Proceeding',
-  'disqualified': 'Not Proceeding',
-  'dq': 'Not Proceeding',
   'no answer': 'Contact Pending',
   'callback': 'Follow Up',
   'documentation': 'Negotiating',
+  // Duplicates
+  'disqualified': 'Duplicate',
+  'dq': 'Duplicate',
+  'duplicate': 'Duplicate',
 }
 
 /**
