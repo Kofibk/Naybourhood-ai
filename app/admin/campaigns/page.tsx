@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, statusIs } from '@/lib/utils'
 import { AIOverview } from '@/components/ai/AIOverview'
 import { EditableCell } from '@/components/ui/editable-cell'
 import type { Campaign } from '@/types'
@@ -167,7 +167,7 @@ export default function CampaignsPage() {
       groups[groupName].campaigns.push(campaign)
       groups[groupName].totalSpend += campaign.spend || 0
       groups[groupName].totalLeads += campaignLeads
-      if (campaign.status === 'active' || campaign.status === 'Active') {
+      if (statusIs(campaign.status, 'active')) {
         groups[groupName].activeCampaigns++
       }
     })
@@ -217,7 +217,7 @@ export default function CampaignsPage() {
 
   const totalStats = useMemo(() => ({
     totalCampaigns: campaigns.length,
-    activeCampaigns: campaigns.filter((c) => c.status === 'active').length,
+    activeCampaigns: campaigns.filter((c) => statusIs(c.status, 'active')).length,
     totalSpend: campaigns.reduce((sum, c) => sum + (c.spend || 0), 0),
     // Use total buyers count for leads
     totalLeads: leads.length,
@@ -427,7 +427,7 @@ export default function CampaignsPage() {
                               <p className="text-sm font-medium">{campaign.name}</p>
                               <div className="flex items-center gap-2">
                                 <Badge
-                                  variant={campaign.status === 'active' ? 'success' : 'secondary'}
+                                  variant={statusIs(campaign.status, 'active') ? 'success' : 'secondary'}
                                   className="text-[10px]"
                                 >
                                   {campaign.status}
@@ -442,43 +442,50 @@ export default function CampaignsPage() {
                           </div>
                           <div className="flex items-center gap-6">
                             <div className="text-right" onClick={(e) => e.stopPropagation()}>
-                              <EditableCell
-                                value={campaign.spend || campaign.amount_spent || 0}
-                                field="spend"
-                                rowId={campaign.id}
-                                type="number"
-                                onSave={handleCellSave}
-                                displayValue={formatCurrency(campaign.spend || campaign.amount_spent || 0)}
-                                className="text-sm font-medium justify-end"
-                              />
+                              {(() => {
+                                const spend = campaign.spend ?? campaign.amount_spent
+                                const hasSpend = spend !== null && spend !== undefined
+                                return (
+                                  <EditableCell
+                                    value={spend || 0}
+                                    field="spend"
+                                    rowId={campaign.id}
+                                    type="number"
+                                    onSave={handleCellSave}
+                                    displayValue={hasSpend ? formatCurrency(spend) : '-'}
+                                    className="text-sm font-medium justify-end"
+                                  />
+                                )
+                              })()}
                               <p className="text-xs text-muted-foreground">Spend</p>
                             </div>
                             <div className="text-right">
                               <p className="text-sm font-medium text-primary">
-                                {getLeadCount(campaign)}
+                                {getLeadCount(campaign) || '-'}
                               </p>
                               <p className="text-xs text-muted-foreground">Leads</p>
                             </div>
                             <div className="text-right w-16">
                               {(() => {
                                 const actualLeads = getLeadCount(campaign)
-                                const spend = campaign.spend || campaign.amount_spent || 0
-                                const actualCPL = actualLeads > 0 ? Math.round(spend / actualLeads) : 0
+                                const spend = campaign.spend ?? campaign.amount_spent ?? 0
+                                if (actualLeads === 0 || spend === 0) {
+                                  return <p className="text-sm font-medium text-muted-foreground">-</p>
+                                }
+                                const actualCPL = Math.round(spend / actualLeads)
                                 return (
-                                  <>
-                                    <div className="flex items-center justify-end gap-1">
-                                      <span className={`text-sm font-medium ${
-                                        actualCPL > 50 ? 'text-destructive' : 'text-success'
-                                      }`}>
-                                        £{actualCPL}
-                                      </span>
-                                      {actualCPL < 50 ? (
-                                        <TrendingDown className="h-3 w-3 text-success" />
-                                      ) : (
-                                        <TrendingUp className="h-3 w-3 text-destructive" />
-                                      )}
-                                    </div>
-                                  </>
+                                  <div className="flex items-center justify-end gap-1">
+                                    <span className={`text-sm font-medium ${
+                                      actualCPL > 50 ? 'text-destructive' : 'text-success'
+                                    }`}>
+                                      £{actualCPL}
+                                    </span>
+                                    {actualCPL < 50 ? (
+                                      <TrendingDown className="h-3 w-3 text-success" />
+                                    ) : (
+                                      <TrendingUp className="h-3 w-3 text-destructive" />
+                                    )}
+                                  </div>
                                 )
                               })()}
                               <p className="text-xs text-muted-foreground">CPL</p>

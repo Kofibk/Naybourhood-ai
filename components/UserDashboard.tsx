@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +54,7 @@ function getTimeAgo(dateString: string): string {
 }
 
 export function UserDashboard({ userType, userName, companyId }: UserDashboardProps) {
+  const router = useRouter()
   const { leads, isLoading } = useData()
   const typeConfig = config[userType]
 
@@ -219,7 +221,11 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </div>
             </div>
           ))}
-          <Button variant="outline" className="w-full mt-2">
+          <Button
+            variant="outline"
+            className="w-full mt-2"
+            onClick={() => router.push(`/${userType}/buyers`)}
+          >
             View All {typeConfig.title}
           </Button>
         </CardContent>
@@ -227,7 +233,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
 
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/buyers`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Users className="h-5 w-5 text-primary" />
@@ -240,18 +249,24 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             </div>
           </CardContent>
         </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/campaigns`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <MessageSquare className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-sm">Conversations</p>
-              <p className="text-xs text-muted-foreground">View all messages</p>
+              <p className="font-medium text-sm">Campaigns</p>
+              <p className="text-xs text-muted-foreground">View active campaigns</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/matches`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Heart className="h-5 w-5 text-primary" />
@@ -264,7 +279,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             </div>
           </CardContent>
         </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/insights`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-primary" />

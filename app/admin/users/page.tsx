@@ -51,6 +51,17 @@ export default function UsersPage() {
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // Create company lookup map for displaying names instead of UUIDs
+  const companyNameMap = useMemo(() => {
+    const map = new Map<string, string>()
+    companies.forEach(c => {
+      if (c.id && c.name) {
+        map.set(c.id, c.name)
+      }
+    })
+    return map
+  }, [companies])
+
   // Calculate status counts
   const statusCounts = useMemo(() => {
     return {
@@ -333,7 +344,9 @@ export default function UsersPage() {
                       <td className="p-4">
                         {getRoleBadge(user.role)}
                       </td>
-                      <td className="p-4 text-sm">{user.company || '-'}</td>
+                      <td className="p-4 text-sm">
+                        {user.company_id ? companyNameMap.get(user.company_id) || user.company || '-' : '-'}
+                      </td>
                       <td className="p-4">
                         {user.status === 'pending' ? (
                           <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400 border-amber-300">

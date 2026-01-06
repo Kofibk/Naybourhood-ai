@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
-import { getGreeting, getDateString, formatCurrency } from '@/lib/utils'
+import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
 import {
   Users,
   Flame,
@@ -145,7 +145,7 @@ export default function AdminDashboard() {
       avgCPL,
       qualifiedRate,
       totalCampaigns: campaigns.length,
-      activeCampaigns: campaigns.filter(c => c.status === 'active').length,
+      activeCampaigns: campaigns.filter(c => statusIs(c.status, 'active')).length,
       totalCompanies: companies.length,
       positiveLeads,
       pendingLeads,
@@ -217,7 +217,7 @@ export default function AdminDashboard() {
   // Get campaign alerts (high CPL campaigns)
   const campaignAlerts = useMemo(() => {
     return campaigns
-      .filter(c => c.status === 'active' && (c.cpl || c.cost_per_lead || 0) > 50)
+      .filter(c => statusIs(c.status, 'active') && (c.cpl || c.cost_per_lead || 0) > 50)
       .sort((a, b) => (b.cpl || b.cost_per_lead || 0) - (a.cpl || a.cost_per_lead || 0))
       .slice(0, 3)
   }, [campaigns])

@@ -11,6 +11,7 @@ import { useData } from '@/contexts/DataContext'
 import { AIOverview } from '@/components/ai/AIOverview'
 import { EditableCell, EditableScore } from '@/components/ui/editable-cell'
 import { useAutoScore } from '@/hooks/useAutoScore'
+import { calculateHeuristicScore } from '@/lib/utils'
 import type { Buyer } from '@/types'
 import {
   Search,
@@ -240,22 +241,28 @@ function savePreferences(prefs: Partial<LeadsPreferences>) {
   }
 }
 
-// Score Badge Component - matches specification colors
-function ScoreBadge({ score }: { score: number | undefined | null }) {
+// Score Indicator Component - Traffic light color system
+// Green = Great (70+), Amber = Medium (45-69), Red = Low (<45)
+function ScoreIndicator({ score }: { score: number | undefined | null }) {
   if (score === undefined || score === null) {
     return <span className="text-muted-foreground">-</span>
   }
 
-  const getColor = (s: number) => {
-    if (s >= 70) return 'bg-red-500 text-white'      // Hot
-    if (s >= 45) return 'bg-orange-500 text-white'   // Warm
-    return 'bg-gray-400 text-white'                   // Low
+  const getConfig = (s: number) => {
+    if (s >= 70) return { color: 'bg-green-500', label: 'Great', ring: 'ring-green-500/30' }
+    if (s >= 45) return { color: 'bg-amber-500', label: 'Good', ring: 'ring-amber-500/30' }
+    return { color: 'bg-red-500', label: 'Low', ring: 'ring-red-500/30' }
   }
 
+  const config = getConfig(score)
+
   return (
-    <span className={`px-2 py-0.5 rounded text-sm font-medium ${getColor(score)}`}>
-      {score}
-    </span>
+    <div className="flex items-center justify-center">
+      <div
+        className={`w-4 h-4 rounded-full ${config.color} ring-4 ${config.ring}`}
+        title={`Score: ${score} (${config.label})`}
+      />
+    </div>
   )
 }
 
@@ -486,21 +493,21 @@ export default function LeadsPage() {
   }, [])
 
   // Calculate lead classification counts - exclude duplicates from stats
-  // Use local scores if available (fresh from API), otherwise use database values
-  // Unscored leads (null) are NOT counted in hot/warm/low - only scored leads
+  // Use local scores if available (fresh from API), otherwise database values, then heuristic
   const leadCounts = useMemo(() => {
     // Filter out duplicates for stats
     const activeLeads = leads.filter((l) => l.status !== 'Duplicate')
-    const getScore = (lead: Buyer): number | null => {
+    const getScore = (lead: Buyer): number => {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
       if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
       if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
-      return null  // Unscored
+      // Use heuristic for instant counts
+      return calculateHeuristicScore(lead).score
     }
-    const hot = activeLeads.filter((l) => { const s = getScore(l); return s !== null && s >= 70 }).length
-    const warm = activeLeads.filter((l) => { const s = getScore(l); return s !== null && s >= 45 && s < 70 }).length
-    const low = activeLeads.filter((l) => { const s = getScore(l); return s !== null && s < 45 }).length
+    const hot = activeLeads.filter((l) => getScore(l) >= 70).length
+    const warm = activeLeads.filter((l) => { const s = getScore(l); return s >= 45 && s < 70 }).length
+    const low = activeLeads.filter((l) => getScore(l) < 45).length
     const duplicates = leads.filter((l) => l.status === 'Duplicate').length
     return { hot, warm, low, total: activeLeads.length, duplicates }
   }, [leads, localScores])
@@ -533,17 +540,15 @@ export default function LeadsPage() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      // Apply quick filter first - use local scores if available
-      // Unscored leads (null) only appear in 'all', not in hot/warm/low filters
+      // Apply quick filter first - use local scores, database scores, or heuristic
       if (quickFilter !== 'all') {
         const local = localScores[lead.id]
-        let score: number | null = null
+        let score: number
         if (local?.quality !== undefined) score = local.quality
         else if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) score = lead.ai_quality_score
         else if (lead.quality_score !== undefined && lead.quality_score !== null) score = lead.quality_score
+        else score = calculateHeuristicScore(lead).score  // Use heuristic for instant filtering
 
-        // If unscored, exclude from hot/warm/low filters
-        if (score === null) return false
         if (quickFilter === 'hot' && score < 70) return false
         if (quickFilter === 'warm' && (score < 45 || score >= 70)) return false
         if (quickFilter === 'low' && score >= 45) return false
@@ -577,23 +582,18 @@ export default function LeadsPage() {
     return [...filteredLeads].sort((a, b) => {
       let aVal: any = (a as any)[sortField]
       let bVal: any = (b as any)[sortField]
-      // Handle lead_score sorting - use local scores if available
-      // Null scores sort to bottom
+      // Handle lead_score sorting - use local scores, database, or heuristic
       if (sortField === 'lead_score' || sortField === 'quality_score') {
         const aLocal = localScores[a.id]
         const bLocal = localScores[b.id]
-        const getScoreVal = (local: typeof aLocal, lead: Buyer): number | null => {
+        const getScoreVal = (local: typeof aLocal, lead: Buyer): number => {
           if (local?.quality !== undefined) return local.quality
           if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
           if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
-          return null
+          return calculateHeuristicScore(lead).score  // Use heuristic for sorting
         }
         aVal = getScoreVal(aLocal, a)
         bVal = getScoreVal(bLocal, b)
-        // Sort nulls to bottom
-        if (aVal === null && bVal === null) return 0
-        if (aVal === null) return 1
-        if (bVal === null) return -1
       }
       if (sortField === 'ai_confidence') { aVal = aVal || 0; bVal = bVal || 0 }
       // Handle date sorting - check both date_added and created_at
@@ -663,18 +663,23 @@ export default function LeadsPage() {
       return ''
     }
     // Handle Lead Score - check local scores first (fresh from API), then database values
-    // Return null (not 0) when unscored so UI shows "-" instead of "0"
+    // Fall back to heuristic score for instant display
     if (field === 'lead_score') {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
       if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
       if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
-      return null  // Unscored - will display as "-"
+      // Use heuristic score for instant display
+      const heuristic = calculateHeuristicScore(lead)
+      return heuristic.score
     }
     if (field === 'ai_classification') {
       const local = localScores[lead.id]
       if (local?.classification) return local.classification
-      return lead.ai_classification ?? null
+      if (lead.ai_classification) return lead.ai_classification
+      // Use heuristic classification for instant display
+      const heuristic = calculateHeuristicScore(lead)
+      return heuristic.classification
     }
     // Handle assigned user - try multiple fields
     if (field === 'assigned_user_name') {
@@ -1057,42 +1062,36 @@ export default function LeadsPage() {
                           const score = cellValue as number
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <ScoreBadge score={score} />
+                              <ScoreIndicator score={score} />
                             </td>
                           )
                         }
 
                         if (col.key === 'ai_classification') {
                           const classification = cellValue as string | undefined
-                          const getClassBadge = (c: string | undefined) => {
+                          const getClassIndicator = (c: string | undefined) => {
                             if (!c) return <span className="text-muted-foreground text-xs">-</span>
-                            const colors: Record<string, string> = {
-                              'Hot': 'bg-red-500 text-white',
-                              'Warm-Qualified': 'bg-orange-500 text-white',
-                              'Warm-Engaged': 'bg-amber-500 text-white',
-                              'Nurture': 'bg-blue-400 text-white',
-                              'Cold': 'bg-gray-400 text-white',
-                              'Disqualified': 'bg-gray-600 text-white',
-                              'Spam': 'bg-red-700 text-white',
+                            // Map classification to traffic light colors
+                            const getConfig = (cls: string) => {
+                              const lower = cls.toLowerCase()
+                              if (lower === 'hot') return { color: 'bg-green-500', ring: 'ring-green-500/30', label: 'Hot' }
+                              if (lower.includes('warm')) return { color: 'bg-amber-500', ring: 'ring-amber-500/30', label: 'Warm' }
+                              if (lower === 'nurture') return { color: 'bg-yellow-500', ring: 'ring-yellow-500/30', label: 'Nurture' }
+                              return { color: 'bg-red-500', ring: 'ring-red-500/30', label: 'Cold' }
                             }
-                            const shortLabels: Record<string, string> = {
-                              'Hot': 'Hot',
-                              'Warm-Qualified': 'Warm-Q',
-                              'Warm-Engaged': 'Warm-E',
-                              'Nurture': 'Nurture',
-                              'Cold': 'Cold',
-                              'Disqualified': 'Disq',
-                              'Spam': 'Spam',
-                            }
+                            const config = getConfig(c)
                             return (
-                              <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[c] || 'bg-gray-400 text-white'}`}>
-                                {shortLabels[c] || c}
-                              </span>
+                              <div className="flex items-center justify-center">
+                                <div
+                                  className={`w-4 h-4 rounded-full ${config.color} ring-4 ${config.ring}`}
+                                  title={config.label}
+                                />
+                              </div>
                             )
                           }
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              {getClassBadge(classification)}
+                              {getClassIndicator(classification)}
                             </td>
                           )
                         }

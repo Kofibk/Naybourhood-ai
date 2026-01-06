@@ -5,6 +5,19 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
+// Case-insensitive status comparison
+export function statusIs(status: string | undefined | null, target: string): boolean {
+  if (!status) return false
+  return status.toLowerCase() === target.toLowerCase()
+}
+
+// Check if status is in a list (case-insensitive)
+export function statusIsAnyOf(status: string | undefined | null, targets: string[]): boolean {
+  if (!status) return false
+  const statusLower = status.toLowerCase()
+  return targets.some(t => t.toLowerCase() === statusLower)
+}
+
 export function getGreeting(): string {
   const hour = new Date().getHours()
   if (hour < 12) return 'Good morning'
@@ -84,4 +97,114 @@ export function formatPriceRange(from: string | number | null | undefined, to: s
   if (formattedTo === '?') return `From ${formattedFrom}`
 
   return `${formattedFrom} - ${formattedTo}`
+}
+
+// Heuristic-based instant lead scoring
+// Provides immediate scores while AI processing runs in background
+export interface HeuristicScoreResult {
+  score: number
+  classification: 'Hot' | 'Warm-Qualified' | 'Warm-Engaged' | 'Nurture' | 'Cold'
+  confidence: number
+}
+
+export function calculateHeuristicScore(lead: {
+  budget?: string | null
+  budget_range?: string | null
+  budget_min?: number | null
+  budget_max?: number | null
+  timeline?: string | null
+  payment_method?: string | null
+  proof_of_funds?: boolean | null
+  email?: string | null
+  phone?: string | null
+  status?: string | null
+}): HeuristicScoreResult {
+  let score = 50 // Base score
+
+  // Budget scoring (0-25 points)
+  const budgetStr = (lead.budget || lead.budget_range || '').toLowerCase()
+  const budgetMax = lead.budget_max || 0
+  if (budgetStr.includes('10') || budgetStr.includes('million') || budgetMax >= 10000000) {
+    score += 25
+  } else if (budgetStr.includes('7') || budgetStr.includes('5') || budgetMax >= 5000000) {
+    score += 20
+  } else if (budgetStr.includes('3') || budgetStr.includes('4') || budgetMax >= 3000000) {
+    score += 15
+  } else if (budgetStr.includes('2') || budgetStr.includes('1') || budgetMax >= 1000000) {
+    score += 10
+  } else if (budgetStr) {
+    score += 5
+  }
+
+  // Timeline scoring (0-20 points)
+  const timelineStr = (lead.timeline || '').toLowerCase()
+  if (timelineStr.includes('immediate') || timelineStr.includes('asap') || timelineStr.includes('now')) {
+    score += 20
+  } else if (timelineStr.includes('1') || timelineStr.includes('3 month') || timelineStr.includes('soon')) {
+    score += 15
+  } else if (timelineStr.includes('6 month') || timelineStr.includes('this year')) {
+    score += 10
+  } else if (timelineStr.includes('12') || timelineStr.includes('next year')) {
+    score += 5
+  }
+
+  // Payment method (0-15 points)
+  const paymentStr = (lead.payment_method || '').toLowerCase()
+  if (paymentStr.includes('cash')) {
+    score += 15
+  } else if (paymentStr.includes('mortgage')) {
+    score += 8
+  }
+
+  // Proof of funds bonus (0-10 points)
+  if (lead.proof_of_funds) {
+    score += 10
+  }
+
+  // Contact completeness (0-5 points)
+  if (lead.email && lead.phone) {
+    score += 5
+  } else if (lead.email || lead.phone) {
+    score += 2
+  }
+
+  // Status adjustments
+  const statusStr = (lead.status || '').toLowerCase()
+  if (statusStr.includes('viewing') || statusStr.includes('reserved')) {
+    score += 10
+  } else if (statusStr.includes('negotiat')) {
+    score += 8
+  } else if (statusStr.includes('qualified')) {
+    score += 5
+  } else if (statusStr.includes('fake') || statusStr.includes('duplicate') || statusStr.includes('not proceed')) {
+    score -= 30
+  }
+
+  // Cap score between 0-100
+  score = Math.max(0, Math.min(100, score))
+
+  // Determine classification based on score
+  let classification: HeuristicScoreResult['classification']
+  if (score >= 75) {
+    classification = 'Hot'
+  } else if (score >= 60) {
+    classification = 'Warm-Qualified'
+  } else if (score >= 45) {
+    classification = 'Warm-Engaged'
+  } else if (score >= 30) {
+    classification = 'Nurture'
+  } else {
+    classification = 'Cold'
+  }
+
+  // Confidence based on data completeness (how much data we had to score with)
+  let dataPoints = 0
+  if (lead.budget || lead.budget_range || lead.budget_max) dataPoints++
+  if (lead.timeline) dataPoints++
+  if (lead.payment_method) dataPoints++
+  if (lead.email) dataPoints++
+  if (lead.phone) dataPoints++
+  const confidence = Math.min(100, 30 + (dataPoints * 14)) // 30-100% based on data
+
+  return { score, classification, confidence }
 }
