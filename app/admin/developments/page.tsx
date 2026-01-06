@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { formatPriceRange } from '@/lib/utils'
 import {
   Plus,
   Search,
@@ -70,8 +71,11 @@ export default function DevelopmentsPage() {
 
   // Calculate totals from development data only
   const totals = useMemo(() => {
-    const totalUnits = developments.reduce((sum, d) => sum + (d.total_units || d.units || 0), 0)
-    const availableUnits = developments.reduce((sum, d) => sum + (d.available_units || 0), 0)
+    // Only count units from developments that have unit data
+    const devsWithUnits = developments.filter(d => d.total_units || d.units)
+    const totalUnits = devsWithUnits.reduce((sum, d) => sum + (d.total_units || d.units || 0), 0)
+    const devsWithAvailable = developments.filter(d => d.available_units !== undefined && d.available_units !== null)
+    const availableUnits = devsWithAvailable.reduce((sum, d) => sum + (d.available_units || 0), 0)
     const soldUnits = totalUnits - availableUnits
 
     return {
@@ -79,6 +83,8 @@ export default function DevelopmentsPage() {
       totalUnits,
       availableUnits,
       soldUnits: soldUnits > 0 ? soldUnits : 0,
+      hasUnitData: devsWithUnits.length > 0,
+      hasAvailableData: devsWithAvailable.length > 0,
     }
   }, [developments])
 
@@ -189,7 +195,9 @@ export default function DevelopmentsPage() {
               <Home className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Total Units</span>
             </div>
-            <p className="text-2xl font-bold">{totals.totalUnits.toLocaleString()}</p>
+            <p className="text-2xl font-bold">
+              {totals.hasUnitData ? totals.totalUnits.toLocaleString() : '-'}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -198,7 +206,9 @@ export default function DevelopmentsPage() {
               <Home className="h-4 w-4 text-success" />
               <span className="text-xs text-muted-foreground">Available</span>
             </div>
-            <p className="text-2xl font-bold text-success">{totals.availableUnits.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-success">
+              {totals.hasAvailableData ? totals.availableUnits.toLocaleString() : '-'}
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -207,7 +217,9 @@ export default function DevelopmentsPage() {
               <Home className="h-4 w-4 text-blue-500" />
               <span className="text-xs text-muted-foreground">Sold</span>
             </div>
-            <p className="text-2xl font-bold text-blue-500">{totals.soldUnits.toLocaleString()}</p>
+            <p className="text-2xl font-bold text-blue-500">
+              {totals.hasUnitData && totals.hasAvailableData ? totals.soldUnits.toLocaleString() : '-'}
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -318,16 +330,22 @@ export default function DevelopmentsPage() {
                 {/* Units Stats */}
                 <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-border">
                   <div className="text-center">
-                    <p className="text-lg font-semibold">{dev.total_units || dev.units || 0}</p>
+                    <p className="text-lg font-semibold">
+                      {(dev.total_units || dev.units) ? (dev.total_units || dev.units) : '-'}
+                    </p>
                     <p className="text-xs text-muted-foreground">Total Units</p>
                   </div>
                   <div className="text-center">
-                    <p className="text-lg font-semibold text-success">{dev.available_units || 0}</p>
+                    <p className="text-lg font-semibold text-success">
+                      {dev.available_units ? dev.available_units : '-'}
+                    </p>
                     <p className="text-xs text-muted-foreground">Available</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-blue-500">
-                      {(dev.total_units || dev.units || 0) - (dev.available_units || 0)}
+                      {(dev.total_units || dev.units) && dev.available_units !== undefined
+                        ? (dev.total_units || dev.units || 0) - (dev.available_units || 0)
+                        : '-'}
                     </p>
                     <p className="text-xs text-muted-foreground">Sold</p>
                   </div>
@@ -338,7 +356,7 @@ export default function DevelopmentsPage() {
                   <div className="mt-3 text-sm">
                     <span className="text-muted-foreground">Price: </span>
                     <span className="font-medium">
-                      {dev.price_from || '?'} - {dev.price_to || '?'}
+                      {formatPriceRange(dev.price_from, dev.price_to)}
                     </span>
                   </div>
                 )}

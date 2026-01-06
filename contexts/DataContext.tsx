@@ -309,6 +309,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           image_url: d.image_url || d['Image URL'] || d['image'],
           total_leads: d.total_leads || d['Total Leads'] || 0,
           ad_spend: d.ad_spend || d['Ad Spend'] || d['total_spend'] || d['Total Spend'] || 0,
+          // PDF and document attachments
+          brochure_url: d.brochure_url || d['Brochure URL'] || d['brochure'],
+          floor_plan_url: d.floor_plan_url || d['Floor Plan URL'] || d['floor_plan'],
+          price_list_url: d.price_list_url || d['Price List URL'] || d['price_list'],
+          attachments: d.attachments || d['Attachments'] || [],
           created_at: d.created_at,
           updated_at: d.updated_at,
           ...d,

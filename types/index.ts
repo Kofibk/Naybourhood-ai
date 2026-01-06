@@ -123,6 +123,11 @@ export interface Development {
   features?: string[]
   total_leads?: number
   ad_spend?: number
+  // PDF and document attachments
+  brochure_url?: string
+  floor_plan_url?: string
+  price_list_url?: string
+  attachments?: Array<{ name: string; url: string; type?: string }>
   created_at?: string
   updated_at?: string
 }
