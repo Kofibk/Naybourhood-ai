@@ -532,13 +532,23 @@ function LoginPageInner() {
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-center text-muted-foreground mb-3 uppercase tracking-wider font-medium">
-              Quick Access (Dev/Testing)
+              Quick Access
             </p>
+            <div className="flex items-center gap-3 mb-3 p-2 rounded-md bg-muted/50">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Kofi</p>
+                <p className="text-xs text-muted-foreground">kofi@millionpound.homes</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2 text-center">Select dashboard:</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'test-admin',
+                    id: 'kofi-mph',
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'admin',
@@ -547,7 +557,7 @@ function LoginPageInner() {
                   }))
                   router.push('/admin')
                 }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
               >
                 <Shield className="h-4 w-4" />
                 Admin
@@ -555,9 +565,9 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'test-developer',
-                    email: 'developer@millionpound.homes',
-                    name: 'Dev User',
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'developer',
                     company: 'Million Pound Homes',
                     company_id: 'mph-company',
@@ -572,9 +582,9 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'test-agent',
-                    email: 'agent@millionpound.homes',
-                    name: 'Agent User',
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'agent',
                     company: 'Million Pound Homes',
                     company_id: 'mph-company',
@@ -589,9 +599,9 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'test-broker',
-                    email: 'broker@millionpound.homes',
-                    name: 'Broker User',
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'broker',
                     company: 'Million Pound Homes',
                     company_id: 'mph-company',
