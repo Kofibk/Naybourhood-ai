@@ -27,6 +27,7 @@ import {
   X,
   Users,
   Download,
+  Upload,
   RefreshCw,
   ArrowUpDown,
   SlidersHorizontal,
@@ -36,6 +37,7 @@ import {
   Zap,
   Bot,
 } from 'lucide-react'
+import { CSVImport } from '@/components/CSVImport'
 
 type SortField = 'full_name' | 'quality_score' | 'lead_score' | 'ai_confidence' | 'budget' | 'status' | 'created_at' | 'assigned_user_name' | 'source' | 'campaign'
 type SortDirection = 'asc' | 'desc'

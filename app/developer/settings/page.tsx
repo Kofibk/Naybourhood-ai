@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { Bell, User, CreditCard, Save, CheckCircle, AlertCircle, Building2 } from 'lucide-react'
+import { Bell, User, CreditCard, Save, CheckCircle, AlertCircle, Building2, Bot, Flame, Clock, Zap } from 'lucide-react'
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
@@ -244,6 +244,63 @@ export default function SettingsPage() {
             <Button variant="outline" size="sm">
               Enabled
             </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* AI Notifications & Tasks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            AI Notifications & Tasks
+          </CardTitle>
+          <CardDescription>AI-powered alerts and automated task suggestions</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <Flame className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <div className="font-medium">Hot Lead Alerts</div>
+                <div className="text-sm text-muted-foreground">
+                  Get notified when AI identifies high-intent leads
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <div className="font-medium">Follow-up Reminders</div>
+                <div className="text-sm text-muted-foreground">
+                  AI-suggested follow-up times based on lead activity
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Zap className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <div className="font-medium">Priority Actions</div>
+                <div className="text-sm text-muted-foreground">
+                  AI-recommended next steps for each lead
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
           </div>
         </CardContent>
       </Card>
