@@ -457,12 +457,17 @@ export interface NormalizedLead {
 // DATE PARSING
 // ═══════════════════════════════════════════════════════════════════
 
+// Default date for leads without a date (1st Jan 2025)
+// This prevents blank dates from appearing as "new" leads
+const DEFAULT_DATE = '2025-01-01T00:00:00.000Z'
+
 /**
  * Parse various date formats to ISO 8601
  * Handles: "6/1/2026 1:20pm", "2026-01-06", "Jan 6, 2026", etc.
+ * For leads without a date, defaults to 1st Jan 2025
  */
 export function parseDate(dateStr: string | null | undefined): string {
-  if (!dateStr) return new Date().toISOString()
+  if (!dateStr) return DEFAULT_DATE
 
   try {
     // UK format: "6/1/2026 1:20pm" (day/month/year)
@@ -493,9 +498,9 @@ export function parseDate(dateStr: string | null | undefined): string {
       return parsed.toISOString()
     }
 
-    return new Date().toISOString()
+    return DEFAULT_DATE
   } catch {
-    return new Date().toISOString()
+    return DEFAULT_DATE
   }
 }
 
