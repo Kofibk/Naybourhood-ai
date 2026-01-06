@@ -540,9 +540,9 @@ export default function LeadsPage() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
-      // Exclude duplicates by default (unless specifically filtering for them)
-      const isFilteringForDuplicates = filterConditions.some(c => c.field === 'status' && c.value === 'Duplicate')
-      if (!isFilteringForDuplicates && lead.status === 'Duplicate') return false
+      // Exclude disqualified by default (unless specifically filtering for them)
+      const isFilteringForDisqualified = filterConditions.some(c => c.field === 'status' && c.value === 'Disqualified')
+      if (!isFilteringForDisqualified && lead.status === 'Disqualified') return false
 
       // Apply quick filter first - use local scores, database scores, or heuristic
       if (quickFilter !== 'all') {
@@ -713,11 +713,11 @@ export default function LeadsPage() {
           <h2 className="text-2xl font-bold font-display">Leads</h2>
           <p className="text-sm text-muted-foreground">
             {(() => {
-              const activeLeads = leads.filter(l => l.status !== 'Duplicate')
-              const duplicateCount = leads.length - activeLeads.length
-              const activeFiltered = filteredLeads.filter(l => l.status !== 'Duplicate')
+              const activeLeads = leads.filter(l => l.status !== 'Disqualified')
+              const disqualifiedCount = leads.length - activeLeads.length
+              const activeFiltered = filteredLeads.filter(l => l.status !== 'Disqualified')
               if (filteredLeads.length === leads.length) {
-                return `${activeLeads.length.toLocaleString()} leads${duplicateCount > 0 ? ` (${duplicateCount} duplicates hidden)` : ''}`
+                return `${activeLeads.length.toLocaleString()} leads${disqualifiedCount > 0 ? ` (${disqualifiedCount} disqualified hidden)` : ''}`
               }
               return `Showing ${activeFiltered.length.toLocaleString()} of ${activeLeads.length.toLocaleString()} leads`
             })()}

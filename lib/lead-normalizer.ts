@@ -24,7 +24,7 @@ export const VALID_STATUSES = [
   'Exchanged',
   'Completed',
   'Not Proceeding',
-  'Duplicate',
+  'Disqualified',  // Includes: duplicate, fake, can't verify, agent
 ] as const
 
 export type ValidStatus = typeof VALID_STATUSES[number]
@@ -213,51 +213,89 @@ export function normalizeEnquiryType(type: string | null | undefined): ValidEnqu
 // ═══════════════════════════════════════════════════════════════════
 
 const STATUS_MAP: Record<string, ValidStatus> = {
-  // Standard statuses (case variations)
+  // ═══════════════════════════════════════════════════════════════════
+  // AIRTABLE → NAYBOURHOOD STATUS MAPPINGS
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Contact Pending (Amber - In Progress)
   'contact pending': 'Contact Pending',
   'contactpending': 'Contact Pending',
+  'new': 'Contact Pending',
+  'new lead': 'Contact Pending',
+  'warm': 'Contact Pending',
+
+  // Follow Up (Amber - In Progress)
+  // Includes: Contacted - In Progress, Interested, Follow Up
   'follow up': 'Follow Up',
   'followup': 'Follow Up',
   'follow-up': 'Follow Up',
+  'contacted': 'Follow Up',
+  'contacted - in progress': 'Follow Up',
+  'contacted in progress': 'Follow Up',
+  'contacted-in-progress': 'Follow Up',
+  'interested': 'Follow Up',
+  'qualified': 'Follow Up',
+  'hot': 'Follow Up',
+  'callback': 'Follow Up',
+
+  // Viewing Booked (Green - Positive)
   'viewing booked': 'Viewing Booked',
   'viewingbooked': 'Viewing Booked',
+  'viewing scheduled': 'Viewing Booked',
+  'viewing confirmed': 'Viewing Booked',
+
+  // Negotiating (Green - Positive)
+  // Includes: Offer Made
   'negotiating': 'Negotiating',
+  'offer made': 'Negotiating',
+  'offermade': 'Negotiating',
+  'offer-made': 'Negotiating',
+  'documentation': 'Negotiating',
+
+  // Reserved
   'reserved': 'Reserved',
+  'offer accepted': 'Reserved',
+  'under offer': 'Reserved',
+
+  // Exchanged
   'exchanged': 'Exchanged',
+  'exchange': 'Exchanged',
+  'exchanging': 'Exchanged',
+
+  // Completed (Green - Positive)
   'completed': 'Completed',
+  'sold': 'Completed',
+
+  // Not Proceeding (Red - Negative)
+  // Includes: Not Interested, Cold - No Response, No Longer Proceeding
   'not proceeding': 'Not Proceeding',
   'notproceeding': 'Not Proceeding',
   'not-proceeding': 'Not Proceeding',
-  'duplicate': 'Duplicate',
-
-  // Legacy/Airtable status mappings
-  'new': 'Contact Pending',
-  'new lead': 'Contact Pending',
-  'newlead': 'Contact Pending',
-  'contacted': 'Follow Up',
-  'qualified': 'Follow Up',
-  'interested': 'Follow Up',
-  'hot': 'Follow Up',
-  'warm': 'Contact Pending',
-  'cold': 'Contact Pending',
-  'viewing scheduled': 'Viewing Booked',
-  'viewing confirmed': 'Viewing Booked',
-  'offer made': 'Negotiating',
-  'offer accepted': 'Reserved',
-  'under offer': 'Reserved',
-  'sold': 'Completed',
-  'exchange': 'Exchanged',
-  'exchanging': 'Exchanged',
+  'not interested': 'Not Proceeding',
+  'notinterested': 'Not Proceeding',
+  'not-interested': 'Not Proceeding',
+  'cold - no response': 'Not Proceeding',
+  'cold no response': 'Not Proceeding',
+  'cold-no-response': 'Not Proceeding',
+  'cold': 'Not Proceeding',
+  'no response': 'Not Proceeding',
+  'no longer proceeding': 'Not Proceeding',
+  'nolongerproceeding': 'Not Proceeding',
   'lost': 'Not Proceeding',
   'dead': 'Not Proceeding',
   'unqualified': 'Not Proceeding',
-  'no answer': 'Contact Pending',
-  'callback': 'Follow Up',
-  'documentation': 'Negotiating',
-  // Duplicates
-  'disqualified': 'Duplicate',
-  'dq': 'Duplicate',
-  'duplicate': 'Duplicate',
+
+  // Disqualified (Hidden from counts)
+  // Includes: Agent, Can't Verify, Duplicate, Fake
+  'disqualified': 'Disqualified',
+  'dq': 'Disqualified',
+  'duplicate': 'Disqualified',
+  'agent': 'Disqualified',
+  'fake': 'Disqualified',
+  'fake status': 'Disqualified',
+  "can't verify": 'Disqualified',
+  'cant verify': 'Disqualified',
+  'cannot verify': 'Disqualified',
 }
 
 /**

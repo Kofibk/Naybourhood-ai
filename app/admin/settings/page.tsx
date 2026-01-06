@@ -33,13 +33,13 @@ import { Button } from '@/components/ui/button'
 export default function SettingsPage() {
   const { isLoading, leads, campaigns, companies, developments, refreshData } = useData()
 
-  // System stats - excluding duplicates from lead count
+  // System stats - excluding disqualified from lead count
   const systemStats = useMemo(() => {
-    const activeLeads = leads.filter(l => l.status !== 'Duplicate')
-    const duplicateCount = leads.length - activeLeads.length
+    const activeLeads = leads.filter(l => l.status !== 'Disqualified')
+    const disqualifiedCount = leads.length - activeLeads.length
     return {
       totalLeads: activeLeads.length,
-      duplicateLeads: duplicateCount,
+      disqualifiedLeads: disqualifiedCount,
       totalCampaigns: campaigns.length,
       totalCompanies: companies.length,
       totalDevelopments: developments.length,

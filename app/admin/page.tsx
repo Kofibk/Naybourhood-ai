@@ -33,12 +33,15 @@ const COLORS = {
 }
 
 // Status categories - matching leads page
-// Positive = Viewing Booked, Interested, Offer Made, Reserved, Exchanged, Completed
+// Green (Positive) = Viewing Booked, Negotiating, Reserved, Exchanged, Completed
+// Amber (In Progress) = Contact Pending, Follow Up
+// Red (Negative) = Not Proceeding
+// Hidden = Disqualified (duplicate, fake, can't verify, agent)
 const STATUS_CATEGORIES = {
-  positive: ['Viewing Booked', 'Interested', 'Offer Made', 'Reserved', 'Exchanged', 'Completed'],
-  pending: ['Contact Pending', 'Follow Up', 'Negotiating'],
-  negative: ['Not Proceeding', 'Fake', 'Cant Verify'],
-  duplicate: ['Duplicate'],
+  positive: ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'],
+  pending: ['Contact Pending', 'Follow Up'],
+  negative: ['Not Proceeding'],
+  disqualified: ['Disqualified'],
 }
 
 // Animated counter hook
@@ -97,11 +100,11 @@ export default function AdminDashboard() {
 
   const userName = user.name?.split(' ')[0] || 'there'
 
-  // Calculate real metrics from data - excluding duplicates
+  // Calculate real metrics from data - excluding disqualified
   const metrics = useMemo(() => {
-    // Exclude duplicates from all stats
-    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.duplicate.includes(l.status || ''))
-    const duplicateCount = leads.filter(l => STATUS_CATEGORIES.duplicate.includes(l.status || '')).length
+    // Exclude disqualified from all stats
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const disqualifiedCount = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
 
     const totalLeads = activeLeads.length
 
@@ -150,14 +153,14 @@ export default function AdminDashboard() {
       positiveLeads,
       pendingLeads,
       negativeLeads,
-      duplicateCount,
+      disqualifiedCount,
       scoredLeadsCount: scoredLeads.length,
     }
   }, [leads, campaigns, companies])
 
-  // Calculate lead classifications by status category - excluding duplicates
+  // Calculate lead classifications by status category - excluding disqualified
   const classificationData = useMemo(() => {
-    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.duplicate.includes(l.status || ''))
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
 
     // By status category
     const positive = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
@@ -169,14 +172,14 @@ export default function AdminDashboard() {
              !STATUS_CATEGORIES.pending.includes(status) &&
              !STATUS_CATEGORIES.negative.includes(status)
     }).length
-    const duplicates = leads.filter(l => STATUS_CATEGORIES.duplicate.includes(l.status || '')).length
+    const disqualified = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
 
     return [
       { name: 'Positive', value: positive, color: '#22c55e' },  // Green
       { name: 'In Progress', value: pending, color: '#f59e0b' },  // Amber
       { name: 'Not Proceeding', value: negative, color: '#ef4444' },  // Red
       { name: 'New/Other', value: uncategorized, color: '#3b82f6' },  // Blue
-      { name: 'Duplicates', value: duplicates, color: '#6b7280' },  // Grey
+      { name: 'Disqualified', value: disqualified, color: '#6b7280' },  // Grey
     ]
   }, [leads])
 
@@ -185,8 +188,8 @@ export default function AdminDashboard() {
     return leads
       .filter(l => {
         const status = l.status || ''
-        // Exclude duplicates, completed, and negative statuses
-        if (STATUS_CATEGORIES.duplicate.includes(status)) return false
+        // Exclude disqualified, completed, and negative statuses
+        if (STATUS_CATEGORIES.disqualified.includes(status)) return false
         if (STATUS_CATEGORIES.negative.includes(status)) return false
         if (status === 'Completed') return false
         // Only include scored leads with score >= 70
@@ -222,9 +225,9 @@ export default function AdminDashboard() {
       .slice(0, 3)
   }, [campaigns])
 
-  // Build funnel from real data - using actual status values, excluding duplicates
+  // Build funnel from real data - using actual status values, excluding disqualified
   const funnelData = useMemo(() => {
-    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.duplicate.includes(l.status || ''))
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
     const total = activeLeads.length
     const contacted = activeLeads.filter(l => l.status && l.status !== 'Contact Pending').length
     const interested = activeLeads.filter(l => ['Interested', 'Follow Up', 'Viewing Booked', 'Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
