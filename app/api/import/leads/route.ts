@@ -1,8 +1,9 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { scoreLead } from '@/lib/scoring'
-import fs from 'fs'
-import path from 'path'
+
+// Import leads data directly (works on Vercel)
+import leadsData from '@/leads_transformed.json'
 
 /**
  * Import Leads API
@@ -51,20 +52,11 @@ export async function POST(request: NextRequest) {
     const batchSize = body.batchSize || 100
     const skipScoring = body.skipScoring || false
 
-    // Read the leads file
-    const filePath = path.join(process.cwd(), 'leads_transformed.json')
-
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({
-        error: 'leads_transformed.json not found in project root'
-      }, { status: 404 })
-    }
-
-    const fileContent = fs.readFileSync(filePath, 'utf-8')
-    const leads = JSON.parse(fileContent)
+    // Use imported leads data
+    const leads = leadsData as any[]
 
     if (!Array.isArray(leads) || leads.length === 0) {
-      return NextResponse.json({ error: 'No leads found in file' }, { status: 400 })
+      return NextResponse.json({ error: 'No leads found in imported data' }, { status: 400 })
     }
 
     let inserted = 0
@@ -229,17 +221,8 @@ export async function POST(request: NextRequest) {
 // GET - Check import status / preview
 export async function GET(request: NextRequest) {
   try {
-    const filePath = path.join(process.cwd(), 'leads_transformed.json')
-
-    if (!fs.existsSync(filePath)) {
-      return NextResponse.json({
-        exists: false,
-        error: 'leads_transformed.json not found'
-      })
-    }
-
-    const fileContent = fs.readFileSync(filePath, 'utf-8')
-    const leads = JSON.parse(fileContent)
+    // Use imported leads data
+    const leads = leadsData as any[]
 
     // Get current count from Supabase
     const supabase = await createClient()
