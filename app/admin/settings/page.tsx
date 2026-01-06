@@ -33,10 +33,13 @@ import { Button } from '@/components/ui/button'
 export default function SettingsPage() {
   const { isLoading, leads, campaigns, companies, developments, refreshData } = useData()
 
-  // System stats
+  // System stats - excluding duplicates from lead count
   const systemStats = useMemo(() => {
+    const activeLeads = leads.filter(l => l.status !== 'Duplicate')
+    const duplicateCount = leads.length - activeLeads.length
     return {
-      totalLeads: leads.length,
+      totalLeads: activeLeads.length,
+      duplicateLeads: duplicateCount,
       totalCampaigns: campaigns.length,
       totalCompanies: companies.length,
       totalDevelopments: developments.length,

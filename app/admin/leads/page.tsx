@@ -540,6 +540,10 @@ export default function LeadsPage() {
 
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
+      // Exclude duplicates by default (unless specifically filtering for them)
+      const isFilteringForDuplicates = filterConditions.some(c => c.field === 'status' && c.value === 'Duplicate')
+      if (!isFilteringForDuplicates && lead.status === 'Duplicate') return false
+
       // Apply quick filter first - use local scores, database scores, or heuristic
       if (quickFilter !== 'all') {
         const local = localScores[lead.id]
@@ -708,9 +712,15 @@ export default function LeadsPage() {
         <div>
           <h2 className="text-2xl font-bold font-display">Leads</h2>
           <p className="text-sm text-muted-foreground">
-            {filteredLeads.length === leads.length
-              ? `${leads.length.toLocaleString()} total leads`
-              : `Showing ${filteredLeads.length.toLocaleString()} of ${leads.length.toLocaleString()} leads`}
+            {(() => {
+              const activeLeads = leads.filter(l => l.status !== 'Duplicate')
+              const duplicateCount = leads.length - activeLeads.length
+              const activeFiltered = filteredLeads.filter(l => l.status !== 'Duplicate')
+              if (filteredLeads.length === leads.length) {
+                return `${activeLeads.length.toLocaleString()} leads${duplicateCount > 0 ? ` (${duplicateCount} duplicates hidden)` : ''}`
+              }
+              return `Showing ${activeFiltered.length.toLocaleString()} of ${activeLeads.length.toLocaleString()} leads`
+            })()}
           </p>
         </div>
         <div className="flex items-center gap-2">
