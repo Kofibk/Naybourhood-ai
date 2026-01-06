@@ -122,80 +122,93 @@ export function LeadImporter() {
           <>
             {/* File Status */}
             <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <div className="p-5 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border border-blue-500/20 rounded-xl">
+                <div className="flex items-center gap-2 text-sm text-blue-600 dark:text-blue-400 font-medium mb-2">
                   <FileJson className="h-4 w-4" />
-                  File Leads
+                  Leads in File
                 </div>
-                <div className="text-2xl font-bold">{status.fileLeadCount?.toLocaleString()}</div>
+                <div className="text-3xl font-bold text-foreground">{status.fileLeadCount?.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">Ready to import</p>
               </div>
-              <div className="p-4 bg-muted rounded-lg">
-                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+              <div className="p-5 bg-gradient-to-br from-green-500/10 to-green-600/5 border border-green-500/20 rounded-xl">
+                <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400 font-medium mb-2">
                   <Database className="h-4 w-4" />
-                  Current in DB
+                  Leads in Database
                 </div>
-                <div className="text-2xl font-bold">{status.currentDbCount?.toLocaleString()}</div>
+                <div className="text-3xl font-bold text-foreground">{status.currentDbCount?.toLocaleString()}</div>
+                <p className="text-xs text-muted-foreground mt-1">Currently stored</p>
               </div>
             </div>
 
             {/* Import Mode Selection */}
             <div className="space-y-3">
-              <p className="text-sm font-medium">Import Mode</p>
-              <div className="space-y-2">
+              <p className="text-sm font-semibold text-foreground">Import Mode</p>
+              <div className="space-y-3">
                 <button
                   onClick={() => setMode('upsert')}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
-                    mode === 'upsert' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                    mode === 'upsert'
+                      ? 'border-primary bg-primary/10 shadow-sm'
+                      : 'border-border hover:border-primary/50 hover:bg-muted/30'
                   }`}
                 >
-                  <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex items-center justify-center ${
-                    mode === 'upsert' ? 'border-primary' : 'border-muted-foreground'
+                  <div className={`w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    mode === 'upsert' ? 'border-primary bg-primary' : 'border-muted-foreground/50'
                   }`}>
-                    {mode === 'upsert' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    {mode === 'upsert' && <CheckCircle className="h-3 w-3 text-primary-foreground" />}
                   </div>
-                  <div>
-                    <p className="font-medium">Upsert (Recommended)</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground flex items-center gap-2">
+                      Upsert
+                      <Badge variant="secondary" className="text-xs">Recommended</Badge>
+                    </p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Update existing leads by email, insert new ones. Safe and non-destructive.
                     </p>
                   </div>
                 </button>
+
                 <button
                   onClick={() => setMode('append')}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
-                    mode === 'append' ? 'border-primary bg-primary/5' : 'hover:bg-muted/50'
+                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                    mode === 'append'
+                      ? 'border-primary bg-primary/10 shadow-sm'
+                      : 'border-border hover:border-primary/50 hover:bg-muted/30'
                   }`}
                 >
-                  <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex items-center justify-center ${
-                    mode === 'append' ? 'border-primary' : 'border-muted-foreground'
+                  <div className={`w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    mode === 'append' ? 'border-primary bg-primary' : 'border-muted-foreground/50'
                   }`}>
-                    {mode === 'append' && <div className="w-2 h-2 rounded-full bg-primary" />}
+                    {mode === 'append' && <CheckCircle className="h-3 w-3 text-primary-foreground" />}
                   </div>
-                  <div>
-                    <p className="font-medium">Append Only</p>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1">
+                    <p className="font-semibold text-foreground">Append Only</p>
+                    <p className="text-sm text-muted-foreground mt-1">
                       Only insert new leads, skip duplicates. Keeps all existing data unchanged.
                     </p>
                   </div>
                 </button>
+
                 <button
                   onClick={() => setMode('replace')}
-                  className={`w-full flex items-start gap-3 p-3 rounded-lg border text-left transition-colors ${
-                    mode === 'replace' ? 'border-red-500 bg-red-50' : 'border-red-200 hover:bg-red-50'
+                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                    mode === 'replace'
+                      ? 'border-red-500 bg-red-500/10 shadow-sm'
+                      : 'border-red-500/30 hover:border-red-500/60 hover:bg-red-500/5 dark:border-red-500/40'
                   }`}
                 >
-                  <div className={`w-4 h-4 mt-0.5 rounded-full border-2 flex items-center justify-center ${
-                    mode === 'replace' ? 'border-red-500' : 'border-red-300'
+                  <div className={`w-5 h-5 mt-0.5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                    mode === 'replace' ? 'border-red-500 bg-red-500' : 'border-red-500/50'
                   }`}>
-                    {mode === 'replace' && <div className="w-2 h-2 rounded-full bg-red-500" />}
+                    {mode === 'replace' && <Trash2 className="h-3 w-3 text-white" />}
                   </div>
-                  <div>
-                    <p className="font-medium flex items-center gap-2">
-                      <Trash2 className="h-4 w-4 text-red-500" />
+                  <div className="flex-1">
+                    <p className="font-semibold text-red-600 dark:text-red-400 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
                       Replace All
                     </p>
-                    <p className="text-sm text-red-600">
-                      ⚠️ DANGER: Deletes ALL existing leads first, then imports new ones.
+                    <p className="text-sm text-red-600/80 dark:text-red-400/80 mt-1">
+                      DANGER: Deletes ALL existing leads first, then imports new ones.
                     </p>
                   </div>
                 </button>
@@ -229,30 +242,60 @@ export function LeadImporter() {
 
             {/* Result */}
             {result && (
-              <div className={`p-4 rounded-lg ${result.success ? 'bg-green-50 border border-green-200' : 'bg-red-50 border border-red-200'}`}>
-                <div className="flex items-center gap-2 mb-2">
+              <div className={`p-5 rounded-xl border-2 ${
+                result.success
+                  ? 'bg-green-500/10 border-green-500/30 dark:bg-green-500/20'
+                  : 'bg-red-500/10 border-red-500/30 dark:bg-red-500/20'
+              }`}>
+                <div className="flex items-center gap-3 mb-4">
                   {result.success ? (
-                    <CheckCircle className="h-5 w-5 text-green-600" />
+                    <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center">
+                      <CheckCircle className="h-6 w-6 text-white" />
+                    </div>
                   ) : (
-                    <AlertTriangle className="h-5 w-5 text-red-600" />
-                  )}
-                  <span className="font-medium">{result.message}</span>
-                </div>
-                <div className="text-sm space-y-1">
-                  <p>Mode: <Badge variant="outline">{result.mode}</Badge></p>
-                  <p>Processed: {result.inserted} leads</p>
-                  {result.skipped > 0 && <p>Skipped: {result.skipped}</p>}
-                  {result.errors && result.errors.length > 0 && (
-                    <div className="mt-2 text-red-600">
-                      <p className="font-medium">Errors:</p>
-                      <ul className="list-disc list-inside text-xs">
-                        {result.errors.map((err, i) => (
-                          <li key={i}>{err}</li>
-                        ))}
-                      </ul>
+                    <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center">
+                      <AlertTriangle className="h-6 w-6 text-white" />
                     </div>
                   )}
+                  <div>
+                    <h4 className={`text-lg font-semibold ${result.success ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
+                      {result.success ? 'Import Successful!' : 'Import Failed'}
+                    </h4>
+                    <p className="text-sm text-muted-foreground">{result.message}</p>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-background/60 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-foreground">{result.inserted}</p>
+                    <p className="text-xs text-muted-foreground">Imported</p>
+                  </div>
+                  <div className="bg-background/60 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-foreground">{result.updated || 0}</p>
+                    <p className="text-xs text-muted-foreground">Updated</p>
+                  </div>
+                  <div className="bg-background/60 rounded-lg p-3 text-center">
+                    <p className="text-2xl font-bold text-foreground">{result.skipped}</p>
+                    <p className="text-xs text-muted-foreground">Skipped</p>
+                  </div>
+                </div>
+
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <p className="text-xs text-muted-foreground">
+                    Mode: <Badge variant="outline" className="ml-1">{result.mode}</Badge>
+                  </p>
+                </div>
+
+                {result.errors && result.errors.length > 0 && (
+                  <div className="mt-3 p-3 bg-red-500/10 rounded-lg">
+                    <p className="font-medium text-red-600 dark:text-red-400 text-sm mb-1">Errors:</p>
+                    <ul className="list-disc list-inside text-xs text-red-600/80 dark:text-red-400/80 space-y-0.5">
+                      {result.errors.map((err, i) => (
+                        <li key={i}>{err}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             )}
 
