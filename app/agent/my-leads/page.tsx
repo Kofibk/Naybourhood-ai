@@ -4,12 +4,37 @@ import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Lead, PriorityAction } from '@/types'
+import { Badge } from '@/components/ui/badge'
+import { Lead, PriorityAction, LeadStatus } from '@/types'
 import { LeadTable } from '@/components/leads'
 import { AgentStats } from '@/components/dashboard/AgentStats'
 import { PriorityActionsCompact } from '@/components/dashboard/PriorityActions'
-import { fetchMyLeads, fetchPriorityActions } from '@/lib/queries/leads'
-import { Target, ChevronRight } from 'lucide-react'
+import { EmailComposer } from '@/components/EmailComposer'
+import { fetchMyLeads, fetchPriorityActions, updateLeadStatus } from '@/lib/queries/leads'
+import { Target, ChevronRight, Phone, Mail, MessageCircle, CheckCircle, Calendar, ChevronDown } from 'lucide-react'
+import { toast } from 'sonner'
+
+const STATUS_OPTIONS = [
+  'Contact Pending',
+  'Follow Up',
+  'Viewing Booked',
+  'Negotiating',
+  'Reserved',
+  'Exchanged',
+  'Completed',
+  'Not Proceeding',
+]
+
+const getClassificationColor = (classification: string | undefined) => {
+  switch (classification) {
+    case 'Hot': return 'bg-red-500 text-white'
+    case 'Warm-Qualified': return 'bg-orange-500 text-white'
+    case 'Warm-Engaged': return 'bg-amber-500 text-white'
+    case 'Nurture': return 'bg-blue-400 text-white'
+    case 'Cold': return 'bg-gray-400 text-white'
+    default: return 'bg-gray-300 text-gray-700'
+  }
+}
 
 export default function AgentMyLeadsPage() {
   const router = useRouter()
@@ -17,6 +42,8 @@ export default function AgentMyLeadsPage() {
   const [priorityActions, setPriorityActions] = useState<PriorityAction[]>([])
   const [loading, setLoading] = useState(true)
   const [userName, setUserName] = useState<string>('')
+  const [emailLead, setEmailLead] = useState<Lead | null>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   useEffect(() => {
     // Get user from localStorage
@@ -60,6 +87,51 @@ export default function AgentMyLeadsPage() {
 
   const handleAction = (action: PriorityAction) => {
     router.push(`/agent/my-leads/${action.leadId}`)
+  }
+
+  const handleStatusChange = async (leadId: string, newStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation() // Prevent row click
+    setUpdatingStatus(leadId)
+
+    try {
+      await updateLeadStatus(leadId, newStatus)
+      // Update local state
+      setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus as LeadStatus } : l))
+      toast.success(`Status updated to ${newStatus}`)
+    } catch (error) {
+      console.error('Error updating status:', error)
+      toast.error('Failed to update status')
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+
+  const handleQuickCall = (lead: Lead, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (lead.phone) {
+      window.location.href = `tel:${lead.phone}`
+    } else {
+      toast.error('No phone number available')
+    }
+  }
+
+  const handleQuickEmail = (lead: Lead, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (lead.email) {
+      setEmailLead(lead)
+    } else {
+      toast.error('No email address available')
+    }
+  }
+
+  const handleQuickWhatsApp = (lead: Lead, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (lead.phone) {
+      const phone = lead.phone.replace(/[^0-9]/g, '')
+      window.open(`https://wa.me/${phone}`, '_blank')
+    } else {
+      toast.error('No phone number available')
+    }
   }
 
   return (
@@ -106,15 +178,12 @@ export default function AgentMyLeadsPage() {
         </CardContent>
       </Card>
 
-      {/* Leads Table */}
+      {/* Leads Table with Actions */}
       <Card>
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">My Leads</CardTitle>
-            <Button variant="ghost" size="sm" className="h-7 text-xs">
-              View All
-              <ChevronRight className="h-3 w-3 ml-1" />
-            </Button>
+            <span className="text-xs text-muted-foreground">{leads.length} leads</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -134,10 +203,10 @@ export default function AgentMyLeadsPage() {
                 <thead>
                   <tr className="text-left text-xs text-muted-foreground border-b">
                     <th className="pb-2 font-medium">Lead</th>
-                    <th className="pb-2 font-medium">Q/I</th>
+                    <th className="pb-2 font-medium">Classification</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Next Action</th>
-                    <th className="pb-2 font-medium">Days</th>
+                    <th className="pb-2 font-medium text-right">Quick Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -149,23 +218,80 @@ export default function AgentMyLeadsPage() {
                     >
                       <td className="py-3">
                         <div className="font-medium">{lead.fullName}</div>
+                        <div className="text-xs text-muted-foreground">
+                          Q{lead.qualityScore || 0}/I{lead.intentScore || 0}
+                        </div>
                       </td>
                       <td className="py-3">
-                        <span className="font-medium">{lead.qualityScore}</span>
-                        <span className="text-muted-foreground">/{lead.intentScore}</span>
+                        <Badge className={`text-xs ${getClassificationColor(lead.classification)}`}>
+                          {lead.classification || 'Unscored'}
+                        </Badge>
+                      </td>
+                      <td className="py-3" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={lead.status || 'Contact Pending'}
+                          onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
+                          disabled={updatingStatus === lead.id}
+                          className="text-xs px-2 py-1 rounded border border-input bg-background cursor-pointer hover:bg-muted transition-colors"
+                        >
+                          {STATUS_OPTIONS.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
                       </td>
                       <td className="py-3">
-                        <span className="text-xs">{lead.status}</span>
-                      </td>
-                      <td className="py-3">
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-muted-foreground line-clamp-2 max-w-[150px]">
                           {lead.aiNextAction || 'Follow up'}
                         </span>
                       </td>
                       <td className="py-3">
-                        <span className={lead.daysInStatus && lead.daysInStatus > 3 ? 'text-red-500' : ''}>
-                          {lead.daysInStatus || 0}
-                        </span>
+                        <div className="flex items-center justify-end gap-1">
+                          {lead.phone && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => handleQuickCall(lead, e)}
+                                title="Call"
+                              >
+                                <Phone className="h-3.5 w-3.5 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => handleQuickWhatsApp(lead, e)}
+                                title="WhatsApp"
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                              </Button>
+                            </>
+                          )}
+                          {lead.email && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => handleQuickEmail(lead, e)}
+                              title="Email"
+                            >
+                              <Mail className="h-3.5 w-3.5 text-blue-600" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/agent/my-leads/${lead.id}`)
+                            }}
+                            title="View Details"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -175,6 +301,18 @@ export default function AgentMyLeadsPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Email Composer Modal */}
+      {emailLead && (
+        <EmailComposer
+          open={!!emailLead}
+          onOpenChange={(open) => !open && setEmailLead(null)}
+          recipientEmail={emailLead.email || ''}
+          recipientName={emailLead.fullName || 'Lead'}
+          leadId={emailLead.id}
+          developmentName={emailLead.campaign}
+        />
+      )}
     </div>
   )
 }

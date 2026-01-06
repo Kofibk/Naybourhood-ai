@@ -188,6 +188,24 @@ export function CSVImport({ tableName, onComplete, onClose }: CSVImportProps) {
       toast.warning(`Imported ${successCount} records, ${errorCount} failed`)
     }
 
+    // Trigger batch auto-scoring for imported leads (in background)
+    if (tableName === 'buyers' && successCount > 0) {
+      toast.info('AI is scoring imported leads...', { duration: 3000 })
+      // Score leads in background - don't block the UI
+      fetch('/api/ai/score-buyer/batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ limit: successCount }),
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          if (result.scored > 0) {
+            toast.success(`AI scored ${result.scored} leads`)
+          }
+        })
+        .catch((err) => console.error('Batch scoring error:', err))
+    }
+
     onComplete?.()
   }
 

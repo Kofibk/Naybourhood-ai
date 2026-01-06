@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { useData } from '@/contexts/DataContext'
+import { EmailComposer } from '@/components/EmailComposer'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import {
@@ -266,6 +267,7 @@ export default function LeadDetailPage() {
   const [hasAutoScored, setHasAutoScored] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
   const [notesValue, setNotesValue] = useState('')
+  const [showEmailComposer, setShowEmailComposer] = useState(false)
 
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
@@ -600,10 +602,8 @@ export default function LeadDetailPage() {
                   </Button>
                 )}
                 {lead.email && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`mailto:${lead.email}`}>
-                      <Mail className="w-4 h-4 mr-1" /> Email
-                    </a>
+                  <Button size="sm" variant="outline" onClick={() => setShowEmailComposer(true)}>
+                    <Mail className="w-4 h-4 mr-1" /> Email
                   </Button>
                 )}
                 {lead.phone && (
@@ -1020,6 +1020,18 @@ export default function LeadDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Email Composer Modal */}
+      {lead.email && (
+        <EmailComposer
+          open={showEmailComposer}
+          onOpenChange={setShowEmailComposer}
+          recipientEmail={lead.email}
+          recipientName={lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Lead'}
+          leadId={lead.id}
+          developmentName={lead.campaign}
+        />
+      )}
     </div>
   )
 }

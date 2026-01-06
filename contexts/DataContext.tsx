@@ -546,7 +546,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Create a new lead
+  // Create a new lead with auto-scoring
   const createLead = useCallback(async (data: Partial<Buyer>): Promise<Buyer | null> => {
     try {
       const supabase = createClient()
@@ -564,6 +564,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       setLeads((prev) => [newData, ...prev])
       toast.success('Lead created')
+
+      // Auto-score the new lead in the background
+      if (newData?.id) {
+        console.log('[DataContext] Auto-scoring new lead:', newData.id)
+        fetch('/api/ai/score-buyer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ buyerId: newData.id }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const scoreResult = await res.json()
+              console.log('[DataContext] Lead auto-scored:', scoreResult)
+              // Update the lead in state with scores
+              setLeads((prev) =>
+                prev.map((l) =>
+                  l.id === newData.id
+                    ? {
+                        ...l,
+                        ai_quality_score: scoreResult.quality_score,
+                        ai_intent_score: scoreResult.intent_score,
+                        ai_confidence: scoreResult.confidence,
+                        ai_classification: scoreResult.classification,
+                        ai_priority: scoreResult.priority,
+                        ai_summary: scoreResult.summary,
+                        ai_next_action: scoreResult.next_action,
+                        ai_scored_at: new Date().toISOString(),
+                      }
+                    : l
+                )
+              )
+              toast.success('Lead scored', { description: `Classification: ${scoreResult.classification}` })
+            }
+          })
+          .catch((err) => console.error('[DataContext] Auto-score failed:', err))
+      }
+
       return newData
     } catch (e) {
       console.error('[DataContext] Create lead failed:', e)
