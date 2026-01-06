@@ -12,8 +12,6 @@ import { Company } from '@/types'
 import {
   Plus,
   Search,
-  Filter,
-  MoreVertical,
   Building2,
   Edit,
   Trash2,
@@ -26,8 +24,10 @@ import {
   CheckCircle,
   AlertCircle,
   Megaphone,
-  PoundSterling,
+  Clock,
 } from 'lucide-react'
+
+type CompanyStatus = 'Active' | 'Trial' | 'Inactive'
 
 interface EditingCompany {
   id?: string
@@ -37,7 +37,7 @@ interface EditingCompany {
   contact_email: string
   phone: string
   website: string
-  status: 'Active' | 'Inactive' | 'Pending'
+  status: CompanyStatus
   tier: 'starter' | 'growth' | 'enterprise'
 }
 
@@ -69,7 +69,7 @@ export default function CompaniesPage() {
     return {
       total: companies.length,
       active: companies.filter(c => c.status === 'Active').length,
-      totalSpend: companies.reduce((sum, c) => sum + (c.ad_spend || 0), 0),
+      trial: companies.filter(c => c.status === 'Trial').length,
       totalLeads: companies.reduce((sum, c) => sum + (c.total_leads || 0), 0),
     }
   }, [companies])
@@ -236,19 +236,19 @@ export default function CompaniesPage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
+              <Clock className="h-4 w-4 text-orange-500" />
+              <span className="text-xs text-muted-foreground">Trial</span>
             </div>
-            <p className="text-2xl font-bold">{totals.totalLeads}</p>
+            <p className="text-2xl font-bold text-orange-500">{totals.trial}</p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Ad Spend</span>
+              <Users className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Total Leads</span>
             </div>
-            <p className="text-2xl font-bold">{formatCurrency(totals.totalSpend)}</p>
+            <p className="text-2xl font-bold">{totals.totalLeads}</p>
           </CardContent>
         </Card>
       </div>
@@ -271,8 +271,8 @@ export default function CompaniesPage() {
         >
           <option value="all">All Status</option>
           <option value="Active">Active</option>
+          <option value="Trial">Trial</option>
           <option value="Inactive">Inactive</option>
-          <option value="Pending">Pending</option>
         </select>
       </div>
 
@@ -330,7 +330,7 @@ export default function CompaniesPage() {
                 </div>
 
                 <div className="mt-4 pt-4 border-t border-border">
-                  <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <div className="text-lg font-semibold">
                         {company.campaign_count || 0}
@@ -343,19 +343,16 @@ export default function CompaniesPage() {
                       </div>
                       <div className="text-xs text-muted-foreground">Leads</div>
                     </div>
-                    <div>
-                      <div className="text-lg font-semibold">
-                        {formatCurrency(company.ad_spend || 0)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Ad Spend</div>
-                    </div>
                   </div>
                 </div>
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge
-                      variant={company.status === 'Active' ? 'success' : 'secondary'}
+                      variant={
+                        company.status === 'Active' ? 'success' :
+                        company.status === 'Trial' ? 'warning' : 'secondary'
+                      }
                     >
                       {company.status || 'Active'}
                     </Badge>
@@ -469,13 +466,13 @@ export default function CompaniesPage() {
                     value={editingCompany.status}
                     onChange={(e) => setEditingCompany({
                       ...editingCompany,
-                      status: e.target.value as EditingCompany['status']
+                      status: e.target.value as CompanyStatus
                     })}
                     className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                   >
                     <option value="Active">Active</option>
+                    <option value="Trial">Trial</option>
                     <option value="Inactive">Inactive</option>
-                    <option value="Pending">Pending</option>
                   </select>
                 </div>
                 <div className="space-y-2">

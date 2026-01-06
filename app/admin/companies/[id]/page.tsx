@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import type { Company, Campaign, Buyer } from '@/types'
+import type { Company, Campaign, Buyer, AppUser } from '@/types'
 import {
   ArrowLeft,
   Building2,
@@ -19,6 +19,7 @@ import {
   PoundSterling,
   TrendingUp,
   Edit,
+  User,
 } from 'lucide-react'
 
 export default function CompanyDetailPage() {
@@ -27,6 +28,7 @@ export default function CompanyDetailPage() {
   const [company, setCompany] = useState<Company | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [leads, setLeads] = useState<Buyer[]>([])
+  const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
   useEffect(() => {
@@ -72,6 +74,28 @@ export default function CompanyDetailPage() {
             setLeads(leadsData)
           }
         }
+
+        // Fetch users belonging to this company
+        const { data: usersData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('company_id', params.id)
+          .order('full_name', { ascending: true })
+
+        if (usersData) {
+          const mappedUsers: AppUser[] = usersData.map((u: any) => ({
+            id: u.id,
+            name: u.full_name || u.email?.split('@')[0] || 'Unknown',
+            email: u.email || '',
+            role: u.role || 'developer',
+            company_id: u.company_id,
+            avatar_url: u.avatar_url,
+            status: 'active',
+            last_active: u.last_active,
+            created_at: u.created_at,
+          }))
+          setCompanyUsers(mappedUsers)
+        }
       }
 
       setIsLoading(false)
@@ -115,7 +139,10 @@ export default function CompanyDetailPage() {
           <div>
             <div className="flex items-center gap-3">
               <h1 className="text-2xl font-bold font-display">{company.name}</h1>
-              <Badge variant={company.status === 'active' ? 'success' : 'secondary'}>
+              <Badge variant={
+                company.status === 'Active' || company.status === 'active' ? 'success' :
+                company.status === 'Trial' ? 'warning' : 'secondary'
+              }>
                 {company.status || 'Active'}
               </Badge>
               {company.tier && (
@@ -251,6 +278,49 @@ export default function CompanyDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Team Members */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Team Members ({companyUsers.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {companyUsers.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No team members assigned to this company</p>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {companyUsers.map((user) => (
+                <div
+                  key={user.id}
+                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                >
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    {user.avatar_url ? (
+                      <img
+                        src={user.avatar_url}
+                        alt={user.name}
+                        className="w-10 h-10 rounded-full object-cover"
+                      />
+                    ) : (
+                      <User className="h-5 w-5 text-primary" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{user.name}</p>
+                    <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs capitalize">
+                    {user.role}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Leads */}
       <Card>
