@@ -57,13 +57,21 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
   const typeConfig = config[userType]
 
   // Filter leads by companyId for multi-tenant data isolation
+  // For Quick Access/test users (mph-company), show all leads for testing
   const myLeads = useMemo(() => {
     if (!companyId) return []
+    // Test company ID - show all leads for testing
+    if (companyId === 'mph-company') {
+      return leads
+    }
     return leads.filter(lead => lead.company_id === companyId)
   }, [leads, companyId])
 
   const hotLeads = useMemo(() =>
-    myLeads.filter((l) => (l.quality_score || 0) >= 85).slice(0, 3),
+    myLeads.filter((l) => {
+      const score = l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 85
+    }).slice(0, 3),
     [myLeads]
   )
 
@@ -143,7 +151,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </Badge>
             </div>
             <div className="text-2xl font-bold text-orange-500">
-              {myLeads.filter((l) => (l.quality_score || 0) >= 85).length}
+              {myLeads.filter((l) => {
+                const score = l.ai_quality_score ?? l.quality_score
+                return score !== null && score !== undefined && score >= 85
+              }).length}
             </div>
             <div className="text-xs text-muted-foreground">
               Hot {typeConfig.title}
@@ -197,7 +208,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="muted" className="text-[10px]">
-                  Q:{lead.quality_score}
+                  Q:{lead.ai_quality_score ?? lead.quality_score ?? '-'}
                 </Badge>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Phone className="h-4 w-4" />

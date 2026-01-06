@@ -542,6 +542,8 @@ function LoginPageInner() {
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'admin',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
                   }))
                   router.push('/admin')
                 }}
@@ -554,9 +556,11 @@ function LoginPageInner() {
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
                     id: 'test-developer',
-                    email: 'developer@test.com',
-                    name: 'Test Developer',
+                    email: 'developer@millionpound.homes',
+                    name: 'Dev User',
                     role: 'developer',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
                   }))
                   router.push('/developer')
                 }}
@@ -569,9 +573,11 @@ function LoginPageInner() {
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
                     id: 'test-agent',
-                    email: 'agent@test.com',
-                    name: 'Test Agent',
+                    email: 'agent@millionpound.homes',
+                    name: 'Agent User',
                     role: 'agent',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
                   }))
                   router.push('/agent')
                 }}
@@ -584,9 +590,11 @@ function LoginPageInner() {
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
                     id: 'test-broker',
-                    email: 'broker@test.com',
-                    name: 'Test Broker',
+                    email: 'broker@millionpound.homes',
+                    name: 'Broker User',
                     role: 'broker',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
                   }))
                   router.push('/broker')
                 }}
