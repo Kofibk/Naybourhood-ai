@@ -6,6 +6,7 @@ import { DashboardLayout } from '@/components/DashboardLayout'
 import { DataProvider } from '@/contexts/DataContext'
 import { AuthProvider } from '@/contexts/AuthContext'
 import { createClient } from '@/lib/supabase/client'
+import { Toaster } from 'sonner'
 
 interface User {
   id: string
@@ -78,6 +79,7 @@ function DeveloperLayoutInner({ children }: { children: React.ReactNode }) {
   return (
     <AuthProvider>
       <DataProvider>
+        <Toaster position="top-right" richColors closeButton />
         <DashboardLayout
           title={`Welcome back, ${user.name?.split(' ')[0] || 'Developer'}`}
           userType="developer"

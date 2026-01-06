@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { Buyer, Campaign, Company, Development, AppUser, FinanceLead } from '@/types'
 
 interface DataContextType {
@@ -488,13 +489,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Update lead error:', error)
+        toast.error('Failed to update lead', { description: error.message })
         return null
       }
 
       setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...updatedData } : l)))
+      toast.success('Lead updated')
       return updatedData
     } catch (e) {
       console.error('[DataContext] Update lead failed:', e)
+      toast.error('Failed to update lead')
       return null
     }
   }, [])
@@ -528,13 +532,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Update campaign error:', error)
+        toast.error('Failed to update campaign', { description: error.message })
         return null
       }
 
       setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedData } : c)))
+      toast.success('Campaign updated')
       return updatedData
     } catch (e) {
       console.error('[DataContext] Update campaign failed:', e)
+      toast.error('Failed to update campaign')
       return null
     }
   }, [])
@@ -551,13 +558,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Create lead error:', error)
+        toast.error('Failed to create lead', { description: error.message })
         return null
       }
 
       setLeads((prev) => [newData, ...prev])
+      toast.success('Lead created')
       return newData
     } catch (e) {
       console.error('[DataContext] Create lead failed:', e)
+      toast.error('Failed to create lead')
       return null
     }
   }, [])
@@ -573,13 +583,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Delete lead error:', error)
+        toast.error('Failed to delete lead', { description: error.message })
         return false
       }
 
       setLeads((prev) => prev.filter((l) => l.id !== id))
+      toast.success('Lead deleted')
       return true
     } catch (e) {
       console.error('[DataContext] Delete lead failed:', e)
+      toast.error('Failed to delete lead')
       return false
     }
   }, [])
@@ -607,13 +620,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Create campaign error:', error)
+        toast.error('Failed to create campaign', { description: error.message })
         return null
       }
 
       setCampaigns((prev) => [newData, ...prev])
+      toast.success('Campaign created')
       return newData
     } catch (e) {
       console.error('[DataContext] Create campaign failed:', e)
+      toast.error('Failed to create campaign')
       return null
     }
   }, [])
@@ -629,13 +645,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Delete campaign error:', error)
+        toast.error('Failed to delete campaign', { description: error.message })
         return false
       }
 
       setCampaigns((prev) => prev.filter((c) => c.id !== id))
+      toast.success('Campaign deleted')
       return true
     } catch (e) {
       console.error('[DataContext] Delete campaign failed:', e)
+      toast.error('Failed to delete campaign')
       return false
     }
   }, [])
