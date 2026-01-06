@@ -208,17 +208,24 @@ export async function GET(request: NextRequest) {
     const supabase = createClient()
     const { data: { user: currentUser } } = await supabase.auth.getUser()
 
-    // For demo mode, return empty or allow access
+    // For demo mode, use admin client to bypass RLS
     if (!currentUser) {
       // Check for demo mode via query param or header
       const url = new URL(request.url)
       const demoMode = url.searchParams.get('demo') === 'true'
 
-      if (demoMode) {
-        const { data: users, error } = await supabase
+      if (demoMode && isServiceRoleConfigured()) {
+        // Use admin client to bypass RLS for demo mode
+        const adminClient = createAdminClient()
+        const { data: users, error } = await adminClient
           .from('profiles')
           .select('*')
           .order('created_at', { ascending: false })
+
+        if (error) {
+          console.error('[Users API] Admin fetch error:', error)
+          return NextResponse.json({ users: [] })
+        }
 
         return NextResponse.json({ users: users || [] })
       }

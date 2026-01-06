@@ -359,45 +359,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Finance Leads table error:', financeLeadsResult.error.message)
       }
 
-      // Process USERS - no demo data, only real users from Supabase
-      if (!usersResult.error && usersResult.data) {
-        const mappedUsers = usersResult.data.map((p: any) => {
-          // Determine user status based on last_active
-          // - No last_active = pending (invited but hasn't logged in yet)
-          // - last_active within 30 days = active
-          // - last_active older than 30 days = inactive
-          let status: 'active' | 'inactive' | 'pending' = 'pending'
-          const emailConfirmed = p.email_confirmed ?? (p.last_active ? true : false)
+      // Process USERS - try direct query first, then API fallback for Quick Access users
+      const mapProfileToUser = (p: any): AppUser => {
+        // Determine user status based on last_active
+        let status: 'active' | 'inactive' | 'pending' = 'pending'
+        const emailConfirmed = p.email_confirmed ?? (p.last_active ? true : false)
 
-          if (p.last_active) {
-            const lastActiveDate = new Date(p.last_active)
-            const thirtyDaysAgo = new Date()
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-            status = lastActiveDate > thirtyDaysAgo ? 'active' : 'inactive'
-          } else if (p.status === 'active') {
-            // If explicitly set to active in database but no last_active, treat as active
-            status = 'active'
-          }
+        if (p.last_active) {
+          const lastActiveDate = new Date(p.last_active)
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+          status = lastActiveDate > thirtyDaysAgo ? 'active' : 'inactive'
+        } else if (p.status === 'active') {
+          status = 'active'
+        }
 
-          return {
-            id: p.id,
-            name: p.full_name || p.email || 'Unknown',
-            email: p.email || '',
-            role: p.role || 'agent',
-            company_id: p.company_id,
-            company: p.company_id,
-            avatar_url: p.avatar_url,
-            status,
-            email_confirmed: emailConfirmed,
-            last_active: p.last_active,
-            created_at: p.created_at,
-            invited_at: p.created_at,
-          }
-        })
-        console.log('[DataContext] Users loaded:', mappedUsers.length)
+        return {
+          id: p.id,
+          name: p.full_name || p.email || 'Unknown',
+          email: p.email || '',
+          role: p.role || 'agent',
+          company_id: p.company_id,
+          company: p.company_id,
+          avatar_url: p.avatar_url,
+          status,
+          email_confirmed: emailConfirmed,
+          last_active: p.last_active,
+          created_at: p.created_at,
+          invited_at: p.created_at,
+        }
+      }
+
+      let usersLoaded = false
+      if (!usersResult.error && usersResult.data && usersResult.data.length > 0) {
+        const mappedUsers = usersResult.data.map(mapProfileToUser)
+        console.log('[DataContext] Users loaded from direct query:', mappedUsers.length)
         setUsers(mappedUsers)
-      } else if (usersResult.error) {
-        console.log('[DataContext] Users/profiles table error:', usersResult.error.message)
+        usersLoaded = true
+      }
+
+      // If direct query failed or returned empty, try API fallback (for Quick Access users)
+      if (!usersLoaded) {
+        console.log('[DataContext] Trying API fallback for users...')
+        try {
+          const response = await fetch('/api/users/invite?demo=true')
+          if (response.ok) {
+            const data = await response.json()
+            if (data.users && data.users.length > 0) {
+              const mappedUsers = data.users.map(mapProfileToUser)
+              console.log('[DataContext] Users loaded from API:', mappedUsers.length)
+              setUsers(mappedUsers)
+              usersLoaded = true
+            }
+          }
+        } catch (apiError) {
+          console.log('[DataContext] API fallback failed:', apiError)
+        }
+      }
+
+      if (!usersLoaded) {
+        console.log('[DataContext] No users found from any source')
         setUsers([])
       }
 
