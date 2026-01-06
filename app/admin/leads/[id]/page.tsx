@@ -755,6 +755,8 @@ export default function LeadDetailPage() {
               <DataRow label="Bedrooms" value={lead.preferred_bedrooms || lead.bedrooms} icon={Home} />
               <DataRow label="Location" value={lead.location || lead.area} icon={MapPin} />
               <DataRow label="Timeline" value={lead.timeline} icon={Calendar} />
+              <DataRow label="Purpose" value={lead.purpose} />
+              <DataRow label="Ready in 28 Days" value={<BooleanIndicator value={lead.ready_in_28_days} />} />
             </CardContent>
           </Card>
 
@@ -790,6 +792,57 @@ export default function LeadDetailPage() {
               <DataRow label="Company ID" value={lead.company_id ? lead.company_id.substring(0, 8) + '...' : '-'} icon={Building} />
             </CardContent>
           </Card>
+
+          {/* Engagement & Communication */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <MessageCircle className="w-4 h-4" />
+                Engagement & Communication
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-0">
+              <DataRow label="Viewing Intent" value={(lead as any).viewing_intent_confirmed ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
+              <DataRow label="Viewing Booked" value={(lead as any).viewing_booked ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
+              <DataRow label="Viewing Date" value={formatDate((lead as any).viewing_date)} icon={Calendar} />
+              <DataRow label="Has Replied" value={(lead as any).replied ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
+              <DataRow label="Stop Comms" value={(lead as any).stop_comms ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
+              <DataRow label="Next Follow-up" value={formatDate((lead as any).next_follow_up)} icon={Clock} />
+              <DataRow label="Broker Connected" value={(lead as any).broker_connected ? <BooleanIndicator value={true} /> : <BooleanIndicator value={false} />} />
+            </CardContent>
+          </Card>
+
+          {/* Transcript / Call Summary */}
+          {((lead as any).transcript || (lead as any).call_summary || (lead as any).last_wa_message) && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  Communication History
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {(lead as any).last_wa_message && (
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Last WhatsApp Message</div>
+                    <div className="bg-muted rounded-lg p-3 text-sm">{(lead as any).last_wa_message}</div>
+                  </div>
+                )}
+                {(lead as any).call_summary && (
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Call Summary</div>
+                    <div className="bg-muted rounded-lg p-3 text-sm whitespace-pre-wrap">{(lead as any).call_summary}</div>
+                  </div>
+                )}
+                {(lead as any).transcript && (
+                  <div>
+                    <div className="text-sm text-muted-foreground mb-1">Transcript</div>
+                    <div className="bg-muted rounded-lg p-3 text-sm whitespace-pre-wrap max-h-[300px] overflow-y-auto">{(lead as any).transcript}</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
         </div>
 
         {/* ─────────────────────────────────────────────────────────────────

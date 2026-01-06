@@ -60,6 +60,20 @@ export interface Buyer {
   ai_classification?: string
   ai_priority?: string
   ai_scored_at?: string
+  // Additional engagement fields
+  purpose?: string
+  ready_in_28_days?: boolean
+  viewing_intent_confirmed?: boolean
+  viewing_booked?: boolean
+  viewing_date?: string
+  replied?: boolean
+  stop_comms?: boolean
+  next_follow_up?: string
+  broker_connected?: boolean
+  // Communication history
+  last_wa_message?: string
+  transcript?: string
+  call_summary?: string
 }
 
 export interface AppUser {

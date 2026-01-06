@@ -159,6 +159,43 @@ export async function saveTeamInvites(emails: string[]): Promise<boolean> {
 
   if (!user || emails.length === 0) return true
 
+  // Get user's profile to determine their company and role
+  const { data: profile } = await supabase
+    .from('user_profiles')
+    .select('company_name, user_type')
+    .eq('id', user.id)
+    .single()
+
+  // Send actual email invitations for each team member
+  const results = await Promise.all(
+    emails.map(async (email) => {
+      const trimmedEmail = email.trim().toLowerCase()
+      try {
+        const response = await fetch('/api/users/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: trimmedEmail,
+            name: trimmedEmail.split('@')[0], // Use email prefix as placeholder name
+            role: profile?.user_type || 'developer',
+            is_internal: true, // Team members are internal
+            inviter_role: 'admin', // Allow invite during onboarding
+          }),
+        })
+
+        const result = await response.json()
+        if (!result.success) {
+          console.warn('[Onboarding] Invite failed for', trimmedEmail, ':', result.error)
+        }
+        return { email: trimmedEmail, success: result.success, error: result.error }
+      } catch (err) {
+        console.error('[Onboarding] Error sending invite to', trimmedEmail, ':', err)
+        return { email: trimmedEmail, success: false, error: 'Network error' }
+      }
+    })
+  )
+
+  // Also save to team_invites table for tracking
   const invites = emails.map(email => ({
     invited_by: user.id,
     email: email.trim().toLowerCase(),
@@ -170,11 +207,16 @@ export async function saveTeamInvites(emails: string[]): Promise<boolean> {
     .insert(invites)
 
   if (error) {
-    console.error('[Onboarding] Error saving invites:', error)
-    return false
+    console.error('[Onboarding] Error saving invites to table:', error)
+    // Don't fail completely - emails may have been sent
   }
 
-  return true
+  // Log results
+  const successCount = results.filter(r => r.success).length
+  const failCount = results.filter(r => !r.success).length
+  console.log(`[Onboarding] Team invites: ${successCount} sent, ${failCount} failed`)
+
+  return successCount > 0 || failCount === 0
 }
 
 export async function completeOnboarding(): Promise<boolean> {

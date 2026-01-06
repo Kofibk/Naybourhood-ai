@@ -203,6 +203,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
           assigned_to: b.assigned_to,
           assigned_user_name: b.assigned_user_name,
           assigned_at: b.assigned_at,
+          // Additional engagement fields
+          purpose: b.purpose || b['Purpose'] || b['purchase_purpose'],
+          ready_in_28_days: b.ready_in_28_days ?? b['Ready in 28 Days'] ?? b.ready_in_28days,
+          viewing_intent_confirmed: b.viewing_intent_confirmed ?? b['Viewing Intent'] ?? b.viewing_intent,
+          viewing_booked: b.viewing_booked ?? b['Viewing Booked'],
+          viewing_date: b.viewing_date || b['Viewing Date'],
+          replied: b.replied ?? b['Replied'] ?? b.has_replied,
+          stop_comms: b.stop_comms ?? b['Stop Comms'] ?? b.opt_out,
+          next_follow_up: b.next_follow_up || b['Next Follow Up'] || b.follow_up_date,
+          broker_connected: b.broker_connected ?? b['Broker Connected'],
+          // Communication history
+          last_wa_message: b.last_wa_message || b['Last WA Message'] || b.last_whatsapp_message,
+          transcript: b.transcript || b['Transcript'],
+          call_summary: b.call_summary || b['Call Summary'],
         }})
         console.log('[DataContext] First MAPPED buyer:', JSON.stringify(mappedBuyers[0], null, 2))
         console.log('[DataContext] ====================================')
