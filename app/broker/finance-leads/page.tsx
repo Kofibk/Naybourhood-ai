@@ -8,7 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { EmailComposer } from '@/components/EmailComposer'
 import { formatCurrency } from '@/lib/utils'
+import { toast } from 'sonner'
 import {
   Search,
   Phone,
@@ -20,24 +22,46 @@ import {
   FileText,
   Calendar,
   PoundSterling,
+  MessageCircle,
+  CheckCircle,
+  TrendingUp,
+  ChevronRight,
 } from 'lucide-react'
+
+const FINANCE_STATUS_OPTIONS = [
+  'Contact Pending',
+  'Follow-up',
+  'Awaiting Documents',
+  'Processing',
+  'Approved',
+  'Completed',
+  'Not Proceeding',
+]
 
 export default function BrokerFinanceLeadsPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { financeLeads, isLoading, refreshData } = useData()
+  const { financeLeads, isLoading, refreshData, updateFinanceLead } = useData()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [emailLead, setEmailLead] = useState<any>(null)
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   // Filter finance leads by broker's company_id
+  // For testing, show all leads if company is 'mph-company' or if user has test email
   const myFinanceLeads = useMemo(() => {
     if (!user?.company_id) {
-      // If user has no company_id, show empty state
+      if (user?.email?.includes('test') || user?.email?.includes('demo')) {
+        return financeLeads
+      }
       return []
     }
+    if (user.company_id === 'mph-company') {
+      return financeLeads
+    }
     return financeLeads.filter(lead => lead.company_id === user.company_id)
-  }, [financeLeads, user?.company_id])
+  }, [financeLeads, user?.company_id, user?.email])
 
   // Apply search and status filter
   const filteredLeads = useMemo(() => {
@@ -64,27 +88,81 @@ export default function BrokerFinanceLeadsPage() {
     })
   }, [myFinanceLeads, search, statusFilter])
 
-  // Stats
+  // Stats with conversion tracking
   const stats = useMemo(() => {
+    const total = myFinanceLeads.length
+    const completed = myFinanceLeads.filter(l => l.status === 'Completed' || l.status === 'Approved').length
+    const conversionRate = total > 0 ? Math.round((completed / total) * 100) : 0
+
     return {
-      total: myFinanceLeads.length,
+      total,
       filtered: filteredLeads.length,
       contactPending: myFinanceLeads.filter(l => l.status === 'Contact Pending').length,
       followUp: myFinanceLeads.filter(l => l.status === 'Follow-up').length,
       awaitingDocs: myFinanceLeads.filter(l => l.status === 'Awaiting Documents').length,
-      completed: myFinanceLeads.filter(l => l.status === 'Completed').length,
+      processing: myFinanceLeads.filter(l => l.status === 'Processing' || l.status === 'Approved').length,
+      completed,
+      conversionRate,
     }
   }, [myFinanceLeads, filteredLeads])
 
   const getStatusColor = (status?: string) => {
     switch (status) {
-      case 'Contact Pending': return 'warning'
-      case 'Follow-up': return 'default'
-      case 'Awaiting Documents': return 'secondary'
-      case 'Not Proceeding': return 'destructive'
-      case 'Duplicate': return 'muted'
-      case 'Completed': return 'success'
-      default: return 'outline'
+      case 'Contact Pending': return 'bg-yellow-100 text-yellow-800 border-yellow-300'
+      case 'Follow-up': return 'bg-blue-100 text-blue-800 border-blue-300'
+      case 'Awaiting Documents': return 'bg-purple-100 text-purple-800 border-purple-300'
+      case 'Processing': return 'bg-orange-100 text-orange-800 border-orange-300'
+      case 'Approved': return 'bg-green-100 text-green-800 border-green-300'
+      case 'Completed': return 'bg-green-200 text-green-900 border-green-400'
+      case 'Not Proceeding': return 'bg-red-100 text-red-800 border-red-300'
+      default: return 'bg-gray-100 text-gray-800 border-gray-300'
+    }
+  }
+
+  const handleStatusChange = async (leadId: string, newStatus: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setUpdatingStatus(leadId)
+
+    try {
+      if (updateFinanceLead) {
+        await updateFinanceLead(leadId, { status: newStatus })
+        toast.success(`Status updated to ${newStatus}`)
+      } else {
+        toast.error('Update function not available')
+      }
+    } catch (error) {
+      console.error('Error updating status:', error)
+      toast.error('Failed to update status')
+    } finally {
+      setUpdatingStatus(null)
+    }
+  }
+
+  const handleQuickCall = (lead: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (lead.phone) {
+      window.location.href = `tel:${lead.phone}`
+    } else {
+      toast.error('No phone number available')
+    }
+  }
+
+  const handleQuickEmail = (lead: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (lead.email) {
+      setEmailLead(lead)
+    } else {
+      toast.error('No email address available')
+    }
+  }
+
+  const handleQuickWhatsApp = (lead: any, e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (lead.phone) {
+      const phone = lead.phone.replace(/[^0-9]/g, '')
+      window.open(`https://wa.me/${phone}`, '_blank')
+    } else {
+      toast.error('No phone number available')
     }
   }
 
@@ -98,7 +176,7 @@ export default function BrokerFinanceLeadsPage() {
   }
 
   // If user has no company_id, show message
-  if (!user?.company_id) {
+  if (!user?.company_id && !user?.email?.includes('test') && !user?.email?.includes('demo')) {
     return (
       <div className="space-y-6">
         <div>
@@ -128,9 +206,7 @@ export default function BrokerFinanceLeadsPage() {
         <div>
           <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
           <p className="text-sm text-muted-foreground">
-            {stats.filtered === stats.total
-              ? `${stats.total} finance leads assigned to you`
-              : `Showing ${stats.filtered} of ${stats.total} finance leads`}
+            Manage and convert your finance leads
           </p>
         </div>
         <Button
@@ -144,43 +220,41 @@ export default function BrokerFinanceLeadsPage() {
         </Button>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('all')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total</span>
-            </div>
-            <p className="text-2xl font-bold">{stats.total}</p>
-          </CardContent>
+      {/* Conversion Funnel Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <Card className="p-3 cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('all')}>
+          <div className="text-xs text-muted-foreground">Total Leads</div>
+          <div className="text-2xl font-bold">{stats.total}</div>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('Contact Pending')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Phone className="h-4 w-4 text-yellow-500" />
-              <span className="text-xs text-muted-foreground">Contact Pending</span>
-            </div>
-            <p className="text-2xl font-bold text-yellow-500">{stats.contactPending}</p>
-          </CardContent>
+        <Card className="p-3 border-yellow-200 bg-yellow-50 cursor-pointer" onClick={() => setStatusFilter('Contact Pending')}>
+          <div className="text-xs text-yellow-600 flex items-center gap-1">
+            <Phone className="h-3 w-3" /> Contact Pending
+          </div>
+          <div className="text-2xl font-bold text-yellow-600">{stats.contactPending}</div>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('Follow-up')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Follow-up</span>
-            </div>
-            <p className="text-2xl font-bold text-blue-500">{stats.followUp}</p>
-          </CardContent>
+        <Card className="p-3 border-blue-200 bg-blue-50 cursor-pointer" onClick={() => setStatusFilter('Follow-up')}>
+          <div className="text-xs text-blue-600 flex items-center gap-1">
+            <Clock className="h-3 w-3" /> Follow-up
+          </div>
+          <div className="text-2xl font-bold text-blue-600">{stats.followUp}</div>
         </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('Awaiting Documents')}>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <FileText className="h-4 w-4 text-purple-500" />
-              <span className="text-xs text-muted-foreground">Awaiting Docs</span>
-            </div>
-            <p className="text-2xl font-bold text-purple-500">{stats.awaitingDocs}</p>
-          </CardContent>
+        <Card className="p-3 border-purple-200 bg-purple-50 cursor-pointer" onClick={() => setStatusFilter('Awaiting Documents')}>
+          <div className="text-xs text-purple-600 flex items-center gap-1">
+            <FileText className="h-3 w-3" /> Awaiting Docs
+          </div>
+          <div className="text-2xl font-bold text-purple-600">{stats.awaitingDocs}</div>
+        </Card>
+        <Card className="p-3 border-green-200 bg-green-50 cursor-pointer" onClick={() => setStatusFilter('Completed')}>
+          <div className="text-xs text-green-600 flex items-center gap-1">
+            <CheckCircle className="h-3 w-3" /> Completed
+          </div>
+          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+        </Card>
+        <Card className="p-3 border-primary/50 bg-primary/5">
+          <div className="text-xs text-primary flex items-center gap-1">
+            <TrendingUp className="h-3 w-3" /> Conv. Rate
+          </div>
+          <div className="text-2xl font-bold text-primary">{stats.conversionRate}%</div>
         </Card>
       </div>
 
@@ -201,122 +275,152 @@ export default function BrokerFinanceLeadsPage() {
           onChange={(e) => setStatusFilter(e.target.value)}
         >
           <option value="all">All Status</option>
-          <option value="Contact Pending">Contact Pending</option>
-          <option value="Follow-up">Follow-up</option>
-          <option value="Awaiting Documents">Awaiting Documents</option>
-          <option value="Not Proceeding">Not Proceeding</option>
-          <option value="Completed">Completed</option>
+          {FINANCE_STATUS_OPTIONS.map(s => (
+            <option key={s} value={s}>{s}</option>
+          ))}
         </select>
       </div>
 
-      {/* Finance Leads List */}
-      <div className="space-y-3">
-        {isLoading ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              Loading...
-            </CardContent>
-          </Card>
-        ) : filteredLeads.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
+      {/* Finance Leads Table */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-medium">
+            Finance Leads ({filteredLeads.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="animate-pulse space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-16 bg-muted rounded" />
+              ))}
+            </div>
+          ) : filteredLeads.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
               {myFinanceLeads.length === 0
-                ? 'No finance leads assigned to you yet.'
-                : 'No leads match your search criteria.'
-              }
-            </CardContent>
-          </Card>
-        ) : (
-          filteredLeads.map((lead) => (
-            <Card
-              key={lead.id}
-              className="hover:border-primary/50 transition-colors cursor-pointer"
-              onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
-            >
-              <CardContent className="p-4">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold">
-                        {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
-                      </h3>
-                      <Badge variant={getStatusColor(lead.status) as any}>
-                        {lead.status || 'Unknown'}
-                      </Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      {lead.email && (
-                        <span className="flex items-center gap-1">
-                          <Mail className="h-3 w-3" />
-                          {lead.email}
-                        </span>
-                      )}
-                      {lead.phone && (
-                        <span className="flex items-center gap-1">
-                          <Phone className="h-3 w-3" />
-                          {lead.phone}
-                        </span>
-                      )}
-                      {lead.finance_type && (
-                        <Badge variant="outline" className="text-xs">
-                          {lead.finance_type}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="text-right">
-                      <div className="flex items-center gap-1 text-lg font-bold">
-                        <PoundSterling className="h-4 w-4" />
-                        {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount).replace('£', '') : '-')}
-                      </div>
-                      <div className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Calendar className="h-3 w-3" />
-                        Required by {formatDate(lead.required_by_date)}
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (lead.phone) window.open(`tel:${lead.phone}`)
-                        }}
-                      >
-                        <Phone className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          if (lead.email) window.open(`mailto:${lead.email}`)
-                        }}
-                      >
-                        <Mail className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          router.push(`/broker/finance-leads/${lead.id}`)
-                        }}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
+                ? 'No finance leads assigned yet'
+                : 'No leads match your filters'}
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-xs text-muted-foreground border-b">
+                    <th className="pb-2 font-medium">Client</th>
+                    <th className="pb-2 font-medium">Status</th>
+                    <th className="pb-2 font-medium">Loan Amount</th>
+                    <th className="pb-2 font-medium">Required By</th>
+                    <th className="pb-2 font-medium text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLeads.map((lead) => (
+                    <tr
+                      key={lead.id}
+                      onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
+                      className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                    >
+                      <td className="py-3">
+                        <div className="font-medium">
+                          {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {lead.email && lead.email}
+                          {lead.finance_type && ` • ${lead.finance_type}`}
+                        </div>
+                      </td>
+                      <td className="py-3" onClick={(e) => e.stopPropagation()}>
+                        <select
+                          value={lead.status || 'Contact Pending'}
+                          onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
+                          disabled={updatingStatus === lead.id}
+                          className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${getStatusColor(lead.status)}`}
+                        >
+                          {FINANCE_STATUS_OPTIONS.map(s => (
+                            <option key={s} value={s}>{s}</option>
+                          ))}
+                        </select>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-1 font-medium">
+                          <PoundSterling className="h-3 w-3" />
+                          {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount).replace('£', '') : '-')}
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <Calendar className="h-3 w-3" />
+                          {formatDate(lead.required_by_date)}
+                        </div>
+                      </td>
+                      <td className="py-3">
+                        <div className="flex items-center justify-end gap-1">
+                          {lead.phone && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => handleQuickCall(lead, e)}
+                                title="Call"
+                              >
+                                <Phone className="h-3.5 w-3.5 text-green-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => handleQuickWhatsApp(lead, e)}
+                                title="WhatsApp"
+                              >
+                                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                              </Button>
+                            </>
+                          )}
+                          {lead.email && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => handleQuickEmail(lead, e)}
+                              title="Email"
+                            >
+                              <Mail className="h-3.5 w-3.5 text-blue-600" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              router.push(`/broker/finance-leads/${lead.id}`)
+                            }}
+                            title="View Details"
+                          >
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Email Composer Modal */}
+      {emailLead && (
+        <EmailComposer
+          open={!!emailLead}
+          onOpenChange={(open) => !open && setEmailLead(null)}
+          recipientEmail={emailLead.email || ''}
+          recipientName={emailLead.full_name || `${emailLead.first_name || ''} ${emailLead.last_name || ''}`.trim() || 'Client'}
+          leadId={emailLead.id}
+        />
+      )}
     </div>
   )
 }

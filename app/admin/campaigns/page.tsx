@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { formatCurrency, statusIs } from '@/lib/utils'
 import { AIOverview } from '@/components/ai/AIOverview'
+import { CampaignInsights } from '@/components/ai/CampaignInsights'
 import { EditableCell } from '@/components/ui/editable-cell'
 import type { Campaign } from '@/types'
 import {
@@ -291,6 +292,12 @@ export default function CampaignsPage() {
       <AIOverview
         pageType="campaigns"
         className="mb-2"
+      />
+
+      {/* Campaign Optimization Insights */}
+      <CampaignInsights
+        campaigns={campaigns}
+        leadCountByCampaign={leadCountByCampaign}
       />
 
       {/* Header */}
