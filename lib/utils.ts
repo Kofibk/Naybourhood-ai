@@ -119,7 +119,7 @@ export function calculateHeuristicScore(lead: {
   phone?: string | null
   status?: string | null
 }): HeuristicScoreResult {
-  let score = 50 // Base score
+  let score = 30 // Conservative base score - leads need to earn higher scores
 
   // Budget scoring (0-25 points)
   const budgetStr = (lead.budget || lead.budget_range || '').toLowerCase()
@@ -168,16 +168,20 @@ export function calculateHeuristicScore(lead: {
     score += 2
   }
 
-  // Status adjustments
+  // Status adjustments - significant impact
   const statusStr = (lead.status || '').toLowerCase()
-  if (statusStr.includes('viewing') || statusStr.includes('reserved')) {
-    score += 10
+  if (statusStr.includes('reserved') || statusStr.includes('exchanged')) {
+    score += 20  // Committed stage
+  } else if (statusStr.includes('viewing') || statusStr.includes('offer')) {
+    score += 15  // Active engagement
   } else if (statusStr.includes('negotiat')) {
+    score += 12
+  } else if (statusStr.includes('qualified') || statusStr.includes('interested')) {
     score += 8
-  } else if (statusStr.includes('qualified')) {
-    score += 5
+  } else if (statusStr.includes('contact pending') || statusStr.includes('new')) {
+    score += 0  // Neutral - needs contact
   } else if (statusStr.includes('fake') || statusStr.includes('duplicate') || statusStr.includes('not proceed')) {
-    score -= 30
+    score -= 40  // Heavy penalty
   }
 
   // Cap score between 0-100

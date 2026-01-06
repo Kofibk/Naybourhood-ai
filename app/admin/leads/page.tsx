@@ -241,27 +241,25 @@ function savePreferences(prefs: Partial<LeadsPreferences>) {
   }
 }
 
-// Score Indicator Component - Traffic light color system
-// Green = Great (70+), Amber = Medium (45-69), Red = Low (<45)
+// Score Indicator Component - Traffic light color system with score number
+// Green = Hot (70+), Amber = Warm (45-69), Red = Cold (<45)
 function ScoreIndicator({ score }: { score: number | undefined | null }) {
   if (score === undefined || score === null) {
     return <span className="text-muted-foreground">-</span>
   }
 
   const getConfig = (s: number) => {
-    if (s >= 70) return { color: 'bg-green-500', label: 'Great', ring: 'ring-green-500/30' }
-    if (s >= 45) return { color: 'bg-amber-500', label: 'Good', ring: 'ring-amber-500/30' }
-    return { color: 'bg-red-500', label: 'Low', ring: 'ring-red-500/30' }
+    if (s >= 70) return { color: 'bg-green-500', textColor: 'text-green-600', label: 'Hot' }
+    if (s >= 45) return { color: 'bg-amber-500', textColor: 'text-amber-600', label: 'Warm' }
+    return { color: 'bg-red-500', textColor: 'text-red-600', label: 'Cold' }
   }
 
   const config = getConfig(score)
 
   return (
-    <div className="flex items-center justify-center">
-      <div
-        className={`w-4 h-4 rounded-full ${config.color} ring-4 ${config.ring}`}
-        title={`Score: ${score} (${config.label})`}
-      />
+    <div className="flex items-center gap-2 justify-center">
+      <div className={`w-3 h-3 rounded-full ${config.color}`} title={config.label} />
+      <span className={`text-sm font-medium ${config.textColor}`}>{score}</span>
     </div>
   )
 }
@@ -1069,29 +1067,32 @@ export default function LeadsPage() {
 
                         if (col.key === 'ai_classification') {
                           const classification = cellValue as string | undefined
-                          const getClassIndicator = (c: string | undefined) => {
+                          const getClassBadge = (c: string | undefined) => {
                             if (!c) return <span className="text-muted-foreground text-xs">-</span>
-                            // Map classification to traffic light colors
-                            const getConfig = (cls: string) => {
-                              const lower = cls.toLowerCase()
-                              if (lower === 'hot') return { color: 'bg-green-500', ring: 'ring-green-500/30', label: 'Hot' }
-                              if (lower.includes('warm')) return { color: 'bg-amber-500', ring: 'ring-amber-500/30', label: 'Warm' }
-                              if (lower === 'nurture') return { color: 'bg-yellow-500', ring: 'ring-yellow-500/30', label: 'Nurture' }
-                              return { color: 'bg-red-500', ring: 'ring-red-500/30', label: 'Cold' }
+                            // Classification badge styles
+                            const styles: Record<string, string> = {
+                              'Hot': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
+                              'Warm-Qualified': 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+                              'Warm-Engaged': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400',
+                              'Nurture': 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+                              'Cold': 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400',
+                              'Disqualified': 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
                             }
-                            const config = getConfig(c)
+                            const shortLabels: Record<string, string> = {
+                              'Warm-Qualified': 'Warm-Q',
+                              'Warm-Engaged': 'Warm-E',
+                            }
+                            const style = styles[c] || 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
+                            const label = shortLabels[c] || c
                             return (
-                              <div className="flex items-center justify-center">
-                                <div
-                                  className={`w-4 h-4 rounded-full ${config.color} ring-4 ${config.ring}`}
-                                  title={config.label}
-                                />
-                              </div>
+                              <span className={`px-2 py-0.5 rounded text-xs font-medium whitespace-nowrap ${style}`}>
+                                {label}
+                              </span>
                             )
                           }
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              {getClassIndicator(classification)}
+                              {getClassBadge(classification)}
                             </td>
                           )
                         }

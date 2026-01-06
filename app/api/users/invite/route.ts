@@ -37,8 +37,10 @@ export async function POST(request: NextRequest) {
 
     // Check authentication - support both Supabase auth and demo mode
     let isAdmin = false
+    let isAuthConfigured = false
 
     if (isSupabaseConfigured()) {
+      isAuthConfigured = true
       const supabase = createClient()
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
@@ -54,10 +56,10 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // For development: allow if inviter claims to be admin (passed from frontend)
-    // In production, remove this fallback and rely only on Supabase auth
-    if (!isAdmin && inviter_role === 'admin') {
-      console.log('[Invite API] Using demo mode admin access')
+    // Demo mode: Only allow admin bypass when Supabase auth is NOT fully configured
+    // This allows testing without real authentication, but once auth is set up, it's enforced
+    if (!isAdmin && !isAuthConfigured && inviter_role === 'admin') {
+      console.log('[Invite API] Using demo mode admin access (Supabase auth not configured)')
       isAdmin = true
     }
 
