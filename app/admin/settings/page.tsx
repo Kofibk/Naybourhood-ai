@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
+import { LeadImporter } from '@/components/admin/LeadImporter'
 import {
   Database,
   Key,
@@ -163,6 +164,9 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Lead Import */}
+      <LeadImporter />
 
       {/* Integration Status */}
       <Card>
