@@ -76,6 +76,139 @@ export function normalizeConnectionStatus(value: boolean | string | null | undef
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// PURCHASE PURPOSE - Valid ENUM values in Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_PURCHASE_PURPOSES = [
+  'Investment',
+  'Residence',
+  'Both',
+] as const
+
+export type ValidPurchasePurpose = typeof VALID_PURCHASE_PURPOSES[number]
+
+const PURPOSE_MAP: Record<string, ValidPurchasePurpose> = {
+  // Direct matches
+  'investment': 'Investment',
+  'residence': 'Residence',
+  'both': 'Both',
+
+  // Variations
+  'primary residence': 'Residence',
+  'primary': 'Residence',
+  'home': 'Residence',
+  'live in': 'Residence',
+  'personal': 'Residence',
+  'dependent studying in the uk': 'Residence',
+  'student': 'Residence',
+  'studying': 'Residence',
+  'buy to let': 'Investment',
+  'btl': 'Investment',
+  'rental': 'Investment',
+  'income': 'Investment',
+  'investment and residence': 'Both',
+  'both investment and residence': 'Both',
+}
+
+/**
+ * Normalize purchase purpose to valid ENUM value
+ */
+export function normalizePurchasePurpose(purpose: string | null | undefined): ValidPurchasePurpose | null {
+  if (!purpose) return null
+
+  const normalized = purpose.toLowerCase().trim()
+
+  // Direct map match
+  if (PURPOSE_MAP[normalized]) {
+    return PURPOSE_MAP[normalized]
+  }
+
+  // Check if already valid (case-insensitive)
+  const validMatch = VALID_PURCHASE_PURPOSES.find(
+    p => p.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  // Default - try to infer
+  if (normalized.includes('invest')) return 'Investment'
+  if (normalized.includes('resid') || normalized.includes('home') || normalized.includes('live')) return 'Residence'
+
+  console.warn(`Unknown purchase purpose "${purpose}" - returning null`)
+  return null
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAYMENT METHOD - Valid ENUM values in Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_PAYMENT_METHODS = [
+  'Cash',
+  'Mortgage',
+] as const
+
+export type ValidPaymentMethod = typeof VALID_PAYMENT_METHODS[number]
+
+/**
+ * Normalize payment method to valid ENUM value
+ */
+export function normalizePaymentMethod(method: string | null | undefined): ValidPaymentMethod | null {
+  if (!method) return null
+
+  const normalized = method.toLowerCase().trim()
+
+  if (normalized === 'cash' || normalized === 'cash buyer') return 'Cash'
+  if (normalized === 'mortgage' || normalized === 'finance' || normalized === 'loan') return 'Mortgage'
+
+  // Check if already valid (case-insensitive)
+  const validMatch = VALID_PAYMENT_METHODS.find(
+    m => m.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  console.warn(`Unknown payment method "${method}" - returning null`)
+  return null
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ENQUIRY TYPE - Valid ENUM values in Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_ENQUIRY_TYPES = [
+  'Form',
+  'WA',
+  'Call',
+  'Email',
+  'Referral',
+] as const
+
+export type ValidEnquiryType = typeof VALID_ENQUIRY_TYPES[number]
+
+/**
+ * Normalize enquiry type to valid ENUM value
+ */
+export function normalizeEnquiryType(type: string | null | undefined): ValidEnquiryType | null {
+  if (!type) return null
+
+  const normalized = type.toLowerCase().trim()
+
+  // Direct matches
+  if (normalized === 'form' || normalized === 'web form' || normalized === 'website') return 'Form'
+  if (normalized === 'wa' || normalized === 'whatsapp') return 'WA'
+  if (normalized === 'call' || normalized === 'phone' || normalized === 'telephone') return 'Call'
+  if (normalized === 'email' || normalized === 'e-mail') return 'Email'
+  if (normalized === 'referral' || normalized === 'referred' || normalized === 'reference') return 'Referral'
+
+  // Check if already valid (case-insensitive)
+  const validMatch = VALID_ENQUIRY_TYPES.find(
+    t => t.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  console.warn(`Unknown enquiry type "${type}" - returning null`)
+  return null
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // STATUS MAPPING - Maps various input statuses to standard statuses
 // ═══════════════════════════════════════════════════════════════════
 
@@ -118,6 +251,8 @@ const STATUS_MAP: Record<string, ValidStatus> = {
   'lost': 'Not Proceeding',
   'dead': 'Not Proceeding',
   'unqualified': 'Not Proceeding',
+  'disqualified': 'Not Proceeding',
+  'dq': 'Not Proceeding',
   'no answer': 'Contact Pending',
   'callback': 'Follow Up',
   'documentation': 'Negotiating',
