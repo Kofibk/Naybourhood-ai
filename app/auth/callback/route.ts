@@ -84,6 +84,35 @@ export async function GET(request: Request) {
     )
 
     if (needsPasswordSetup) {
+      // Create user_profiles entry NOW (before redirect) so they don't get stuck in loop
+      if (!userProfile) {
+        await supabase
+          .from('user_profiles')
+          .upsert({
+            id: authResult.user.id,
+            email: email,
+            first_name: userMetadata.full_name?.split(' ')[0] || '',
+            last_name: userMetadata.full_name?.split(' ').slice(1).join(' ') || '',
+            user_type: userMetadata.role || 'developer',
+            onboarding_completed: true,  // Skip onboarding for invited users
+            is_internal: userMetadata.is_internal || false,
+          })
+      }
+
+      // Also create profiles entry if it doesn't exist
+      if (!profile) {
+        await supabase
+          .from('profiles')
+          .upsert({
+            id: authResult.user.id,
+            email: email,
+            full_name: userMetadata.full_name || email.split('@')[0],
+            role: userMetadata.role || 'developer',
+            company_id: userMetadata.company_id || null,
+            is_internal: userMetadata.is_internal || false,
+          })
+      }
+
       // Determine redirect path based on role for after password setup
       let redirectPath = '/developer'
       const role = userMetadata.role || profile?.role || 'developer'
