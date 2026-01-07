@@ -86,6 +86,7 @@ function LoginPageInner() {
 
   const redirectBasedOnRole = (role: string) => {
     switch (role) {
+      case 'super_admin':
       case 'admin':
         router.push('/admin')
         break

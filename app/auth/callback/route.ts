@@ -47,11 +47,16 @@ export async function GET(request: Request) {
 
   if (!authError && authResult?.user) {
     const email = authResult.user.email?.toLowerCase() || ''
+    const userMetadata = authResult.user.user_metadata || {}
 
     // Handle password recovery - redirect to reset password page
     if (type === 'recovery') {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
+
+    // Check if this is an invited user (internal team or company member)
+    // Invited users skip onboarding entirely
+    const isInvitedUser = userMetadata.is_internal === true || !!userMetadata.company_id
 
     // Check if user has completed onboarding (user_profiles table)
     const { data: userProfile } = await supabase
@@ -60,14 +65,30 @@ export async function GET(request: Request) {
       .eq('id', authResult.user.id)
       .single()
 
-    // If user hasn't completed onboarding, redirect to onboarding flow
-    if (!userProfile?.onboarding_completed) {
+    // If user hasn't completed onboarding AND is not an invited user, redirect to onboarding
+    if (!userProfile?.onboarding_completed && !isInvitedUser) {
       // Store basic auth info in URL params for client-side
       const onboardingUrl = new URL(`${origin}/onboarding`)
       onboardingUrl.searchParams.set('auth', 'success')
       onboardingUrl.searchParams.set('userId', authResult.user.id)
       onboardingUrl.searchParams.set('email', email)
       return NextResponse.redirect(onboardingUrl.toString())
+    }
+
+    // For invited users who haven't set up their profile yet, create it now
+    if (isInvitedUser && !userProfile) {
+      // Create user_profiles entry with onboarding marked complete
+      await supabase
+        .from('user_profiles')
+        .upsert({
+          id: authResult.user.id,
+          email: email,
+          first_name: userMetadata.full_name?.split(' ')[0] || '',
+          last_name: userMetadata.full_name?.split(' ').slice(1).join(' ') || '',
+          user_type: userMetadata.role || 'developer',
+          onboarding_completed: true,  // Skip onboarding for invited users
+          is_internal: userMetadata.is_internal || false,
+        })
     }
 
     // Fetch user profile from database to get their actual role
@@ -91,6 +112,7 @@ export async function GET(request: Request) {
           full_name: metadata.full_name || email.split('@')[0],
           role: metadata.role || 'developer',
           company_id: metadata.company_id || null,
+          is_internal: metadata.is_internal || false,
         })
 
       if (!profileError) {
@@ -101,6 +123,7 @@ export async function GET(request: Request) {
     // Determine redirect path based on role
     let redirectPath = '/developer'
     switch (role) {
+      case 'super_admin':
       case 'admin':
         redirectPath = '/admin'
         break
