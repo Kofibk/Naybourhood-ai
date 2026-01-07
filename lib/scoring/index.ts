@@ -1,13 +1,17 @@
 /**
- * Lead Scoring System
+ * Lead Scoring System v2.0
  *
- * Comprehensive scoring for real estate leads including:
- * - Spam detection and automatic flagging
- * - Quality Score (0-100): Profile, Financial, Verification, Fit
- * - Intent Score (0-100): Timeline, Purpose, Engagement, Commitment
- * - Confidence Score (0-10): Data completeness and verification
- * - Classification: Hot, Warm-Qualified, Warm-Engaged, Nurture, Cold
- * - Priority: P1-P4 with response time SLAs
+ * Improved scoring that:
+ * - Weighs budget/financial potential heavily (strong buying signal)
+ * - Doesn't penalise new leads for missing verification steps
+ * - Classifies based on potential, not just current engagement
+ * - Gives benefit of doubt to fresh leads with good profiles
+ *
+ * Scores:
+ * - Lead Score (0-100): Combined score for display
+ * - Quality Score (0-100): Profile + Financial potential
+ * - Intent Score (0-100): Timeline + Engagement + Commitment
+ * - Confidence Score (0-10): Data completeness
  */
 
 import type { Buyer } from '@/types'
@@ -89,18 +93,84 @@ export interface LeadScoreResult {
 }
 
 // ═══════════════════════════════════════════════════════════════════
+// BUDGET TIERS - Key signal for lead quality
+// ═══════════════════════════════════════════════════════════════════
+
+interface BudgetTier {
+  min: number
+  label: string
+  qualityBoost: number      // Added to quality score
+  intentBoost: number       // Added to intent score for serious buyers
+  classificationFloor: Classification  // Minimum classification
+}
+
+const BUDGET_TIERS: BudgetTier[] = [
+  { min: 2000000, label: 'Ultra Premium (£2M+)', qualityBoost: 35, intentBoost: 20, classificationFloor: 'Warm-Qualified' },
+  { min: 1000000, label: 'Premium (£1M+)', qualityBoost: 30, intentBoost: 15, classificationFloor: 'Warm-Engaged' },
+  { min: 750000, label: 'High (£750K+)', qualityBoost: 25, intentBoost: 10, classificationFloor: 'Nurture-Premium' },
+  { min: 500000, label: 'Good (£500K+)', qualityBoost: 20, intentBoost: 8, classificationFloor: 'Nurture-Premium' },
+  { min: 400000, label: 'Standard (£400K+)', qualityBoost: 15, intentBoost: 5, classificationFloor: 'Nurture-Standard' },
+  { min: 250000, label: 'Entry (£250K+)', qualityBoost: 10, intentBoost: 3, classificationFloor: 'Nurture-Standard' },
+  { min: 0, label: 'Unknown', qualityBoost: 0, intentBoost: 0, classificationFloor: 'Cold' },
+]
+
+function getBudgetTier(budget: number): BudgetTier {
+  for (const tier of BUDGET_TIERS) {
+    if (budget >= tier.min) return tier
+  }
+  return BUDGET_TIERS[BUDGET_TIERS.length - 1]
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // HELPER FUNCTIONS
 // ═══════════════════════════════════════════════════════════════════
 
-/**
- * Check if broker/solicitor status is positive (yes or introduced)
- * Both 'yes' and 'introduced' count as having the connection
- */
 function hasConnection(status: string | boolean | undefined | null): boolean {
   if (typeof status === 'boolean') return status
   if (!status) return false
   const normalized = String(status).toLowerCase().trim()
   return normalized === 'yes' || normalized === 'introduced' || normalized === 'true'
+}
+
+function parseBudget(budget: string): number {
+  if (!budget) return 0
+
+  // Remove currency symbols and whitespace
+  const cleaned = budget.replace(/[£$€,\s]/g, '').toLowerCase()
+
+  // Handle ranges like "500k-750k" or "£400K - £500K" - take the higher value
+  const rangeMatch = cleaned.match(/(\d+\.?\d*)(k|m)?[-–—to\s]+(\d+\.?\d*)(k|m)?/i)
+  if (rangeMatch) {
+    const highValue = parseFloat(rangeMatch[3])
+    const highMultiplier = rangeMatch[4] === 'k' ? 1000 : rangeMatch[4] === 'm' ? 1000000 : 1
+    return highValue * highMultiplier
+  }
+
+  // Handle k/m suffixes for single values
+  const singleMatch = cleaned.match(/^(\d+\.?\d*)(k|m)?$/)
+  if (singleMatch) {
+    const value = parseFloat(singleMatch[1])
+    const multiplier = singleMatch[2] === 'k' ? 1000 : singleMatch[2] === 'm' ? 1000000 : 1
+    return value * multiplier
+  }
+
+  // Fallback to parsing as plain number
+  return parseFloat(cleaned) || 0
+}
+
+function isNewLead(buyer: Buyer): boolean {
+  const status = (buyer.status || '').toLowerCase()
+  return status.includes('contact pending') || status === '' || !status
+}
+
+function getLeadAgeDays(buyer: Buyer): number {
+  const dateStr = buyer.date_added || buyer.created_at
+  if (!dateStr) return 0
+
+  const leadDate = new Date(dateStr)
+  if (isNaN(leadDate.getTime())) return 0
+
+  return Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -109,32 +179,15 @@ function hasConnection(status: string | boolean | undefined | null): boolean {
 
 const SPAM_PATTERNS = {
   names: [
-    /^test/i,
-    /^fake/i,
-    /^asdf/i,
-    /^qwerty/i,
-    /^xxx/i,
-    /^aaa+$/i,
-    /^123/i,
-    /^n\/a$/i,
-    /^none$/i,
-    /^null$/i,
+    /^test/i, /^fake/i, /^asdf/i, /^qwerty/i, /^xxx/i,
+    /^aaa+$/i, /^123/i, /^n\/a$/i, /^none$/i, /^null$/i,
   ],
   emails: [
-    /test@/i,
-    /fake@/i,
-    /example\.(com|org|net)/i,
-    /mailinator/i,
-    /tempmail/i,
-    /guerrillamail/i,
-    /@yopmail/i,
-    /10minutemail/i,
+    /test@/i, /fake@/i, /example\.(com|org|net)/i, /mailinator/i,
+    /tempmail/i, /guerrillamail/i, /@yopmail/i, /10minutemail/i,
   ],
   phones: [
-    /^0{7,}/,
-    /^1{7,}/,
-    /123456789/,
-    /^(\d)\1{6,}/,  // Same digit repeated 7+ times
+    /^0{7,}/, /^1{7,}/, /123456789/, /^(\d)\1{6,}/,
   ],
 }
 
@@ -146,49 +199,43 @@ export function checkSpam(buyer: Buyer): SpamCheckResult {
   const email = buyer.email || ''
   const phone = buyer.phone || ''
 
-  // Check name patterns
   for (const pattern of SPAM_PATTERNS.names) {
     if (pattern.test(name)) {
-      flags.push(`Suspicious name pattern: "${name}"`)
+      flags.push(`Suspicious name: "${name}"`)
       spamScore += 30
       break
     }
   }
 
-  // Check email patterns
   for (const pattern of SPAM_PATTERNS.emails) {
     if (pattern.test(email)) {
-      flags.push(`Suspicious email domain: "${email}"`)
+      flags.push(`Suspicious email: "${email}"`)
       spamScore += 40
       break
     }
   }
 
-  // Check phone patterns
   for (const pattern of SPAM_PATTERNS.phones) {
     if (pattern.test(phone.replace(/\D/g, ''))) {
-      flags.push(`Suspicious phone number: "${phone}"`)
+      flags.push(`Suspicious phone: "${phone}"`)
       spamScore += 30
       break
     }
   }
 
-  // No contact info at all
   if (!email && !phone) {
-    flags.push('No contact information provided')
+    flags.push('No contact info')
     spamScore += 20
   }
 
-  // Very short or missing name
   if (name.length < 3) {
-    flags.push('Name too short or missing')
+    flags.push('Name too short')
     spamScore += 15
   }
 
-  // Budget seems unrealistic
   const budgetNum = parseBudget(buyer.budget || buyer.budget_range || '')
   if (budgetNum > 0 && budgetNum < 10000) {
-    flags.push('Budget unrealistically low for real estate')
+    flags.push('Unrealistic budget')
     spamScore += 25
   }
 
@@ -200,31 +247,31 @@ export function checkSpam(buyer: Buyer): SpamCheckResult {
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// QUALITY SCORE (0-100)
+// QUALITY SCORE (0-100) - Focus on potential, not verification status
 // ═══════════════════════════════════════════════════════════════════
 
 export function calculateQualityScore(buyer: Buyer): QualityScoreResult {
-  // Profile Completeness (max 25)
   const profileCompleteness = calculateProfileCompleteness(buyer)
-
-  // Financial Qualification (max 35)
   const financialQualification = calculateFinancialQualification(buyer)
-
-  // Verification Status (max 20)
   const verificationStatus = calculateVerificationStatus(buyer)
-
-  // Inventory Fit (max 20)
   const inventoryFit = calculateInventoryFit(buyer)
 
-  const total = Math.min(100, Math.round(
-    profileCompleteness.score +
-    financialQualification.score +
-    verificationStatus.score +
-    inventoryFit.score
-  ))
+  // Base score from components
+  let total = profileCompleteness.score + financialQualification.score +
+              verificationStatus.score + inventoryFit.score
+
+  // Budget tier boost - high budget = high quality potential
+  const budgetNum = parseBudget(buyer.budget || buyer.budget_range || '')
+  const budgetTier = getBudgetTier(budgetNum)
+  total += budgetTier.qualityBoost
+
+  // New lead bonus - give benefit of doubt to fresh leads with decent profiles
+  if (isNewLead(buyer) && profileCompleteness.score >= 15) {
+    total += 10  // Fresh lead with good profile gets a boost
+  }
 
   return {
-    total,
+    total: Math.min(100, Math.round(total)),
     breakdown: {
       profileCompleteness,
       financialQualification,
@@ -239,42 +286,13 @@ function calculateProfileCompleteness(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 25
 
-  // Name (5 points)
   const hasName = !!(buyer.full_name || buyer.first_name)
-  if (hasName) {
-    score += 5
-    details.push('+5: Name provided')
-  }
-
-  // Email (5 points)
-  if (buyer.email) {
-    score += 5
-    details.push('+5: Email provided')
-  }
-
-  // Phone (5 points)
-  if (buyer.phone) {
-    score += 5
-    details.push('+5: Phone provided')
-  }
-
-  // Location/Area (5 points)
-  if (buyer.location || buyer.area) {
-    score += 5
-    details.push('+5: Location specified')
-  }
-
-  // Country (3 points)
-  if (buyer.country) {
-    score += 3
-    details.push('+3: Country specified')
-  }
-
-  // Bedrooms preference (2 points)
-  if (buyer.bedrooms || buyer.preferred_bedrooms) {
-    score += 2
-    details.push('+2: Bedroom preference specified')
-  }
+  if (hasName) { score += 5; details.push('+5: Name') }
+  if (buyer.email) { score += 5; details.push('+5: Email') }
+  if (buyer.phone) { score += 5; details.push('+5: Phone') }
+  if (buyer.location || buyer.area) { score += 5; details.push('+5: Location') }
+  if (buyer.country) { score += 3; details.push('+3: Country') }
+  if (buyer.bedrooms || buyer.preferred_bedrooms) { score += 2; details.push('+2: Bedrooms') }
 
   return { category: 'Profile Completeness', score: Math.min(maxScore, score), maxScore, details }
 }
@@ -284,46 +302,37 @@ function calculateFinancialQualification(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 35
 
-  // Payment method (10 points for cash, 5 for mortgage)
-  const paymentMethod = buyer.payment_method?.toLowerCase()
+  const paymentMethod = (buyer.payment_method || '').toLowerCase()
+
+  // Payment method - strong signal
   if (paymentMethod === 'cash') {
-    score += 15
-    details.push('+15: Cash buyer')
+    score += 20  // Cash buyers are serious
+    details.push('+20: Cash buyer')
   } else if (paymentMethod === 'mortgage') {
-    score += 5
-    details.push('+5: Mortgage buyer')
-  }
-
-  // Mortgage status (up to 10 points)
-  const mortgageStatus = buyer.mortgage_status?.toLowerCase()
-  if (mortgageStatus === 'approved' || mortgageStatus === 'aip') {
     score += 10
-    details.push('+10: Mortgage approved/AIP')
-  } else if (mortgageStatus === 'in progress' || mortgageStatus === 'applied') {
-    score += 5
-    details.push('+5: Mortgage in progress')
+    details.push('+10: Mortgage buyer')
+
+    // Mortgage status bonus
+    const mortgageStatus = (buyer.mortgage_status || '').toLowerCase()
+    if (mortgageStatus === 'approved' || mortgageStatus === 'aip') {
+      score += 10
+      details.push('+10: Mortgage approved/AIP')
+    } else if (mortgageStatus === 'in progress' || mortgageStatus === 'applied') {
+      score += 5
+      details.push('+5: Mortgage in progress')
+    }
   }
 
-  // Proof of funds (10 points)
+  // Proof of funds (bonus, not required)
   if (buyer.proof_of_funds) {
     score += 10
-    details.push('+10: Proof of funds received')
+    details.push('+10: Proof of funds')
   }
 
-  // Budget specified (5 points)
+  // Budget presence
   if (buyer.budget || buyer.budget_range || buyer.budget_min) {
     score += 5
     details.push('+5: Budget specified')
-
-    // Higher budget bonus (up to 5 points)
-    const budgetNum = parseBudget(buyer.budget || buyer.budget_range || '')
-    if (budgetNum >= 1000000) {
-      score += 5
-      details.push('+5: Premium budget (£1M+)')
-    } else if (budgetNum >= 500000) {
-      score += 3
-      details.push('+3: Good budget (£500k+)')
-    }
   }
 
   return { category: 'Financial Qualification', score: Math.min(maxScore, score), maxScore, details }
@@ -334,28 +343,26 @@ function calculateVerificationStatus(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 20
 
-  // UK Broker connected (8 points)
+  // These are bonuses, not requirements - new leads won't have them
   if (hasConnection(buyer.uk_broker)) {
-    score += 8
-    details.push('+8: UK broker connected')
+    score += 6
+    details.push('+6: UK broker')
   }
 
-  // UK Solicitor (7 points)
   if (hasConnection(buyer.uk_solicitor)) {
-    score += 7
-    details.push('+7: UK solicitor appointed')
+    score += 6
+    details.push('+6: UK solicitor')
   }
 
-  // Has valid email format (2 points)
+  // Valid contact formats (baseline verification)
   if (buyer.email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(buyer.email)) {
-    score += 2
-    details.push('+2: Valid email format')
+    score += 4
+    details.push('+4: Valid email')
   }
 
-  // Has valid phone format (3 points)
   if (buyer.phone && buyer.phone.replace(/\D/g, '').length >= 10) {
-    score += 3
-    details.push('+3: Valid phone number')
+    score += 4
+    details.push('+4: Valid phone')
   }
 
   return { category: 'Verification Status', score: Math.min(maxScore, score), maxScore, details }
@@ -366,29 +373,26 @@ function calculateInventoryFit(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 20
 
-  // Has location preference (8 points)
   if (buyer.location || buyer.area) {
     score += 8
-    details.push('+8: Location preference specified')
+    details.push('+8: Location preference')
   }
 
-  // Has bedroom preference (6 points)
   if (buyer.bedrooms || buyer.preferred_bedrooms) {
     score += 6
-    details.push('+6: Bedroom preference specified')
+    details.push('+6: Bedroom preference')
   }
 
-  // Has budget matching criteria (6 points)
   if (buyer.budget || buyer.budget_range || buyer.budget_min) {
     score += 6
-    details.push('+6: Budget range specified')
+    details.push('+6: Budget range')
   }
 
   return { category: 'Inventory Fit', score: Math.min(maxScore, score), maxScore, details }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// INTENT SCORE (0-100)
+// INTENT SCORE (0-100) - Adjusted for new leads
 // ═══════════════════════════════════════════════════════════════════
 
 export function calculateIntentScore(buyer: Buyer): IntentScoreResult {
@@ -398,11 +402,26 @@ export function calculateIntentScore(buyer: Buyer): IntentScoreResult {
   const commitment = calculateCommitmentIntent(buyer)
   const negativeModifiers = calculateNegativeModifiers(buyer)
 
-  const rawTotal = timeline.score + purpose.score + engagement.score + commitment.score + negativeModifiers.score
-  const total = Math.max(0, Math.min(100, Math.round(rawTotal)))
+  let rawTotal = timeline.score + purpose.score + engagement.score +
+                 commitment.score + negativeModifiers.score
+
+  // Budget tier boost - high budget signals serious intent
+  const budgetNum = parseBudget(buyer.budget || buyer.budget_range || '')
+  const budgetTier = getBudgetTier(budgetNum)
+  rawTotal += budgetTier.intentBoost
+
+  // New lead baseline - don't start at near-zero
+  if (isNewLead(buyer)) {
+    // New leads with good profiles deserve baseline intent score
+    const hasGoodProfile = !!(buyer.email && buyer.phone &&
+                              (buyer.budget || buyer.budget_range))
+    if (hasGoodProfile) {
+      rawTotal += 15  // Baseline for new leads who provided good info
+    }
+  }
 
   return {
-    total,
+    total: Math.max(0, Math.min(100, Math.round(rawTotal))),
     breakdown: {
       timeline,
       purpose,
@@ -420,30 +439,21 @@ function calculateTimelineIntent(buyer: Buyer): ScoreBreakdown {
 
   const timeline = (buyer.timeline || '').toLowerCase()
 
-  // Immediate (30 points)
   if (/immediate|asap|now|28 days|1 month|urgent/i.test(timeline)) {
     score = 30
-    details.push('+30: Immediate timeline')
-  }
-  // Short-term (20 points)
-  else if (/1-3 months|2-3 months|3 months|soon/i.test(timeline)) {
+    details.push('+30: Immediate')
+  } else if (/1-3 months|2-3 months|3 months|soon/i.test(timeline)) {
     score = 20
-    details.push('+20: Short-term timeline (1-3 months)')
-  }
-  // Medium-term (10 points)
-  else if (/3-6 months|6 months|this year/i.test(timeline)) {
-    score = 10
-    details.push('+10: Medium-term timeline (3-6 months)')
-  }
-  // Long-term (5 points)
-  else if (/6-12|12 months|next year/i.test(timeline)) {
+    details.push('+20: 1-3 months')
+  } else if (/3-6 months|6 months|this year/i.test(timeline)) {
+    score = 12
+    details.push('+12: 3-6 months')
+  } else if (/6-12|12 months|next year/i.test(timeline)) {
+    score = 6
+    details.push('+6: 6-12 months')
+  } else if (timeline) {
     score = 5
-    details.push('+5: Long-term timeline (6-12 months)')
-  }
-  // Has any timeline (3 points)
-  else if (timeline) {
-    score = 3
-    details.push('+3: Timeline specified')
+    details.push('+5: Timeline specified')
   }
 
   return { category: 'Timeline', score: Math.min(maxScore, score), maxScore, details }
@@ -454,22 +464,20 @@ function calculatePurposeIntent(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 25
 
-  // Payment method indicates purpose
   const paymentMethod = (buyer.payment_method || '').toLowerCase()
 
-  // Cash buyers typically more serious
   if (paymentMethod === 'cash') {
     score += 15
     details.push('+15: Cash buyer (high intent)')
   } else if (paymentMethod === 'mortgage') {
     score += 10
-    details.push('+10: Mortgage buyer (committed to process)')
+    details.push('+10: Mortgage buyer')
   }
 
-  // Has specific preferences (indicates research)
+  // Specific preferences indicate research/seriousness
   if ((buyer.bedrooms || buyer.preferred_bedrooms) && (buyer.location || buyer.area)) {
     score += 10
-    details.push('+10: Specific property criteria')
+    details.push('+10: Specific criteria')
   }
 
   return { category: 'Purpose', score: Math.min(maxScore, score), maxScore, details }
@@ -480,26 +488,27 @@ function calculateEngagementIntent(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 25
 
-  // Status indicates engagement level
   const status = (buyer.status || '').toLowerCase()
 
-  if (status.includes('viewing booked') || status.includes('negotiating')) {
+  // Status progression
+  if (status.includes('reserved') || status.includes('exchanged') || status.includes('completed')) {
     score += 25
-    details.push('+25: Active engagement (viewing/negotiating)')
-  } else if (status.includes('reserved') || status.includes('exchanged')) {
-    score += 25
-    details.push('+25: Committed (reserved/exchanged)')
+    details.push('+25: Committed')
+  } else if (status.includes('viewing booked') || status.includes('negotiating')) {
+    score += 20
+    details.push('+20: Active engagement')
   } else if (status.includes('follow up')) {
-    score += 15
-    details.push('+15: In follow-up stage')
-  } else if (status.includes('contact pending')) {
-    score += 5
-    details.push('+5: Awaiting contact')
+    score += 12
+    details.push('+12: In follow-up')
+  } else if (status.includes('contact pending') || !status) {
+    // New leads get baseline - they haven't had chance to engage yet
+    score += 8
+    details.push('+8: New lead (pending contact)')
   }
 
-  // Source quality indicates intent
+  // Source quality
   const source = (buyer.source || '').toLowerCase()
-  if (/referral|direct|website/i.test(source)) {
+  if (/referral|direct|website|walk.?in/i.test(source)) {
     score += 5
     details.push('+5: High-intent source')
   }
@@ -512,23 +521,20 @@ function calculateCommitmentIntent(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 20
 
-  // Proof of funds shows commitment
   if (buyer.proof_of_funds) {
-    score += 10
-    details.push('+10: Proof of funds provided')
+    score += 8
+    details.push('+8: Proof of funds')
   }
 
-  // Mortgage approval shows commitment
   const mortgageStatus = (buyer.mortgage_status || '').toLowerCase()
   if (mortgageStatus === 'approved' || mortgageStatus === 'aip') {
-    score += 8
-    details.push('+8: Mortgage approved/AIP')
+    score += 7
+    details.push('+7: Mortgage approved')
   }
 
-  // Legal team in place
   if (hasConnection(buyer.uk_solicitor)) {
     score += 5
-    details.push('+5: Solicitor appointed')
+    details.push('+5: Solicitor')
   }
 
   return { category: 'Commitment', score: Math.min(maxScore, score), maxScore, details }
@@ -537,40 +543,30 @@ function calculateCommitmentIntent(buyer: Buyer): ScoreBreakdown {
 function calculateNegativeModifiers(buyer: Buyer): ScoreBreakdown {
   let score = 0
   const details: string[] = []
-  const maxScore = 0  // This is a deduction category
+  const maxScore = 0
 
   const status = (buyer.status || '').toLowerCase()
 
-  // Negative statuses
   if (status.includes('not proceeding')) {
     score -= 50
     details.push('-50: Not proceeding')
   }
 
-  if (status.includes('fake') || status.includes('cant verify')) {
+  if (status.includes('fake') || status.includes('cant verify') || status.includes('disqualified')) {
     score -= 75
-    details.push('-75: Fake/Unverifiable')
+    details.push('-75: Disqualified/Fake')
   }
 
   if (status.includes('duplicate')) {
     score -= 25
-    details.push('-25: Duplicate lead')
+    details.push('-25: Duplicate')
   }
 
-  // Very old lead with no recent activity
-  if (buyer.created_at || buyer.date_added) {
-    const dateStr = buyer.date_added || buyer.created_at || ''
-    const leadDate = new Date(dateStr)
-
-    // Only process if date is valid
-    if (!isNaN(leadDate.getTime())) {
-      const daysSinceCreated = Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
-
-      if (daysSinceCreated > 90 && !buyer.last_contact) {
-        score -= 15
-        details.push('-15: Stale lead (90+ days, no contact)')
-      }
-    }
+  // Stale lead penalty (only if old AND no contact)
+  const leadAge = getLeadAgeDays(buyer)
+  if (leadAge > 90 && !buyer.last_contact) {
+    score -= 15
+    details.push('-15: Stale (90+ days)')
   }
 
   return { category: 'Negative Modifiers', score, maxScore, details }
@@ -610,22 +606,22 @@ function calculateDataCompleteness(buyer: Buyer): ScoreBreakdown {
   const maxScore = 10
 
   const fields = [
-    { field: buyer.full_name || buyer.first_name, name: 'Name', points: 1 },
-    { field: buyer.email, name: 'Email', points: 1 },
-    { field: buyer.phone, name: 'Phone', points: 1 },
-    { field: buyer.country, name: 'Country', points: 1 },
-    { field: buyer.budget || buyer.budget_range, name: 'Budget', points: 1 },
-    { field: buyer.timeline, name: 'Timeline', points: 1 },
-    { field: buyer.payment_method, name: 'Payment Method', points: 1 },
-    { field: buyer.location || buyer.area, name: 'Location', points: 1 },
-    { field: buyer.bedrooms || buyer.preferred_bedrooms, name: 'Bedrooms', points: 1 },
-    { field: buyer.source, name: 'Source', points: 1 },
+    { field: buyer.full_name || buyer.first_name, name: 'Name' },
+    { field: buyer.email, name: 'Email' },
+    { field: buyer.phone, name: 'Phone' },
+    { field: buyer.country, name: 'Country' },
+    { field: buyer.budget || buyer.budget_range, name: 'Budget' },
+    { field: buyer.timeline, name: 'Timeline' },
+    { field: buyer.payment_method, name: 'Payment' },
+    { field: buyer.location || buyer.area, name: 'Location' },
+    { field: buyer.bedrooms || buyer.preferred_bedrooms, name: 'Bedrooms' },
+    { field: buyer.source, name: 'Source' },
   ]
 
-  for (const { field, name, points } of fields) {
+  for (const { field, name } of fields) {
     if (field) {
-      score += points
-      details.push(`+${points}: ${name} provided`)
+      score += 1
+      details.push(`+1: ${name}`)
     }
   }
 
@@ -637,23 +633,9 @@ function calculateVerificationConfidence(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 10
 
-  // Proof of funds (4 points)
-  if (buyer.proof_of_funds) {
-    score += 4
-    details.push('+4: Proof of funds verified')
-  }
-
-  // UK Broker (3 points)
-  if (hasConnection(buyer.uk_broker)) {
-    score += 3
-    details.push('+3: UK broker connected')
-  }
-
-  // UK Solicitor (3 points)
-  if (hasConnection(buyer.uk_solicitor)) {
-    score += 3
-    details.push('+3: UK solicitor appointed')
-  }
+  if (buyer.proof_of_funds) { score += 4; details.push('+4: Proof of funds') }
+  if (hasConnection(buyer.uk_broker)) { score += 3; details.push('+3: UK broker') }
+  if (hasConnection(buyer.uk_solicitor)) { score += 3; details.push('+3: UK solicitor') }
 
   return { category: 'Verification Level', score: Math.min(maxScore, score), maxScore, details }
 }
@@ -663,25 +645,15 @@ function calculateEngagementConfidence(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 10
 
-  // Has status progression (4 points)
   const status = (buyer.status || '').toLowerCase()
   if (status.includes('viewing') || status.includes('negotiating') ||
       status.includes('reserved') || status.includes('exchanged')) {
     score += 4
-    details.push('+4: Advanced in pipeline')
+    details.push('+4: Advanced status')
   }
 
-  // Has last contact (3 points)
-  if (buyer.last_contact) {
-    score += 3
-    details.push('+3: Recent contact logged')
-  }
-
-  // Has notes (3 points)
-  if (buyer.notes && buyer.notes.length > 50) {
-    score += 3
-    details.push('+3: Detailed notes available')
-  }
+  if (buyer.last_contact) { score += 3; details.push('+3: Contact logged') }
+  if (buyer.notes && buyer.notes.length > 50) { score += 3; details.push('+3: Has notes') }
 
   return { category: 'Engagement Data', score: Math.min(maxScore, score), maxScore, details }
 }
@@ -691,74 +663,85 @@ function calculateTranscriptQuality(buyer: Buyer): ScoreBreakdown {
   const details: string[] = []
   const maxScore = 10
 
-  // Has notes (this would be transcript in a full implementation)
   if (buyer.notes) {
-    const noteLength = buyer.notes.length
-    if (noteLength > 500) {
-      score = 10
-      details.push('+10: Comprehensive notes/transcript')
-    } else if (noteLength > 200) {
-      score = 7
-      details.push('+7: Detailed notes')
-    } else if (noteLength > 50) {
-      score = 4
-      details.push('+4: Basic notes')
-    } else {
-      score = 2
-      details.push('+2: Minimal notes')
-    }
+    const len = buyer.notes.length
+    if (len > 500) { score = 10; details.push('+10: Comprehensive notes') }
+    else if (len > 200) { score = 7; details.push('+7: Detailed notes') }
+    else if (len > 50) { score = 4; details.push('+4: Basic notes') }
+    else { score = 2; details.push('+2: Minimal notes') }
   }
 
   return { category: 'Transcript Quality', score: Math.min(maxScore, score), maxScore, details }
 }
 
 // ═══════════════════════════════════════════════════════════════════
-// CLASSIFICATION MATRIX
+// CLASSIFICATION - Budget-aware with floors
 // ═══════════════════════════════════════════════════════════════════
 
 export function determineClassification(
   qualityScore: number,
   intentScore: number,
   confidenceScore: number,
-  spamCheck: SpamCheckResult
+  spamCheck: SpamCheckResult,
+  buyer?: Buyer
 ): Classification {
   // Spam check first
-  if (spamCheck.isSpam) {
-    return 'Spam'
-  }
+  if (spamCheck.isSpam) return 'Spam'
 
-  // Very low scores = disqualified
-  if (qualityScore < 20 || intentScore < 20) {
+  // Check for explicit disqualification status
+  const status = (buyer?.status || '').toLowerCase()
+  if (status.includes('not proceeding') || status.includes('fake') ||
+      status.includes('disqualified') || status.includes('cant verify')) {
     return 'Disqualified'
   }
 
-  // Hot leads: High quality + High intent
-  if (qualityScore >= 70 && intentScore >= 70) {
-    return 'Hot'
+  // Very low scores with no budget = disqualified
+  if (qualityScore < 15 && intentScore < 15) {
+    return 'Disqualified'
   }
 
-  // Warm-Qualified: High quality, moderate intent
-  if (qualityScore >= 70 && intentScore >= 45) {
-    return 'Warm-Qualified'
+  // Get budget floor - high budget leads get minimum classification
+  const budgetNum = parseBudget(buyer?.budget || buyer?.budget_range || '')
+  const budgetTier = getBudgetTier(budgetNum)
+
+  // Calculate raw classification based on scores
+  let classification: Classification = 'Cold'
+
+  const combinedScore = (qualityScore * 0.5) + (intentScore * 0.5)
+
+  if (combinedScore >= 75 || (qualityScore >= 70 && intentScore >= 70)) {
+    classification = 'Hot'
+  } else if (combinedScore >= 60 || (qualityScore >= 65 && intentScore >= 50)) {
+    classification = 'Warm-Qualified'
+  } else if (combinedScore >= 50 || (qualityScore >= 50 && intentScore >= 60)) {
+    classification = 'Warm-Engaged'
+  } else if (combinedScore >= 40 || (qualityScore >= 45 && intentScore >= 40)) {
+    classification = 'Nurture-Premium'
+  } else if (combinedScore >= 30 || (qualityScore >= 35 && intentScore >= 30)) {
+    classification = 'Nurture-Standard'
   }
 
-  // Warm-Engaged: Moderate quality, high intent
-  if (qualityScore >= 45 && intentScore >= 70) {
-    return 'Warm-Engaged'
+  // Apply budget floor - high budget leads get minimum classification
+  const classificationRank: Record<Classification, number> = {
+    'Hot': 7,
+    'Warm-Qualified': 6,
+    'Warm-Engaged': 5,
+    'Nurture-Premium': 4,
+    'Nurture-Standard': 3,
+    'Cold': 2,
+    'Disqualified': 1,
+    'Spam': 0
   }
 
-  // Nurture-Premium: Good scores but not quite hot
-  if (qualityScore >= 55 && intentScore >= 45) {
-    return 'Nurture-Premium'
+  const currentRank = classificationRank[classification]
+  const floorRank = classificationRank[budgetTier.classificationFloor]
+
+  // Use higher of calculated vs floor
+  if (floorRank > currentRank) {
+    classification = budgetTier.classificationFloor
   }
 
-  // Nurture-Standard: Average scores
-  if (qualityScore >= 35 && intentScore >= 35) {
-    return 'Nurture-Standard'
-  }
-
-  // Cold: Low scores but not disqualified
-  return 'Cold'
+  return classification
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -770,38 +753,34 @@ export function determinePriority(
   qualityScore: number,
   intentScore: number
 ): PriorityInfo {
-  // P1: Hot leads - respond immediately
   if (classification === 'Hot') {
     return {
       priority: 'P1',
       responseTime: '< 1 hour',
-      description: 'High-value, high-intent lead requiring immediate attention'
+      description: 'High-value lead - immediate action'
     }
   }
 
-  // P2: Warm leads - respond same day
   if (classification === 'Warm-Qualified' || classification === 'Warm-Engaged') {
     return {
       priority: 'P2',
       responseTime: '< 4 hours',
-      description: 'Qualified lead showing strong interest'
+      description: 'Qualified lead - same day response'
     }
   }
 
-  // P3: Nurture leads - respond within 24 hours
   if (classification === 'Nurture-Premium' || classification === 'Nurture-Standard') {
     return {
       priority: 'P3',
       responseTime: '< 24 hours',
-      description: 'Lead requiring nurturing and follow-up'
+      description: 'Nurture lead - follow up within 24h'
     }
   }
 
-  // P4: Cold, Disqualified, Spam - low priority
   return {
     priority: 'P4',
     responseTime: '48+ hours',
-    description: 'Low priority lead for review'
+    description: 'Low priority - review when available'
   }
 }
 
@@ -817,62 +796,44 @@ export function generateRiskFlags(buyer: Buyer, scores: {
 }): string[] {
   const flags: string[] = []
 
-  // Financial risks
-  if (!buyer.proof_of_funds && buyer.payment_method?.toLowerCase() !== 'cash') {
-    flags.push('No proof of funds received')
+  // Financial verification needed
+  if (!buyer.proof_of_funds && buyer.payment_method?.toLowerCase() === 'cash') {
+    flags.push('Request proof of funds')
   }
 
   if (buyer.payment_method?.toLowerCase() === 'mortgage' &&
       !['approved', 'aip'].includes((buyer.mortgage_status || '').toLowerCase())) {
-    flags.push('Mortgage not yet approved')
+    flags.push('Mortgage status unknown')
   }
 
-  // Geographic risks
+  // Geographic
   const country = (buyer.country || '').toLowerCase()
-  if (country && !['uk', 'united kingdom', 'england', 'scotland', 'wales'].includes(country)) {
-    flags.push('International buyer - may need extended timeline')
+  if (country && !['uk', 'united kingdom', 'england', 'scotland', 'wales', 'gb', 'great britain'].includes(country)) {
+    flags.push('International buyer')
   }
 
-  // Contact risks
+  // Contact info
   if (!buyer.phone && !buyer.email) {
-    flags.push('Limited contact information')
+    flags.push('No contact details')
   }
 
-  // Verification risks
-  if (!hasConnection(buyer.uk_broker) && buyer.payment_method?.toLowerCase() === 'mortgage') {
-    flags.push('No UK broker connected (mortgage buyer)')
-  }
-
-  // Data quality risks
-  if (scores.confidence.total < 5) {
-    flags.push('Low data confidence - needs verification')
-  }
-
-  // Spam-related flags
-  if (scores.spamCheck.flags.length > 0 && !scores.spamCheck.isSpam) {
-    flags.push(...scores.spamCheck.flags.slice(0, 2))  // Only first 2
-  }
-
-  // Timeline risks
+  // Timeline
   if (!buyer.timeline) {
-    flags.push('Timeline not specified')
+    flags.push('Clarify timeline')
   }
 
-  // Stale lead risk
-  if (buyer.created_at || buyer.date_added) {
-    const dateStr = buyer.date_added || buyer.created_at || ''
-    const leadDate = new Date(dateStr)
-
-    // Only process if date is valid
-    if (!isNaN(leadDate.getTime())) {
-      const daysSinceCreated = Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
-      if (daysSinceCreated > 60) {
-        flags.push(`Lead is ${daysSinceCreated} days old`)
-      }
-    }
+  // Lead age
+  const leadAge = getLeadAgeDays(buyer)
+  if (leadAge > 60 && !buyer.last_contact) {
+    flags.push(`${leadAge} days old - no contact`)
   }
 
-  return flags.slice(0, 5)  // Max 5 flags
+  // Low confidence
+  if (scores.confidence.total < 4) {
+    flags.push('Low data confidence')
+  }
+
+  return flags.slice(0, 4)
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -880,30 +841,25 @@ export function generateRiskFlags(buyer: Buyer, scores: {
 // ═══════════════════════════════════════════════════════════════════
 
 export function scoreLead(buyer: Buyer): LeadScoreResult {
-  // 1. Spam check first
   const spamCheck = checkSpam(buyer)
-
-  // 2. Calculate all scores
   const qualityScore = calculateQualityScore(buyer)
   const intentScore = calculateIntentScore(buyer)
   const confidenceScore = calculateConfidenceScore(buyer)
 
-  // 3. Determine classification
   const classification = determineClassification(
     qualityScore.total,
     intentScore.total,
     confidenceScore.total,
-    spamCheck
+    spamCheck,
+    buyer  // Pass buyer for budget floor
   )
 
-  // 4. Determine priority
   const priority = determinePriority(
     classification,
     qualityScore.total,
     intentScore.total
   )
 
-  // 5. Generate risk flags
   const riskFlags = generateRiskFlags(buyer, {
     quality: qualityScore,
     intent: intentScore,
@@ -920,34 +876,4 @@ export function scoreLead(buyer: Buyer): LeadScoreResult {
     priority,
     riskFlags
   }
-}
-
-// ═══════════════════════════════════════════════════════════════════
-// UTILITY FUNCTIONS
-// ═══════════════════════════════════════════════════════════════════
-
-function parseBudget(budget: string): number {
-  if (!budget) return 0
-
-  // Remove currency symbols and whitespace
-  const cleaned = budget.replace(/[£$€,\s]/g, '').toLowerCase()
-
-  // Handle ranges like "500k-750k" or "500000-750000" or "£500k - £750k"
-  const rangeMatch = cleaned.match(/(\d+\.?\d*)(k|m)?[-–—to\s]+(\d+\.?\d*)(k|m)?/i)
-  if (rangeMatch) {
-    const lowValue = parseFloat(rangeMatch[1])
-    const lowMultiplier = rangeMatch[2] === 'k' ? 1000 : rangeMatch[2] === 'm' ? 1000000 : 1
-    return lowValue * lowMultiplier
-  }
-
-  // Handle k/m suffixes for single values
-  const singleMatch = cleaned.match(/^(\d+\.?\d*)(k|m)?$/)
-  if (singleMatch) {
-    const value = parseFloat(singleMatch[1])
-    const multiplier = singleMatch[2] === 'k' ? 1000 : singleMatch[2] === 'm' ? 1000000 : 1
-    return value * multiplier
-  }
-
-  // Fallback to parsing as plain number
-  return parseFloat(cleaned) || 0
 }
