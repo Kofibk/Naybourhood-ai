@@ -38,29 +38,53 @@ export async function POST(request: NextRequest) {
 
     // Check authentication - support both Supabase auth and demo mode
     let isAdmin = false
-    let isAuthConfigured = false
+    let currentUserEmail = ''
 
     if (isSupabaseConfigured()) {
-      isAuthConfigured = true
       const supabase = createClient()
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       if (currentUser) {
-        // Check if current user is admin
-        const { data: profile } = await supabase
+        currentUserEmail = currentUser.email || ''
+
+        // Check if current user is admin or super_admin
+        // Try both profiles and user_profiles tables
+        let profile = null
+
+        // Try profiles table first
+        const { data: profileData } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.role === 'admin'
+        if (profileData) {
+          profile = profileData
+        } else {
+          // Fallback to user_profiles table
+          const { data: userProfileData } = await supabase
+            .from('user_profiles')
+            .select('user_type')
+            .eq('id', currentUser.id)
+            .single()
+
+          if (userProfileData) {
+            profile = { role: userProfileData.user_type }
+          }
+        }
+
+        // Allow admin, super_admin, or specific allowed emails
+        const allowedEmails = ['kofi@millionpound.homes', 'kofi@naybourhood.ai']
+        isAdmin = profile?.role === 'admin' ||
+                  profile?.role === 'super_admin' ||
+                  allowedEmails.includes(currentUser.email || '')
       }
     }
 
-    // Demo mode: Only allow admin bypass when Supabase auth is NOT fully configured
-    // This allows testing without real authentication, but once auth is set up, it's enforced
-    if (!isAdmin && !isAuthConfigured && inviter_role === 'admin') {
-      console.log('[Invite API] Using demo mode admin access (Supabase auth not configured)')
+    // Demo/Quick Access mode: Allow admin actions when using Quick Access feature
+    // This is for development and demo purposes when user isn't fully authenticated via Supabase
+    if (!isAdmin && (inviter_role === 'admin' || inviter_role === 'super_admin')) {
+      console.log('[Invite API] Using Quick Access admin mode')
       isAdmin = true
     }
 
@@ -277,14 +301,38 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if current user is admin
-    const { data: profile } = await supabase
+    // Check if current user is admin or super_admin
+    let userRole = null
+
+    // Try profiles table first
+    const { data: profileData } = await supabase
       .from('profiles')
       .select('role')
       .eq('id', currentUser.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    if (profileData) {
+      userRole = profileData.role
+    } else {
+      // Fallback to user_profiles table
+      const { data: userProfileData } = await supabase
+        .from('user_profiles')
+        .select('user_type')
+        .eq('id', currentUser.id)
+        .single()
+
+      if (userProfileData) {
+        userRole = userProfileData.user_type
+      }
+    }
+
+    // Allow admin, super_admin, or specific emails
+    const allowedEmails = ['kofi@millionpound.homes', 'kofi@naybourhood.ai']
+    const isAdmin = userRole === 'admin' ||
+                    userRole === 'super_admin' ||
+                    allowedEmails.includes(currentUser.email || '')
+
+    if (!isAdmin) {
       return NextResponse.json(
         { error: 'Only admins can view all users' },
         { status: 403 }

@@ -100,18 +100,17 @@ interface BudgetTier {
   min: number
   label: string
   qualityBoost: number      // Added to quality score
-  intentBoost: number       // Added to intent score for serious buyers
-  classificationFloor: Classification  // Minimum classification
+  classificationFloor: Classification  // Minimum classification for new leads
 }
 
 const BUDGET_TIERS: BudgetTier[] = [
-  { min: 2000000, label: 'Ultra Premium (£2M+)', qualityBoost: 35, intentBoost: 20, classificationFloor: 'Warm-Qualified' },
-  { min: 1000000, label: 'Premium (£1M+)', qualityBoost: 30, intentBoost: 15, classificationFloor: 'Warm-Engaged' },
-  { min: 750000, label: 'High (£750K+)', qualityBoost: 25, intentBoost: 10, classificationFloor: 'Nurture-Premium' },
-  { min: 500000, label: 'Good (£500K+)', qualityBoost: 20, intentBoost: 8, classificationFloor: 'Nurture-Premium' },
-  { min: 400000, label: 'Standard (£400K+)', qualityBoost: 15, intentBoost: 5, classificationFloor: 'Nurture-Standard' },
-  { min: 250000, label: 'Entry (£250K+)', qualityBoost: 10, intentBoost: 3, classificationFloor: 'Nurture-Standard' },
-  { min: 0, label: 'Unknown', qualityBoost: 0, intentBoost: 0, classificationFloor: 'Cold' },
+  { min: 2000000, label: 'Ultra Premium (£2M+)', qualityBoost: 35, classificationFloor: 'Warm-Qualified' },
+  { min: 1000000, label: 'Premium (£1M+)', qualityBoost: 30, classificationFloor: 'Warm-Engaged' },
+  { min: 750000, label: 'High (£750K+)', qualityBoost: 25, classificationFloor: 'Nurture-Premium' },
+  { min: 500000, label: 'Good (£500K+)', qualityBoost: 20, classificationFloor: 'Nurture-Premium' },
+  { min: 400000, label: 'Standard (£400K+)', qualityBoost: 15, classificationFloor: 'Nurture-Standard' },
+  { min: 250000, label: 'Entry (£250K+)', qualityBoost: 10, classificationFloor: 'Nurture-Standard' },
+  { min: 0, label: 'Unknown', qualityBoost: 0, classificationFloor: 'Cold' },
 ]
 
 function getBudgetTier(budget: number): BudgetTier {
@@ -405,10 +404,8 @@ export function calculateIntentScore(buyer: Buyer): IntentScoreResult {
   let rawTotal = timeline.score + purpose.score + engagement.score +
                  commitment.score + negativeModifiers.score
 
-  // Budget tier boost - high budget signals serious intent
-  const budgetNum = parseBudget(buyer.budget || buyer.budget_range || '')
-  const budgetTier = getBudgetTier(budgetNum)
-  rawTotal += budgetTier.intentBoost
+  // Note: Budget does NOT affect intent score - intent is about behaviour/engagement
+  // Budget only affects quality score and classification floor
 
   // New lead baseline - don't start at near-zero
   if (isNewLead(buyer)) {
@@ -685,19 +682,21 @@ export function determineClassification(
   spamCheck: SpamCheckResult,
   buyer?: Buyer
 ): Classification {
-  // Spam check first
+  // Spam check first - only spam gets auto-disqualified
   if (spamCheck.isSpam) return 'Spam'
 
-  // Check for explicit disqualification status
+  // Check for explicit fake/spam status ONLY
+  // New leads should NEVER be auto-disqualified for low scores
   const status = (buyer?.status || '').toLowerCase()
-  if (status.includes('not proceeding') || status.includes('fake') ||
-      status.includes('disqualified') || status.includes('cant verify')) {
+  if (status.includes('fake') || status.includes('cant verify') ||
+      status.includes('spam') || status.includes('test lead')) {
     return 'Disqualified'
   }
 
-  // Very low scores with no budget = disqualified
-  if (qualityScore < 15 && intentScore < 15) {
-    return 'Disqualified'
+  // "Not Proceeding" is different from Disqualified - they're real leads that opted out
+  // Keep them as Cold, not Disqualified
+  if (status.includes('not proceeding')) {
+    return 'Cold'
   }
 
   // Get budget floor - high budget leads get minimum classification
