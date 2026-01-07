@@ -268,7 +268,7 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
       exchanged: 0,
       completed: 0,
       notProceeding: 0,
-      duplicate: 0,
+      disqualified: 0,
     }
   }
 
@@ -281,7 +281,7 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
     exchanged: 0,
     completed: 0,
     notProceeding: 0,
-    duplicate: 0,
+    disqualified: 0,
   }
 
   const statusMap: Record<string, keyof PipelineStats> = {
@@ -298,7 +298,7 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
     'Exchanged': 'exchanged',
     'Completed': 'completed',
     'Not Proceeding': 'notProceeding',
-    'Duplicate': 'duplicate',
+    'Disqualified': 'disqualified',
   }
 
   for (const row of data || []) {

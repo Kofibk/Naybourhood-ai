@@ -8,8 +8,34 @@
  * - Risk assessment
  */
 
-import type { Buyer } from '@/types'
+import type { Buyer, ConnectionStatus } from '@/types'
 import type { LeadScoreResult, Classification, Priority } from './index'
+
+/**
+ * Check if broker/solicitor status indicates a positive connection
+ * Both 'yes' and 'introduced' count as having the connection
+ */
+function hasConnection(status: ConnectionStatus | string | boolean | undefined | null): boolean {
+  if (typeof status === 'boolean') return status
+  if (!status) return false
+  const normalized = String(status).toLowerCase().trim()
+  return normalized === 'yes' || normalized === 'introduced' || normalized === 'true'
+}
+
+/**
+ * Get display string for ConnectionStatus
+ */
+function getConnectionDisplay(status: ConnectionStatus | string | boolean | undefined | null): string {
+  if (typeof status === 'boolean') return status ? 'Yes' : 'No'
+  if (!status) return 'Unknown'
+  const normalized = String(status).toLowerCase().trim()
+  switch (normalized) {
+    case 'yes': return 'Yes'
+    case 'introduced': return 'Introduced by us'
+    case 'no': return 'No'
+    default: return 'Unknown'
+  }
+}
 
 export interface AISummaryResult {
   summary: string
@@ -64,7 +90,7 @@ export function determineNextAction(
         !['approved', 'aip'].includes((buyer.mortgage_status || '').toLowerCase())) {
       return 'Recommend mortgage broker and request AIP within 5 days'
     }
-    if (!buyer.uk_solicitor) {
+    if (!hasConnection(buyer.uk_solicitor)) {
       return 'Introduce to panel solicitor to prepare for exchange'
     }
     return 'Schedule discovery call to confirm timeline and preferences'
@@ -122,13 +148,13 @@ export function generateRecommendations(
     if (!['approved', 'aip'].includes((buyer.mortgage_status || '').toLowerCase())) {
       recommendations.push('Connect with mortgage advisor for AIP')
     }
-    if (!buyer.uk_broker) {
+    if (!hasConnection(buyer.uk_broker)) {
       recommendations.push('Introduce to partner mortgage broker')
     }
   }
 
   // Legal preparation
-  if (!buyer.uk_solicitor && qualityScore.total >= 50) {
+  if (!hasConnection(buyer.uk_solicitor) && qualityScore.total >= 50) {
     recommendations.push('Recommend panel solicitor early in process')
   }
 
@@ -347,8 +373,8 @@ BUYER DATA:
 - Bedrooms: ${buyer.bedrooms || buyer.preferred_bedrooms || 'Not specified'}
 - Status: ${buyer.status || 'New'}
 - Proof of Funds: ${buyer.proof_of_funds ? 'Yes' : 'No'}
-- UK Broker: ${buyer.uk_broker ? 'Yes' : 'No'}
-- UK Solicitor: ${buyer.uk_solicitor ? 'Yes' : 'No'}
+- UK Broker: ${getConnectionDisplay(buyer.uk_broker)}
+- UK Solicitor: ${getConnectionDisplay(buyer.uk_solicitor)}
 
 SCORES:
 - Classification: ${classification}

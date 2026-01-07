@@ -411,7 +411,34 @@ export interface AIAnalysis {
 }
 
 // Lead Display Types (for buyers_view)
+// Simple classification for UI display (maps from detailed AI classifications)
 export type LeadClassification = 'Hot' | 'Warm' | 'Low'
+
+// Detailed AI classifications from scoring system
+export type AIClassification =
+  | 'Hot'
+  | 'Warm-Qualified'
+  | 'Warm-Engaged'
+  | 'Nurture-Premium'
+  | 'Nurture-Standard'
+  | 'Cold'
+  | 'Disqualified'
+  | 'Spam'
+
+// Map AI classification to simple display classification
+export function getDisplayClassification(aiClassification?: AIClassification | string): LeadClassification {
+  if (!aiClassification) return 'Low'
+  switch (aiClassification) {
+    case 'Hot':
+      return 'Hot'
+    case 'Warm-Qualified':
+    case 'Warm-Engaged':
+    case 'Nurture-Premium':
+      return 'Warm'
+    default:
+      return 'Low'
+  }
+}
 
 export type LeadStatus =
   | 'Contact Pending'
@@ -422,7 +449,7 @@ export type LeadStatus =
   | 'Exchanged'
   | 'Completed'
   | 'Not Proceeding'
-  | 'Duplicate'
+  | 'Disqualified'  // Includes: duplicate, fake, can't verify, agent - hidden from counts
 
 export type PaymentMethod = 'Cash' | 'Mortgage'
 
@@ -539,7 +566,7 @@ export interface PipelineStats {
   exchanged: number
   completed: number
   notProceeding: number
-  duplicate: number
+  disqualified: number  // Includes: duplicates, fakes, unverifiable - hidden from counts
 }
 
 export interface PriorityAction {

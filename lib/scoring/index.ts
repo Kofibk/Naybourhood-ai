@@ -559,12 +559,17 @@ function calculateNegativeModifiers(buyer: Buyer): ScoreBreakdown {
 
   // Very old lead with no recent activity
   if (buyer.created_at || buyer.date_added) {
-    const leadDate = new Date(buyer.date_added || buyer.created_at || '')
-    const daysSinceCreated = Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
+    const dateStr = buyer.date_added || buyer.created_at || ''
+    const leadDate = new Date(dateStr)
 
-    if (daysSinceCreated > 90 && !buyer.last_contact) {
-      score -= 15
-      details.push('-15: Stale lead (90+ days, no contact)')
+    // Only process if date is valid
+    if (!isNaN(leadDate.getTime())) {
+      const daysSinceCreated = Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
+
+      if (daysSinceCreated > 90 && !buyer.last_contact) {
+        score -= 15
+        details.push('-15: Stale lead (90+ days, no contact)')
+      }
     }
   }
 
@@ -855,10 +860,15 @@ export function generateRiskFlags(buyer: Buyer, scores: {
 
   // Stale lead risk
   if (buyer.created_at || buyer.date_added) {
-    const leadDate = new Date(buyer.date_added || buyer.created_at || '')
-    const daysSinceCreated = Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
-    if (daysSinceCreated > 60) {
-      flags.push(`Lead is ${daysSinceCreated} days old`)
+    const dateStr = buyer.date_added || buyer.created_at || ''
+    const leadDate = new Date(dateStr)
+
+    // Only process if date is valid
+    if (!isNaN(leadDate.getTime())) {
+      const daysSinceCreated = Math.floor((Date.now() - leadDate.getTime()) / (1000 * 60 * 60 * 24))
+      if (daysSinceCreated > 60) {
+        flags.push(`Lead is ${daysSinceCreated} days old`)
+      }
     }
   }
 
@@ -922,20 +932,22 @@ function parseBudget(budget: string): number {
   // Remove currency symbols and whitespace
   const cleaned = budget.replace(/[£$€,\s]/g, '').toLowerCase()
 
-  // Handle k/m suffixes
-  if (cleaned.endsWith('k')) {
-    return parseFloat(cleaned.slice(0, -1)) * 1000
-  }
-  if (cleaned.endsWith('m')) {
-    return parseFloat(cleaned.slice(0, -1)) * 1000000
-  }
-
-  // Handle ranges like "500k-750k"
-  const rangeMatch = cleaned.match(/(\d+)k?-(\d+)k?/)
+  // Handle ranges like "500k-750k" or "500000-750000" or "£500k - £750k"
+  const rangeMatch = cleaned.match(/(\d+\.?\d*)(k|m)?[-–—to\s]+(\d+\.?\d*)(k|m)?/i)
   if (rangeMatch) {
-    const low = parseFloat(rangeMatch[1]) * (rangeMatch[0].includes('k') ? 1000 : 1)
-    return low
+    const lowValue = parseFloat(rangeMatch[1])
+    const lowMultiplier = rangeMatch[2] === 'k' ? 1000 : rangeMatch[2] === 'm' ? 1000000 : 1
+    return lowValue * lowMultiplier
   }
 
+  // Handle k/m suffixes for single values
+  const singleMatch = cleaned.match(/^(\d+\.?\d*)(k|m)?$/)
+  if (singleMatch) {
+    const value = parseFloat(singleMatch[1])
+    const multiplier = singleMatch[2] === 'k' ? 1000 : singleMatch[2] === 'm' ? 1000000 : 1
+    return value * multiplier
+  }
+
+  // Fallback to parsing as plain number
   return parseFloat(cleaned) || 0
 }

@@ -1,11 +1,37 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import type { AIAnalysis } from '@/types'
 
 // Generate comprehensive AI analysis of the pipeline
 export async function GET() {
   try {
     const supabase = createClient()
+
+    // Authentication check - require logged in user
+    if (isSupabaseConfigured()) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+      if (authError || !user) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+
+      // Verify user has a profile (internal team or valid client)
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile) {
+        return NextResponse.json(
+          { error: 'User profile not found' },
+          { status: 403 }
+        )
+      }
+    }
 
     // Fetch all buyers
     const { data: buyers, error: buyersError } = await supabase

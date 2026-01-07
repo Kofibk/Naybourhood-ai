@@ -135,6 +135,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
               <Link
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
                   isActive(item.href)
@@ -142,7 +143,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white'
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-5 w-5" aria-hidden="true" />
                 <span>{item.name}</span>
                 {item.badge && (
                   <Badge variant="muted" className="ml-auto text-[10px]">
@@ -216,8 +217,11 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         size="icon"
         className="lg:hidden fixed top-3 left-3 z-50"
         onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={mobileOpen}
+        aria-controls="mobile-sidebar"
       >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
       </Button>
 
       {/* Mobile Overlay */}
@@ -225,11 +229,16 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+          role="presentation"
         />
       )}
 
       {/* Sidebar */}
       <aside
+        id="mobile-sidebar"
+        role="navigation"
+        aria-label="Main navigation"
         className={cn(
           'fixed lg:static inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 lg:transform-none',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

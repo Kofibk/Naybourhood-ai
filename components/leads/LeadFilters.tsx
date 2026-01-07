@@ -26,7 +26,7 @@ const statusOptions: LeadStatus[] = [
   'Exchanged',
   'Completed',
   'Not Proceeding',
-  'Duplicate',
+  'Disqualified',
 ]
 
 export function LeadFilters({

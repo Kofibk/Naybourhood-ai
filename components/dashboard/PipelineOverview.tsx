@@ -66,8 +66,8 @@ const stageConfig: Record<
     icon: XCircle,
     color: 'bg-red-500/10 text-red-600 border-red-500/20',
   },
-  duplicate: {
-    label: 'Dupe',
+  disqualified: {
+    label: 'DQ',
     icon: Copy,
     color: 'bg-gray-500/10 text-gray-600 border-gray-500/20',
   },
@@ -149,7 +149,7 @@ export function PipelineOverview({
             <span className="font-medium text-red-600">{stats.notProceeding}</span> lost
           </span>
           <span>
-            <span className="font-medium text-gray-600">{stats.duplicate}</span> duplicates
+            <span className="font-medium text-gray-600">{stats.disqualified}</span> disqualified
           </span>
         </div>
       </CardContent>

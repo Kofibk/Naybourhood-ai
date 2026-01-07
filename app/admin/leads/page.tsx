@@ -60,10 +60,8 @@ const STATUS_CONFIG = {
   'Negotiating': { color: 'amber', category: 'pending' },
   // Red - Negative statuses
   'Not Proceeding': { color: 'red', category: 'negative' },
-  'Fake': { color: 'red', category: 'negative' },
-  'Cant Verify': { color: 'red', category: 'negative' },
-  // Grey - Duplicates (excluded from stats)
-  'Duplicate': { color: 'grey', category: 'duplicate' },
+  // Grey - Disqualified (excluded from stats) - includes duplicates, fakes, unverifiable
+  'Disqualified': { color: 'grey', category: 'disqualified' },
 } as const
 
 const STATUS_OPTIONS = Object.keys(STATUS_CONFIG)
