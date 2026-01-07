@@ -57,8 +57,9 @@ export default function UsersPage() {
   const [isSending, setIsSending] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
-  // Check if current user is super admin
+  // Check if current user is super admin or admin
   const isSuperAdmin = currentUser?.role === 'super_admin'
+  const isAdmin = currentUser?.role === 'admin' || isSuperAdmin
 
   // Create company lookup map for displaying names instead of UUIDs
   const companyNameMap = useMemo(() => {
@@ -504,13 +505,17 @@ export default function UsersPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          {/* Only super admin can delete other admins */}
-                          {(isSuperAdmin || (!INTERNAL_ROLES.includes(user.role as UserRole))) && (
+                          {/* Admins can delete pending users and non-internal users, super admins can delete anyone */}
+                          {(isSuperAdmin ||
+                            (isAdmin && user.status === 'pending') ||
+                            (isAdmin && !INTERNAL_ROLES.includes(user.role as UserRole))
+                          ) && (
                             <Button
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive"
                               onClick={() => handleDeleteUser(user.id)}
+                              title={user.status === 'pending' ? 'Delete pending invite' : 'Delete user'}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
