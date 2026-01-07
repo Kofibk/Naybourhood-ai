@@ -54,15 +54,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
 
-    // Check if this user was invited (has role set by invite API, or is_internal/company_id)
-    // This works even when type !== 'invite' (PKCE code flow)
-    const wasInvited = !!(
-      userMetadata.role ||  // Role is set by invite API, not by normal signup
-      userMetadata.is_internal === true ||
-      userMetadata.company_id
-    )
-
-    // Check existing profiles to see if this is a first-time login
+    // Check existing profiles FIRST to determine if user was invited
     const { data: userProfile } = await supabase
       .from('user_profiles')
       .select('onboarding_completed, user_type')
@@ -71,19 +63,36 @@ export async function GET(request: Request) {
 
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role, full_name, company_id, status')
+      .select('role, full_name, company_id, status, is_internal')
       .eq('id', authResult.user.id)
       .single()
 
+    // Detect if user was invited - check BOTH metadata AND profiles table
+    // Key insight: Invited users have a profiles entry BEFORE they have a user_profiles entry
+    // Regular signups only get profiles AFTER completing onboarding
+    const wasInvited = !!(
+      userMetadata.role ||
+      userMetadata.is_internal === true ||
+      userMetadata.company_id ||
+      profile?.is_internal === true ||  // Check profiles table - set by invite API
+      (profile && !userProfile)  // Has profiles but no user_profiles = definitely invited
+    )
+
     // Invited user needs password setup if:
     // 1. type === 'invite' (explicit), OR
-    // 2. They have invite metadata AND no user_profiles entry yet (first login)
+    // 2. They were invited AND no user_profiles entry yet (first login)
     const needsPasswordSetup = wasInvited && (
       type === 'invite' ||
       !userProfile  // No user_profiles entry = first time logging in
     )
 
     if (needsPasswordSetup) {
+      // Use profile data as fallback when metadata is missing
+      const fullName = userMetadata.full_name || profile?.full_name || email.split('@')[0]
+      const userRole = userMetadata.role || profile?.role || 'developer'
+      const isInternal = userMetadata.is_internal === true || profile?.is_internal === true
+      const companyId = userMetadata.company_id || profile?.company_id || null
+
       // Create user_profiles entry NOW (before redirect) so they don't get stuck in loop
       if (!userProfile) {
         await supabase
@@ -91,11 +100,11 @@ export async function GET(request: Request) {
           .upsert({
             id: authResult.user.id,
             email: email,
-            first_name: userMetadata.full_name?.split(' ')[0] || '',
-            last_name: userMetadata.full_name?.split(' ').slice(1).join(' ') || '',
-            user_type: userMetadata.role || 'developer',
+            first_name: fullName.split(' ')[0] || '',
+            last_name: fullName.split(' ').slice(1).join(' ') || '',
+            user_type: userRole,
             onboarding_completed: true,  // Skip onboarding for invited users
-            is_internal: userMetadata.is_internal || false,
+            is_internal: isInternal,
           })
       }
 
@@ -106,17 +115,16 @@ export async function GET(request: Request) {
           .upsert({
             id: authResult.user.id,
             email: email,
-            full_name: userMetadata.full_name || email.split('@')[0],
-            role: userMetadata.role || 'developer',
-            company_id: userMetadata.company_id || null,
-            is_internal: userMetadata.is_internal || false,
+            full_name: fullName,
+            role: userRole,
+            company_id: companyId,
+            is_internal: isInternal,
           })
       }
 
-      // Determine redirect path based on role for after password setup
+      // Determine redirect path based on role
       let redirectPath = '/developer'
-      const role = userMetadata.role || profile?.role || 'developer'
-      switch (role) {
+      switch (userRole) {
         case 'super_admin':
         case 'admin':
           redirectPath = '/admin'
@@ -134,7 +142,7 @@ export async function GET(request: Request) {
       }
 
       const setPasswordUrl = new URL(`${origin}/set-password`)
-      setPasswordUrl.searchParams.set('name', userMetadata.full_name?.split(' ')[0] || '')
+      setPasswordUrl.searchParams.set('name', fullName.split(' ')[0] || '')
       setPasswordUrl.searchParams.set('redirect', redirectPath)
       return NextResponse.redirect(setPasswordUrl.toString())
     }
