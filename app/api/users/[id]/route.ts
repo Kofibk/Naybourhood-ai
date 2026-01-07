@@ -18,6 +18,7 @@ export async function DELETE(
 
     // Check authentication
     let isAdmin = false
+    let isSuperAdmin = false
     let currentUserId: string | null = null
 
     if (isSupabaseConfigured()) {
@@ -27,22 +28,24 @@ export async function DELETE(
       if (currentUser) {
         currentUserId = currentUser.id
 
-        // Check if current user is admin
+        // Check if current user is admin or super admin
         const { data: profile } = await supabase
           .from('profiles')
           .select('role')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.role === 'admin'
+        isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+        isSuperAdmin = profile?.role === 'super_admin'
       }
     }
 
     // For demo mode - check request headers for admin role
     if (!isAdmin) {
       const inviterRole = request.headers.get('x-user-role')
-      if (inviterRole === 'admin') {
+      if (inviterRole === 'admin' || inviterRole === 'super_admin') {
         isAdmin = true
+        isSuperAdmin = inviterRole === 'super_admin'
       }
     }
 
@@ -174,38 +177,63 @@ export async function PATCH(
 
     // Check if current user can update this profile
     let canUpdate = false
+    let isSuperAdmin = false
 
     if (currentUser) {
+      // Get current user's role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', currentUser.id)
+        .single()
+
+      isSuperAdmin = profile?.role === 'super_admin'
+
       // Users can update their own profile
       if (currentUser.id === userId) {
         canUpdate = true
       } else {
-        // Admins can update anyone
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
-          .eq('id', currentUser.id)
-          .single()
+        // Super admins can update anyone, regular admins can update non-admins
+        if (isSuperAdmin) {
+          canUpdate = true
+        } else if (profile?.role === 'admin') {
+          // Check target user's role - admins can't edit super_admins
+          const { data: targetProfile } = await supabase
+            .from('profiles')
+            .select('role')
+            .eq('id', userId)
+            .single()
 
-        canUpdate = profile?.role === 'admin'
+          canUpdate = targetProfile?.role !== 'super_admin'
+        }
       }
     }
 
     // Demo mode fallback
     if (!canUpdate) {
       const inviterRole = request.headers.get('x-user-role')
-      canUpdate = inviterRole === 'admin'
+      canUpdate = inviterRole === 'admin' || inviterRole === 'super_admin'
+      isSuperAdmin = inviterRole === 'super_admin'
     }
 
     if (!canUpdate) {
       return NextResponse.json(
-        { error: 'Unauthorized to update this user' },
+        { error: 'Unauthorised to update this user' },
         { status: 403 }
       )
     }
 
     // Filter out read-only fields
+    // Only super_admin can change roles to/from super_admin
     const { id, created_at, email, ...updateData } = body
+
+    // Prevent non-super_admins from setting super_admin role
+    if (updateData.role === 'super_admin' && !isSuperAdmin) {
+      return NextResponse.json(
+        { error: 'Only Super Admins can assign the Super Admin role' },
+        { status: 403 }
+      )
+    }
 
     const { data, error } = await supabase
       .from('profiles')

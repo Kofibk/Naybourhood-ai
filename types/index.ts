@@ -1,4 +1,12 @@
-export type UserRole = 'admin' | 'developer' | 'agent' | 'broker'
+// User roles: super_admin and admin are internal Naybourhood team
+// developer, agent, broker are client users from partner companies
+export type UserRole = 'super_admin' | 'admin' | 'developer' | 'agent' | 'broker'
+
+// Internal team roles (Naybourhood staff)
+export const INTERNAL_ROLES: UserRole[] = ['super_admin', 'admin']
+
+// Client roles (partner companies)
+export const CLIENT_ROLES: UserRole[] = ['developer', 'agent', 'broker']
 
 export interface User {
   id: string
@@ -8,6 +16,7 @@ export interface User {
   company?: string      // Company name (display)
   company_id?: string   // Company UUID for data filtering
   avatarUrl?: string
+  is_internal?: boolean // True for Naybourhood team members
 }
 
 export interface Buyer {
@@ -135,6 +144,10 @@ export interface AppUser {
   last_active?: string
   created_at?: string
   invited_at?: string
+  is_internal?: boolean  // True for Naybourhood team members
+  phone?: string
+  job_title?: string
+  bio?: string
 }
 
 export interface Campaign {
