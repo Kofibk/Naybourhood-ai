@@ -326,6 +326,9 @@ export default function LeadsPage() {
   const [autoScoreEnabled, setAutoScoreEnabled] = useState(true)
   // Store local score results so UI updates immediately (even if DB update fails)
   const [localScores, setLocalScores] = useState<Record<string, { quality: number; intent: number; classification: string }>>({})
+  // Rescore all leads state
+  const [isRescoring, setIsRescoring] = useState(false)
+  const [rescoreProgress, setRescoreProgress] = useState<{ scored: number; total: number } | null>(null)
 
   // Auto-score leads without AI scores
   const { isScoring, scoredCount } = useAutoScore({
@@ -356,6 +359,57 @@ export default function LeadsPage() {
       }
     },
   })
+
+  // Rescore all leads with updated classification logic
+  const handleRescoreAll = useCallback(async () => {
+    if (isRescoring) return
+
+    setIsRescoring(true)
+    setRescoreProgress({ scored: 0, total: leads.length })
+
+    try {
+      // Rescore in batches
+      let offset = 0
+      let totalScored = 0
+      const batchSize = 100
+
+      while (true) {
+        const response = await fetch('/api/ai/rescore-all', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: batchSize, offset, force: true }),
+        })
+
+        if (!response.ok) {
+          console.error('[Rescore] API error:', response.status)
+          break
+        }
+
+        const result = await response.json()
+        totalScored += result.scored || 0
+        setRescoreProgress({ scored: totalScored, total: leads.length })
+
+        console.log(`[Rescore] Progress: ${totalScored} leads, batch distribution:`, result.classificationDistribution)
+
+        if (!result.hasMore || result.scored === 0) {
+          break
+        }
+
+        offset = result.nextOffset
+      }
+
+      console.log(`[Rescore] Complete: ${totalScored} leads rescored`)
+
+      // Refresh data to show updated classifications
+      refreshData()
+      setLocalScores({})  // Clear local scores to use fresh data
+    } catch (error) {
+      console.error('[Rescore] Error:', error)
+    } finally {
+      setIsRescoring(false)
+      setRescoreProgress(null)
+    }
+  }, [isRescoring, leads.length, refreshData])
 
   // Load preferences from localStorage on mount
   useEffect(() => {
@@ -734,6 +788,23 @@ export default function LeadsPage() {
               {Object.keys(localScores).length} scored
             </div>
           )}
+          {/* Rescore indicator */}
+          {isRescoring && rescoreProgress && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-orange-500/10 text-orange-600 text-sm">
+              <RefreshCw className="h-4 w-4 animate-spin" />
+              <span>Rescoring {rescoreProgress.scored}...</span>
+            </div>
+          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRescoreAll}
+            disabled={isLoading || isRescoring}
+            title="Re-classify all leads with updated scoring logic"
+          >
+            <Zap className={`h-4 w-4 mr-2 ${isRescoring ? 'animate-pulse' : ''}`} />
+            Rescore All
+          </Button>
           <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh

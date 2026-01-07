@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 import type { Buyer } from '@/types'
+import {
+  calculateQualityScore,
+  calculateIntentScore,
+  calculateConfidenceScore,
+  checkSpam,
+  determineClassification,
+  determinePriority,
+} from '@/lib/scoring'
 
 // Get admin client for database operations (bypasses RLS)
 function getSupabaseClient() {
@@ -180,83 +188,47 @@ Respond ONLY with valid JSON (no markdown, no explanation):
   throw new Error('Failed to parse Claude response')
 }
 
-// Fallback scoring when no API key is available
+// Fallback scoring using the scoring library (budget-aware classification)
 function getFallbackScores(buyer: any): any {
-  // Basic score calculation based on available data
-  let qualityScore = 20 // Base score
-  let intentScore = 20
+  // Use the proper scoring library for consistent classification
+  const qualityResult = calculateQualityScore(buyer)
+  const intentResult = calculateIntentScore(buyer)
+  const confidenceResult = calculateConfidenceScore(buyer)
+  const spamCheck = checkSpam(buyer)
 
-  // Profile completeness
-  if (buyer.full_name || buyer.first_name) qualityScore += 5
-  if (buyer.email) qualityScore += 5
-  if (buyer.phone) qualityScore += 5
-  if (buyer.location || buyer.area) qualityScore += 5
-  if (buyer.budget || buyer.budget_range) qualityScore += 5
+  const qualityScore = Math.round(qualityResult.total)
+  const intentScore = Math.round(intentResult.total)
+  const confidenceScore = Math.round(confidenceResult.total * 10) // Scale to 0-10
 
-  // Financial qualification
-  if (buyer.payment_method?.toLowerCase() === 'cash') qualityScore += 15
-  else if (buyer.payment_method?.toLowerCase() === 'mortgage') qualityScore += 5
-  if (buyer.proof_of_funds) qualityScore += 10
-  if (buyer.mortgage_status?.toLowerCase() === 'approved') qualityScore += 10
+  // Use the updated classification logic with budget floors
+  const classification = determineClassification(
+    qualityScore,
+    intentScore,
+    confidenceScore,
+    spamCheck,
+    buyer
+  )
 
-  // Intent signals
-  if (buyer.timeline) {
-    const timeline = buyer.timeline.toLowerCase()
-    if (/immediate|asap|now|urgent/i.test(timeline)) intentScore += 30
-    else if (/1-3 months|soon/i.test(timeline)) intentScore += 20
-    else if (/3-6 months/i.test(timeline)) intentScore += 10
-    else intentScore += 5
-  }
-
-  // Engagement
-  const status = (buyer.status || '').toLowerCase()
-  if (/viewing|negotiating|reserved|exchanged/i.test(status)) intentScore += 25
-  else if (/follow.?up/i.test(status)) intentScore += 15
-  else intentScore += 5
-
-  // Commitment
-  if (buyer.proof_of_funds) intentScore += 10
-  if (buyer.uk_solicitor) intentScore += 5
-  if (buyer.uk_broker) intentScore += 5
-
-  // Cap scores
-  qualityScore = Math.min(100, qualityScore)
-  intentScore = Math.min(100, intentScore)
-
-  // Determine classification
-  let classification = 'Nurture'
-  let priority = 'P3'
-  let responseTime = '< 24 hours'
-
-  if (qualityScore >= 70 && intentScore >= 70) {
-    classification = 'Hot'
-    priority = 'P1'
-    responseTime = '< 1 hour'
-  } else if (qualityScore >= 70 && intentScore >= 45) {
-    classification = 'Warm-Qualified'
-    priority = 'P2'
-    responseTime = '< 4 hours'
-  } else if (qualityScore >= 45 && intentScore >= 70) {
-    classification = 'Warm-Engaged'
-    priority = 'P2'
-    responseTime = '< 4 hours'
-  } else if (qualityScore < 20 || intentScore < 20) {
-    classification = 'Cold'
-    priority = 'P4'
-    responseTime = '48+ hours'
-  }
+  const priorityInfo = determinePriority(classification, qualityScore, intentScore)
 
   const name = buyer.full_name || buyer.first_name || 'This lead'
   const paymentType = buyer.payment_method || 'potential'
   const locationInfo = buyer.location || buyer.area || 'the area'
 
+  // Generate risk flags
+  const riskFlags: string[] = []
+  if (!buyer.proof_of_funds) riskFlags.push('No proof of funds received')
+  if (!buyer.email) riskFlags.push('Missing email address')
+  if (!buyer.phone) riskFlags.push('Missing phone number')
+  if (spamCheck.flags.length > 0) riskFlags.push(...spamCheck.flags)
+
   return {
     quality_score: qualityScore,
     intent_score: intentScore,
-    confidence: 5,
+    confidence: confidenceScore,
     classification,
-    priority,
-    priority_response_time: responseTime,
+    priority: priorityInfo.priority,
+    priority_response_time: priorityInfo.responseTime,
     summary: `${name} is a ${paymentType} buyer interested in ${locationInfo}. Budget: ${buyer.budget || buyer.budget_range || 'Not specified'}.`,
     next_action: 'Contact lead to confirm interest and timeline',
     recommendations: [
@@ -264,31 +236,31 @@ function getFallbackScores(buyer: any): any {
       'Confirm budget and timeline',
       'Schedule discovery call'
     ],
-    risk_flags: buyer.proof_of_funds ? [] : ['No proof of funds received'],
-    is_spam: false,
-    spam_flags: [],
+    risk_flags: riskFlags,
+    is_spam: spamCheck.isSpam,
+    spam_flags: spamCheck.flags,
     score_breakdown: {
       quality: {
         total: qualityScore,
-        profileCompleteness: { score: 0, maxScore: 25, details: ['Fallback scoring'] },
-        financialQualification: { score: 0, maxScore: 35, details: ['Fallback scoring'] },
-        verificationStatus: { score: 0, maxScore: 20, details: ['Fallback scoring'] },
-        inventoryFit: { score: 0, maxScore: 20, details: ['Fallback scoring'] }
+        profileCompleteness: { score: qualityResult.profileCompleteness.score, maxScore: 25, details: qualityResult.profileCompleteness.details },
+        financialQualification: { score: qualityResult.financialQualification.score, maxScore: 35, details: qualityResult.financialQualification.details },
+        verificationStatus: { score: qualityResult.verificationStatus.score, maxScore: 20, details: qualityResult.verificationStatus.details },
+        inventoryFit: { score: qualityResult.inventoryFit.score, maxScore: 20, details: qualityResult.inventoryFit.details }
       },
       intent: {
         total: intentScore,
-        timeline: { score: 0, maxScore: 30, details: ['Fallback scoring'] },
-        purpose: { score: 0, maxScore: 25, details: ['Fallback scoring'] },
-        engagement: { score: 0, maxScore: 25, details: ['Fallback scoring'] },
-        commitment: { score: 0, maxScore: 20, details: ['Fallback scoring'] },
-        negativeModifiers: { score: 0, maxScore: 0, details: [] }
+        timeline: { score: intentResult.timeline.score, maxScore: 30, details: intentResult.timeline.details },
+        purpose: { score: intentResult.purpose.score, maxScore: 25, details: intentResult.purpose.details },
+        engagement: { score: intentResult.engagement.score, maxScore: 25, details: intentResult.engagement.details },
+        commitment: { score: intentResult.commitment.score, maxScore: 20, details: intentResult.commitment.details },
+        negativeModifiers: { score: intentResult.negativeModifiers.score, maxScore: 0, details: intentResult.negativeModifiers.details }
       },
       confidence: {
-        total: 5,
-        dataCompleteness: { score: 5, maxScore: 10, details: ['Fallback scoring'] },
-        verificationLevel: { score: 0, maxScore: 10, details: ['Fallback scoring'] },
-        engagementData: { score: 0, maxScore: 10, details: ['Fallback scoring'] },
-        transcriptQuality: { score: 0, maxScore: 10, details: ['Fallback scoring'] }
+        total: confidenceScore,
+        dataCompleteness: { score: confidenceResult.dataCompleteness.score, maxScore: 10, details: confidenceResult.dataCompleteness.details },
+        verificationLevel: { score: confidenceResult.verificationLevel.score, maxScore: 10, details: confidenceResult.verificationLevel.details },
+        engagementData: { score: confidenceResult.engagementData.score, maxScore: 10, details: confidenceResult.engagementData.details },
+        transcriptQuality: { score: confidenceResult.transcriptQuality.score, maxScore: 10, details: confidenceResult.transcriptQuality.details }
       }
     }
   }

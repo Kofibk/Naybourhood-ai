@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
+import {
+  calculateQualityScore,
+  calculateIntentScore,
+  calculateConfidenceScore,
+  checkSpam,
+  determineClassification,
+  determinePriority,
+} from '@/lib/scoring'
 
 // Get admin client for database operations (bypasses RLS)
 function getSupabaseClient() {
@@ -17,62 +25,35 @@ function getAnthropicClient() {
   return new Anthropic({ apiKey })
 }
 
-// Fallback scoring when no API key
+// Fallback scoring using the scoring library (budget-aware classification)
 function getFallbackScores(buyer: any): any {
-  let qualityScore = 20
-  let intentScore = 20
+  // Use the proper scoring library for consistent classification
+  const qualityResult = calculateQualityScore(buyer)
+  const intentResult = calculateIntentScore(buyer)
+  const confidenceResult = calculateConfidenceScore(buyer)
+  const spamCheck = checkSpam(buyer)
 
-  if (buyer.full_name || buyer.first_name) qualityScore += 5
-  if (buyer.email) qualityScore += 5
-  if (buyer.phone) qualityScore += 5
-  if (buyer.location || buyer.area) qualityScore += 5
-  if (buyer.budget || buyer.budget_range) qualityScore += 5
-  if (buyer.payment_method?.toLowerCase() === 'cash') qualityScore += 15
-  else if (buyer.payment_method?.toLowerCase() === 'mortgage') qualityScore += 5
-  if (buyer.proof_of_funds) qualityScore += 10
+  const qualityScore = Math.round(qualityResult.total)
+  const intentScore = Math.round(intentResult.total)
+  const confidenceScore = Math.round(confidenceResult.total * 10) // Scale to 0-10
 
-  if (buyer.timeline) {
-    const timeline = buyer.timeline.toLowerCase()
-    if (/immediate|asap|now/i.test(timeline)) intentScore += 30
-    else if (/1-3 months|soon/i.test(timeline)) intentScore += 20
-    else intentScore += 10
-  }
+  // Use the updated classification logic with budget floors
+  const classification = determineClassification(
+    qualityScore,
+    intentScore,
+    confidenceScore,
+    spamCheck,
+    buyer
+  )
 
-  const status = (buyer.status || '').toLowerCase()
-  if (/viewing|negotiating|reserved|exchanged/i.test(status)) intentScore += 25
-  else if (/follow.?up/i.test(status)) intentScore += 15
-  else intentScore += 5
-
-  if (buyer.proof_of_funds) intentScore += 10
-  if (buyer.uk_solicitor) intentScore += 5
-  if (buyer.uk_broker) intentScore += 5
-
-  qualityScore = Math.min(100, qualityScore)
-  intentScore = Math.min(100, intentScore)
-
-  let classification = 'Nurture'
-  let priority = 'P3'
-
-  if (qualityScore >= 70 && intentScore >= 70) {
-    classification = 'Hot'
-    priority = 'P1'
-  } else if (qualityScore >= 70 && intentScore >= 45) {
-    classification = 'Warm-Qualified'
-    priority = 'P2'
-  } else if (qualityScore >= 45 && intentScore >= 70) {
-    classification = 'Warm-Engaged'
-    priority = 'P2'
-  } else if (qualityScore < 20 || intentScore < 20) {
-    classification = 'Cold'
-    priority = 'P4'
-  }
+  const priorityInfo = determinePriority(classification, qualityScore, intentScore)
 
   return {
     quality_score: qualityScore,
     intent_score: intentScore,
-    confidence: 5,
+    confidence: confidenceScore,
     classification,
-    priority,
+    priority: priorityInfo.priority,
     summary: `${buyer.full_name || 'Lead'} - ${buyer.payment_method || 'unknown payment'} buyer`,
     next_action: 'Contact to confirm interest',
   }
