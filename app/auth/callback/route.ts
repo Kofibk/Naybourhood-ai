@@ -58,6 +58,34 @@ export async function GET(request: Request) {
     // Invited users skip onboarding entirely
     const isInvitedUser = userMetadata.is_internal === true || !!userMetadata.company_id
 
+    // Handle invite - redirect to set password page for first-time setup
+    if (type === 'invite') {
+      // Determine redirect path based on role for after password setup
+      let redirectPath = '/developer'
+      const role = userMetadata.role || 'developer'
+      switch (role) {
+        case 'super_admin':
+        case 'admin':
+          redirectPath = '/admin'
+          break
+        case 'agent':
+          redirectPath = '/agent'
+          break
+        case 'broker':
+          redirectPath = '/broker'
+          break
+        case 'developer':
+        default:
+          redirectPath = '/developer'
+          break
+      }
+
+      const setPasswordUrl = new URL(`${origin}/set-password`)
+      setPasswordUrl.searchParams.set('name', userMetadata.full_name?.split(' ')[0] || '')
+      setPasswordUrl.searchParams.set('redirect', redirectPath)
+      return NextResponse.redirect(setPasswordUrl.toString())
+    }
+
     // Check if user has completed onboarding (user_profiles table)
     const { data: userProfile } = await supabase
       .from('user_profiles')

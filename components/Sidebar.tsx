@@ -27,8 +27,11 @@ import {
   Shield,
   Briefcase,
   HardHat,
+  Sun,
+  Moon,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useTheme } from 'next-themes'
+import { useState, useEffect } from 'react'
 
 interface NavItem {
   name: string
@@ -53,8 +56,15 @@ const BILLING_ACCESS_EMAILS = [
 
 export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const pathname = usePathname()
   const basePath = `/${userType}`
+  const { theme, setTheme, resolvedTheme } = useTheme()
+
+  // Avoid hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // Check if user has billing access
   const hasBillingAccess = userEmail && BILLING_ACCESS_EMAILS.includes(userEmail.toLowerCase())
@@ -197,14 +207,31 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
             <p className="text-xs text-sidebar-foreground/60 capitalize">{userType}</p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
-          onClick={onLogout}
-        >
-          <LogOut className="h-5 w-5 mr-3" />
-          Logout
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            className="flex-1 justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
+            onClick={onLogout}
+          >
+            <LogOut className="h-5 w-5 mr-3" />
+            Logout
+          </Button>
+          {mounted && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="text-sidebar-foreground/70 hover:bg-sidebar-accent"
+              onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
+              title={resolvedTheme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            >
+              {resolvedTheme === 'dark' ? (
+                <Sun className="h-5 w-5" />
+              ) : (
+                <Moon className="h-5 w-5" />
+              )}
+            </Button>
+          )}
+        </div>
       </div>
     </div>
   )

@@ -285,6 +285,9 @@ function LoginPageInner() {
             <p className="text-sm text-muted-foreground">
               Click the link in your email to reset your password.
             </p>
+            <p className="text-xs text-muted-foreground/70 mt-4 p-3 bg-muted/50 rounded-md">
+              Note: The email may take up to 5 minutes to arrive. Please also check your spam folder if you don&apos;t see it in your inbox.
+            </p>
           </div>
           <Button
             variant="outline"
@@ -316,6 +319,9 @@ function LoginPageInner() {
             </p>
             <p className="text-sm text-muted-foreground">
               Click the link in your email to {isSignUp ? 'verify your account' : 'sign in'}.
+            </p>
+            <p className="text-xs text-muted-foreground/70 mt-4 p-3 bg-muted/50 rounded-md">
+              Note: The email may take up to 5 minutes to arrive. Please also check your spam folder if you don&apos;t see it in your inbox.
             </p>
           </div>
           <Button
