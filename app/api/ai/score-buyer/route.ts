@@ -297,6 +297,25 @@ export async function POST(request: NextRequest) {
       // Use Claude AI for scoring
       console.log('[AI Score] Using Claude AI for lead scoring')
       scores = await generateClaudeScores(client, buyer)
+
+      // IMPORTANT: Always use our scoring library for classification
+      // Claude's prompt has outdated rules that don't respect budget floors
+      const spamCheck = checkSpam(buyer)
+      const correctClassification = determineClassification(
+        scores.quality_score,
+        scores.intent_score,
+        scores.confidence,
+        spamCheck,
+        buyer  // Pass buyer for budget floor calculation
+      )
+      const priorityInfo = determinePriority(correctClassification, scores.quality_score, scores.intent_score)
+
+      // Override Claude's classification with our library's result
+      scores.classification = correctClassification
+      scores.priority = priorityInfo.priority
+      scores.priority_response_time = priorityInfo.responseTime
+      scores.is_spam = spamCheck.isSpam
+      scores.spam_flags = spamCheck.flags
     } else {
       // Fallback to basic scoring
       console.log('[AI Score] No Anthropic API key, using fallback scoring')
@@ -384,6 +403,23 @@ export async function PUT(request: NextRequest) {
         if (client) {
           // Use Claude AI for scoring
           scores = await generateClaudeScores(client, buyer)
+
+          // IMPORTANT: Always use our scoring library for classification
+          const spamCheck = checkSpam(buyer)
+          const correctClassification = determineClassification(
+            scores.quality_score,
+            scores.intent_score,
+            scores.confidence,
+            spamCheck,
+            buyer
+          )
+          const priorityInfo = determinePriority(correctClassification, scores.quality_score, scores.intent_score)
+
+          scores.classification = correctClassification
+          scores.priority = priorityInfo.priority
+          scores.priority_response_time = priorityInfo.responseTime
+          scores.is_spam = spamCheck.isSpam
+          scores.spam_flags = spamCheck.flags
         } else {
           // Fallback scoring
           scores = getFallbackScores(buyer)
