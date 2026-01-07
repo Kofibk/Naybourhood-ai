@@ -242,25 +242,25 @@ function getFallbackScores(buyer: any): any {
     score_breakdown: {
       quality: {
         total: qualityScore,
-        profileCompleteness: { score: qualityResult.profileCompleteness.score, maxScore: 25, details: qualityResult.profileCompleteness.details },
-        financialQualification: { score: qualityResult.financialQualification.score, maxScore: 35, details: qualityResult.financialQualification.details },
-        verificationStatus: { score: qualityResult.verificationStatus.score, maxScore: 20, details: qualityResult.verificationStatus.details },
-        inventoryFit: { score: qualityResult.inventoryFit.score, maxScore: 20, details: qualityResult.inventoryFit.details }
+        profileCompleteness: { score: qualityResult.breakdown.profileCompleteness.score, maxScore: 25, details: qualityResult.breakdown.profileCompleteness.details },
+        financialQualification: { score: qualityResult.breakdown.financialQualification.score, maxScore: 35, details: qualityResult.breakdown.financialQualification.details },
+        verificationStatus: { score: qualityResult.breakdown.verificationStatus.score, maxScore: 20, details: qualityResult.breakdown.verificationStatus.details },
+        inventoryFit: { score: qualityResult.breakdown.inventoryFit.score, maxScore: 20, details: qualityResult.breakdown.inventoryFit.details }
       },
       intent: {
         total: intentScore,
-        timeline: { score: intentResult.timeline.score, maxScore: 30, details: intentResult.timeline.details },
-        purpose: { score: intentResult.purpose.score, maxScore: 25, details: intentResult.purpose.details },
-        engagement: { score: intentResult.engagement.score, maxScore: 25, details: intentResult.engagement.details },
-        commitment: { score: intentResult.commitment.score, maxScore: 20, details: intentResult.commitment.details },
-        negativeModifiers: { score: intentResult.negativeModifiers.score, maxScore: 0, details: intentResult.negativeModifiers.details }
+        timeline: { score: intentResult.breakdown.timeline.score, maxScore: 30, details: intentResult.breakdown.timeline.details },
+        purpose: { score: intentResult.breakdown.purpose.score, maxScore: 25, details: intentResult.breakdown.purpose.details },
+        engagement: { score: intentResult.breakdown.engagement.score, maxScore: 25, details: intentResult.breakdown.engagement.details },
+        commitment: { score: intentResult.breakdown.commitment.score, maxScore: 20, details: intentResult.breakdown.commitment.details },
+        negativeModifiers: { score: intentResult.breakdown.negativeModifiers.score, maxScore: 0, details: intentResult.breakdown.negativeModifiers.details }
       },
       confidence: {
         total: confidenceScore,
-        dataCompleteness: { score: confidenceResult.dataCompleteness.score, maxScore: 10, details: confidenceResult.dataCompleteness.details },
-        verificationLevel: { score: confidenceResult.verificationLevel.score, maxScore: 10, details: confidenceResult.verificationLevel.details },
-        engagementData: { score: confidenceResult.engagementData.score, maxScore: 10, details: confidenceResult.engagementData.details },
-        transcriptQuality: { score: confidenceResult.transcriptQuality.score, maxScore: 10, details: confidenceResult.transcriptQuality.details }
+        dataCompleteness: { score: confidenceResult.breakdown.dataCompleteness.score, maxScore: 10, details: confidenceResult.breakdown.dataCompleteness.details },
+        verificationLevel: { score: confidenceResult.breakdown.verificationLevel.score, maxScore: 10, details: confidenceResult.breakdown.verificationLevel.details },
+        engagementData: { score: confidenceResult.breakdown.engagementData.score, maxScore: 10, details: confidenceResult.breakdown.engagementData.details },
+        transcriptQuality: { score: confidenceResult.breakdown.transcriptQuality.score, maxScore: 10, details: confidenceResult.breakdown.transcriptQuality.details }
       }
     }
   }
