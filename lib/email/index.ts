@@ -142,7 +142,7 @@ export async function sendCustomEmail(
   message: string,
   senderName?: string
 ): Promise<SendEmailResult> {
-  // Use the existing branded wrapper from the email API
+  // Use the Naybourhood dark monochrome branding
   const html = `
 <!DOCTYPE html>
 <html>
@@ -150,24 +150,24 @@ export async function sendCustomEmail(
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif; background-color: #f9fafb;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f9fafb;">
+<body style="margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0d0d0d;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #0d0d0d;">
     <tr>
       <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="background-color: #141414; border-radius: 12px; border: 1px solid #2e2e2e;">
           <tr>
-            <td style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); padding: 24px 40px; border-radius: 12px 12px 0 0; text-align: center;">
-              <h1 style="margin: 0; color: #ffffff; font-size: 24px; font-weight: 700;">Naybourhood</h1>
+            <td style="padding: 32px 40px; text-align: center; border-bottom: 1px solid #2e2e2e;">
+              <h1 style="margin: 0; color: #f5f5f5; font-size: 24px; font-weight: 600; letter-spacing: 1px;">NAYBOURHOOD</h1>
             </td>
           </tr>
           <tr>
-            <td style="padding: 32px 40px;">
-              <p style="margin: 0; color: #374151; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${message}</p>
+            <td style="padding: 40px;">
+              <p style="margin: 0; color: #999999; font-size: 16px; line-height: 1.6; white-space: pre-wrap;">${message}</p>
             </td>
           </tr>
           <tr>
-            <td style="padding: 20px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb; text-align: center;">
-              <p style="margin: 0; color: #6b7280; font-size: 12px;">
+            <td style="padding: 20px 40px; border-top: 1px solid #2e2e2e; text-align: center;">
+              <p style="margin: 0; color: #999999; font-size: 12px;">
                 Sent via Naybourhood${senderName ? ` by ${senderName}` : ''}
               </p>
             </td>
