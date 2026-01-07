@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient, isSupabaseConfigured } from '@/lib/supabase/server'
+import { sendInviteEmail, isEmailConfigured } from '@/lib/email'
 
 // Check if service role key is configured (required for invites)
 function isServiceRoleConfigured(): boolean {
@@ -167,6 +168,44 @@ export async function POST(request: NextRequest) {
         if (profileError) {
           console.error('[Invite API] Profile creation error:', profileError)
         }
+      }
+
+      // Send branded invite email via Resend (in addition to Supabase's email)
+      if (isEmailConfigured()) {
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+
+        // Get inviter's name
+        let inviterName: string | undefined
+        const supabase = createClient()
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (currentUser) {
+          const { data: inviterProfile } = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', currentUser.id)
+            .single()
+          inviterName = inviterProfile?.full_name || undefined
+        }
+
+        // Get company name if applicable
+        let companyName: string | undefined
+        if (company_id) {
+          const { data: company } = await supabase
+            .from('companies')
+            .select('name')
+            .eq('id', company_id)
+            .single()
+          companyName = company?.name || undefined
+        }
+
+        await sendInviteEmail({
+          recipientName: name,
+          recipientEmail: email,
+          inviterName,
+          role: role || 'developer',
+          companyName,
+          inviteLink: `${appUrl}/login?email=${encodeURIComponent(email)}`,
+        })
       }
 
       return NextResponse.json({
