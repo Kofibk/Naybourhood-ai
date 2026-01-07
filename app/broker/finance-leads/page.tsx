@@ -201,13 +201,13 @@ export default function BrokerFinanceLeadsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage and convert your finance leads
+          <h2 className="text-xl md:text-2xl font-bold font-display">Finance Leads</h2>
+          <p className="text-xs md:text-sm text-muted-foreground">
+            {stats.total} leads • {stats.conversionRate}% conversion
           </p>
         </div>
         <Button
@@ -215,57 +215,60 @@ export default function BrokerFinanceLeadsPage() {
           size="sm"
           onClick={() => refreshData()}
           disabled={isLoading}
+          className="h-8 px-2 md:px-3"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+          <span className="hidden sm:inline ml-2">Refresh</span>
         </Button>
       </div>
 
-      {/* Conversion Funnel Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-        <Card className="p-3 cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('all')}>
-          <div className="text-xs text-muted-foreground">Total Leads</div>
-          <div className="text-2xl font-bold">{stats.total}</div>
-        </Card>
-        <Card className="p-3 border-yellow-200 bg-yellow-50 cursor-pointer" onClick={() => setStatusFilter('Contact Pending')}>
-          <div className="text-xs text-yellow-600 flex items-center gap-1">
-            <Phone className="h-3 w-3" /> Contact Pending
-          </div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.contactPending}</div>
-        </Card>
-        <Card className="p-3 border-blue-200 bg-blue-50 cursor-pointer" onClick={() => setStatusFilter('Follow-up')}>
-          <div className="text-xs text-blue-600 flex items-center gap-1">
-            <Clock className="h-3 w-3" /> Follow-up
-          </div>
-          <div className="text-2xl font-bold text-blue-600">{stats.followUp}</div>
-        </Card>
-        <Card className="p-3 border-purple-200 bg-purple-50 cursor-pointer" onClick={() => setStatusFilter('Awaiting Documents')}>
-          <div className="text-xs text-purple-600 flex items-center gap-1">
-            <FileText className="h-3 w-3" /> Awaiting Docs
-          </div>
-          <div className="text-2xl font-bold text-purple-600">{stats.awaitingDocs}</div>
-        </Card>
-        <Card className="p-3 border-green-200 bg-green-50 cursor-pointer" onClick={() => setStatusFilter('Completed')}>
-          <div className="text-xs text-green-600 flex items-center gap-1">
-            <CheckCircle className="h-3 w-3" /> Completed
-          </div>
-          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-        </Card>
-        <Card className="p-3 border-primary/50 bg-primary/5">
-          <div className="text-xs text-primary flex items-center gap-1">
-            <TrendingUp className="h-3 w-3" /> Conv. Rate
-          </div>
-          <div className="text-2xl font-bold text-primary">{stats.conversionRate}%</div>
-        </Card>
+      {/* Conversion Funnel Stats - scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 min-w-max md:min-w-0">
+          <Card className="p-2 md:p-3 cursor-pointer hover:border-primary/50 min-w-[90px] md:min-w-0" onClick={() => setStatusFilter('all')}>
+            <div className="text-[10px] md:text-xs text-muted-foreground">Total</div>
+            <div className="text-lg md:text-2xl font-bold">{stats.total}</div>
+          </Card>
+          <Card className="p-2 md:p-3 border-yellow-200 bg-yellow-50 cursor-pointer min-w-[90px] md:min-w-0" onClick={() => setStatusFilter('Contact Pending')}>
+            <div className="text-[10px] md:text-xs text-yellow-600 flex items-center gap-1">
+              <Phone className="h-3 w-3" /> <span className="hidden md:inline">Contact</span> Pending
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-yellow-600">{stats.contactPending}</div>
+          </Card>
+          <Card className="p-2 md:p-3 border-blue-200 bg-blue-50 cursor-pointer min-w-[90px] md:min-w-0" onClick={() => setStatusFilter('Follow-up')}>
+            <div className="text-[10px] md:text-xs text-blue-600 flex items-center gap-1">
+              <Clock className="h-3 w-3" /> Follow-up
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-blue-600">{stats.followUp}</div>
+          </Card>
+          <Card className="p-2 md:p-3 border-purple-200 bg-purple-50 cursor-pointer min-w-[90px] md:min-w-0" onClick={() => setStatusFilter('Awaiting Documents')}>
+            <div className="text-[10px] md:text-xs text-purple-600 flex items-center gap-1">
+              <FileText className="h-3 w-3" /> Docs
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-purple-600">{stats.awaitingDocs}</div>
+          </Card>
+          <Card className="p-2 md:p-3 border-green-200 bg-green-50 cursor-pointer min-w-[90px] md:min-w-0" onClick={() => setStatusFilter('Completed')}>
+            <div className="text-[10px] md:text-xs text-green-600 flex items-center gap-1">
+              <CheckCircle className="h-3 w-3" /> Done
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-green-600">{stats.completed}</div>
+          </Card>
+          <Card className="p-2 md:p-3 border-primary/50 bg-primary/5 min-w-[90px] md:min-w-0">
+            <div className="text-[10px] md:text-xs text-primary flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" /> Rate
+            </div>
+            <div className="text-lg md:text-2xl font-bold text-primary">{stats.conversionRate}%</div>
+          </Card>
+        </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-col sm:flex-row gap-4">
+      <div className="flex flex-col sm:flex-row gap-2 md:gap-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name, email, or phone..."
-            className="pl-9"
+            placeholder="Search name, email, phone..."
+            className="pl-9 h-9 text-sm"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -282,16 +285,16 @@ export default function BrokerFinanceLeadsPage() {
         </select>
       </div>
 
-      {/* Finance Leads Table */}
+      {/* Finance Leads */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="py-2 md:pb-3">
           <CardTitle className="text-sm font-medium">
-            Finance Leads ({filteredLeads.length})
+            Leads ({filteredLeads.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 md:p-6 md:pt-0">
           {isLoading ? (
-            <div className="animate-pulse space-y-2">
+            <div className="animate-pulse space-y-2 p-4 md:p-0">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-16 bg-muted rounded" />
               ))}
@@ -303,111 +306,187 @@ export default function BrokerFinanceLeadsPage() {
                 : 'No leads match your filters'}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-muted-foreground border-b">
-                    <th className="pb-2 font-medium">Client</th>
-                    <th className="pb-2 font-medium">Status</th>
-                    <th className="pb-2 font-medium">Loan Amount</th>
-                    <th className="pb-2 font-medium">Required By</th>
-                    <th className="pb-2 font-medium text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredLeads.map((lead) => (
-                    <tr
-                      key={lead.id}
-                      onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
-                      className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
-                    >
-                      <td className="py-3">
-                        <div className="font-medium">
-                          {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+            <>
+              {/* Mobile Card View */}
+              <div className="md:hidden divide-y divide-border">
+                {filteredLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm truncate">
+                            {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                          </span>
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {lead.email && lead.email}
-                          {lead.finance_type && ` • ${lead.finance_type}`}
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {lead.email && <span className="truncate block">{lead.email}</span>}
+                          {lead.finance_type && <span className="block">{lead.finance_type}</span>}
                         </div>
-                      </td>
-                      <td className="py-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={lead.status || 'Contact Pending'}
-                          onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
-                          disabled={updatingStatus === lead.id}
-                          className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${getStatusColor(lead.status)}`}
-                        >
-                          {FINANCE_STATUS_OPTIONS.map(s => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1 font-medium">
-                          <PoundSterling className="h-3 w-3" />
-                          {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount).replace('£', '') : '-')}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Calendar className="h-3 w-3" />
-                          {formatDate(lead.required_by_date)}
-                        </div>
-                      </td>
-                      <td className="py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          {lead.phone && (
-                            <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={(e) => handleQuickCall(lead, e)}
-                                title="Call"
-                              >
-                                <Phone className="h-3.5 w-3.5 text-green-600" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={(e) => handleQuickWhatsApp(lead, e)}
-                                title="WhatsApp"
-                              >
-                                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
-                              </Button>
-                            </>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          <select
+                            value={lead.status || 'Contact Pending'}
+                            onChange={(e) => {
+                              e.stopPropagation()
+                              handleStatusChange(lead.id, e.target.value, e as any)
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            disabled={updatingStatus === lead.id}
+                            className={`text-[10px] px-2 py-0.5 rounded border cursor-pointer ${getStatusColor(lead.status)}`}
+                          >
+                            {FINANCE_STATUS_OPTIONS.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                          <span className="font-medium text-xs flex items-center gap-0.5">
+                            <PoundSterling className="h-3 w-3" />
+                            {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount).replace('£', '') : '-')}
+                          </span>
+                          {lead.required_by_date && (
+                            <span className="text-xs text-muted-foreground flex items-center gap-0.5">
+                              <Calendar className="h-3 w-3" />
+                              {formatDate(lead.required_by_date)}
+                            </span>
                           )}
-                          {lead.email && (
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-1 shrink-0">
+                        {lead.phone && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => handleQuickCall(lead, e)}
+                          >
+                            <Phone className="h-4 w-4 text-green-600" />
+                          </Button>
+                        )}
+                        {lead.email && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => handleQuickEmail(lead, e)}
+                          >
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Desktop Table View */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-xs text-muted-foreground border-b">
+                      <th className="pb-2 font-medium">Client</th>
+                      <th className="pb-2 font-medium">Status</th>
+                      <th className="pb-2 font-medium">Loan Amount</th>
+                      <th className="pb-2 font-medium">Required By</th>
+                      <th className="pb-2 font-medium text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLeads.map((lead) => (
+                      <tr
+                        key={lead.id}
+                        onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
+                        className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                      >
+                        <td className="py-3">
+                          <div className="font-medium">
+                            {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {lead.email && lead.email}
+                            {lead.finance_type && ` • ${lead.finance_type}`}
+                          </div>
+                        </td>
+                        <td className="py-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={lead.status || 'Contact Pending'}
+                            onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
+                            disabled={updatingStatus === lead.id}
+                            className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${getStatusColor(lead.status)}`}
+                          >
+                            {FINANCE_STATUS_OPTIONS.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1 font-medium">
+                            <PoundSterling className="h-3 w-3" />
+                            {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount).replace('£', '') : '-')}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                            <Calendar className="h-3 w-3" />
+                            {formatDate(lead.required_by_date)}
+                          </div>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center justify-end gap-1">
+                            {lead.phone && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => handleQuickCall(lead, e)}
+                                  title="Call"
+                                >
+                                  <Phone className="h-3.5 w-3.5 text-green-600" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={(e) => handleQuickWhatsApp(lead, e)}
+                                  title="WhatsApp"
+                                >
+                                  <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                                </Button>
+                              </>
+                            )}
+                            {lead.email && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={(e) => handleQuickEmail(lead, e)}
+                                title="Email"
+                              >
+                                <Mail className="h-3.5 w-3.5 text-blue-600" />
+                              </Button>
+                            )}
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-7 w-7 p-0"
-                              onClick={(e) => handleQuickEmail(lead, e)}
-                              title="Email"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                router.push(`/broker/finance-leads/${lead.id}`)
+                              }}
+                              title="View Details"
                             >
-                              <Mail className="h-3.5 w-3.5 text-blue-600" />
+                              <ChevronRight className="h-3.5 w-3.5" />
                             </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              router.push(`/broker/finance-leads/${lead.id}`)
-                            }}
-                            title="View Details"
-                          >
-                            <ChevronRight className="h-3.5 w-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

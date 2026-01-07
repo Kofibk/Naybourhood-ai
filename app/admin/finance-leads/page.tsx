@@ -520,136 +520,146 @@ export default function FinanceLeadsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
-          <p className="text-sm text-muted-foreground">
-            {stats.filtered === stats.total
-              ? `${stats.total.toLocaleString()} total finance leads`
-              : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} finance leads`}
-          </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-xl md:text-2xl font-bold font-display">Finance Leads</h2>
+            <p className="text-xs md:text-sm text-muted-foreground">
+              {stats.filtered === stats.total
+                ? `${stats.total.toLocaleString()} total`
+                : `${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()}`}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => refreshData()}
+              disabled={isLoading}
+              className="h-8 px-2 md:px-3"
+            >
+              <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              <span className="hidden sm:inline ml-2">Refresh</span>
+            </Button>
+            <Button variant="outline" size="sm" className="h-8 px-2 md:px-3">
+              <Download className="h-4 w-4" />
+              <span className="hidden sm:inline ml-2">Export</span>
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2 items-center">
-          {unassignedCount > 0 && brokerCompanies.length > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{unassignedCount} unassigned</span>
-              <select
-                className="h-8 text-xs rounded-md border border-input bg-background px-2"
-                onChange={(e) => {
-                  if (e.target.value) {
-                    handleBulkAssignBroker(e.target.value)
-                    e.target.value = ''
-                  }
-                }}
-                disabled={bulkAssigning}
-                defaultValue=""
-              >
-                <option value="">Bulk Assign to...</option>
-                {brokerCompanies.map((company) => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => refreshData()}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-        </div>
+        {/* Bulk assign - separate row on mobile */}
+        {unassignedCount > 0 && brokerCompanies.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-xs text-muted-foreground">{unassignedCount} unassigned</span>
+            <select
+              className="h-8 text-xs rounded-md border border-input bg-background px-2 flex-1 min-w-[150px] max-w-[200px]"
+              onChange={(e) => {
+                if (e.target.value) {
+                  handleBulkAssignBroker(e.target.value)
+                  e.target.value = ''
+                }
+              }}
+              disabled={bulkAssigning}
+              defaultValue=""
+            >
+              <option value="">Bulk Assign to...</option>
+              {brokerCompanies.map((company) => (
+                <option key={company.id} value={company.id}>
+                  {company.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => clearFilters()}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total</span>
-            </div>
-            <p className="text-xl font-bold">{stats.total.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('contact_pending')}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-yellow-500" />
-              <span className="text-xs text-muted-foreground">Contact Pending</span>
-            </div>
-            <p className="text-xl font-bold text-yellow-500">{stats.contactPending}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('follow_up')}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Follow-up</span>
-            </div>
-            <p className="text-xl font-bold text-blue-500">{stats.followUp}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('awaiting_docs')}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <FileText className="h-4 w-4 text-purple-500" />
-              <span className="text-xs text-muted-foreground">Awaiting Docs</span>
-            </div>
-            <p className="text-xl font-bold text-purple-500">{stats.awaitingDocs}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <X className="h-4 w-4 text-destructive" />
-              <span className="text-xs text-muted-foreground">Not Proceeding</span>
-            </div>
-            <p className="text-xl font-bold text-destructive">{stats.notProceeding}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Filtered</span>
-            </div>
-            <p className="text-xl font-bold">{stats.filtered.toLocaleString()}</p>
-          </CardContent>
-        </Card>
+      {/* Quick Stats - scrollable on mobile */}
+      <div className="overflow-x-auto -mx-4 px-4 md:mx-0 md:px-0">
+        <div className="flex md:grid md:grid-cols-3 lg:grid-cols-6 gap-2 md:gap-3 min-w-max md:min-w-0">
+          <Card className="cursor-pointer hover:border-primary/50 min-w-[100px] md:min-w-0" onClick={() => clearFilters()}>
+            <CardContent className="p-2 md:p-3">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Users className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+                <span className="text-[10px] md:text-xs text-muted-foreground">Total</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold">{stats.total.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:border-primary/50 min-w-[100px] md:min-w-0" onClick={() => applyQuickFilter('contact_pending')}>
+            <CardContent className="p-2 md:p-3">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Phone className="h-3 w-3 md:h-4 md:w-4 text-yellow-500" />
+                <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Pending</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-yellow-500">{stats.contactPending}</p>
+            </CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:border-primary/50 min-w-[100px] md:min-w-0" onClick={() => applyQuickFilter('follow_up')}>
+            <CardContent className="p-2 md:p-3">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Clock className="h-3 w-3 md:h-4 md:w-4 text-blue-500" />
+                <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Follow-up</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-blue-500">{stats.followUp}</p>
+            </CardContent>
+          </Card>
+          <Card className="cursor-pointer hover:border-primary/50 min-w-[100px] md:min-w-0" onClick={() => applyQuickFilter('awaiting_docs')}>
+            <CardContent className="p-2 md:p-3">
+              <div className="flex items-center gap-1 md:gap-2">
+                <FileText className="h-3 w-3 md:h-4 md:w-4 text-purple-500" />
+                <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Docs</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-purple-500">{stats.awaitingDocs}</p>
+            </CardContent>
+          </Card>
+          <Card className="min-w-[100px] md:min-w-0">
+            <CardContent className="p-2 md:p-3">
+              <div className="flex items-center gap-1 md:gap-2">
+                <X className="h-3 w-3 md:h-4 md:w-4 text-destructive" />
+                <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Closed</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold text-destructive">{stats.notProceeding}</p>
+            </CardContent>
+          </Card>
+          <Card className="min-w-[100px] md:min-w-0">
+            <CardContent className="p-2 md:p-3">
+              <div className="flex items-center gap-1 md:gap-2">
+                <Filter className="h-3 w-3 md:h-4 md:w-4 text-muted-foreground" />
+                <span className="text-[10px] md:text-xs text-muted-foreground whitespace-nowrap">Filtered</span>
+              </div>
+              <p className="text-lg md:text-xl font-bold">{stats.filtered.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="space-y-3">
-        <div className="flex flex-col sm:flex-row gap-3">
-          <div className="relative flex-1">
+      <div className="space-y-2 md:space-y-3">
+        <div className="flex flex-col gap-2 md:gap-3">
+          {/* Search - full width on mobile */}
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, email, phone, or message..."
-              className="pl-9"
+              placeholder="Search name, email, phone..."
+              className="pl-9 h-9 md:h-10 text-sm"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-2">
+          {/* Filter buttons - scrollable row on mobile */}
+          <div className="flex gap-2 overflow-x-auto pb-1 -mb-1">
             <Button
               variant={showFilters ? 'default' : 'outline'}
               onClick={() => setShowFilters(!showFilters)}
+              size="sm"
+              className="h-8 shrink-0"
             >
-              <SlidersHorizontal className="h-4 w-4 mr-2" />
-              Filters
+              <SlidersHorizontal className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Filters</span>
               {filterConditions.length > 0 && (
-                <Badge variant="secondary" className="ml-2 text-[10px]">
+                <Badge variant="secondary" className="ml-1 md:ml-2 text-[10px] h-4 px-1">
                   {filterConditions.length}
                 </Badge>
               )}
@@ -657,19 +667,21 @@ export default function FinanceLeadsPage() {
             <Button
               variant="outline"
               onClick={() => setShowColumnSettings(!showColumnSettings)}
+              size="sm"
+              className="h-8 shrink-0"
             >
-              <ArrowUpDown className="h-4 w-4 mr-2" />
-              Columns
+              <ArrowUpDown className="h-4 w-4 md:mr-2" />
+              <span className="hidden md:inline">Columns</span>
             </Button>
             <select
-              className="px-3 py-2 rounded-md border border-input bg-background text-sm"
+              className="h-8 px-2 md:px-3 rounded-md border border-input bg-background text-xs md:text-sm shrink-0"
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as GroupBy)}
             >
-              <option value="none">No Grouping</option>
-              <option value="status">Group by Status</option>
-              <option value="finance_type">Group by Finance Type</option>
-              <option value="assigned_agent">Group by Agent</option>
+              <option value="none">No Group</option>
+              <option value="status">By Status</option>
+              <option value="finance_type">By Type</option>
+              <option value="assigned_agent">By Agent</option>
             </select>
           </div>
         </div>
@@ -677,10 +689,10 @@ export default function FinanceLeadsPage() {
         {/* Advanced Filters Panel (Airtable-style) */}
         {showFilters && (
           <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium">Filter conditions</span>
+            <CardContent className="p-3 md:p-4 space-y-3 md:space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+                  <span className="text-sm font-medium">Filters</span>
                   {filterConditions.length > 1 && (
                     <div className="flex items-center gap-2">
                       <span className="text-xs text-muted-foreground">Match</span>
@@ -689,22 +701,22 @@ export default function FinanceLeadsPage() {
                         value={filterLogic}
                         onChange={(e) => setFilterLogic(e.target.value as 'and' | 'or')}
                       >
-                        <option value="and">ALL conditions (AND)</option>
-                        <option value="or">ANY condition (OR)</option>
+                        <option value="and">ALL (AND)</option>
+                        <option value="or">ANY (OR)</option>
                       </select>
                     </div>
                   )}
                 </div>
                 {hasActiveFilters && (
-                  <Button variant="ghost" size="sm" onClick={clearFilters}>
-                    <X className="h-4 w-4 mr-1" />
-                    Clear All
+                  <Button variant="ghost" size="sm" onClick={clearFilters} className="self-start sm:self-auto h-7">
+                    <X className="h-3 w-3 mr-1" />
+                    Clear
                   </Button>
                 )}
               </div>
 
               {/* Filter Conditions */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {filterConditions.map((condition, index) => {
                   const fieldConfig = FILTER_FIELDS.find((f) => f.key === condition.field)
                   const operators = OPERATORS_BY_TYPE[fieldConfig?.type || 'text']
@@ -712,113 +724,115 @@ export default function FinanceLeadsPage() {
                   const isMultiSelect = ['is_any_of', 'is_none_of'].includes(condition.operator)
 
                   return (
-                    <div key={condition.id} className="flex items-center gap-2 flex-wrap">
-                      {index > 0 && (
-                        <span className="text-xs text-muted-foreground w-10">
-                          {filterLogic === 'and' ? 'AND' : 'OR'}
-                        </span>
-                      )}
-                      {index === 0 && <span className="w-10 text-xs text-muted-foreground">Where</span>}
+                    <div key={condition.id} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 bg-muted/30 rounded-md">
+                      <div className="flex items-center gap-2 flex-wrap flex-1">
+                        {index > 0 && (
+                          <span className="text-xs text-muted-foreground w-8 hidden sm:block">
+                            {filterLogic === 'and' ? 'AND' : 'OR'}
+                          </span>
+                        )}
+                        {index === 0 && <span className="w-8 text-xs text-muted-foreground hidden sm:block">Where</span>}
 
-                      {/* Field Select */}
-                      <select
-                        className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
-                        value={condition.field}
-                        onChange={(e) => updateFilterCondition(condition.id, { field: e.target.value })}
-                      >
-                        {FILTER_FIELDS.map((field) => (
-                          <option key={field.key} value={field.key}>
-                            {field.label}
-                          </option>
-                        ))}
-                      </select>
+                        {/* Field Select */}
+                        <select
+                          className="px-2 py-1.5 rounded-md border border-input bg-background text-xs md:text-sm flex-1 min-w-[100px] md:min-w-[120px]"
+                          value={condition.field}
+                          onChange={(e) => updateFilterCondition(condition.id, { field: e.target.value })}
+                        >
+                          {FILTER_FIELDS.map((field) => (
+                            <option key={field.key} value={field.key}>
+                              {field.label}
+                            </option>
+                          ))}
+                        </select>
 
-                      {/* Operator Select */}
-                      <select
-                        className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
-                        value={condition.operator}
-                        onChange={(e) => updateFilterCondition(condition.id, { operator: e.target.value as FilterOperator })}
-                      >
-                        {operators.map((op) => (
-                          <option key={op.value} value={op.value}>
-                            {op.label}
-                          </option>
-                        ))}
-                      </select>
+                        {/* Operator Select */}
+                        <select
+                          className="px-2 py-1.5 rounded-md border border-input bg-background text-xs md:text-sm flex-1 min-w-[80px] md:min-w-[120px]"
+                          value={condition.operator}
+                          onChange={(e) => updateFilterCondition(condition.id, { operator: e.target.value as FilterOperator })}
+                        >
+                          {operators.map((op) => (
+                            <option key={op.value} value={op.value}>
+                              {op.label}
+                            </option>
+                          ))}
+                        </select>
 
-                      {/* Value Input */}
-                      {needsValue && (
-                        <>
-                          {fieldConfig?.type === 'select' && !isMultiSelect ? (
-                            <select
-                              className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
-                              value={condition.value as string}
-                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
-                            >
-                              <option value="">Select...</option>
-                              {fieldConfig.options?.map((opt) => (
-                                <option key={opt} value={opt}>
-                                  {opt}
-                                </option>
-                              ))}
-                            </select>
-                          ) : fieldConfig?.type === 'select' && isMultiSelect ? (
-                            <div className="flex flex-wrap gap-1 min-w-[200px]">
-                              {fieldConfig.options?.map((opt) => {
-                                const values = Array.isArray(condition.value) ? condition.value : []
-                                const isSelected = values.includes(opt)
-                                return (
-                                  <Button
-                                    key={opt}
-                                    variant={isSelected ? 'default' : 'outline'}
-                                    size="sm"
-                                    className="h-7 text-xs"
-                                    onClick={() => {
-                                      const newValues = isSelected
-                                        ? values.filter((v) => v !== opt)
-                                        : [...values, opt]
-                                      updateFilterCondition(condition.id, { value: newValues })
-                                    }}
-                                  >
+                        {/* Value Input */}
+                        {needsValue && (
+                          <>
+                            {fieldConfig?.type === 'select' && !isMultiSelect ? (
+                              <select
+                                className="px-2 py-1.5 rounded-md border border-input bg-background text-xs md:text-sm flex-1 min-w-[100px] md:min-w-[120px]"
+                                value={condition.value as string}
+                                onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                              >
+                                <option value="">Select...</option>
+                                {fieldConfig.options?.map((opt) => (
+                                  <option key={opt} value={opt}>
                                     {opt}
-                                  </Button>
-                                )
-                              })}
-                            </div>
-                          ) : fieldConfig?.type === 'date' ? (
-                            <Input
-                              type="date"
-                              className="w-[160px]"
-                              value={condition.value as string}
-                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
-                            />
-                          ) : fieldConfig?.type === 'currency' ? (
-                            <Input
-                              type="number"
-                              className="w-[150px]"
-                              placeholder="£ Amount"
-                              value={condition.value as string}
-                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
-                            />
-                          ) : (
-                            <Input
-                              className="w-[200px]"
-                              placeholder="Value"
-                              value={condition.value as string}
-                              onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
-                            />
-                          )}
-                        </>
-                      )}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : fieldConfig?.type === 'select' && isMultiSelect ? (
+                              <div className="flex flex-wrap gap-1 w-full sm:w-auto">
+                                {fieldConfig.options?.map((opt) => {
+                                  const values = Array.isArray(condition.value) ? condition.value : []
+                                  const isSelected = values.includes(opt)
+                                  return (
+                                    <Button
+                                      key={opt}
+                                      variant={isSelected ? 'default' : 'outline'}
+                                      size="sm"
+                                      className="h-6 text-[10px] md:h-7 md:text-xs px-2"
+                                      onClick={() => {
+                                        const newValues = isSelected
+                                          ? values.filter((v) => v !== opt)
+                                          : [...values, opt]
+                                        updateFilterCondition(condition.id, { value: newValues })
+                                      }}
+                                    >
+                                      {opt}
+                                    </Button>
+                                  )
+                                })}
+                              </div>
+                            ) : fieldConfig?.type === 'date' ? (
+                              <Input
+                                type="date"
+                                className="flex-1 min-w-[120px] md:w-[150px] h-8 text-xs md:text-sm"
+                                value={condition.value as string}
+                                onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                              />
+                            ) : fieldConfig?.type === 'currency' ? (
+                              <Input
+                                type="number"
+                                className="flex-1 min-w-[100px] md:w-[130px] h-8 text-xs md:text-sm"
+                                placeholder="£ Amount"
+                                value={condition.value as string}
+                                onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                              />
+                            ) : (
+                              <Input
+                                className="flex-1 min-w-[100px] md:w-[150px] h-8 text-xs md:text-sm"
+                                placeholder="Value"
+                                value={condition.value as string}
+                                onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
+                              />
+                            )}
+                          </>
+                        )}
+                      </div>
 
                       {/* Remove Button */}
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive self-end sm:self-auto"
                         onClick={() => removeFilterCondition(condition.id)}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>
                   )
@@ -830,9 +844,9 @@ export default function FinanceLeadsPage() {
                 variant="outline"
                 size="sm"
                 onClick={addFilterCondition}
-                className="mt-2"
+                className="h-8"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-4 w-4 mr-1" />
                 Add Filter
               </Button>
             </CardContent>
@@ -861,11 +875,11 @@ export default function FinanceLeadsPage() {
         )}
       </div>
 
-      {/* Leads Table */}
+      {/* Leads - Table on desktop, Cards on mobile */}
       {Object.entries(groupedLeads).map(([groupName, groupLeads]) => (
         <Card key={groupName}>
           {groupBy !== 'none' && (
-            <CardHeader className="py-3 border-b">
+            <CardHeader className="py-2 md:py-3 border-b">
               <CardTitle className="text-sm flex items-center justify-between">
                 <span>{groupName}</span>
                 <Badge variant="secondary">{groupLeads.length}</Badge>
@@ -873,7 +887,85 @@ export default function FinanceLeadsPage() {
             </CardHeader>
           )}
           <CardContent className="p-0">
-            <div className="overflow-x-auto">
+            {/* Mobile Card View */}
+            <div className="md:hidden divide-y divide-border">
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Loading...</div>
+              ) : groupLeads.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">No finance leads found</div>
+              ) : (
+                groupLeads.map((lead) => (
+                  <div
+                    key={lead.id}
+                    className="p-3 hover:bg-muted/50 transition-colors cursor-pointer"
+                    onClick={() => router.push(`/admin/finance-leads/${lead.id}`)}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-medium text-sm truncate">
+                            {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                          </span>
+                          <Badge variant={getStatusColor(lead.status) as any} className="text-[10px] h-5">
+                            {lead.status || 'Unknown'}
+                          </Badge>
+                        </div>
+                        <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
+                          {lead.email && (
+                            <div className="flex items-center gap-1 truncate">
+                              <Mail className="h-3 w-3 shrink-0" />
+                              <span className="truncate">{lead.email}</span>
+                            </div>
+                          )}
+                          {lead.phone && (
+                            <div className="flex items-center gap-1">
+                              <Phone className="h-3 w-3 shrink-0" />
+                              <span>{lead.phone}</span>
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3 mt-2 text-xs">
+                          {lead.finance_type && (
+                            <Badge variant="outline" className="text-[10px]">
+                              {lead.finance_type}
+                            </Badge>
+                          )}
+                          {lead.loan_amount && (
+                            <span className="font-medium">
+                              {lead.loan_amount_display || formatCurrency(lead.loan_amount)}
+                            </span>
+                          )}
+                          <span className="text-muted-foreground">
+                            {formatDate(lead.date_added || lead.created_at)}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${lead.phone}` }}
+                        >
+                          <Phone className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7"
+                          onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${lead.email}` }}
+                        >
+                          <Mail className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* Desktop Table View */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
@@ -1033,52 +1125,55 @@ export default function FinanceLeadsPage() {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between border-t pt-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <span>
-              Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, sortedLeads.length)} of {sortedLeads.length}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t pt-3 md:pt-4">
+          <div className="flex items-center gap-2 text-xs md:text-sm text-muted-foreground order-2 sm:order-1">
+            <span className="whitespace-nowrap">
+              {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sortedLeads.length)} of {sortedLeads.length}
             </span>
             <select
-              className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+              className="px-2 py-1 rounded-md border border-input bg-background text-xs md:text-sm h-7 md:h-8"
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value))
                 setCurrentPage(1)
               }}
             >
-              <option value={25}>25 per page</option>
-              <option value={50}>50 per page</option>
-              <option value={100}>100 per page</option>
-              <option value={200}>200 per page</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+              <option value={200}>200</option>
             </select>
           </div>
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 order-1 sm:order-2">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setCurrentPage(1)}
               disabled={currentPage === 1}
+              className="h-7 md:h-8 px-2 hidden sm:flex"
             >
               First
             </Button>
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 md:h-8 md:w-8"
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <div className="flex items-center gap-1 px-2">
-              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+            {/* Page numbers - show fewer on mobile */}
+            <div className="flex items-center gap-1 px-1 md:px-2">
+              {Array.from({ length: Math.min(typeof window !== 'undefined' && window.innerWidth < 640 ? 3 : 5, totalPages) }, (_, i) => {
+                const maxPages = 5
                 let pageNum: number
-                if (totalPages <= 5) {
+                if (totalPages <= maxPages) {
                   pageNum = i + 1
                 } else if (currentPage <= 3) {
                   pageNum = i + 1
                 } else if (currentPage >= totalPages - 2) {
-                  pageNum = totalPages - 4 + i
+                  pageNum = totalPages - maxPages + 1 + i
                 } else {
                   pageNum = currentPage - 2 + i
                 }
@@ -1087,7 +1182,7 @@ export default function FinanceLeadsPage() {
                     key={pageNum}
                     variant={currentPage === pageNum ? 'default' : 'outline'}
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="h-7 w-7 md:h-8 md:w-8 p-0 text-xs md:text-sm"
                     onClick={() => setCurrentPage(pageNum)}
                   >
                     {pageNum}
@@ -1098,7 +1193,7 @@ export default function FinanceLeadsPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
+              className="h-7 w-7 md:h-8 md:w-8"
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
             >
@@ -1109,6 +1204,7 @@ export default function FinanceLeadsPage() {
               size="sm"
               onClick={() => setCurrentPage(totalPages)}
               disabled={currentPage === totalPages}
+              className="h-7 md:h-8 px-2 hidden sm:flex"
             >
               Last
             </Button>
