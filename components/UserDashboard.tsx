@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -53,17 +54,26 @@ function getTimeAgo(dateString: string): string {
 }
 
 export function UserDashboard({ userType, userName, companyId }: UserDashboardProps) {
+  const router = useRouter()
   const { leads, isLoading } = useData()
   const typeConfig = config[userType]
 
   // Filter leads by companyId for multi-tenant data isolation
+  // For Quick Access/test users (mph-company), show all leads for testing
   const myLeads = useMemo(() => {
     if (!companyId) return []
+    // Test company ID - show all leads for testing
+    if (companyId === 'mph-company') {
+      return leads
+    }
     return leads.filter(lead => lead.company_id === companyId)
   }, [leads, companyId])
 
   const hotLeads = useMemo(() =>
-    myLeads.filter((l) => (l.quality_score || 0) >= 85).slice(0, 3),
+    myLeads.filter((l) => {
+      const score = l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 85
+    }).slice(0, 3),
     [myLeads]
   )
 
@@ -143,7 +153,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </Badge>
             </div>
             <div className="text-2xl font-bold text-orange-500">
-              {myLeads.filter((l) => (l.quality_score || 0) >= 85).length}
+              {myLeads.filter((l) => {
+                const score = l.ai_quality_score ?? l.quality_score
+                return score !== null && score !== undefined && score >= 85
+              }).length}
             </div>
             <div className="text-xs text-muted-foreground">
               Hot {typeConfig.title}
@@ -197,7 +210,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="muted" className="text-[10px]">
-                  Q:{lead.quality_score}
+                  Q:{lead.ai_quality_score ?? lead.quality_score ?? '-'}
                 </Badge>
                 <Button variant="ghost" size="icon" className="h-8 w-8">
                   <Phone className="h-4 w-4" />
@@ -208,7 +221,11 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               </div>
             </div>
           ))}
-          <Button variant="outline" className="w-full mt-2">
+          <Button
+            variant="outline"
+            className="w-full mt-2"
+            onClick={() => router.push(`/${userType}/buyers`)}
+          >
             View All {typeConfig.title}
           </Button>
         </CardContent>
@@ -216,7 +233,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
 
       {/* Quick Actions */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/buyers`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Users className="h-5 w-5 text-primary" />
@@ -229,18 +249,24 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             </div>
           </CardContent>
         </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/campaigns`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <MessageSquare className="h-5 w-5 text-primary" />
             </div>
             <div>
-              <p className="font-medium text-sm">Conversations</p>
-              <p className="text-xs text-muted-foreground">View all messages</p>
+              <p className="font-medium text-sm">Campaigns</p>
+              <p className="text-xs text-muted-foreground">View active campaigns</p>
             </div>
           </CardContent>
         </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/matches`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Heart className="h-5 w-5 text-primary" />
@@ -253,7 +279,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             </div>
           </CardContent>
         </Card>
-        <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+        <Card
+          className="hover:border-primary/50 transition-colors cursor-pointer"
+          onClick={() => router.push(`/${userType}/insights`)}
+        >
           <CardContent className="p-4 flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
               <Sparkles className="h-5 w-5 text-primary" />

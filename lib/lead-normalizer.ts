@@ -1,0 +1,677 @@
+/**
+ * Lead Data Normalizer
+ *
+ * Ensures consistent data format when importing leads from any source
+ * (Airtable, CSV, API, etc.) into Supabase.
+ *
+ * This handles:
+ * - Status normalization (maps various status names to standard pipeline statuses)
+ * - Column name mapping (Airtable field names → Supabase column names)
+ * - Date parsing (various formats → ISO 8601)
+ * - Data validation and cleanup
+ */
+
+// ═══════════════════════════════════════════════════════════════════
+// STANDARD STATUS VALUES - These are the only valid statuses
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_STATUSES = [
+  'Contact Pending',
+  'Follow Up',
+  'Viewing Booked',
+  'Negotiating',
+  'Reserved',
+  'Exchanged',
+  'Completed',
+  'Not Proceeding',
+  'Disqualified',  // Includes: duplicate, fake, can't verify, agent
+] as const
+
+export type ValidStatus = typeof VALID_STATUSES[number]
+
+// ═══════════════════════════════════════════════════════════════════
+// CONNECTION STATUS - For broker/solicitor fields
+// ═══════════════════════════════════════════════════════════════════
+
+export const CONNECTION_STATUSES = [
+  'yes',        // Already has one
+  'introduced', // Introduction made by us
+  'no',         // Doesn't have one
+  'unknown',    // Not yet determined (default)
+] as const
+
+export type ConnectionStatus = typeof CONNECTION_STATUSES[number]
+
+/**
+ * Normalize broker/solicitor connection status
+ * Handles boolean values from legacy data and various string formats
+ */
+export function normalizeConnectionStatus(value: boolean | string | null | undefined): ConnectionStatus {
+  // Handle null/undefined - default to 'unknown'
+  if (value === null || value === undefined || value === '') {
+    return 'unknown'
+  }
+
+  // Handle boolean values (legacy data)
+  if (typeof value === 'boolean') {
+    return value ? 'yes' : 'unknown'  // true = yes, false = unknown (not definitively 'no')
+  }
+
+  // Handle string values
+  const normalized = String(value).toLowerCase().trim()
+
+  // Direct matches
+  if (normalized === 'yes' || normalized === 'true' || normalized === 'already has') {
+    return 'yes'
+  }
+  if (normalized === 'introduced' || normalized === 'introduction made') {
+    return 'introduced'
+  }
+  if (normalized === 'no' || normalized === 'false' || normalized === 'none' || normalized === "doesn't have") {
+    return 'no'
+  }
+
+  // Default to unknown
+  return 'unknown'
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PURCHASE PURPOSE - Valid ENUM values in Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_PURCHASE_PURPOSES = [
+  'Investment',
+  'Residence',
+  'Both',
+] as const
+
+export type ValidPurchasePurpose = typeof VALID_PURCHASE_PURPOSES[number]
+
+const PURPOSE_MAP: Record<string, ValidPurchasePurpose> = {
+  // Direct matches
+  'investment': 'Investment',
+  'residence': 'Residence',
+  'both': 'Both',
+
+  // Variations
+  'primary residence': 'Residence',
+  'primary': 'Residence',
+  'home': 'Residence',
+  'live in': 'Residence',
+  'personal': 'Residence',
+  'dependent studying in the uk': 'Residence',
+  'student': 'Residence',
+  'studying': 'Residence',
+  'buy to let': 'Investment',
+  'btl': 'Investment',
+  'rental': 'Investment',
+  'income': 'Investment',
+  'investment and residence': 'Both',
+  'both investment and residence': 'Both',
+}
+
+/**
+ * Normalize purchase purpose to valid ENUM value
+ */
+export function normalizePurchasePurpose(purpose: string | null | undefined): ValidPurchasePurpose | null {
+  if (!purpose) return null
+
+  const normalized = purpose.toLowerCase().trim()
+
+  // Direct map match
+  if (PURPOSE_MAP[normalized]) {
+    return PURPOSE_MAP[normalized]
+  }
+
+  // Check if already valid (case-insensitive)
+  const validMatch = VALID_PURCHASE_PURPOSES.find(
+    p => p.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  // Default - try to infer
+  if (normalized.includes('invest')) return 'Investment'
+  if (normalized.includes('resid') || normalized.includes('home') || normalized.includes('live')) return 'Residence'
+
+  console.warn(`Unknown purchase purpose "${purpose}" - returning null`)
+  return null
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PAYMENT METHOD - Valid ENUM values in Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_PAYMENT_METHODS = [
+  'Cash',
+  'Mortgage',
+] as const
+
+export type ValidPaymentMethod = typeof VALID_PAYMENT_METHODS[number]
+
+/**
+ * Normalize payment method to valid ENUM value
+ */
+export function normalizePaymentMethod(method: string | null | undefined): ValidPaymentMethod | null {
+  if (!method) return null
+
+  const normalized = method.toLowerCase().trim()
+
+  if (normalized === 'cash' || normalized === 'cash buyer') return 'Cash'
+  if (normalized === 'mortgage' || normalized === 'finance' || normalized === 'loan') return 'Mortgage'
+
+  // Check if already valid (case-insensitive)
+  const validMatch = VALID_PAYMENT_METHODS.find(
+    m => m.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  console.warn(`Unknown payment method "${method}" - returning null`)
+  return null
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// ENQUIRY TYPE - Valid ENUM values in Supabase
+// ═══════════════════════════════════════════════════════════════════
+
+export const VALID_ENQUIRY_TYPES = [
+  'Form',
+  'WA',
+  'Call',
+  'Email',
+  'Referral',
+] as const
+
+export type ValidEnquiryType = typeof VALID_ENQUIRY_TYPES[number]
+
+/**
+ * Normalize enquiry type to valid ENUM value
+ */
+export function normalizeEnquiryType(type: string | null | undefined): ValidEnquiryType | null {
+  if (!type) return null
+
+  const normalized = type.toLowerCase().trim()
+
+  // Direct matches
+  if (normalized === 'form' || normalized === 'web form' || normalized === 'website') return 'Form'
+  if (normalized === 'wa' || normalized === 'whatsapp') return 'WA'
+  if (normalized === 'call' || normalized === 'phone' || normalized === 'telephone') return 'Call'
+  if (normalized === 'email' || normalized === 'e-mail') return 'Email'
+  if (normalized === 'referral' || normalized === 'referred' || normalized === 'reference') return 'Referral'
+
+  // Check if already valid (case-insensitive)
+  const validMatch = VALID_ENQUIRY_TYPES.find(
+    t => t.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  console.warn(`Unknown enquiry type "${type}" - returning null`)
+  return null
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// STATUS MAPPING - Maps various input statuses to standard statuses
+// ═══════════════════════════════════════════════════════════════════
+
+const STATUS_MAP: Record<string, ValidStatus> = {
+  // ═══════════════════════════════════════════════════════════════════
+  // AIRTABLE → NAYBOURHOOD STATUS MAPPINGS
+  // ═══════════════════════════════════════════════════════════════════
+
+  // Contact Pending (Amber - In Progress)
+  'contact pending': 'Contact Pending',
+  'contactpending': 'Contact Pending',
+  'new': 'Contact Pending',
+  'new lead': 'Contact Pending',
+  'warm': 'Contact Pending',
+
+  // Follow Up (Amber - In Progress)
+  // Includes: Contacted - In Progress, Interested, Follow Up
+  'follow up': 'Follow Up',
+  'followup': 'Follow Up',
+  'follow-up': 'Follow Up',
+  'contacted': 'Follow Up',
+  'contacted - in progress': 'Follow Up',
+  'contacted in progress': 'Follow Up',
+  'contacted-in-progress': 'Follow Up',
+  'interested': 'Follow Up',
+  'qualified': 'Follow Up',
+  'hot': 'Follow Up',
+  'callback': 'Follow Up',
+
+  // Viewing Booked (Green - Positive)
+  'viewing booked': 'Viewing Booked',
+  'viewingbooked': 'Viewing Booked',
+  'viewing scheduled': 'Viewing Booked',
+  'viewing confirmed': 'Viewing Booked',
+
+  // Negotiating (Green - Positive)
+  // Includes: Offer Made
+  'negotiating': 'Negotiating',
+  'offer made': 'Negotiating',
+  'offermade': 'Negotiating',
+  'offer-made': 'Negotiating',
+  'documentation': 'Negotiating',
+
+  // Reserved
+  'reserved': 'Reserved',
+  'offer accepted': 'Reserved',
+  'under offer': 'Reserved',
+
+  // Exchanged
+  'exchanged': 'Exchanged',
+  'exchange': 'Exchanged',
+  'exchanging': 'Exchanged',
+
+  // Completed (Green - Positive)
+  'completed': 'Completed',
+  'sold': 'Completed',
+
+  // Not Proceeding (Red - Negative)
+  // Includes: Not Interested, Cold - No Response, No Longer Proceeding
+  'not proceeding': 'Not Proceeding',
+  'notproceeding': 'Not Proceeding',
+  'not-proceeding': 'Not Proceeding',
+  'not interested': 'Not Proceeding',
+  'notinterested': 'Not Proceeding',
+  'not-interested': 'Not Proceeding',
+  'cold - no response': 'Not Proceeding',
+  'cold no response': 'Not Proceeding',
+  'cold-no-response': 'Not Proceeding',
+  'cold': 'Not Proceeding',
+  'no response': 'Not Proceeding',
+  'no longer proceeding': 'Not Proceeding',
+  'nolongerproceeding': 'Not Proceeding',
+  'lost': 'Not Proceeding',
+  'dead': 'Not Proceeding',
+  'unqualified': 'Not Proceeding',
+
+  // Disqualified (Hidden from counts)
+  // Includes: Agent, Can't Verify, Duplicate, Fake
+  'disqualified': 'Disqualified',
+  'dq': 'Disqualified',
+  'duplicate': 'Disqualified',
+  'agent': 'Disqualified',
+  'fake': 'Disqualified',
+  'fake status': 'Disqualified',
+  "can't verify": 'Disqualified',
+  'cant verify': 'Disqualified',
+  'cannot verify': 'Disqualified',
+}
+
+/**
+ * Normalize a status value to a valid pipeline status
+ */
+export function normalizeStatus(status: string | null | undefined): ValidStatus {
+  if (!status) return 'Contact Pending'
+
+  const normalized = status.toLowerCase().trim()
+
+  // Direct match
+  if (STATUS_MAP[normalized]) {
+    return STATUS_MAP[normalized]
+  }
+
+  // Check if it's already a valid status (case-insensitive)
+  const validMatch = VALID_STATUSES.find(
+    s => s.toLowerCase() === normalized
+  )
+  if (validMatch) return validMatch
+
+  // Default fallback
+  console.warn(`Unknown status "${status}" - defaulting to "Contact Pending"`)
+  return 'Contact Pending'
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// COLUMN NAME MAPPING - Airtable/source fields → Supabase columns
+// ═══════════════════════════════════════════════════════════════════
+
+interface SourceLead {
+  // Names - various field names from different sources
+  full_name?: string
+  fullName?: string
+  name?: string
+  first_name?: string
+  firstName?: string
+  last_name?: string
+  lastName?: string
+
+  // Contact
+  email?: string
+  phone?: string
+  phone_number?: string
+  phoneNumber?: string
+  country?: string
+
+  // Budget - various formats
+  budget?: string
+  budget_range?: string
+  budgetRange?: string
+  budget_min?: number | string
+  budgetMin?: number | string
+  budget_max?: number | string
+  budgetMax?: number | string
+
+  // Property preferences
+  bedrooms?: number | string
+  preferred_bedrooms?: number | string
+  preferredBedrooms?: number | string
+  location?: string
+  area?: string
+  preferred_location?: string
+  preferredLocation?: string
+
+  // Timeline & Purpose
+  timeline?: string
+  timeline_to_purchase?: string
+  timelineToPurchase?: string
+  purpose?: string
+  purchase_purpose?: string
+  purchasePurpose?: string
+  ready_in_28_days?: boolean
+  ready_within_28_days?: boolean
+  readyIn28Days?: boolean
+
+  // Source & Campaign
+  source?: string
+  source_platform?: string
+  sourcePlatform?: string
+  campaign?: string
+  source_campaign?: string
+  sourceCampaign?: string
+  development?: string
+  development_name?: string
+  developmentName?: string
+  enquiry_type?: string
+  enquiryType?: string
+
+  // Status
+  status?: string
+
+  // Financial
+  payment_method?: string
+  paymentMethod?: string
+  proof_of_funds?: boolean
+  proofOfFunds?: boolean
+  mortgage_status?: string
+  mortgageStatus?: string
+  uk_broker?: boolean
+  ukBroker?: boolean
+  uk_solicitor?: boolean
+  ukSolicitor?: boolean
+
+  // Notes
+  notes?: string
+  transcript?: string
+  agent_transcript?: string
+
+  // Viewing
+  viewing_intent_confirmed?: boolean
+  viewingIntentConfirmed?: boolean
+  viewing_booked?: boolean
+  viewingBooked?: boolean
+  viewing_date?: string
+  viewingDate?: string
+
+  // Communication
+  replied?: boolean
+  stop_comms?: boolean
+  stopComms?: boolean
+  stop_agent_communication?: boolean
+  broker_connected?: boolean
+  brokerConnected?: boolean
+  connect_to_broker?: boolean
+
+  // Dates
+  date_added?: string
+  dateAdded?: string
+  created_at?: string
+  createdAt?: string
+
+  // Any other fields
+  [key: string]: any
+}
+
+export interface NormalizedLead {
+  // Required
+  full_name: string
+
+  // Name parts
+  first_name: string | null
+  last_name: string | null
+
+  // Contact
+  email: string | null
+  phone: string | null
+  country: string | null
+
+  // Budget
+  budget_range: string | null
+  budget_min: number | null
+  budget_max: number | null
+
+  // Property preferences
+  preferred_bedrooms: number | null
+  preferred_location: string | null
+
+  // Timeline & Purpose
+  timeline_to_purchase: string | null
+  purchase_purpose: string | null
+  ready_within_28_days: boolean
+
+  // Source & Campaign
+  source_platform: string | null
+  source_campaign: string | null
+  development_name: string | null
+  enquiry_type: string | null
+
+  // Status - always valid
+  status: ValidStatus
+
+  // Financial
+  payment_method: string | null
+  proof_of_funds: boolean
+  mortgage_status: string | null
+  uk_broker: ConnectionStatus
+  uk_solicitor: ConnectionStatus
+
+  // Notes
+  notes: string | null
+  agent_transcript: string | null
+
+  // Viewing
+  viewing_intent_confirmed: boolean
+  viewing_booked: boolean
+  viewing_date: string | null
+
+  // Communication
+  replied: boolean
+  stop_agent_communication: boolean
+  connect_to_broker: boolean
+
+  // Timestamps
+  date_added: string
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DATE PARSING
+// ═══════════════════════════════════════════════════════════════════
+
+// Default date for leads without a date (1st Jan 2025)
+// This prevents blank dates from appearing as "new" leads
+const DEFAULT_DATE = '2025-01-01T00:00:00.000Z'
+
+/**
+ * Parse various date formats to ISO 8601
+ * Handles: "6/1/2026 1:20pm", "2026-01-06", "Jan 6, 2026", etc.
+ * For leads without a date, defaults to 1st Jan 2025
+ */
+export function parseDate(dateStr: string | null | undefined): string {
+  if (!dateStr) return DEFAULT_DATE
+
+  try {
+    // UK format: "6/1/2026 1:20pm" (day/month/year)
+    const ukMatch = dateStr.match(/(\d{1,2})\/(\d{1,2})\/(\d{4})\s*(\d{1,2}):(\d{2})(am|pm)?/i)
+    if (ukMatch) {
+      const [, day, month, year, hours, minutes, ampm] = ukMatch
+      let hour = parseInt(hours)
+      if (ampm?.toLowerCase() === 'pm' && hour < 12) hour += 12
+      if (ampm?.toLowerCase() === 'am' && hour === 12) hour = 0
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day), hour, parseInt(minutes)).toISOString()
+    }
+
+    // UK date only: "6/1/2026"
+    const ukDateOnly = dateStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/)
+    if (ukDateOnly) {
+      const [, day, month, year] = ukDateOnly
+      return new Date(parseInt(year), parseInt(month) - 1, parseInt(day)).toISOString()
+    }
+
+    // ISO format already
+    if (dateStr.match(/^\d{4}-\d{2}-\d{2}/)) {
+      return new Date(dateStr).toISOString()
+    }
+
+    // Try standard Date parsing
+    const parsed = new Date(dateStr)
+    if (!isNaN(parsed.getTime())) {
+      return parsed.toISOString()
+    }
+
+    return DEFAULT_DATE
+  } catch {
+    return DEFAULT_DATE
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// BUDGET PARSING
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Parse budget strings like "£400K - £500K" to min/max numbers
+ */
+export function parseBudgetRange(budgetStr: string | null | undefined): { min: number | null, max: number | null } {
+  if (!budgetStr) return { min: null, max: null }
+
+  const parseAmount = (str: string): number | null => {
+    const cleaned = str.replace(/[£$,\s]/g, '')
+
+    // Handle "K" suffix
+    if (cleaned.match(/(\d+\.?\d*)K/i)) {
+      const match = cleaned.match(/(\d+\.?\d*)K/i)
+      return match ? parseFloat(match[1]) * 1000 : null
+    }
+
+    // Handle "M" or "Million" suffix
+    if (cleaned.match(/(\d+\.?\d*)\s*(M|Million)/i)) {
+      const match = cleaned.match(/(\d+\.?\d*)/i)
+      return match ? parseFloat(match[1]) * 1000000 : null
+    }
+
+    // Plain number
+    const num = parseFloat(cleaned)
+    return isNaN(num) ? null : num
+  }
+
+  const parts = budgetStr.split('-').map(s => s.trim())
+
+  return {
+    min: parts[0] ? parseAmount(parts[0]) : null,
+    max: parts[1] ? parseAmount(parts[1]) : parseAmount(parts[0])
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// MAIN NORMALIZER FUNCTION
+// ═══════════════════════════════════════════════════════════════════
+
+/**
+ * Normalize a lead from any source to Supabase format
+ */
+export function normalizeLead(source: SourceLead): NormalizedLead {
+  // Build full name from parts if not provided
+  const firstName = source.first_name || source.firstName || null
+  const lastName = source.last_name || source.lastName || null
+  const fullName = source.full_name || source.fullName || source.name ||
+    (firstName || lastName ? `${firstName || ''} ${lastName || ''}`.trim() : 'Unknown')
+
+  // Parse budget
+  const budgetStr = source.budget_range || source.budgetRange || source.budget
+  const { min: budgetMin, max: budgetMax } = parseBudgetRange(budgetStr)
+
+  // Parse bedrooms
+  const bedroomsRaw = source.preferred_bedrooms || source.preferredBedrooms || source.bedrooms
+  const bedrooms = typeof bedroomsRaw === 'string' ? parseInt(bedroomsRaw) : bedroomsRaw
+
+  // Parse date
+  const dateAdded = parseDate(
+    source.date_added || source.dateAdded || source.created_at || source.createdAt
+  )
+
+  return {
+    // Names
+    full_name: fullName,
+    first_name: firstName,
+    last_name: lastName,
+
+    // Contact
+    email: source.email || null,
+    phone: source.phone || source.phone_number || source.phoneNumber || null,
+    country: source.country || null,
+
+    // Budget
+    budget_range: budgetStr || null,
+    budget_min: source.budget_min != null ? Number(source.budget_min) : budgetMin,
+    budget_max: source.budget_max != null ? Number(source.budget_max) : budgetMax,
+
+    // Property preferences
+    preferred_bedrooms: bedrooms && !isNaN(bedrooms) ? bedrooms : null,
+    preferred_location: source.preferred_location || source.preferredLocation || source.location || source.area || null,
+
+    // Timeline & Purpose
+    timeline_to_purchase: source.timeline_to_purchase || source.timelineToPurchase || source.timeline || null,
+    purchase_purpose: source.purchase_purpose || source.purchasePurpose || source.purpose || null,
+    ready_within_28_days: Boolean(source.ready_within_28_days || source.ready_in_28_days || source.readyIn28Days),
+
+    // Source & Campaign
+    source_platform: source.source_platform || source.sourcePlatform || source.source || null,
+    source_campaign: source.source_campaign || source.sourceCampaign || source.campaign || null,
+    development_name: source.development_name || source.developmentName || source.development || null,
+    enquiry_type: source.enquiry_type || source.enquiryType || null,
+
+    // Status - ALWAYS normalized to valid status
+    status: normalizeStatus(source.status),
+
+    // Financial
+    payment_method: source.payment_method || source.paymentMethod || null,
+    proof_of_funds: Boolean(source.proof_of_funds || source.proofOfFunds),
+    mortgage_status: source.mortgage_status || source.mortgageStatus || null,
+    uk_broker: normalizeConnectionStatus(source.uk_broker ?? source.ukBroker),
+    uk_solicitor: normalizeConnectionStatus(source.uk_solicitor ?? source.ukSolicitor),
+
+    // Notes
+    notes: source.notes || null,
+    agent_transcript: source.agent_transcript || source.transcript || null,
+
+    // Viewing
+    viewing_intent_confirmed: Boolean(source.viewing_intent_confirmed || source.viewingIntentConfirmed),
+    viewing_booked: Boolean(source.viewing_booked || source.viewingBooked),
+    viewing_date: source.viewing_date || source.viewingDate || null,
+
+    // Communication
+    replied: Boolean(source.replied),
+    stop_agent_communication: Boolean(source.stop_agent_communication || source.stop_comms || source.stopComms),
+    connect_to_broker: Boolean(source.connect_to_broker || source.broker_connected || source.brokerConnected),
+
+    // Timestamps
+    date_added: dateAdded,
+  }
+}
+
+/**
+ * Normalize an array of leads
+ */
+export function normalizeLeads(leads: SourceLead[]): NormalizedLead[] {
+  return leads.map(normalizeLead)
+}

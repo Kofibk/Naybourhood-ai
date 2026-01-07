@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { Buyer, Campaign, Company, Development, AppUser, FinanceLead } from '@/types'
 
 interface DataContextType {
@@ -124,7 +125,29 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process BUYERS
       if (Array.isArray(buyersResult) && buyersResult.length > 0) {
-        console.log('[DataContext] First buyer columns:', Object.keys(buyersResult[0]))
+        console.log('[DataContext] ========== BUYERS DEBUG ==========')
+        console.log('[DataContext] Total buyers fetched:', buyersResult.length)
+        console.log('[DataContext] First buyer RAW:', JSON.stringify(buyersResult[0], null, 2))
+        console.log('[DataContext] All column names:', Object.keys(buyersResult[0]))
+        // Debug score fields specifically
+        const firstBuyer = buyersResult[0]
+        console.log('[DataContext] Score fields in raw data:', {
+          quality_score: firstBuyer.quality_score,
+          'Quality Score': firstBuyer['Quality Score'],
+          ai_quality_score: firstBuyer.ai_quality_score,
+          intent_score: firstBuyer.intent_score,
+          'Intent Score': firstBuyer['Intent Score'],
+          ai_intent_score: firstBuyer.ai_intent_score,
+          ai_confidence: firstBuyer.ai_confidence,
+        })
+      } else if (Array.isArray(buyersResult) && buyersResult.length === 0) {
+        console.warn('[DataContext] ⚠️ BUYERS: Empty result - this could be:')
+        console.warn('  1. No data in Supabase buyers table')
+        console.warn('  2. RLS blocking access (user not authenticated with Supabase)')
+        console.warn('  3. Quick Access test users bypass Supabase auth - use real login for data')
+      }
+
+      if (Array.isArray(buyersResult) && buyersResult.length > 0) {
 
         // Map column names - combine first_name + last_name into full_name
         const mappedBuyers = buyersResult.map((b: any) => {
@@ -133,41 +156,75 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const combinedName = `${firstName} ${lastName}`.trim()
 
           return {
+            ...b,  // Spread first so explicit mappings override
             id: b.id,
             full_name: b.full_name || b['Lead Name'] || b['lead name'] || combinedName || b.name || 'Unknown',
             first_name: firstName,
             last_name: lastName,
           email: b.email || b['Email'],
           phone: b.phone || b['phone number'] || b['Phone Number'],
-          budget: b.budget || b['budget range'] || b['Budget Range'],
+          budget: b.budget || b.budget_range || b['budget range'] || b['Budget Range'],
+          budget_range: b.budget_range || b['budget range'] || b['Budget Range'],
           budget_min: b.budget_min,
           budget_max: b.budget_max,
-          bedrooms: b.bedrooms || b['preferred bedrooms'] || b['Preferred Bedrooms'],
+          bedrooms: b.bedrooms || b.preferred_bedrooms || b['preferred bedrooms'] || b['Preferred Bedrooms'],
+          preferred_bedrooms: b.preferred_bedrooms || b['preferred bedrooms'] || b['Preferred Bedrooms'],
           location: b.location || b['preferred location'] || b['Preferred Location'],
           area: b.area || b['preferred location'] || b['Preferred Location'],
+          country: b.country || b['Country'],
           timeline: b.timeline || b['timeline to purchase'] || b['Timeline to Purchase'],
           source: b.source || b['source platform'] || b['Source Platform'],
           campaign: b.campaign || b['development'] || b['Development'],
+          campaign_id: b.campaign_id,
+          company_id: b.company_id,
           status: b.status || b['Status'] || 'New',
-          quality_score: b.quality_score || b['Quality Score'] || 0,
-          intent_score: b.intent_score || b['Intent Score'] || 0,
+          // Scores - check both standard and AI-generated columns
+          // Don't default to 0 - null means unscored, 0 means actually scored as 0
+          quality_score: b.quality_score ?? b.ai_quality_score ?? b['Quality Score'] ?? b['quality score'] ?? null,
+          intent_score: b.intent_score ?? b.ai_intent_score ?? b['Intent Score'] ?? b['intent score'] ?? null,
+          ai_quality_score: b.ai_quality_score ?? b.quality_score ?? null,
+          ai_intent_score: b.ai_intent_score ?? b.intent_score ?? null,
+          ai_confidence: b.ai_confidence ?? b.confidence ?? null,
+          ai_summary: b.ai_summary,
+          ai_next_action: b.ai_next_action,
+          ai_risk_flags: b.ai_risk_flags,
+          ai_recommendations: b.ai_recommendations,
+          ai_classification: b.ai_classification,
+          ai_priority: b.ai_priority,
+          ai_scored_at: b.ai_scored_at,
           payment_method: b.payment_method || b['cash or mortgage'] || b['Cash or Mortgage'],
           mortgage_status: b.mortgage_status || b['manual update'] || b['Manual Update'],
           proof_of_funds: b.proof_of_funds,
           uk_broker: b.uk_broker,
           uk_solicitor: b.uk_solicitor,
-          created_at: b.created_at || b['date added'] || b['Date Added'],
+          date_added: b.date_added || b['date added'] || b['Date Added'],
+          created_at: b.date_added || b.created_at || b['date added'] || b['Date Added'],
           updated_at: b.updated_at,
           notes: b.notes,
           assigned_to: b.assigned_to,
           assigned_user_name: b.assigned_user_name,
           assigned_at: b.assigned_at,
-          ...b,
+          // Additional engagement fields
+          purpose: b.purpose || b['Purpose'] || b['purchase_purpose'],
+          ready_in_28_days: b.ready_in_28_days ?? b['Ready in 28 Days'] ?? b.ready_in_28days,
+          viewing_intent_confirmed: b.viewing_intent_confirmed ?? b['Viewing Intent'] ?? b.viewing_intent,
+          viewing_booked: b.viewing_booked ?? b['Viewing Booked'],
+          viewing_date: b.viewing_date || b['Viewing Date'],
+          replied: b.replied ?? b['Replied'] ?? b.has_replied,
+          stop_comms: b.stop_comms ?? b['Stop Comms'] ?? b.opt_out,
+          next_follow_up: b.next_follow_up || b['Next Follow Up'] || b.follow_up_date,
+          broker_connected: b.broker_connected ?? b['Broker Connected'],
+          // Communication history
+          last_wa_message: b.last_wa_message || b['Last WA Message'] || b.last_whatsapp_message,
+          transcript: b.transcript || b['Transcript'],
+          call_summary: b.call_summary || b['Call Summary'],
         }})
+        console.log('[DataContext] First MAPPED buyer:', JSON.stringify(mappedBuyers[0], null, 2))
+        console.log('[DataContext] ====================================')
         console.log('[DataContext] Buyers loaded:', mappedBuyers.length)
         setLeads(mappedBuyers)
       } else {
-        console.log('[DataContext] No buyers found')
+        console.log('[DataContext] No buyers found or empty result')
       }
 
       // Process CAMPAIGNS
@@ -267,6 +324,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           image_url: d.image_url || d['Image URL'] || d['image'],
           total_leads: d.total_leads || d['Total Leads'] || 0,
           ad_spend: d.ad_spend || d['Ad Spend'] || d['total_spend'] || d['Total Spend'] || 0,
+          // PDF and document attachments
+          brochure_url: d.brochure_url || d['Brochure URL'] || d['brochure'],
+          floor_plan_url: d.floor_plan_url || d['Floor Plan URL'] || d['floor_plan'],
+          price_list_url: d.price_list_url || d['Price List URL'] || d['price_list'],
+          attachments: d.attachments || d['Attachments'] || [],
           created_at: d.created_at,
           updated_at: d.updated_at,
           ...d,
@@ -317,9 +379,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Finance Leads table error:', financeLeadsResult.error.message)
       }
 
-      // Process USERS - no demo data, only real users from Supabase
-      if (!usersResult.error && usersResult.data) {
-        const mappedUsers = usersResult.data.map((p: any) => ({
+      // Process USERS - try direct query first, then API fallback for Quick Access users
+      const mapProfileToUser = (p: any): AppUser => {
+        // Determine user status based on last_active
+        let status: 'active' | 'inactive' | 'pending' = 'pending'
+        const emailConfirmed = p.email_confirmed ?? (p.last_active ? true : false)
+
+        if (p.last_active) {
+          const lastActiveDate = new Date(p.last_active)
+          const thirtyDaysAgo = new Date()
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+          status = lastActiveDate > thirtyDaysAgo ? 'active' : 'inactive'
+        } else if (p.status === 'active') {
+          status = 'active'
+        }
+
+        return {
           id: p.id,
           name: p.full_name || p.email || 'Unknown',
           email: p.email || '',
@@ -327,14 +402,43 @@ export function DataProvider({ children }: { children: ReactNode }) {
           company_id: p.company_id,
           company: p.company_id,
           avatar_url: p.avatar_url,
-          status: (p.status || 'active') as 'active' | 'inactive',
+          status,
+          email_confirmed: emailConfirmed,
           last_active: p.last_active,
           created_at: p.created_at,
-        }))
-        console.log('[DataContext] Users loaded:', mappedUsers.length)
+          invited_at: p.created_at,
+        }
+      }
+
+      let usersLoaded = false
+      if (!usersResult.error && usersResult.data && usersResult.data.length > 0) {
+        const mappedUsers = usersResult.data.map(mapProfileToUser)
+        console.log('[DataContext] Users loaded from direct query:', mappedUsers.length)
         setUsers(mappedUsers)
-      } else if (usersResult.error) {
-        console.log('[DataContext] Users/profiles table error:', usersResult.error.message)
+        usersLoaded = true
+      }
+
+      // If direct query failed or returned empty, try API fallback (for Quick Access users)
+      if (!usersLoaded) {
+        console.log('[DataContext] Trying API fallback for users...')
+        try {
+          const response = await fetch('/api/users/invite?demo=true')
+          if (response.ok) {
+            const data = await response.json()
+            if (data.users && data.users.length > 0) {
+              const mappedUsers = data.users.map(mapProfileToUser)
+              console.log('[DataContext] Users loaded from API:', mappedUsers.length)
+              setUsers(mappedUsers)
+              usersLoaded = true
+            }
+          }
+        } catch (apiError) {
+          console.log('[DataContext] API fallback failed:', apiError)
+        }
+      }
+
+      if (!usersLoaded) {
+        console.log('[DataContext] No users found from any source')
         setUsers([])
       }
 
@@ -385,13 +489,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Update lead error:', error)
+        toast.error('Failed to update lead', { description: error.message })
         return null
       }
 
       setLeads((prev) => prev.map((l) => (l.id === id ? { ...l, ...updatedData } : l)))
+      toast.success('Lead updated')
       return updatedData
     } catch (e) {
       console.error('[DataContext] Update lead failed:', e)
+      toast.error('Failed to update lead')
       return null
     }
   }, [])
@@ -425,18 +532,21 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Update campaign error:', error)
+        toast.error('Failed to update campaign', { description: error.message })
         return null
       }
 
       setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedData } : c)))
+      toast.success('Campaign updated')
       return updatedData
     } catch (e) {
       console.error('[DataContext] Update campaign failed:', e)
+      toast.error('Failed to update campaign')
       return null
     }
   }, [])
 
-  // Create a new lead
+  // Create a new lead with auto-scoring
   const createLead = useCallback(async (data: Partial<Buyer>): Promise<Buyer | null> => {
     try {
       const supabase = createClient()
@@ -448,13 +558,53 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Create lead error:', error)
+        toast.error('Failed to create lead', { description: error.message })
         return null
       }
 
       setLeads((prev) => [newData, ...prev])
+      toast.success('Lead created')
+
+      // Auto-score the new lead in the background
+      if (newData?.id) {
+        console.log('[DataContext] Auto-scoring new lead:', newData.id)
+        fetch('/api/ai/score-buyer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ buyerId: newData.id }),
+        })
+          .then(async (res) => {
+            if (res.ok) {
+              const scoreResult = await res.json()
+              console.log('[DataContext] Lead auto-scored:', scoreResult)
+              // Update the lead in state with scores
+              setLeads((prev) =>
+                prev.map((l) =>
+                  l.id === newData.id
+                    ? {
+                        ...l,
+                        ai_quality_score: scoreResult.quality_score,
+                        ai_intent_score: scoreResult.intent_score,
+                        ai_confidence: scoreResult.confidence,
+                        ai_classification: scoreResult.classification,
+                        ai_priority: scoreResult.priority,
+                        ai_summary: scoreResult.summary,
+                        ai_next_action: scoreResult.next_action,
+                        ai_scored_at: new Date().toISOString(),
+                      }
+                    : l
+                )
+              )
+              toast.success('Lead scored', { description: `Classification: ${scoreResult.classification}` })
+            }
+          })
+          .catch((err) => console.error('[DataContext] Auto-score failed:', err))
+      }
+
       return newData
     } catch (e) {
       console.error('[DataContext] Create lead failed:', e)
+      toast.error('Failed to create lead')
       return null
     }
   }, [])
@@ -470,13 +620,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Delete lead error:', error)
+        toast.error('Failed to delete lead', { description: error.message })
         return false
       }
 
       setLeads((prev) => prev.filter((l) => l.id !== id))
+      toast.success('Lead deleted')
       return true
     } catch (e) {
       console.error('[DataContext] Delete lead failed:', e)
+      toast.error('Failed to delete lead')
       return false
     }
   }, [])
@@ -504,13 +657,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Create campaign error:', error)
+        toast.error('Failed to create campaign', { description: error.message })
         return null
       }
 
       setCampaigns((prev) => [newData, ...prev])
+      toast.success('Campaign created')
       return newData
     } catch (e) {
       console.error('[DataContext] Create campaign failed:', e)
+      toast.error('Failed to create campaign')
       return null
     }
   }, [])
@@ -526,13 +682,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Delete campaign error:', error)
+        toast.error('Failed to delete campaign', { description: error.message })
         return false
       }
 
       setCampaigns((prev) => prev.filter((c) => c.id !== id))
+      toast.success('Campaign deleted')
       return true
     } catch (e) {
       console.error('[DataContext] Delete campaign failed:', e)
+      toast.error('Failed to delete campaign')
       return false
     }
   }, [])

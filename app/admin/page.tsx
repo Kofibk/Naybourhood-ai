@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
-import { getGreeting, getDateString, formatCurrency } from '@/lib/utils'
+import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
 import {
   Users,
   Flame,
@@ -13,8 +13,6 @@ import {
   PoundSterling,
   TrendingDown,
   CheckCircle,
-  Lightbulb,
-  AlertCircle,
   Phone,
   MessageCircle,
   Calendar,
@@ -24,6 +22,7 @@ import {
   Building2,
   Megaphone,
 } from 'lucide-react'
+import { AIInsights } from '@/components/ai'
 
 const COLORS = {
   hot: '#ef4444',
@@ -31,6 +30,18 @@ const COLORS = {
   qualified: '#22c55e',
   new: '#3b82f6',
   cold: '#6b7280',
+}
+
+// Status categories - matching leads page
+// Green (Positive) = Viewing Booked, Negotiating, Reserved, Exchanged, Completed
+// Amber (In Progress) = Contact Pending, Follow Up
+// Red (Negative) = Not Proceeding
+// Hidden = Disqualified (duplicate, fake, can't verify, agent)
+const STATUS_CATEGORIES = {
+  positive: ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'],
+  pending: ['Contact Pending', 'Follow Up'],
+  negative: ['Not Proceeding'],
+  disqualified: ['Disqualified'],
 }
 
 // Animated counter hook
@@ -89,17 +100,44 @@ export default function AdminDashboard() {
 
   const userName = user.name?.split(' ')[0] || 'there'
 
-  // Calculate real metrics from data
+  // Calculate real metrics from data - excluding disqualified
   const metrics = useMemo(() => {
-    const totalLeads = leads.length
-    const hotLeads = leads.filter(l => (l.quality_score || 0) >= 80).length
-    const avgScore = totalLeads > 0
-      ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
+    // Exclude disqualified from all stats
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const disqualifiedCount = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
+
+    const totalLeads = activeLeads.length
+
+    // Hot leads: score >= 70 (only count leads that have been scored)
+    const hotLeads = activeLeads.filter(l => {
+      const score = l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 70
+    }).length
+
+    // Average score: only average leads that have actual scores (not null/undefined)
+    const scoredLeads = activeLeads.filter(l => {
+      const score = l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined
+    })
+    const avgScore = scoredLeads.length > 0
+      ? Math.round(scoredLeads.reduce((sum, l) => sum + (l.ai_quality_score ?? l.quality_score ?? 0), 0) / scoredLeads.length)
       : 0
+
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
     // Avg CPL = Total Spend / Total Leads (buyers count)
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
-    const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+
+    // Status category counts
+    const positiveLeads = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
+    const pendingLeads = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
+    const negativeLeads = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
+
+    // Qualified = positive status OR high score (for scored leads only)
+    const qualifiedLeads = activeLeads.filter(l => {
+      if (STATUS_CATEGORIES.positive.includes(l.status || '')) return true
+      const score = l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 70
+    }).length
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
     return {
@@ -110,94 +148,103 @@ export default function AdminDashboard() {
       avgCPL,
       qualifiedRate,
       totalCampaigns: campaigns.length,
-      activeCampaigns: campaigns.filter(c => c.status === 'active').length,
+      activeCampaigns: campaigns.filter(c => statusIs(c.status, 'active')).length,
       totalCompanies: companies.length,
+      positiveLeads,
+      pendingLeads,
+      negativeLeads,
+      disqualifiedCount,
+      scoredLeadsCount: scoredLeads.length,
     }
   }, [leads, campaigns, companies])
 
-  // Calculate lead classifications from real data
+  // Calculate lead classifications by status category - excluding disqualified
   const classificationData = useMemo(() => {
-    const hot = leads.filter(l => (l.quality_score || 0) >= 85).length
-    const warm = leads.filter(l => (l.quality_score || 0) >= 70 && (l.quality_score || 0) < 85).length
-    const qualified = leads.filter(l => l.status === 'Qualified').length
-    const newLeads = leads.filter(l => l.status === 'New').length
-    const cold = leads.filter(l => (l.quality_score || 0) < 50).length
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+
+    // By status category
+    const positive = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
+    const pending = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
+    const negative = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
+    const uncategorized = activeLeads.filter(l => {
+      const status = l.status || ''
+      return !STATUS_CATEGORIES.positive.includes(status) &&
+             !STATUS_CATEGORIES.pending.includes(status) &&
+             !STATUS_CATEGORIES.negative.includes(status)
+    }).length
+    const disqualified = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
 
     return [
-      { name: 'Hot (85+)', value: hot, color: COLORS.hot },
-      { name: 'Warm (70-84)', value: warm, color: COLORS.warm },
-      { name: 'Qualified', value: qualified, color: COLORS.qualified },
-      { name: 'New', value: newLeads, color: COLORS.new },
-      { name: 'Cold (<50)', value: cold, color: COLORS.cold },
+      { name: 'Positive', value: positive, color: '#22c55e' },  // Green
+      { name: 'In Progress', value: pending, color: '#f59e0b' },  // Amber
+      { name: 'Not Proceeding', value: negative, color: '#ef4444' },  // Red
+      { name: 'New/Other', value: uncategorized, color: '#3b82f6' },  // Blue
+      { name: 'Disqualified', value: disqualified, color: '#6b7280' },  // Grey
     ]
   }, [leads])
 
-  // Get leads requiring action (high score, not yet contacted)
+  // Get leads requiring action - hot leads that need follow-up
   const actionLeads = useMemo(() => {
     return leads
-      .filter(l => (l.quality_score || 0) >= 75 && l.status !== 'Completed')
-      .sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
+      .filter(l => {
+        const status = l.status || ''
+        // Exclude disqualified, completed, and negative statuses
+        if (STATUS_CATEGORIES.disqualified.includes(status)) return false
+        if (STATUS_CATEGORIES.negative.includes(status)) return false
+        if (status === 'Completed') return false
+        // Only include scored leads with score >= 70
+        const score = l.ai_quality_score ?? l.quality_score
+        return score !== null && score !== undefined && score >= 70
+      })
+      .sort((a, b) => {
+        const scoreA = a.ai_quality_score ?? a.quality_score ?? 0
+        const scoreB = b.ai_quality_score ?? b.quality_score ?? 0
+        return scoreB - scoreA
+      })
       .slice(0, 5)
+  }, [leads])
+
+  // Calculate campaign lead counts based on actual buyer/lead data
+  const campaignLeadCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    leads.forEach(lead => {
+      // Count by campaign name or development
+      const campaignKey = lead.campaign || lead.campaign_id
+      if (campaignKey) {
+        counts[campaignKey] = (counts[campaignKey] || 0) + 1
+      }
+    })
+    return counts
   }, [leads])
 
   // Get campaign alerts (high CPL campaigns)
   const campaignAlerts = useMemo(() => {
     return campaigns
-      .filter(c => c.status === 'active' && (c.cpl || c.cost_per_lead || 0) > 50)
+      .filter(c => statusIs(c.status, 'active') && (c.cpl || c.cost_per_lead || 0) > 50)
       .sort((a, b) => (b.cpl || b.cost_per_lead || 0) - (a.cpl || a.cost_per_lead || 0))
       .slice(0, 3)
   }, [campaigns])
 
-  // Build funnel from real data
+  // Build funnel from real data - using actual status values, excluding disqualified
   const funnelData = useMemo(() => {
-    const total = leads.length
-    const contacted = leads.filter(l => l.status !== 'New').length
-    const qualified = leads.filter(l => l.status === 'Qualified' || l.status === 'Viewing Booked').length
-    const viewing = leads.filter(l => l.status === 'Viewing Booked').length
-    const offer = leads.filter(l => l.status === 'Offer Made' || l.status === 'Completed').length
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const total = activeLeads.length
+    const contacted = activeLeads.filter(l => l.status && l.status !== 'Contact Pending').length
+    const interested = activeLeads.filter(l => ['Interested', 'Follow Up', 'Viewing Booked', 'Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const viewing = activeLeads.filter(l => ['Viewing Booked', 'Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const offer = activeLeads.filter(l => ['Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const reserved = activeLeads.filter(l => ['Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const completed = activeLeads.filter(l => l.status === 'Completed').length
 
     return [
       { name: 'Total', value: total, color: '#ffffff' },
       { name: 'Contacted', value: contacted, color: '#3b82f6' },
-      { name: 'Qualified', value: qualified, color: '#22c55e' },
-      { name: 'Viewing', value: viewing, color: '#f59e0b' },
-      { name: 'Offer', value: offer, color: '#a855f7' },
+      { name: 'Interested', value: interested, color: '#f59e0b' },
+      { name: 'Viewing', value: viewing, color: '#a855f7' },
+      { name: 'Offer Made', value: offer, color: '#22c55e' },
+      { name: 'Reserved', value: reserved, color: '#10b981' },
     ]
   }, [leads])
-
-  // AI recommendations based on real data
-  const aiRecommendations = useMemo(() => {
-    const recs: string[] = []
-
-    if (actionLeads.length > 0) {
-      const topLead = actionLeads[0]
-      recs.push(`Follow up with ${topLead.full_name || topLead.first_name} (Score: ${topLead.quality_score}) - High priority lead`)
-    }
-
-    const highCPLCampaigns = campaigns.filter(c => (c.cpl || 0) > 60)
-    if (highCPLCampaigns.length > 0) {
-      recs.push(`Review ${highCPLCampaigns.length} campaigns with CPL above £60`)
-    }
-
-    const newLeadsCount = leads.filter(l => l.status === 'New').length
-    if (newLeadsCount > 5) {
-      recs.push(`${newLeadsCount} new leads awaiting initial contact`)
-    }
-
-    const activeCampaigns = campaigns.filter(c => c.status === 'active')
-    if (activeCampaigns.length > 0) {
-      const bestCampaign = activeCampaigns.sort((a, b) => (a.cpl || 999) - (b.cpl || 999))[0]
-      if (bestCampaign) {
-        recs.push(`Best performing: ${bestCampaign.name} with £${bestCampaign.cpl || bestCampaign.cost_per_lead} CPL`)
-      }
-    }
-
-    if (metrics.qualifiedRate < 50) {
-      recs.push('Qualified rate below 50% - consider refining targeting')
-    }
-
-    return recs.length > 0 ? recs : ['All systems running smoothly - keep up the great work!']
-  }, [leads, campaigns, actionLeads, metrics.qualifiedRate])
 
   return (
     <div className="space-y-6">
@@ -412,97 +459,114 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      {/* AI Recommendations */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <Lightbulb className="h-4 w-4 text-yellow-500" />
-            AI Recommendations
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ul className="space-y-2">
-            {aiRecommendations.map((rec, i) => (
-              <li key={i} className="flex items-start gap-2 text-sm">
-                <CheckCircle className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                <span>{rec}</span>
-              </li>
-            ))}
-          </ul>
-        </CardContent>
-      </Card>
+      {/* AI Insights - Powered by AI Analysis */}
+      <AIInsights />
 
-      {/* Action Required - Real Leads */}
+      {/* Action Required - Real Leads with AI Next Actions */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Flame className="h-4 w-4 text-orange-500" />
-            Priority Leads
+            Priority Leads - AI Next Actions
             <Badge variant="destructive">{actionLeads.length}</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {actionLeads.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No priority leads at this time</p>
+            <p className="text-sm text-muted-foreground">No priority leads at this time. Leads will appear here once scored with AI.</p>
           ) : (
-            actionLeads.map((lead) => (
-              <div
-                key={lead.id}
-                className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20"
-              >
-                <div className="space-y-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-medium text-sm">{lead.full_name || lead.first_name || 'Unknown'}</span>
-                    {lead.budget && <Badge variant="muted">{lead.budget}</Badge>}
-                    {lead.status && <Badge variant="warning">{lead.status}</Badge>}
+            actionLeads.map((lead) => {
+              const score = lead.ai_quality_score ?? lead.quality_score ?? 0
+              const intentScore = lead.ai_intent_score ?? lead.intent_score
+              const nextAction = lead.ai_next_action
+              const classification = lead.ai_classification
+
+              return (
+                <div
+                  key={lead.id}
+                  className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-warning/5 border border-warning/20"
+                >
+                  <div className="space-y-1 min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm">{lead.full_name || lead.first_name || 'Unknown'}</span>
+                      {classification && (
+                        <Badge variant={classification === 'Hot' ? 'destructive' : 'warning'}>
+                          {classification}
+                        </Badge>
+                      )}
+                      {lead.status && <Badge variant="muted">{lead.status}</Badge>}
+                    </div>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <span className="font-medium text-foreground">Score: {score}</span>
+                      {intentScore && <span>Intent: {intentScore}</span>}
+                      {lead.budget && <span>{lead.budget}</span>}
+                    </div>
+                    {nextAction && (
+                      <div className="text-xs text-primary mt-1 font-medium">
+                        → {nextAction}
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                    <span>Score: {lead.quality_score || 0}</span>
-                    {lead.intent_score && <span>Intent: {lead.intent_score}</span>}
-                    {lead.timeline && <span>{lead.timeline}</span>}
-                    {lead.source && <span>via {lead.source}</span>}
+                  <div className="flex gap-2 shrink-0">
+                    {lead.phone && (
+                      <Button size="icon" className="h-8 w-8" asChild>
+                        <a href={`tel:${lead.phone}`}>
+                          <Phone className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    )}
+                    {lead.phone && (
+                      <Button size="icon" variant="outline" className="h-8 w-8" asChild>
+                        <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
+                          <MessageCircle className="h-3.5 w-3.5" />
+                        </a>
+                      </Button>
+                    )}
+                    <Button size="icon" variant="outline" className="h-8 w-8" asChild>
+                      <a href={`/admin/leads/${lead.id}`}>
+                        <Eye className="h-3.5 w-3.5" />
+                      </a>
+                    </Button>
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
-                  <Button size="icon" className="h-8 w-8">
-                    <Phone className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="icon" variant="outline" className="h-8 w-8">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button size="icon" variant="outline" className="h-8 w-8">
-                    <Calendar className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              </div>
-            ))
+              )
+            })
           )}
         </CardContent>
       </Card>
 
-      {/* Campaign Performance - Real Campaigns */}
+      {/* Campaign Performance - Real Campaigns with Lead Counts */}
       <Card>
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Megaphone className="h-4 w-4 text-primary" />
-            Active Campaigns
-            <Badge variant="secondary">{campaigns.filter(c => c.status === 'active').length}</Badge>
+            Campaign Performance
+            <Badge variant="secondary">{campaigns.length} campaigns</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          {campaigns.filter(c => c.status === 'active').length === 0 ? (
-            <p className="text-sm text-muted-foreground">No active campaigns</p>
+          {campaigns.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No campaigns</p>
           ) : (
             campaigns
-              .filter(c => c.status === 'active')
               .slice(0, 5)
               .map((campaign) => {
-                // Calculate leads from buyers matching this campaign
-                const campaignLower = (campaign.name || '').toLowerCase()
+                // Calculate leads from buyers that enquired about this campaign/development
+                const campaignName = (campaign.name || '').toLowerCase()
                 const campaignLeads = leads.filter(lead => {
-                  const leadCampaign = (lead.campaign || lead.source || '').toLowerCase()
-                  return leadCampaign.includes(campaignLower) || campaignLower.includes(leadCampaign)
+                  // Match by campaign_id first
+                  if (lead.campaign_id && lead.campaign_id === campaign.id) return true
+                  // Then match by campaign name
+                  const leadCampaign = (lead.campaign || '').toLowerCase()
+                  if (leadCampaign && campaignName) {
+                    return leadCampaign.includes(campaignName) || campaignName.includes(leadCampaign)
+                  }
+                  return false
                 }).length
+
+                // Calculate actual CPL from leads
+                const spend = campaign.spend || campaign.amount_spent || 0
+                const actualCPL = campaignLeads > 0 ? Math.round(spend / campaignLeads) : 0
 
                 return (
                   <div
@@ -513,18 +577,21 @@ export default function AdminDashboard() {
                       <div className="flex items-center gap-2 flex-wrap">
                         <span className="font-medium text-sm">{campaign.name}</span>
                         {campaign.platform && <Badge variant="secondary">{campaign.platform}</Badge>}
+                        {campaign.status === 'active' && <Badge variant="success">Active</Badge>}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>Spend: {formatCurrency(campaign.spend || campaign.amount_spent || 0)}</span>
-                        <span>Leads: {campaignLeads}</span>
-                        <span className={`font-medium ${(campaign.cpl || 0) > 50 ? 'text-warning' : 'text-success'}`}>
-                          CPL: £{campaign.cpl || campaign.cost_per_lead || 0}
+                        <span>Spend: {formatCurrency(spend)}</span>
+                        <span className="font-medium text-foreground">Leads: {campaignLeads}</span>
+                        <span className={`font-medium ${actualCPL > 50 ? 'text-warning' : 'text-success'}`}>
+                          CPL: {campaignLeads > 0 ? `£${actualCPL}` : 'N/A'}
                         </span>
                       </div>
                     </div>
-                    <Button size="sm" variant="outline">
-                      <Eye className="h-3.5 w-3.5 mr-1" />
-                      View
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`/admin/campaigns`}>
+                        <Eye className="h-3.5 w-3.5 mr-1" />
+                        View
+                      </a>
                     </Button>
                   </div>
                 )

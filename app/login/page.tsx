@@ -9,7 +9,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { LogoIcon } from '@/components/Logo'
 import { AuthHandler } from '@/components/AuthHandler'
-import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react'
+import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle, Shield, HardHat, Users, Briefcase } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -56,14 +56,27 @@ function LoginPageInner() {
           // Check onboarding status
           const { data: profile } = await supabase
             .from('user_profiles')
-            .select('onboarding_completed, user_type')
+            .select('*')
             .eq('id', user.id)
             .single()
 
           if (!profile?.onboarding_completed) {
             router.push('/onboarding')
           } else {
-            redirectBasedOnRole(profile.user_type || 'developer')
+            // Save user to localStorage before redirecting
+            const role = profile.user_type || 'developer'
+            const fullName = profile.first_name
+              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              : user.email?.split('@')[0] || 'User'
+
+            localStorage.setItem('naybourhood_user', JSON.stringify({
+              id: user.id,
+              email: user.email,
+              name: fullName,
+              role: role,
+            }))
+
+            redirectBasedOnRole(role)
           }
         }
       }
@@ -143,13 +156,11 @@ function LoginPageInner() {
 
         if (isSignUp) {
           // Sign up with password
+          // Don't use emailRedirectTo - let Supabase use default token-based confirmation
+          // which works across browsers (PKCE requires same browser)
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
-            options: {
-              // Redirect to login page - AuthHandler will catch the hash fragment tokens
-              emailRedirectTo: `${window.location.origin}/login`,
-            },
           })
 
           if (error) {
@@ -183,14 +194,27 @@ function LoginPageInner() {
             // Check onboarding status
             const { data: profile } = await supabase
               .from('user_profiles')
-              .select('onboarding_completed, user_type')
+              .select('*')
               .eq('id', data.user.id)
               .single()
 
             if (!profile?.onboarding_completed) {
               router.push('/onboarding')
             } else {
-              redirectBasedOnRole(profile.user_type || 'developer')
+              // Save user to localStorage before redirecting
+              const role = profile.user_type || 'developer'
+              const fullName = profile.first_name
+                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+                : data.user.email?.split('@')[0] || 'User'
+
+              localStorage.setItem('naybourhood_user', JSON.stringify({
+                id: data.user.id,
+                email: data.user.email,
+                name: fullName,
+                role: role,
+              }))
+
+              redirectBasedOnRole(role)
             }
           }
         }
@@ -503,6 +527,95 @@ function LoginPageInner() {
             </>
           )}
         </p>
+
+        {/* Quick Access - Development/Testing */}
+        <Card className="border-dashed border-muted-foreground/30">
+          <CardContent className="pt-4 pb-4">
+            <p className="text-xs text-center text-muted-foreground mb-3 uppercase tracking-wider font-medium">
+              Quick Access
+            </p>
+            <div className="flex items-center gap-3 mb-3 p-2 rounded-md bg-muted/50">
+              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium">Kofi</p>
+                <p className="text-xs text-muted-foreground">kofi@millionpound.homes</p>
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mb-2 text-center">Select dashboard:</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
+                    role: 'admin',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
+                  }))
+                  router.push('/admin')
+                }}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
+                    role: 'developer',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
+                  }))
+                  router.push('/developer')
+                }}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <HardHat className="h-4 w-4" />
+                Developer
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
+                    role: 'agent',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
+                  }))
+                  router.push('/agent')
+                }}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <Users className="h-4 w-4" />
+                Agent
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('naybourhood_user', JSON.stringify({
+                    id: 'kofi-mph',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
+                    role: 'broker',
+                    company: 'Million Pound Homes',
+                    company_id: 'mph-company',
+                  }))
+                  router.push('/broker')
+                }}
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+              >
+                <Briefcase className="h-4 w-4" />
+                Broker
+              </button>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

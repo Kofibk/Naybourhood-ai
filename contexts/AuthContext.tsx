@@ -18,43 +18,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Demo users for development - REMOVE IN PRODUCTION
-const demoUsers: Record<string, User> = {
-  'admin@naybourhood.ai': {
-    id: 'demo-admin',
-    name: 'Admin',
-    email: 'admin@naybourhood.ai',
-    role: 'admin',
-  },
-  'kofi@naybourhood.ai': {
-    id: 'demo-kofi',
-    name: 'Kofi',
-    email: 'kofi@naybourhood.ai',
-    role: 'admin',
-  },
-  'developer@test.com': {
-    id: 'demo-dev',
-    name: 'Developer',
-    email: 'developer@test.com',
-    role: 'developer',
-    company: 'Berkeley Group',
-  },
-  'agent@test.com': {
-    id: 'demo-agent',
-    name: 'Agent',
-    email: 'agent@test.com',
-    role: 'agent',
-    company: 'JLL',
-  },
-  'broker@test.com': {
-    id: 'demo-broker',
-    name: 'Broker',
-    email: 'broker@test.com',
-    role: 'broker',
-    company: 'Tudor Financial',
-  },
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -67,21 +30,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Fetch profile with company info
-      const { data: profile, error: profileError } = await supabase
+      // First check user_profiles (from onboarding)
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('*')
+        .eq('id', authUserId)
+        .single()
+
+      // Also check profiles table (legacy or admin-created)
+      const { data: profile } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', authUserId)
         .single()
 
-      if (profileError) {
-        console.error('[AuthContext] Profile fetch error:', profileError)
-        return null
-      }
+      // Merge data from both tables, preferring user_profiles for onboarded users
+      const role = userProfile?.user_type || profile?.role || 'developer'
+      const fullName = userProfile?.first_name
+        ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
+        : profile?.full_name || email.split('@')[0]
 
       // If user has company_id, fetch company name
-      let companyName = undefined
-      if (profile?.company_id) {
+      let companyName = userProfile?.company_name
+      if (!companyName && profile?.company_id) {
         const { data: company } = await supabase
           .from('companies')
           .select('name')
@@ -94,11 +65,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const appUser: User = {
         id: authUserId,
         email: email,
-        name: profile?.full_name || email.split('@')[0],
-        role: (profile?.role as UserRole) || 'developer',
+        name: fullName,
+        role: role as UserRole,
         company_id: profile?.company_id,
         company: companyName,
-        avatarUrl: profile?.avatar_url,
+        avatarUrl: userProfile?.avatar_url || profile?.avatar_url,
       }
 
       return appUser
@@ -220,15 +191,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             return true
           }
         }
-      }
-
-      // Fallback to demo login for development
-      const demoUser = demoUsers[email.toLowerCase()]
-      if (demoUser) {
-        setUser(demoUser)
-        localStorage.setItem('naybourhood_user', JSON.stringify(demoUser))
-        setIsLoading(false)
-        return true
       }
 
       setIsLoading(false)

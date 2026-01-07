@@ -23,6 +23,10 @@ import {
   Heart,
   Home,
   Landmark,
+  ArrowRightLeft,
+  Shield,
+  Briefcase,
+  HardHat,
 } from 'lucide-react'
 import { useState } from 'react'
 
@@ -106,6 +110,14 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   const navItems = getNavItems()
   const isActive = (href: string) => pathname === href
 
+  // Quick Access dashboards for admins
+  const quickAccessDashboards = [
+    { name: 'Admin', icon: Shield, href: '/admin', type: 'admin' as UserType },
+    { name: 'Developer', icon: HardHat, href: '/developer', type: 'developer' as UserType },
+    { name: 'Agent', icon: Users, href: '/agent', type: 'agent' as UserType },
+    { name: 'Broker', icon: Briefcase, href: '/broker', type: 'broker' as UserType },
+  ]
+
   const NavContent = () => (
     <div className="flex flex-col h-full bg-sidebar">
       {/* Logo */}
@@ -123,6 +135,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
               <Link
                 href={item.href}
                 onClick={() => setMobileOpen(false)}
+                aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
                   isActive(item.href)
@@ -130,7 +143,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
                     : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white'
                 )}
               >
-                <item.icon className="h-5 w-5" />
+                <item.icon className="h-5 w-5" aria-hidden="true" />
                 <span>{item.name}</span>
                 {item.badge && (
                   <Badge variant="muted" className="ml-auto text-[10px]">
@@ -142,6 +155,34 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
           ))}
         </ul>
       </nav>
+
+      {/* Quick Access - Admin Only */}
+      {userType === 'admin' && (
+        <div className="p-3 border-t border-sidebar-border">
+          <div className="flex items-center gap-2 px-2 mb-2 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+            <ArrowRightLeft className="h-3 w-3" />
+            Quick Access
+          </div>
+          <div className="grid grid-cols-2 gap-1">
+            {quickAccessDashboards.map((dashboard) => (
+              <Link
+                key={dashboard.type}
+                href={dashboard.href}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  'flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors',
+                  userType === dashboard.type
+                    ? 'bg-sidebar-accent text-white font-medium'
+                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white'
+                )}
+              >
+                <dashboard.icon className="h-3.5 w-3.5" />
+                <span>{dashboard.name}</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* User Profile */}
       <div className="p-3 border-t border-sidebar-border space-y-3">
@@ -176,8 +217,11 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         size="icon"
         className="lg:hidden fixed top-3 left-3 z-50"
         onClick={() => setMobileOpen(!mobileOpen)}
+        aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+        aria-expanded={mobileOpen}
+        aria-controls="mobile-sidebar"
       >
-        {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        {mobileOpen ? <X className="h-5 w-5" aria-hidden="true" /> : <Menu className="h-5 w-5" aria-hidden="true" />}
       </Button>
 
       {/* Mobile Overlay */}
@@ -185,11 +229,16 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         <div
           className="lg:hidden fixed inset-0 bg-black/50 z-40"
           onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+          role="presentation"
         />
       )}
 
       {/* Sidebar */}
       <aside
+        id="mobile-sidebar"
+        role="navigation"
+        aria-label="Main navigation"
         className={cn(
           'fixed lg:static inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 lg:transform-none',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'

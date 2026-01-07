@@ -4,6 +4,7 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
+import { LeadImporter } from '@/components/admin/LeadImporter'
 import {
   Database,
   Key,
@@ -21,15 +22,24 @@ import {
   BarChart2,
   MessageSquare,
   ExternalLink,
+  Bot,
+  Bell,
+  Zap,
+  Clock,
+  Flame,
 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 
 export default function SettingsPage() {
   const { isLoading, leads, campaigns, companies, developments, refreshData } = useData()
 
-  // System stats
+  // System stats - excluding disqualified from lead count
   const systemStats = useMemo(() => {
+    const activeLeads = leads.filter(l => l.status !== 'Disqualified')
+    const disqualifiedCount = leads.length - activeLeads.length
     return {
-      totalLeads: leads.length,
+      totalLeads: activeLeads.length,
+      disqualifiedLeads: disqualifiedCount,
       totalCampaigns: campaigns.length,
       totalCompanies: companies.length,
       totalDevelopments: developments.length,
@@ -158,6 +168,9 @@ export default function SettingsPage() {
         </Card>
       </div>
 
+      {/* Lead Import */}
+      <LeadImporter />
+
       {/* Integration Status */}
       <Card>
         <CardHeader>
@@ -199,6 +212,78 @@ export default function SettingsPage() {
               </div>
             </div>
           ))}
+        </CardContent>
+      </Card>
+
+      {/* AI Notifications & Tasks */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5" />
+            AI Notifications & Tasks
+          </CardTitle>
+          <CardDescription>Configure AI-powered alerts and automated task suggestions</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
+                <Flame className="h-5 w-5 text-red-500" />
+              </div>
+              <div>
+                <div className="font-medium">Hot Lead Alerts</div>
+                <div className="text-sm text-muted-foreground">
+                  Get notified when AI identifies high-intent leads
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                <Clock className="h-5 w-5 text-amber-500" />
+              </div>
+              <div>
+                <div className="font-medium">Follow-up Reminders</div>
+                <div className="text-sm text-muted-foreground">
+                  AI-suggested follow-up times based on lead activity
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                <Bell className="h-5 w-5 text-blue-500" />
+              </div>
+              <div>
+                <div className="font-medium">Daily AI Digest</div>
+                <div className="text-sm text-muted-foreground">
+                  Morning summary of leads, trends and recommended actions
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
+          </div>
+
+          <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
+                <Zap className="h-5 w-5 text-green-500" />
+              </div>
+              <div>
+                <div className="font-medium">Priority Actions</div>
+                <div className="text-sm text-muted-foreground">
+                  AI-recommended next steps for each lead
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" size="sm">Enabled</Button>
+          </div>
         </CardContent>
       </Card>
 

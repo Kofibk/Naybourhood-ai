@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { formatCurrency } from '@/lib/utils'
+import { formatCurrency, formatPriceRange } from '@/lib/utils'
 import type { Development } from '@/types'
 import {
   ArrowLeft,
@@ -28,6 +28,8 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  FileText,
+  Download,
 } from 'lucide-react'
 
 export default function DevelopmentDetailPage() {
@@ -54,25 +56,38 @@ export default function DevelopmentDetailPage() {
     )
   }, [campaigns, development])
 
-  // Get leads from these campaigns
+  // Get leads from these campaigns or directly associated with this development
   const devLeads = useMemo(() => {
     if (!development) return []
-    return leads.filter(
-      (l) =>
-        l.campaign &&
-        devCampaigns.some((c) => c.name === l.campaign || c.id === l.campaign_id)
-    )
+    const campaignNames = devCampaigns.map(c => c.name).filter(Boolean)
+    const campaignIds = devCampaigns.map(c => c.id).filter(Boolean)
+
+    return leads.filter((l) => {
+      // Match by campaign
+      if (l.campaign && campaignNames.includes(l.campaign)) return true
+      if (l.campaign_id && campaignIds.includes(l.campaign_id)) return true
+      // Match by development name in buyer location/area/notes
+      const devNameLower = development.name.toLowerCase()
+      if (l.location?.toLowerCase().includes(devNameLower)) return true
+      if (l.area?.toLowerCase().includes(devNameLower)) return true
+      return false
+    })
   }, [leads, devCampaigns, development])
 
-  // Calculate stats
+  // Calculate stats - use actual lead count from devLeads
   const stats = useMemo(() => {
-    const totalSpend = devCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
-    const totalLeads = devCampaigns.reduce((sum, c) => sum + (c.leads || 0), 0)
+    const totalSpend = devCampaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0)
+    // Use actual leads count instead of campaign leads field
+    const totalLeads = devLeads.length
     const activeCampaigns = devCampaigns.filter((c) =>
       c.status === 'active' || c.status === 'Active'
     ).length
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
-    const hotLeads = devLeads.filter((l) => (l.quality_score || 0) >= 80).length
+    // Hot leads: scored 80+ (check both ai_quality_score and quality_score)
+    const hotLeads = devLeads.filter((l) => {
+      const score = l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 80
+    }).length
 
     return {
       totalSpend,
@@ -334,7 +349,7 @@ export default function DevelopmentDetailPage() {
               <span className="text-xs text-muted-foreground">Total Units</span>
             </div>
             <p className="text-2xl font-bold">
-              {development.total_units || development.units || 0}
+              {(development.total_units || development.units) ? (development.total_units || development.units) : '-'}
             </p>
           </CardContent>
         </Card>
@@ -345,7 +360,7 @@ export default function DevelopmentDetailPage() {
               <span className="text-xs text-muted-foreground">Available</span>
             </div>
             <p className="text-2xl font-bold text-success">
-              {development.available_units || 0}
+              {development.available_units ? development.available_units : '-'}
             </p>
           </CardContent>
         </Card>
@@ -414,7 +429,7 @@ export default function DevelopmentDetailPage() {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Price Range</p>
                 <p className="text-sm font-medium">
-                  {development.price_from || '?'} - {development.price_to || '?'}
+                  {formatPriceRange(development.price_from, development.price_to)}
                 </p>
               </div>
             )}
@@ -424,6 +439,64 @@ export default function DevelopmentDetailPage() {
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <p className="text-sm font-medium">{development.completion_date}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Documents Section */}
+            {(development.brochure_url || development.floor_plan_url || development.price_list_url || (development.attachments && development.attachments.length > 0)) && (
+              <div className="pt-4 border-t border-border">
+                <p className="text-sm text-muted-foreground mb-3">Documents</p>
+                <div className="space-y-2">
+                  {development.brochure_url && (
+                    <a
+                      href={development.brochure_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                    >
+                      <FileText className="h-4 w-4 text-red-500" />
+                      <span className="flex-1">Brochure</span>
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                  )}
+                  {development.floor_plan_url && (
+                    <a
+                      href={development.floor_plan_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                    >
+                      <FileText className="h-4 w-4 text-blue-500" />
+                      <span className="flex-1">Floor Plans</span>
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                  )}
+                  {development.price_list_url && (
+                    <a
+                      href={development.price_list_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                    >
+                      <FileText className="h-4 w-4 text-green-500" />
+                      <span className="flex-1">Price List</span>
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                  )}
+                  {development.attachments?.map((attachment, index) => (
+                    <a
+                      key={index}
+                      href={attachment.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                    >
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <span className="flex-1">{attachment.name}</span>
+                      <Download className="h-4 w-4 text-muted-foreground" />
+                    </a>
+                  ))}
                 </div>
               </div>
             )}
