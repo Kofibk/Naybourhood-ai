@@ -54,15 +54,39 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
 
-    // Check if this is an invited user (internal team or company member)
-    // Invited users skip onboarding entirely
-    const isInvitedUser = userMetadata.is_internal === true || !!userMetadata.company_id
+    // Check if this user was invited (has role set by invite API, or is_internal/company_id)
+    // This works even when type !== 'invite' (PKCE code flow)
+    const wasInvited = !!(
+      userMetadata.role ||  // Role is set by invite API, not by normal signup
+      userMetadata.is_internal === true ||
+      userMetadata.company_id
+    )
 
-    // Handle invite - redirect to set password page for first-time setup
-    if (type === 'invite') {
+    // Check existing profiles to see if this is a first-time login
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('onboarding_completed, user_type')
+      .eq('id', authResult.user.id)
+      .single()
+
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('role, full_name, company_id, status')
+      .eq('id', authResult.user.id)
+      .single()
+
+    // Invited user needs password setup if:
+    // 1. type === 'invite' (explicit), OR
+    // 2. They have invite metadata AND no user_profiles entry yet (first login)
+    const needsPasswordSetup = wasInvited && (
+      type === 'invite' ||
+      !userProfile  // No user_profiles entry = first time logging in
+    )
+
+    if (needsPasswordSetup) {
       // Determine redirect path based on role for after password setup
       let redirectPath = '/developer'
-      const role = userMetadata.role || 'developer'
+      const role = userMetadata.role || profile?.role || 'developer'
       switch (role) {
         case 'super_admin':
         case 'admin':
@@ -86,15 +110,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(setPasswordUrl.toString())
     }
 
-    // Check if user has completed onboarding (user_profiles table)
-    const { data: userProfile } = await supabase
-      .from('user_profiles')
-      .select('onboarding_completed, user_type')
-      .eq('id', authResult.user.id)
-      .single()
-
-    // If user hasn't completed onboarding AND is not an invited user, redirect to onboarding
-    if (!userProfile?.onboarding_completed && !isInvitedUser) {
+    // If user hasn't completed onboarding AND was NOT invited, redirect to onboarding
+    if (!userProfile?.onboarding_completed && !wasInvited) {
       // Store basic auth info in URL params for client-side
       const onboardingUrl = new URL(`${origin}/onboarding`)
       onboardingUrl.searchParams.set('auth', 'success')
@@ -103,8 +120,8 @@ export async function GET(request: Request) {
       return NextResponse.redirect(onboardingUrl.toString())
     }
 
-    // For invited users who haven't set up their profile yet, create it now
-    if (isInvitedUser && !userProfile) {
+    // For invited users who haven't set up their user_profiles entry yet, create it now
+    if (wasInvited && !userProfile) {
       // Create user_profiles entry with onboarding marked complete
       await supabase
         .from('user_profiles')
@@ -118,13 +135,6 @@ export async function GET(request: Request) {
           is_internal: userMetadata.is_internal || false,
         })
     }
-
-    // Fetch user profile from database to get their actual role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, full_name, company_id')
-      .eq('id', authResult.user.id)
-      .single()
 
     // Use database role if available, otherwise check user metadata or user_type from onboarding
     let role = profile?.role || userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
