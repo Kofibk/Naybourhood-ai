@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -16,6 +16,16 @@ export async function GET(request: Request) {
   }
 
   const supabase = await createClient()
+
+  // Use admin client for profile queries to bypass RLS
+  // This is critical for invited users who don't have established permissions yet
+  let adminClient: ReturnType<typeof createAdminClient> | null = null
+  try {
+    adminClient = createAdminClient()
+  } catch (e) {
+    console.log('[Auth Callback] Admin client not available, using regular client')
+  }
+
   let authResult: { user: any } | null = null
   let authError: any = null
 
@@ -55,13 +65,16 @@ export async function GET(request: Request) {
     }
 
     // Check existing profiles FIRST to determine if user was invited
-    const { data: userProfile } = await supabase
+    // Use admin client to bypass RLS - critical for first-time invited users
+    const dbClient = adminClient || supabase
+
+    const { data: userProfile } = await dbClient
       .from('user_profiles')
       .select('onboarding_completed, user_type')
       .eq('id', authResult.user.id)
       .single()
 
-    const { data: profile } = await supabase
+    const { data: profile } = await dbClient
       .from('profiles')
       .select('role, full_name, company_id, status, is_internal')
       .eq('id', authResult.user.id)
@@ -95,7 +108,7 @@ export async function GET(request: Request) {
 
       // Create user_profiles entry NOW (before redirect) so they don't get stuck in loop
       if (!userProfile) {
-        await supabase
+        await dbClient
           .from('user_profiles')
           .upsert({
             id: authResult.user.id,
@@ -110,7 +123,7 @@ export async function GET(request: Request) {
 
       // Also create profiles entry if it doesn't exist
       if (!profile) {
-        await supabase
+        await dbClient
           .from('profiles')
           .upsert({
             id: authResult.user.id,
@@ -160,7 +173,7 @@ export async function GET(request: Request) {
     // For invited users who haven't set up their user_profiles entry yet, create it now
     if (wasInvited && !userProfile) {
       // Create user_profiles entry with onboarding marked complete
-      await supabase
+      await dbClient
         .from('user_profiles')
         .upsert({
           id: authResult.user.id,
@@ -179,7 +192,7 @@ export async function GET(request: Request) {
     // If this is an invite and profile doesn't exist, create it from user metadata
     if (!profile && authResult.user.user_metadata) {
       const metadata = authResult.user.user_metadata
-      const { error: profileError } = await supabase
+      const { error: profileError } = await dbClient
         .from('profiles')
         .upsert({
           id: authResult.user.id,
