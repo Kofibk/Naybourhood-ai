@@ -152,7 +152,7 @@ export default function LeadsPage() {
     if (!selectedAssignee || selectedIds.length === 0) return
     setBulkActionLoading(true)
     try {
-      await bulkUpdateLeads(selectedIds, { assignedCaller: selectedAssignee })
+      await bulkUpdateLeads(selectedIds, { assigned_user_name: selectedAssignee })
       toast.success(`Assigned ${selectedIds.length} leads to ${selectedAssignee}`)
       setShowAssignModal(false)
       setSelectedIds([])
