@@ -183,24 +183,61 @@ export interface Development {
   name: string
   location?: string
   address?: string
+  postcode?: string
+  borough?: string
   developer?: string
   status?: string
   units?: number
   total_units?: number
   available_units?: number
+  reserved_units?: number
+  sold_units?: number
+  // Pricing
   price_from?: string
   price_to?: string
+  service_charge?: string
+  ground_rent?: string
+  // Property Details
+  property_types?: string[]  // e.g., ['1 bed', '2 bed', 'penthouse']
+  tenure?: string  // 'Freehold', 'Leasehold', 'Share of Freehold'
+  lease_length?: number
   completion_date?: string
+  completion_quarter?: string  // e.g., 'Q2 2025'
+  // Description & Features
   description?: string
+  short_description?: string
+  key_selling_points?: string[]
+  amenities?: string[]  // e.g., ['Gym', 'Concierge', 'Rooftop Terrace']
+  transport_links?: string[]
+  nearby_stations?: string[]
+  local_highlights?: string[]
+  // Media
   image_url?: string
-  features?: string[]
-  total_leads?: number
-  ad_spend?: number
-  // PDF and document attachments
+  gallery_images?: string[]
+  video_url?: string
+  virtual_tour_url?: string
+  // Documents
   brochure_url?: string
   floor_plan_url?: string
   price_list_url?: string
+  specification_url?: string
   attachments?: Array<{ name: string; url: string; type?: string }>
+  // Sales Info
+  sales_agent?: string
+  sales_phone?: string
+  sales_email?: string
+  viewing_availability?: string
+  show_apartment_available?: boolean
+  // Marketing Metrics
+  total_leads?: number
+  ad_spend?: number
+  features?: string[]
+  // AI Agent Fields
+  ai_pitch?: string  // Pre-generated sales pitch for AI agent
+  ai_objection_handlers?: Record<string, string>  // Common objections and responses
+  ai_target_audience?: string
+  ai_key_comparisons?: string[]  // Comparison points vs competitors
+  // Timestamps
   created_at?: string
   updated_at?: string
 }

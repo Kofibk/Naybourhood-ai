@@ -785,21 +785,46 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const createDevelopment = useCallback(async (data: Partial<Development>): Promise<Development | null> => {
     try {
       const supabase = createClient()
+
+      // Clean data - only send valid column names
+      const cleanData: Record<string, any> = {
+        name: data.name,
+        location: data.location || null,
+        developer: data.developer || null,
+        status: data.status || 'Active',
+        total_units: data.total_units || 0,
+        available_units: data.available_units || 0,
+        price_from: data.price_from || null,
+        price_to: data.price_to || null,
+        description: data.description || null,
+        completion_date: data.completion_date || null,
+        image_url: data.image_url || null,
+        brochure_url: data.brochure_url || null,
+        floor_plan_url: data.floor_plan_url || null,
+        price_list_url: data.price_list_url || null,
+        created_at: new Date().toISOString(),
+      }
+
+      console.log('[DataContext] Creating development with:', cleanData)
+
       const { data: newData, error } = await supabase
         .from('developments')
-        .insert(data)
+        .insert(cleanData)
         .select()
         .single()
 
       if (error) {
         console.error('[DataContext] Create development error:', error)
+        toast.error('Failed to create development', { description: error.message })
         return null
       }
 
       setDevelopments((prev) => [newData, ...prev])
+      toast.success('Development created successfully')
       return newData
     } catch (e) {
       console.error('[DataContext] Create development failed:', e)
+      toast.error('Failed to create development', { description: e instanceof Error ? e.message : 'Unknown error' })
       return null
     }
   }, [])
@@ -810,7 +835,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const supabase = createClient()
 
       // Exclude computed/mapped fields
-      const excludeColumns = ['id', 'created_at']
+      const excludeColumns = ['id', 'created_at', 'units']
 
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
@@ -833,13 +858,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       if (error) {
         console.error('[DataContext] Update development error:', error)
+        toast.error('Failed to update development', { description: error.message })
         return null
       }
 
       setDevelopments((prev) => prev.map((d) => (d.id === id ? { ...d, ...updatedData } : d)))
+      toast.success('Development updated successfully')
       return updatedData
     } catch (e) {
       console.error('[DataContext] Update development failed:', e)
+      toast.error('Failed to update development', { description: e instanceof Error ? e.message : 'Unknown error' })
       return null
     }
   }, [])

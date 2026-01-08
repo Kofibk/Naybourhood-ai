@@ -897,66 +897,131 @@ export default function FinanceLeadsPage() {
                 groupLeads.map((lead) => (
                   <div
                     key={lead.id}
-                    className="p-3 hover:bg-muted/50 transition-colors cursor-pointer"
-                    onClick={() => router.push(`/admin/finance-leads/${lead.id}`)}
+                    className="p-4 hover:bg-muted/50 transition-colors"
                   >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="font-medium text-sm truncate">
-                            {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
-                          </span>
-                          <Badge variant={getStatusColor(lead.status) as any} className="text-[10px] h-5">
-                            {lead.status || 'Unknown'}
-                          </Badge>
-                        </div>
-                        <div className="text-xs text-muted-foreground mt-1 space-y-0.5">
-                          {lead.email && (
-                            <div className="flex items-center gap-1 truncate">
-                              <Mail className="h-3 w-3 shrink-0" />
-                              <span className="truncate">{lead.email}</span>
-                            </div>
-                          )}
-                          {lead.phone && (
-                            <div className="flex items-center gap-1">
-                              <Phone className="h-3 w-3 shrink-0" />
-                              <span>{lead.phone}</span>
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-2 text-xs">
-                          {lead.finance_type && (
-                            <Badge variant="outline" className="text-[10px]">
-                              {lead.finance_type}
-                            </Badge>
-                          )}
-                          {lead.loan_amount && (
-                            <span className="font-medium">
-                              {lead.loan_amount_display || formatCurrency(lead.loan_amount)}
-                            </span>
-                          )}
-                          <span className="text-muted-foreground">
-                            {formatDate(lead.date_added || lead.created_at)}
-                          </span>
-                        </div>
+                    {/* Header row with name and actions */}
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div
+                        className="flex-1 min-w-0 cursor-pointer"
+                        onClick={() => router.push(`/admin/finance-leads/${lead.id}`)}
+                      >
+                        <span className="font-medium text-base">
+                          {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                        </span>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-8 w-8"
                           onClick={(e) => { e.stopPropagation(); window.location.href = `tel:${lead.phone}` }}
                         >
-                          <Phone className="h-3.5 w-3.5" />
+                          <Phone className="h-4 w-4" />
                         </Button>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
+                          className="h-8 w-8"
                           onClick={(e) => { e.stopPropagation(); window.location.href = `mailto:${lead.email}` }}
                         >
-                          <Mail className="h-3.5 w-3.5" />
+                          <Mail className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => router.push(`/admin/finance-leads/${lead.id}`)}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Contact info */}
+                    <div className="text-sm text-muted-foreground mb-3 space-y-1">
+                      {lead.email && (
+                        <div className="flex items-center gap-2">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{lead.email}</span>
+                        </div>
+                      )}
+                      {lead.phone && (
+                        <div className="flex items-center gap-2">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span>{lead.phone}</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Finance type and amount */}
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
+                      {lead.finance_type && (
+                        <Badge variant="outline" className="text-xs">
+                          {lead.finance_type}
+                        </Badge>
+                      )}
+                      {lead.loan_amount && (
+                        <span className="text-sm font-semibold">
+                          {lead.loan_amount_display || formatCurrency(lead.loan_amount)}
+                        </span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        {formatDate(lead.date_added || lead.created_at)}
+                      </span>
+                    </div>
+
+                    {/* Status dropdown */}
+                    <div className="mb-3">
+                      <label className="text-xs text-muted-foreground block mb-1">Status</label>
+                      <select
+                        className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                        value={lead.status || ''}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => {
+                          e.stopPropagation()
+                          updateFinanceLead(lead.id, { status: e.target.value })
+                        }}
+                      >
+                        <option value="Contact Pending">Contact Pending</option>
+                        <option value="Follow-up">Follow-up</option>
+                        <option value="Awaiting Documents">Awaiting Documents</option>
+                        <option value="Not Proceeding">Not Proceeding</option>
+                        <option value="Duplicate">Duplicate</option>
+                        <option value="Completed">Completed</option>
+                      </select>
+                    </div>
+
+                    {/* Broker and Agent row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Broker</label>
+                        <select
+                          className="w-full h-9 px-2 rounded-md border border-input bg-background text-sm"
+                          value={lead.company_id || ''}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => handleAssignBroker(lead.id, e.target.value, e as any)}
+                        >
+                          <option value="">Unassigned</option>
+                          {brokerCompanies.length > 0 ? (
+                            brokerCompanies.map((company) => (
+                              <option key={company.id} value={company.id}>
+                                {company.name}
+                              </option>
+                            ))
+                          ) : (
+                            companies.map((company) => (
+                              <option key={company.id} value={company.id}>
+                                {company.name}
+                              </option>
+                            ))
+                          )}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs text-muted-foreground block mb-1">Agent</label>
+                        <p className="text-sm font-medium truncate h-9 flex items-center px-2 rounded-md bg-muted/30">
+                          {lead.assigned_agent || 'Unassigned'}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1069,9 +1134,22 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'status' && (
-                              <Badge variant={getStatusColor(lead.status) as any} className="text-[10px]">
-                                {lead.status || 'Unknown'}
-                              </Badge>
+                              <select
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs w-full"
+                                value={lead.status || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => {
+                                  e.stopPropagation()
+                                  updateFinanceLead(lead.id, { status: e.target.value })
+                                }}
+                              >
+                                <option value="Contact Pending">Contact Pending</option>
+                                <option value="Follow-up">Follow-up</option>
+                                <option value="Awaiting Documents">Awaiting Documents</option>
+                                <option value="Not Proceeding">Not Proceeding</option>
+                                <option value="Duplicate">Duplicate</option>
+                                <option value="Completed">Completed</option>
+                              </select>
                             )}
                             {col.key === 'notes' && (
                               <span className="text-muted-foreground" title={lead.notes}>

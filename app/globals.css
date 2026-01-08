@@ -36,13 +36,14 @@
     --warning-foreground: 0 0% 0%;
     --info: 217 91% 60%;
     --info-foreground: 0 0% 100%;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 0 0% 9%;
-    --sidebar-primary: 0 0% 9%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 94%;
-    --sidebar-accent-foreground: 0 0% 9%;
-    --sidebar-border: 0 0% 89%;
+    /* Sidebar stays dark in light mode for better UX */
+    --sidebar-background: 0 0% 9%;
+    --sidebar-foreground: 0 0% 96%;
+    --sidebar-primary: 0 0% 100%;
+    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-accent: 0 0% 18%;
+    --sidebar-accent-foreground: 0 0% 96%;
+    --sidebar-border: 0 0% 18%;
   }
 
   /* Dark theme - premium, sophisticated */

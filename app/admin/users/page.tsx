@@ -29,6 +29,8 @@ import {
   Users,
   Briefcase,
   Eye,
+  Power,
+  PowerOff,
 } from 'lucide-react'
 
 interface InviteUser {
@@ -181,8 +183,44 @@ export default function UsersPage() {
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
+  const handleDeactivateUser = async (userId: string, currentStatus: string) => {
+    const isDeactivating = currentStatus === 'active'
+    const action = isDeactivating ? 'deactivate' : 'reactivate'
+    const confirmMessage = isDeactivating
+      ? 'Are you sure you want to deactivate this user? They will no longer be able to access the platform.'
+      : 'Are you sure you want to reactivate this user? They will regain access to the platform.'
+
+    if (!confirm(confirmMessage)) return
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': currentUser?.role || '',
+        },
+        body: JSON.stringify({
+          status: isDeactivating ? 'inactive' : 'active',
+        }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || `Failed to ${action} user`)
+      }
+
+      setMessage({ type: 'success', text: `User ${action}d successfully!` })
+      refreshData()
+    } catch (e) {
+      setMessage({
+        type: 'error',
+        text: e instanceof Error ? e.message : `Failed to ${action} user`
+      })
+    }
+  }
+
+  const handleDeletePendingInvite = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this pending invite? This will remove the invitation.')) return
 
     try {
       const response = await fetch(`/api/users/${userId}`, {
@@ -194,15 +232,15 @@ export default function UsersPage() {
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || 'Failed to delete user')
+        throw new Error(data.error || 'Failed to delete invite')
       }
 
-      setMessage({ type: 'success', text: 'User deleted successfully!' })
+      setMessage({ type: 'success', text: 'Pending invite deleted successfully!' })
       refreshData()
     } catch (e) {
       setMessage({
         type: 'error',
-        text: e instanceof Error ? e.message : 'Failed to delete user'
+        text: e instanceof Error ? e.message : 'Failed to delete invite'
       })
     }
   }
@@ -505,19 +543,35 @@ export default function UsersPage() {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
-                          {/* Admins can delete pending users and non-internal users, super admins can delete anyone */}
-                          {(isSuperAdmin ||
-                            (isAdmin && user.status === 'pending') ||
+                          {/* For pending users - allow delete */}
+                          {user.status === 'pending' && (isAdmin || isSuperAdmin) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive"
+                              onClick={() => handleDeletePendingInvite(user.id)}
+                              title="Delete pending invite"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {/* For active/inactive users - deactivate/reactivate */}
+                          {user.status !== 'pending' && (
+                            isSuperAdmin ||
                             (isAdmin && !INTERNAL_ROLES.includes(user.role as UserRole))
                           ) && (
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive"
-                              onClick={() => handleDeleteUser(user.id)}
-                              title={user.status === 'pending' ? 'Delete pending invite' : 'Delete user'}
+                              className={`h-8 w-8 ${user.status === 'active' ? 'text-warning' : 'text-success'}`}
+                              onClick={() => handleDeactivateUser(user.id, user.status)}
+                              title={user.status === 'active' ? 'Deactivate user' : 'Reactivate user'}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              {user.status === 'active' ? (
+                                <PowerOff className="h-4 w-4" />
+                              ) : (
+                                <Power className="h-4 w-4" />
+                              )}
                             </Button>
                           )}
                         </div>

@@ -21,16 +21,44 @@ import {
   TrendingUp,
   TrendingDown,
   Edit,
-  ExternalLink,
-  Phone,
-  Mail,
   X,
   Save,
   CheckCircle,
   AlertCircle,
   FileText,
   Download,
+  Plus,
+  Trash2,
+  Tag,
+  Power,
+  Upload,
+  Sparkles,
+  Train,
+  ExternalLink,
 } from 'lucide-react'
+
+const STATUS_OPTIONS = [
+  { value: 'Active', label: 'Active' },
+  { value: 'Selling', label: 'Selling' },
+  { value: 'Coming Soon', label: 'Coming Soon' },
+  { value: 'Launching', label: 'Launching' },
+  { value: 'Sold Out', label: 'Sold Out' },
+  { value: 'Completed', label: 'Completed' },
+  { value: 'Inactive', label: 'Inactive (Deactivated)' },
+]
+
+const DEFAULT_TAGS = [
+  'First Time Buyers',
+  'Investors',
+  'Family Oriented',
+  'Luxury',
+  'City Living',
+  'Professionals',
+  'Help to Buy',
+  'Pet Friendly',
+  'Eco-Friendly',
+  'Waterside',
+]
 
 export default function DevelopmentDetailPage() {
   const params = useParams()
@@ -40,6 +68,9 @@ export default function DevelopmentDetailPage() {
   const [isSaving, setIsSaving] = useState(false)
   const [editData, setEditData] = useState<Partial<Development>>({})
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [activeEditTab, setActiveEditTab] = useState<'basic' | 'details' | 'media' | 'sales' | 'ai'>('basic')
+  const [showDeactivateConfirm, setShowDeactivateConfirm] = useState(false)
+  const [newTag, setNewTag] = useState('')
 
   const development = useMemo(() => {
     return developments.find((d) => d.id === params.id)
@@ -63,10 +94,8 @@ export default function DevelopmentDetailPage() {
     const campaignIds = devCampaigns.map(c => c.id).filter(Boolean)
 
     return leads.filter((l) => {
-      // Match by campaign
       if (l.campaign && campaignNames.includes(l.campaign)) return true
       if (l.campaign_id && campaignIds.includes(l.campaign_id)) return true
-      // Match by development name in buyer location/area/notes
       const devNameLower = development.name.toLowerCase()
       if (l.location?.toLowerCase().includes(devNameLower)) return true
       if (l.area?.toLowerCase().includes(devNameLower)) return true
@@ -74,28 +103,20 @@ export default function DevelopmentDetailPage() {
     })
   }, [leads, devCampaigns, development])
 
-  // Calculate stats - use actual lead count from devLeads
+  // Calculate stats
   const stats = useMemo(() => {
     const totalSpend = devCampaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0)
-    // Use actual leads count instead of campaign leads field
     const totalLeads = devLeads.length
     const activeCampaigns = devCampaigns.filter((c) =>
       c.status === 'active' || c.status === 'Active'
     ).length
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
-    // Hot leads: scored 80+ (check both ai_quality_score and quality_score)
     const hotLeads = devLeads.filter((l) => {
       const score = l.ai_quality_score ?? l.quality_score
       return score !== null && score !== undefined && score >= 80
     }).length
 
-    return {
-      totalSpend,
-      totalLeads,
-      activeCampaigns,
-      avgCPL,
-      hotLeads,
-    }
+    return { totalSpend, totalLeads, activeCampaigns, avgCPL, hotLeads }
   }, [devCampaigns, devLeads])
 
   const handleEdit = () => {
@@ -103,6 +124,7 @@ export default function DevelopmentDetailPage() {
       setEditData({ ...development })
       setIsEditing(true)
       setMessage(null)
+      setActiveEditTab('basic')
     }
   }
 
@@ -125,6 +147,48 @@ export default function DevelopmentDetailPage() {
       setMessage({ type: 'error', text: 'An error occurred.' })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  const handleDeactivate = async () => {
+    if (!development) return
+    setIsSaving(true)
+    setMessage(null)
+
+    try {
+      const newStatus = development.status === 'Inactive' ? 'Active' : 'Inactive'
+      const result = await updateDevelopment(development.id, { status: newStatus })
+      if (result) {
+        setMessage({ type: 'success', text: `Development ${newStatus === 'Inactive' ? 'deactivated' : 'activated'}!` })
+        setShowDeactivateConfirm(false)
+      } else {
+        setMessage({ type: 'error', text: 'Failed to update status.' })
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'An error occurred.' })
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleAddTag = () => {
+    if (!newTag.trim()) return
+    const currentTags = (editData.features || development?.features || []) as string[]
+    if (!currentTags.includes(newTag.trim())) {
+      setEditData({ ...editData, features: [...currentTags, newTag.trim()] })
+    }
+    setNewTag('')
+  }
+
+  const handleRemoveTag = (tag: string) => {
+    const currentTags = (editData.features || development?.features || []) as string[]
+    setEditData({ ...editData, features: currentTags.filter(t => t !== tag) })
+  }
+
+  const handleAddPresetTag = (tag: string) => {
+    const currentTags = (editData.features || development?.features || []) as string[]
+    if (!currentTags.includes(tag)) {
+      setEditData({ ...editData, features: [...currentTags, tag] })
     }
   }
 
@@ -167,21 +231,26 @@ export default function DevelopmentDetailPage() {
       case 'sold out':
       case 'completed':
         return 'secondary'
+      case 'inactive':
+        return 'destructive'
       default:
         return 'muted'
     }
   }
 
+  const displayData = isEditing ? { ...development, ...editData } : development
+  const tags = (displayData.features || []) as string[]
+
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
         <div className="flex items-start gap-4">
           <Button variant="ghost" size="icon" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <h2 className="text-2xl font-bold">{development.name}</h2>
               <Badge variant={getStatusColor(development.status)}>
                 {development.status || 'Active'}
@@ -190,20 +259,31 @@ export default function DevelopmentDetailPage() {
             {development.location && (
               <div className="flex items-center gap-1 text-muted-foreground mt-1">
                 <MapPin className="h-4 w-4" />
-                <span>{development.location}</span>
+                <span>{development.borough || development.location}</span>
+                {development.postcode && <span className="text-xs">({development.postcode})</span>}
               </div>
             )}
             {development.developer && (
               <p className="text-sm text-muted-foreground mt-1">
-                Developed by {development.developer}
+                by {development.developer}
               </p>
             )}
           </div>
         </div>
-        <Button onClick={handleEdit}>
-          <Edit className="h-4 w-4 mr-2" />
-          Edit Development
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant={development.status === 'Inactive' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setShowDeactivateConfirm(true)}
+          >
+            <Power className="h-4 w-4 mr-2" />
+            {development.status === 'Inactive' ? 'Activate' : 'Deactivate'}
+          </Button>
+          <Button onClick={handleEdit}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       {/* Message */}
@@ -211,122 +291,515 @@ export default function DevelopmentDetailPage() {
         <div className={`p-3 rounded-lg flex items-center gap-2 ${
           message.type === 'success' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
         }`}>
-          {message.type === 'success' ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
+          {message.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <span className="text-sm">{message.text}</span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-6 w-6 ml-auto"
-            onClick={() => setMessage(null)}
-          >
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setMessage(null)}>
             <X className="h-3 w-3" />
           </Button>
         </div>
       )}
 
-      {/* Edit Form */}
+      {/* Deactivate Confirmation Modal */}
+      {showDeactivateConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-lg">
+                {development.status === 'Inactive' ? 'Activate' : 'Deactivate'} Development?
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                {development.status === 'Inactive'
+                  ? 'This will make the development visible and available again.'
+                  : 'This will hide the development from active listings. You can reactivate it later.'}
+              </p>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowDeactivateConfirm(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant={development.status === 'Inactive' ? 'default' : 'destructive'}
+                  onClick={handleDeactivate}
+                  disabled={isSaving}
+                >
+                  {isSaving ? 'Updating...' : development.status === 'Inactive' ? 'Activate' : 'Deactivate'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Edit Form Modal */}
       {isEditing && (
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Edit Development</CardTitle>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border">
+              <h3 className="font-semibold">Edit Development</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
-                <Input
-                  value={editData.name || ''}
-                  onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Location</label>
-                <Input
-                  value={editData.location || ''}
-                  onChange={(e) => setEditData({ ...editData, location: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Developer</label>
-                <Input
-                  value={editData.developer || ''}
-                  onChange={(e) => setEditData({ ...editData, developer: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <select
-                  value={editData.status || ''}
-                  onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+
+            {/* Tabs */}
+            <div className="flex border-b border-border px-4 overflow-x-auto">
+              {[
+                { key: 'basic', label: 'Basic Info' },
+                { key: 'details', label: 'Details & Pricing' },
+                { key: 'media', label: 'Media & Docs' },
+                { key: 'sales', label: 'Sales & Tags' },
+                { key: 'ai', label: 'AI Agent' },
+              ].map((tab) => (
+                <button
+                  key={tab.key}
+                  onClick={() => setActiveEditTab(tab.key as any)}
+                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap ${
+                    activeEditTab === tab.key
+                      ? 'border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
                 >
-                  <option value="Active">Active</option>
-                  <option value="Selling">Selling</option>
-                  <option value="Coming Soon">Coming Soon</option>
-                  <option value="Launching">Launching</option>
-                  <option value="Sold Out">Sold Out</option>
-                  <option value="Completed">Completed</option>
-                </select>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4">
+              {activeEditTab === 'basic' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Name *</label>
+                      <Input
+                        value={editData.name ?? displayData.name ?? ''}
+                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Status</label>
+                      <select
+                        value={editData.status ?? displayData.status ?? 'Active'}
+                        onChange={(e) => setEditData({ ...editData, status: e.target.value })}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        {STATUS_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Location / Area</label>
+                      <Input
+                        value={editData.location ?? displayData.location ?? ''}
+                        onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                        placeholder="e.g., Aldgate, London"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Borough</label>
+                      <Input
+                        value={editData.borough ?? displayData.borough ?? ''}
+                        onChange={(e) => setEditData({ ...editData, borough: e.target.value })}
+                        placeholder="e.g., Tower Hamlets"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Address</label>
+                      <Input
+                        value={editData.address ?? displayData.address ?? ''}
+                        onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Postcode</label>
+                      <Input
+                        value={editData.postcode ?? displayData.postcode ?? ''}
+                        onChange={(e) => setEditData({ ...editData, postcode: e.target.value })}
+                        placeholder="e.g., E1 8FA"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Developer</label>
+                      <Input
+                        value={editData.developer ?? displayData.developer ?? ''}
+                        onChange={(e) => setEditData({ ...editData, developer: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Completion Quarter</label>
+                      <Input
+                        value={editData.completion_quarter ?? displayData.completion_quarter ?? ''}
+                        onChange={(e) => setEditData({ ...editData, completion_quarter: e.target.value })}
+                        placeholder="e.g., Q2 2025"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Total Units</label>
+                      <Input
+                        type="number"
+                        value={editData.total_units ?? displayData.total_units ?? displayData.units ?? ''}
+                        onChange={(e) => setEditData({ ...editData, total_units: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Available Units</label>
+                      <Input
+                        type="number"
+                        value={editData.available_units ?? displayData.available_units ?? ''}
+                        onChange={(e) => setEditData({ ...editData, available_units: parseInt(e.target.value) || 0 })}
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'details' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Price From</label>
+                      <Input
+                        value={editData.price_from ?? displayData.price_from ?? ''}
+                        onChange={(e) => setEditData({ ...editData, price_from: e.target.value })}
+                        placeholder="£500,000"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Price To</label>
+                      <Input
+                        value={editData.price_to ?? displayData.price_to ?? ''}
+                        onChange={(e) => setEditData({ ...editData, price_to: e.target.value })}
+                        placeholder="£1,500,000"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Service Charge</label>
+                      <Input
+                        value={editData.service_charge ?? displayData.service_charge ?? ''}
+                        onChange={(e) => setEditData({ ...editData, service_charge: e.target.value })}
+                        placeholder="£6.50 per sqft"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Ground Rent</label>
+                      <Input
+                        value={editData.ground_rent ?? displayData.ground_rent ?? ''}
+                        onChange={(e) => setEditData({ ...editData, ground_rent: e.target.value })}
+                        placeholder="Peppercorn or £500"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Tenure</label>
+                      <select
+                        value={editData.tenure ?? displayData.tenure ?? ''}
+                        onChange={(e) => setEditData({ ...editData, tenure: e.target.value })}
+                        className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                      >
+                        <option value="">Select...</option>
+                        <option value="Leasehold">Leasehold</option>
+                        <option value="Freehold">Freehold</option>
+                        <option value="Share of Freehold">Share of Freehold</option>
+                      </select>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Lease Length (years)</label>
+                      <Input
+                        type="number"
+                        value={editData.lease_length ?? displayData.lease_length ?? ''}
+                        onChange={(e) => setEditData({ ...editData, lease_length: parseInt(e.target.value) || 0 })}
+                        placeholder="999"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Short Description</label>
+                    <Input
+                      value={editData.short_description ?? displayData.short_description ?? ''}
+                      onChange={(e) => setEditData({ ...editData, short_description: e.target.value })}
+                      placeholder="Brief one-liner"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Full Description</label>
+                    <textarea
+                      value={editData.description ?? displayData.description ?? ''}
+                      onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                      className="w-full min-h-[100px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Amenities (comma-separated)</label>
+                    <Input
+                      value={Array.isArray(editData.amenities) ? editData.amenities.join(', ') : (Array.isArray(displayData.amenities) ? displayData.amenities.join(', ') : '')}
+                      onChange={(e) => setEditData({ ...editData, amenities: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                      placeholder="Gym, Concierge, Rooftop Terrace"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Nearby Stations (comma-separated)</label>
+                    <Input
+                      value={Array.isArray(editData.nearby_stations) ? editData.nearby_stations.join(', ') : (Array.isArray(displayData.nearby_stations) ? displayData.nearby_stations.join(', ') : '')}
+                      onChange={(e) => setEditData({ ...editData, nearby_stations: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                      placeholder="Aldgate East (3 min), Liverpool Street (8 min)"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'media' && (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Main Image URL</label>
+                    <Input
+                      value={editData.image_url ?? displayData.image_url ?? ''}
+                      onChange={(e) => setEditData({ ...editData, image_url: e.target.value })}
+                      placeholder="https://..."
+                    />
+                    {(editData.image_url ?? displayData.image_url) && (
+                      <div className="mt-2 h-32 bg-muted rounded-md overflow-hidden">
+                        <img src={editData.image_url ?? displayData.image_url} alt="Preview" className="w-full h-full object-cover" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Video URL</label>
+                    <Input
+                      value={editData.video_url ?? displayData.video_url ?? ''}
+                      onChange={(e) => setEditData({ ...editData, video_url: e.target.value })}
+                      placeholder="YouTube or Vimeo link"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Virtual Tour URL</label>
+                    <Input
+                      value={editData.virtual_tour_url ?? displayData.virtual_tour_url ?? ''}
+                      onChange={(e) => setEditData({ ...editData, virtual_tour_url: e.target.value })}
+                      placeholder="Matterport or similar"
+                    />
+                  </div>
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="text-sm font-medium mb-3">Documents</h4>
+                    <div className="space-y-3">
+                      <div className="space-y-2">
+                        <label className="text-sm text-muted-foreground">Brochure URL (PDF)</label>
+                        <Input
+                          value={editData.brochure_url ?? displayData.brochure_url ?? ''}
+                          onChange={(e) => setEditData({ ...editData, brochure_url: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-muted-foreground">Floor Plans URL (PDF)</label>
+                        <Input
+                          value={editData.floor_plan_url ?? displayData.floor_plan_url ?? ''}
+                          onChange={(e) => setEditData({ ...editData, floor_plan_url: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-muted-foreground">Price List URL (PDF)</label>
+                        <Input
+                          value={editData.price_list_url ?? displayData.price_list_url ?? ''}
+                          onChange={(e) => setEditData({ ...editData, price_list_url: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-sm text-muted-foreground">Specification URL (PDF)</label>
+                        <Input
+                          value={editData.specification_url ?? displayData.specification_url ?? ''}
+                          onChange={(e) => setEditData({ ...editData, specification_url: e.target.value })}
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'sales' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Sales Agent</label>
+                      <Input
+                        value={editData.sales_agent ?? displayData.sales_agent ?? ''}
+                        onChange={(e) => setEditData({ ...editData, sales_agent: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Sales Phone</label>
+                      <Input
+                        value={editData.sales_phone ?? displayData.sales_phone ?? ''}
+                        onChange={(e) => setEditData({ ...editData, sales_phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Sales Email</label>
+                      <Input
+                        value={editData.sales_email ?? displayData.sales_email ?? ''}
+                        onChange={(e) => setEditData({ ...editData, sales_email: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">Viewing Availability</label>
+                      <Input
+                        value={editData.viewing_availability ?? displayData.viewing_availability ?? ''}
+                        onChange={(e) => setEditData({ ...editData, viewing_availability: e.target.value })}
+                        placeholder="Mon-Sat, 10am-6pm"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="border-t pt-4 mt-4">
+                    <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                      <Tag className="h-4 w-4" />
+                      Tags for Buyer Matching
+                    </h4>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Tags help the AI agent match this development with suitable buyers.
+                    </p>
+
+                    {/* Current Tags */}
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {(editData.features ?? displayData.features ?? []).map((tag, index) => (
+                        <Badge key={index} variant="secondary" className="gap-1">
+                          {String(tag)}
+                          <button onClick={() => handleRemoveTag(String(tag))} className="ml-1 hover:text-destructive">
+                            <X className="h-3 w-3" />
+                          </button>
+                        </Badge>
+                      ))}
+                      {tags.length === 0 && (
+                        <span className="text-xs text-muted-foreground">No tags added yet</span>
+                      )}
+                    </div>
+
+                    {/* Add Custom Tag */}
+                    <div className="flex gap-2 mb-3">
+                      <Input
+                        value={newTag}
+                        onChange={(e) => setNewTag(e.target.value)}
+                        placeholder="Add custom tag..."
+                        className="flex-1"
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAddTag())}
+                      />
+                      <Button size="sm" onClick={handleAddTag} disabled={!newTag.trim()}>
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                    {/* Preset Tags */}
+                    <div className="flex flex-wrap gap-2">
+                      {DEFAULT_TAGS.filter(tag => !(editData.features ?? displayData.features ?? []).includes(tag)).map((tag) => (
+                        <Button
+                          key={tag}
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => handleAddPresetTag(tag)}
+                        >
+                          <Plus className="h-3 w-3 mr-1" />
+                          {tag}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {activeEditTab === 'ai' && (
+                <div className="space-y-4">
+                  <div className="p-3 bg-muted/50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">AI Agent Configuration</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Configure how the AI agent should present this development to potential buyers.
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Target Audience</label>
+                    <Input
+                      value={editData.ai_target_audience ?? displayData.ai_target_audience ?? ''}
+                      onChange={(e) => setEditData({ ...editData, ai_target_audience: e.target.value })}
+                      placeholder="Young professionals, First-time buyers, Investors"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">AI Sales Pitch</label>
+                    <textarea
+                      value={editData.ai_pitch ?? displayData.ai_pitch ?? ''}
+                      onChange={(e) => setEditData({ ...editData, ai_pitch: e.target.value })}
+                      className="w-full min-h-[150px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                      placeholder="Key talking points for the AI agent..."
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Key Selling Points (comma-separated)</label>
+                    <Input
+                      value={Array.isArray(editData.key_selling_points) ? editData.key_selling_points.join(', ') : (Array.isArray(displayData.key_selling_points) ? displayData.key_selling_points.join(', ') : '')}
+                      onChange={(e) => setEditData({ ...editData, key_selling_points: e.target.value.split(',').map(s => s.trim()).filter(Boolean) })}
+                      placeholder="24hr Concierge, Private gym, Rooftop views"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between gap-2 p-4 border-t border-border">
+              <div className="flex gap-2">
+                {activeEditTab !== 'basic' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const tabs = ['basic', 'details', 'media', 'sales', 'ai']
+                      const idx = tabs.indexOf(activeEditTab)
+                      if (idx > 0) setActiveEditTab(tabs[idx - 1] as any)
+                    }}
+                  >
+                    Previous
+                  </Button>
+                )}
+                {activeEditTab !== 'ai' && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const tabs = ['basic', 'details', 'media', 'sales', 'ai']
+                      const idx = tabs.indexOf(activeEditTab)
+                      if (idx < tabs.length - 1) setActiveEditTab(tabs[idx + 1] as any)
+                    }}
+                  >
+                    Next
+                  </Button>
+                )}
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Total Units</label>
-                <Input
-                  type="number"
-                  value={editData.total_units || editData.units || ''}
-                  onChange={(e) => setEditData({ ...editData, total_units: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Available Units</label>
-                <Input
-                  type="number"
-                  value={editData.available_units || ''}
-                  onChange={(e) => setEditData({ ...editData, available_units: parseInt(e.target.value) || 0 })}
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Price From</label>
-                <Input
-                  value={editData.price_from || ''}
-                  onChange={(e) => setEditData({ ...editData, price_from: e.target.value })}
-                  placeholder="£500,000"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Price To</label>
-                <Input
-                  value={editData.price_to || ''}
-                  onChange={(e) => setEditData({ ...editData, price_to: e.target.value })}
-                  placeholder="£1,500,000"
-                />
-              </div>
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium">Description</label>
-                <textarea
-                  value={editData.description || ''}
-                  onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                  className="w-full min-h-[80px] p-2 rounded-md border border-input bg-background text-sm resize-y"
-                />
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
+                <Button onClick={handleSave} disabled={isSaving}>
+                  <Save className="h-4 w-4 mr-2" />
+                  {isSaving ? 'Saving...' : 'Save Changes'}
+                </Button>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button variant="outline" onClick={() => setIsEditing(false)}>Cancel</Button>
-              <Button onClick={handleSave} disabled={isSaving}>
-                <Save className="h-4 w-4 mr-2" />
-                {isSaving ? 'Saving...' : 'Save Changes'}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Image */}
@@ -338,6 +811,18 @@ export default function DevelopmentDetailPage() {
             className="w-full h-64 object-cover"
           />
         </Card>
+      )}
+
+      {/* Tags */}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag, index) => (
+            <Badge key={index} variant="secondary" className="gap-1">
+              <Tag className="h-3 w-3" />
+              {String(tag)}
+            </Badge>
+          ))}
+        </div>
       )}
 
       {/* Stats Cards */}
@@ -360,7 +845,7 @@ export default function DevelopmentDetailPage() {
               <span className="text-xs text-muted-foreground">Available</span>
             </div>
             <p className="text-2xl font-bold text-success">
-              {development.available_units ? development.available_units : '-'}
+              {development.available_units !== undefined ? development.available_units : '-'}
             </p>
           </CardContent>
         </Card>
@@ -403,9 +888,7 @@ export default function DevelopmentDetailPage() {
               )}
               <span className="text-xs text-muted-foreground">Avg CPL</span>
             </div>
-            <p className={`text-2xl font-bold ${
-              stats.avgCPL > 50 ? 'text-destructive' : 'text-success'
-            }`}>
+            <p className={`text-2xl font-bold ${stats.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
               £{stats.avgCPL}
             </p>
           </CardContent>
@@ -433,71 +916,116 @@ export default function DevelopmentDetailPage() {
                 </p>
               </div>
             )}
-            {development.completion_date && (
+            {development.tenure && (
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Completion Date</p>
+                <p className="text-sm text-muted-foreground mb-1">Tenure</p>
+                <p className="text-sm font-medium">
+                  {development.tenure}
+                  {development.lease_length ? ` (${development.lease_length} years)` : ''}
+                </p>
+              </div>
+            )}
+            {(development.service_charge || development.ground_rent) && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Charges</p>
+                <p className="text-sm">
+                  {development.service_charge && <span>Service: {development.service_charge}</span>}
+                  {development.service_charge && development.ground_rent && <span> · </span>}
+                  {development.ground_rent && <span>Ground Rent: {development.ground_rent}</span>}
+                </p>
+              </div>
+            )}
+            {(development.completion_quarter || development.completion_date) && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-1">Completion</p>
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <p className="text-sm font-medium">{development.completion_date}</p>
+                  <p className="text-sm font-medium">
+                    {development.completion_quarter || development.completion_date}
+                  </p>
+                </div>
+              </div>
+            )}
+            {development.amenities && development.amenities.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Amenities</p>
+                <div className="flex flex-wrap gap-1">
+                  {development.amenities.map((amenity, idx) => (
+                    <Badge key={idx} variant="outline" className="text-xs">
+                      {amenity}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+            {development.nearby_stations && development.nearby_stations.length > 0 && (
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Transport</p>
+                <div className="space-y-1">
+                  {development.nearby_stations.map((station, idx) => (
+                    <div key={idx} className="flex items-center gap-2 text-sm">
+                      <Train className="h-3 w-3 text-muted-foreground" />
+                      {station}
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
 
             {/* Documents Section */}
-            {(development.brochure_url || development.floor_plan_url || development.price_list_url || (development.attachments && development.attachments.length > 0)) && (
+            {(development.brochure_url || development.floor_plan_url || development.price_list_url || development.specification_url) && (
               <div className="pt-4 border-t border-border">
                 <p className="text-sm text-muted-foreground mb-3">Documents</p>
                 <div className="space-y-2">
                   {development.brochure_url && (
-                    <a
-                      href={development.brochure_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
-                    >
+                    <a href={development.brochure_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm">
                       <FileText className="h-4 w-4 text-red-500" />
                       <span className="flex-1">Brochure</span>
                       <Download className="h-4 w-4 text-muted-foreground" />
                     </a>
                   )}
                   {development.floor_plan_url && (
-                    <a
-                      href={development.floor_plan_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
-                    >
+                    <a href={development.floor_plan_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm">
                       <FileText className="h-4 w-4 text-blue-500" />
                       <span className="flex-1">Floor Plans</span>
                       <Download className="h-4 w-4 text-muted-foreground" />
                     </a>
                   )}
                   {development.price_list_url && (
-                    <a
-                      href={development.price_list_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
-                    >
+                    <a href={development.price_list_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm">
                       <FileText className="h-4 w-4 text-green-500" />
                       <span className="flex-1">Price List</span>
                       <Download className="h-4 w-4 text-muted-foreground" />
                     </a>
                   )}
-                  {development.attachments?.map((attachment, index) => (
-                    <a
-                      key={index}
-                      href={attachment.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
-                    >
-                      <FileText className="h-4 w-4 text-muted-foreground" />
-                      <span className="flex-1">{attachment.name}</span>
+                  {development.specification_url && (
+                    <a href={development.specification_url} target="_blank" rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm">
+                      <FileText className="h-4 w-4 text-purple-500" />
+                      <span className="flex-1">Specification</span>
                       <Download className="h-4 w-4 text-muted-foreground" />
                     </a>
-                  ))}
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* AI Info */}
+            {development.ai_pitch && (
+              <div className="pt-4 border-t border-border">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">AI Agent Info</span>
+                </div>
+                {development.ai_target_audience && (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Target: {development.ai_target_audience}
+                  </p>
+                )}
+                <p className="text-sm">{development.ai_pitch}</p>
               </div>
             )}
           </CardContent>
@@ -507,9 +1035,6 @@ export default function DevelopmentDetailPage() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <CardTitle className="text-sm">Campaigns ({devCampaigns.length})</CardTitle>
-            <Button size="sm" variant="outline">
-              Add Campaign
-            </Button>
           </CardHeader>
           <CardContent>
             {devCampaigns.length === 0 ? (
@@ -552,14 +1077,6 @@ export default function DevelopmentDetailPage() {
                         <p className="font-medium">{campaign.leads || 0}</p>
                         <p className="text-xs text-muted-foreground">Leads</p>
                       </div>
-                      <div className="text-right">
-                        <p className={`font-medium ${
-                          (campaign.cpl || 0) > 50 ? 'text-destructive' : 'text-success'
-                        }`}>
-                          £{campaign.cpl || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">CPL</p>
-                      </div>
                     </div>
                   </div>
                 ))}
@@ -573,9 +1090,11 @@ export default function DevelopmentDetailPage() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <CardTitle className="text-sm">Recent Leads ({devLeads.length})</CardTitle>
-          <Button size="sm" variant="outline">
-            View All
-          </Button>
+          {devLeads.length > 0 && (
+            <Button size="sm" variant="outline" onClick={() => router.push('/admin/leads')}>
+              View All
+            </Button>
+          )}
         </CardHeader>
         <CardContent>
           {devLeads.length === 0 ? (
@@ -600,23 +1119,17 @@ export default function DevelopmentDetailPage() {
                       </p>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         {lead.email && <span>{lead.email}</span>}
-                        {lead.phone && <span>· {lead.phone}</span>}
                       </div>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    {lead.budget && (
-                      <Badge variant="muted" className="text-xs">
-                        {lead.budget}
-                      </Badge>
-                    )}
-                    {lead.quality_score !== undefined && (
+                    {(lead.ai_quality_score ?? lead.quality_score) !== undefined && (
                       <div className="text-right">
                         <p className={`text-sm font-medium ${
-                          lead.quality_score >= 80 ? 'text-success' :
-                          lead.quality_score >= 60 ? 'text-warning' : 'text-muted-foreground'
+                          (lead.ai_quality_score ?? lead.quality_score ?? 0) >= 80 ? 'text-success' :
+                          (lead.ai_quality_score ?? lead.quality_score ?? 0) >= 60 ? 'text-warning' : 'text-muted-foreground'
                         }`}>
-                          {lead.quality_score}
+                          {lead.ai_quality_score ?? lead.quality_score}
                         </p>
                         <p className="text-xs text-muted-foreground">Score</p>
                       </div>

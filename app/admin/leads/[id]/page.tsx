@@ -550,6 +550,7 @@ export default function LeadDetailPage() {
   const [openBreakdown, setOpenBreakdown] = useState<string | null>('quality')
   const [hasAutoScored, setHasAutoScored] = useState(false)
   const [showEmailComposer, setShowEmailComposer] = useState(false)
+  const [showFundsConfirm, setShowFundsConfirm] = useState(false)
 
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
@@ -1316,15 +1317,21 @@ export default function LeadDetailPage() {
                   <Building className="w-4 h-4 mr-2" /> Refer to Broker
                 </Button>
               )}
-              {!lead.proof_of_funds && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => updateLead(lead.id, { proof_of_funds: true })}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" /> Mark Funds Verified
-                </Button>
-              )}
+              <Button
+                className="w-full"
+                variant={lead.proof_of_funds ? "default" : "outline"}
+                onClick={() => setShowFundsConfirm(true)}
+              >
+                {lead.proof_of_funds ? (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" /> Funds Verified ✓
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 mr-2" /> Mark Funds Verified
+                  </>
+                )}
+              </Button>
             </CardContent>
           </Card>
 
@@ -1339,6 +1346,70 @@ export default function LeadDetailPage() {
           </Card>
         </div>
       </div>
+
+      {/* Funds Verification Confirmation Modal */}
+      {showFundsConfirm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader>
+              <CardTitle className="text-lg flex items-center gap-2">
+                {lead.proof_of_funds ? (
+                  <>
+                    <AlertTriangle className="h-5 w-5 text-warning" />
+                    Remove Funds Verification?
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-5 w-5 text-success" />
+                    Confirm Funds Verification
+                  </>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {lead.proof_of_funds ? (
+                <p className="text-sm text-muted-foreground">
+                  Are you sure you want to remove the funds verification? This will mark the lead as not having verified proof of funds.
+                </p>
+              ) : (
+                <>
+                  <p className="text-sm text-muted-foreground">
+                    Please confirm that you have verified the proof of funds for this lead. This action indicates:
+                  </p>
+                  <ul className="text-sm space-y-1 ml-4">
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">•</span>
+                      You have received documentation proving available funds
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">•</span>
+                      The documentation has been reviewed and appears valid
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <span className="text-primary">•</span>
+                      The funds are sufficient for the intended purchase
+                    </li>
+                  </ul>
+                </>
+              )}
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setShowFundsConfirm(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  variant={lead.proof_of_funds ? "destructive" : "default"}
+                  onClick={() => {
+                    updateLead(lead.id, { proof_of_funds: !lead.proof_of_funds })
+                    setShowFundsConfirm(false)
+                  }}
+                >
+                  {lead.proof_of_funds ? 'Remove Verification' : 'Confirm Verification'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Email Composer Modal */}
       {lead.email && (
