@@ -212,10 +212,30 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                 <Badge variant="muted" className="text-[10px]">
                   Q:{lead.ai_quality_score ?? lead.quality_score ?? '-'}
                 </Badge>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    if (lead.phone) {
+                      window.open(`tel:${lead.phone}`, '_self')
+                    }
+                  }}
+                  title={lead.phone || 'No phone number'}
+                >
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    router.push(`/${userType}/buyers/${lead.id}`)
+                  }}
+                  title="View details"
+                >
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>

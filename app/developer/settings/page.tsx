@@ -5,9 +5,30 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Bell, User, CreditCard, Save, CheckCircle, AlertCircle, Building2, Bot, Flame, Clock, Zap } from 'lucide-react'
+
+interface NotificationPreferences {
+  newBuyerAlerts: boolean
+  messageNotifications: boolean
+  hotLeadAlerts: boolean
+  followUpReminders: boolean
+  priorityActions: boolean
+  emailDigest: 'none' | 'daily' | 'weekly'
+  pushEnabled: boolean
+}
+
+const defaultPreferences: NotificationPreferences = {
+  newBuyerAlerts: true,
+  messageNotifications: true,
+  hotLeadAlerts: true,
+  followUpReminders: true,
+  priorityActions: true,
+  emailDigest: 'daily',
+  pushEnabled: false,
+}
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
@@ -20,27 +41,70 @@ export default function SettingsPage() {
     subscription_tier?: string
     subscription_status?: string
   } | null>(null)
+  const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(defaultPreferences)
+  const [savingPrefs, setSavingPrefs] = useState(false)
 
   useEffect(() => {
     setEditedName(user?.name || '')
 
-    // Fetch company data if user has company_id
-    if (user?.company_id && isSupabaseConfigured()) {
-      const fetchCompany = async () => {
+    if (user?.id && isSupabaseConfigured()) {
+      const fetchData = async () => {
         const supabase = createClient()
-        const { data } = await supabase
-          .from('companies')
-          .select('name, subscription_tier, subscription_status')
-          .eq('id', user.company_id)
+
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('notification_preferences')
+          .eq('id', user.id)
           .single()
 
-        if (data) {
-          setCompanyData(data)
+        if (profileData?.notification_preferences) {
+          setNotificationPrefs({ ...defaultPreferences, ...profileData.notification_preferences })
+        }
+
+        if (user.company_id) {
+          const { data: companyResult } = await supabase
+            .from('companies')
+            .select('name, subscription_tier, subscription_status')
+            .eq('id', user.company_id)
+            .single()
+
+          if (companyResult) {
+            setCompanyData(companyResult)
+          }
         }
       }
-      fetchCompany()
+      fetchData()
     }
   }, [user])
+
+  const updateNotificationPref = async (key: keyof NotificationPreferences, value: boolean | string) => {
+    if (!user?.id || !isSupabaseConfigured()) return
+
+    const newPrefs = { ...notificationPrefs, [key]: value }
+    setNotificationPrefs(newPrefs)
+    setSavingPrefs(true)
+
+    try {
+      const supabase = createClient()
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          notification_preferences: newPrefs,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', user.id)
+
+      if (error) {
+        console.error('Failed to update notification preferences:', error)
+        setMessage({ type: 'error', text: 'Failed to save preference.' })
+        setNotificationPrefs(notificationPrefs)
+      }
+    } catch (err) {
+      console.error('Error updating preferences:', err)
+    } finally {
+      setSavingPrefs(false)
+    }
+  }
 
   const handleSave = async () => {
     if (!user?.id || !isSupabaseConfigured()) {
@@ -64,7 +128,6 @@ export default function SettingsPage() {
       } else {
         setMessage({ type: 'success', text: 'Profile updated successfully!' })
         setIsEditing(false)
-        // Refresh user data in context
         await refreshUser()
       }
     } catch (error) {
@@ -97,29 +160,20 @@ export default function SettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
         <h2 className="text-2xl font-bold font-display">Settings</h2>
-        <p className="text-sm text-muted-foreground">
-          Manage your account and preferences
-        </p>
+        <p className="text-sm text-muted-foreground">Manage your account and preferences</p>
       </div>
 
-      {/* Message */}
       {message && (
         <div className={`p-3 rounded-lg flex items-center gap-2 ${
           message.type === 'success' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
         }`}>
-          {message.type === 'success' ? (
-            <CheckCircle className="h-4 w-4" />
-          ) : (
-            <AlertCircle className="h-4 w-4" />
-          )}
+          {message.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
           <span className="text-sm">{message.text}</span>
         </div>
       )}
 
-      {/* Profile */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -146,9 +200,7 @@ export default function SettingsPage() {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline">{user?.role || 'developer'}</Badge>
-            {user?.company && (
-              <Badge variant="secondary">{user.company}</Badge>
-            )}
+            {user?.company && <Badge variant="secondary">{user.company}</Badge>}
           </div>
           <div className="flex gap-2">
             {isEditing ? (
@@ -157,10 +209,7 @@ export default function SettingsPage() {
                   <Save className="h-4 w-4 mr-2" />
                   {isSaving ? 'Saving...' : 'Save Changes'}
                 </Button>
-                <Button variant="outline" onClick={() => {
-                  setIsEditing(false)
-                  setEditedName(user?.name || '')
-                }}>
+                <Button variant="outline" onClick={() => { setIsEditing(false); setEditedName(user?.name || '') }}>
                   Cancel
                 </Button>
               </>
@@ -171,7 +220,6 @@ export default function SettingsPage() {
         </CardContent>
       </Card>
 
-      {/* Company & Subscription */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -198,22 +246,17 @@ export default function SettingsPage() {
                   <div className="text-sm text-muted-foreground">/month</div>
                 </div>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Contact your company administrator to manage subscription settings.
-              </p>
+              <p className="text-sm text-muted-foreground">Contact your company administrator to manage subscription settings.</p>
             </div>
           ) : (
             <div className="p-4 rounded-lg bg-muted/50 text-center">
               <p className="text-muted-foreground">No company subscription found.</p>
-              <p className="text-sm text-muted-foreground mt-1">
-                Contact support to set up your organization.
-              </p>
+              <p className="text-sm text-muted-foreground mt-1">Contact support to set up your organization.</p>
             </div>
           )}
         </CardContent>
       </Card>
 
-      {/* Notifications */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -226,29 +269,28 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium">New Buyer Alerts</div>
-              <div className="text-sm text-muted-foreground">
-                Get notified when new buyers match your criteria
-              </div>
+              <div className="text-sm text-muted-foreground">Get notified when new buyers match your criteria</div>
             </div>
-            <Button variant="outline" size="sm">
-              Enabled
-            </Button>
+            <Switch
+              checked={notificationPrefs.newBuyerAlerts}
+              onCheckedChange={(checked) => updateNotificationPref('newBuyerAlerts', checked)}
+              disabled={savingPrefs}
+            />
           </div>
           <div className="flex items-center justify-between">
             <div>
               <div className="font-medium">Message Notifications</div>
-              <div className="text-sm text-muted-foreground">
-                Receive alerts for new messages
-              </div>
+              <div className="text-sm text-muted-foreground">Receive alerts for new messages</div>
             </div>
-            <Button variant="outline" size="sm">
-              Enabled
-            </Button>
+            <Switch
+              checked={notificationPrefs.messageNotifications}
+              onCheckedChange={(checked) => updateNotificationPref('messageNotifications', checked)}
+              disabled={savingPrefs}
+            />
           </div>
         </CardContent>
       </Card>
 
-      {/* AI Notifications & Tasks */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -265,14 +307,15 @@ export default function SettingsPage() {
               </div>
               <div>
                 <div className="font-medium">Hot Lead Alerts</div>
-                <div className="text-sm text-muted-foreground">
-                  Get notified when AI identifies high-intent leads
-                </div>
+                <div className="text-sm text-muted-foreground">Get notified when AI identifies high-intent leads</div>
               </div>
             </div>
-            <Button variant="outline" size="sm">Enabled</Button>
+            <Switch
+              checked={notificationPrefs.hotLeadAlerts}
+              onCheckedChange={(checked) => updateNotificationPref('hotLeadAlerts', checked)}
+              disabled={savingPrefs}
+            />
           </div>
-
           <div className="flex items-center justify-between p-4 rounded-lg border border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
@@ -280,14 +323,15 @@ export default function SettingsPage() {
               </div>
               <div>
                 <div className="font-medium">Follow-up Reminders</div>
-                <div className="text-sm text-muted-foreground">
-                  AI-suggested follow-up times based on lead activity
-                </div>
+                <div className="text-sm text-muted-foreground">AI-suggested follow-up times based on lead activity</div>
               </div>
             </div>
-            <Button variant="outline" size="sm">Enabled</Button>
+            <Switch
+              checked={notificationPrefs.followUpReminders}
+              onCheckedChange={(checked) => updateNotificationPref('followUpReminders', checked)}
+              disabled={savingPrefs}
+            />
           </div>
-
           <div className="flex items-center justify-between p-4 rounded-lg border border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
@@ -295,12 +339,14 @@ export default function SettingsPage() {
               </div>
               <div>
                 <div className="font-medium">Priority Actions</div>
-                <div className="text-sm text-muted-foreground">
-                  AI-recommended next steps for each lead
-                </div>
+                <div className="text-sm text-muted-foreground">AI-recommended next steps for each lead</div>
               </div>
             </div>
-            <Button variant="outline" size="sm">Enabled</Button>
+            <Switch
+              checked={notificationPrefs.priorityActions}
+              onCheckedChange={(checked) => updateNotificationPref('priorityActions', checked)}
+              disabled={savingPrefs}
+            />
           </div>
         </CardContent>
       </Card>

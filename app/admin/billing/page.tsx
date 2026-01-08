@@ -397,6 +397,7 @@ export default function BillingPage() {
               <div
                 key={company.id}
                 className="flex items-center justify-between p-4 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                onClick={() => router.push(`/admin/companies/${company.id}`)}
               >
                 <div className="flex items-center gap-4">
                   {getStatusIcon(company.subscription_status || company.status)}
@@ -451,15 +452,46 @@ export default function BillingPage() {
               <RefreshCw className="h-5 w-5 mb-2" />
               <span className="text-sm">Refresh Data</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex-col"
+              onClick={() => window.open('https://dashboard.stripe.com', '_blank')}
+            >
               <CreditCard className="h-5 w-5 mb-2" />
               <span className="text-sm">Stripe Dashboard</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex-col"
+              onClick={() => window.open('https://dashboard.stripe.com/invoices/create', '_blank')}
+            >
               <FileText className="h-5 w-5 mb-2" />
               <span className="text-sm">Create Invoice</span>
             </Button>
-            <Button variant="outline" className="h-auto py-4 flex-col">
+            <Button
+              variant="outline"
+              className="h-auto py-4 flex-col"
+              onClick={() => {
+                // Export billing report as CSV
+                const headers = ['Company', 'Type', 'Email', 'Tier', 'Status', 'Monthly Price']
+                const rows = filteredCompanies.map(c => [
+                  c.name || '',
+                  c.type || '',
+                  c.contact_email || '',
+                  c.subscription_tier || 'free',
+                  c.subscription_status || c.status || '',
+                  TIER_PRICES[c.subscription_tier as keyof typeof TIER_PRICES] || 0,
+                ])
+                const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n')
+                const blob = new Blob([csv], { type: 'text/csv' })
+                const url = URL.createObjectURL(blob)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `billing-report-${new Date().toISOString().split('T')[0]}.csv`
+                a.click()
+                URL.revokeObjectURL(url)
+              }}
+            >
               <Download className="h-5 w-5 mb-2" />
               <span className="text-sm">Export Report</span>
             </Button>

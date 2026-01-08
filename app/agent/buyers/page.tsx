@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -10,10 +11,12 @@ import { useAuth } from '@/contexts/AuthContext'
 import { Search, Phone, Mail, Eye, Flame, Heart, Users } from 'lucide-react'
 
 export default function AgentBuyersPage() {
+  const router = useRouter()
   const { leads, isLoading } = useData()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
+  const [favorites, setFavorites] = useState<Set<string>>(new Set())
 
   // Filter leads by company_id - only show leads assigned to the user's company
   const myLeads = useMemo(() => {
@@ -120,8 +123,24 @@ export default function AgentBuyersPage() {
                       <p className="text-sm text-muted-foreground">{lead.email}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Heart className="h-4 w-4" />
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => {
+                      setFavorites(prev => {
+                        const next = new Set(prev)
+                        if (next.has(lead.id)) {
+                          next.delete(lead.id)
+                        } else {
+                          next.add(lead.id)
+                        }
+                        return next
+                      })
+                    }}
+                    title={favorites.has(lead.id) ? 'Remove from favorites' : 'Add to favorites'}
+                  >
+                    <Heart className={`h-4 w-4 ${favorites.has(lead.id) ? 'fill-red-500 text-red-500' : ''}`} />
                   </Button>
                 </div>
 
@@ -163,7 +182,13 @@ export default function AgentBuyersPage() {
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => router.push(`/agent/my-leads/${lead.id}`)}
+                      title="View details"
+                    >
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>
