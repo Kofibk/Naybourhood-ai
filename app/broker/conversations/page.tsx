@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -24,8 +25,10 @@ function getTimeAgo(dateString: string): string {
 }
 
 export default function ConversationsPage() {
+  const router = useRouter()
   const { leads, isLoading } = useData()
   const { user } = useAuth()
+  const [search, setSearch] = useState('')
 
   // Filter leads by company_id first
   const myLeads = useMemo(() => {
@@ -35,22 +38,36 @@ export default function ConversationsPage() {
 
   // Get leads with recent activity as conversations
   const conversations = useMemo(() => {
-    return myLeads
-      .filter(l => l.last_contact || l.created_at)
+    let filtered = myLeads.filter(l => l.last_contact || l.created_at)
+
+    // Apply search filter
+    if (search.trim()) {
+      const searchLower = search.toLowerCase()
+      filtered = filtered.filter(l =>
+        l.full_name?.toLowerCase().includes(searchLower) ||
+        l.first_name?.toLowerCase().includes(searchLower) ||
+        l.last_name?.toLowerCase().includes(searchLower) ||
+        l.email?.toLowerCase().includes(searchLower) ||
+        l.phone?.includes(search)
+      )
+    }
+
+    return filtered
       .sort((a, b) => {
         const dateA = new Date(a.last_contact || a.created_at || 0)
         const dateB = new Date(b.last_contact || b.created_at || 0)
         return dateB.getTime() - dateA.getTime()
       })
-      .slice(0, 10)
+      .slice(0, 20)
       .map(lead => ({
         id: lead.id,
         name: lead.full_name || lead.first_name || 'Unknown',
         lastMessage: `Interested in ${lead.location || 'properties'} - ${lead.budget || 'Budget TBC'}`,
         time: getTimeAgo(lead.last_contact || lead.created_at || ''),
         status: lead.status,
+        phone: lead.phone,
       }))
-  }, [myLeads])
+  }, [myLeads, search])
 
   // Show message if not assigned to company
   if (!user?.company_id) {
@@ -82,7 +99,12 @@ export default function ConversationsPage() {
 
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search conversations..." className="pl-9" />
+        <Input
+          placeholder="Search conversations..."
+          className="pl-9"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
       </div>
 
       <div className="space-y-3">
@@ -97,7 +119,11 @@ export default function ConversationsPage() {
           </Card>
         ) : (
           conversations.map((conv) => (
-            <Card key={conv.id} className="hover:border-primary/50 transition-colors cursor-pointer">
+            <Card
+              key={conv.id}
+              className="hover:border-primary/50 transition-colors cursor-pointer"
+              onClick={() => router.push(`/broker/finance-leads/${conv.id}`)}
+            >
               <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
@@ -113,7 +139,18 @@ export default function ConversationsPage() {
                     </div>
                     <p className="text-sm text-muted-foreground truncate mt-1">{conv.lastMessage}</p>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (conv.phone) {
+                        window.open(`tel:${conv.phone}`, '_self');
+                      }
+                    }}
+                    title={conv.phone || 'No phone number'}
+                  >
                     <Phone className="h-4 w-4" />
                   </Button>
                 </div>

@@ -999,7 +999,13 @@ export default function FinanceLeadsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={(e) => { e.stopPropagation(); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (lead.phone) {
+                                  window.open(`tel:${lead.phone}`, '_self');
+                                }
+                              }}
+                              title={lead.phone || 'No phone number'}
                             >
                               <Phone className="h-3.5 w-3.5" />
                             </Button>
@@ -1007,7 +1013,13 @@ export default function FinanceLeadsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={(e) => { e.stopPropagation(); }}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (lead.email) {
+                                  window.open(`mailto:${lead.email}`, '_self');
+                                }
+                              }}
+                              title={lead.email || 'No email address'}
                             >
                               <Mail className="h-3.5 w-3.5" />
                             </Button>

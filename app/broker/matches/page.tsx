@@ -1,16 +1,20 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
 import { Heart, Phone, Mail, FileText, MapPin, Users } from 'lucide-react'
+import { EmailComposer } from '@/components/EmailComposer'
 
 export default function MatchesPage() {
+  const router = useRouter()
   const { leads } = useData()
   const { user } = useAuth()
+  const [emailLead, setEmailLead] = useState<typeof leads[0] | null>(null)
 
   // Filter leads by company_id first
   const myLeads = useMemo(() => {
@@ -84,14 +88,29 @@ export default function MatchesPage() {
               </div>
 
               <div className="flex items-center gap-2">
-                <Button className="flex-1">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    if (lead.phone) {
+                      window.open(`tel:${lead.phone}`, '_self');
+                    }
+                  }}
+                >
                   <Phone className="h-4 w-4 mr-2" />
                   Contact
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => setEmailLead(lead)}
+                >
                   <Mail className="h-4 w-4" />
                 </Button>
-                <Button variant="outline" size="icon">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
+                >
                   <FileText className="h-4 w-4" />
                 </Button>
               </div>
@@ -99,6 +118,20 @@ export default function MatchesPage() {
           </Card>
         ))}
       </div>
+
+      {/* Email Composer Modal */}
+      {emailLead && (
+        <EmailComposer
+          lead={{
+            id: emailLead.id,
+            fullName: emailLead.full_name || '',
+            email: emailLead.email || '',
+            status: emailLead.status || 'New',
+          }}
+          open={!!emailLead}
+          onOpenChange={(open) => !open && setEmailLead(null)}
+        />
+      )}
     </div>
   )
 }

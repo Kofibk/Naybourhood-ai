@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
-import { Lead, LeadFilters as FilterState, PipelineStats, PriorityAction } from '@/types'
+import { Lead, LeadFilters as FilterState, PipelineStats, PriorityAction, LeadStatus } from '@/types'
 import { LeadTable, LeadCardGrid } from '@/components/leads'
 import { PipelineOverview } from '@/components/dashboard/PipelineOverview'
 import { PriorityActions } from '@/components/dashboard/PriorityActions'
@@ -13,8 +13,23 @@ import {
   fetchPriorityActions,
   bulkUpdateLeads,
 } from '@/lib/queries/leads'
-import { Plus, LayoutGrid, LayoutList } from 'lucide-react'
+import { Plus, LayoutGrid, LayoutList, X, Users, Download } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { toast } from 'sonner'
+
+// Status options for bulk change
+const statusOptions: LeadStatus[] = [
+  'Contact Pending',
+  'Follow Up',
+  'Viewing Booked',
+  'Negotiating',
+  'Reserved',
+  'Exchanged',
+  'Completed',
+  'Not Proceeding',
+  'Disqualified',
+]
 
 export default function LeadsPage() {
   const router = useRouter()
@@ -23,6 +38,14 @@ export default function LeadsPage() {
   const [priorityActions, setPriorityActions] = useState<PriorityAction[]>([])
   const [loading, setLoading] = useState(true)
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table')
+
+  // Bulk action modals
+  const [showAssignModal, setShowAssignModal] = useState(false)
+  const [showStatusModal, setShowStatusModal] = useState(false)
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selectedAssignee, setSelectedAssignee] = useState('')
+  const [selectedStatus, setSelectedStatus] = useState<LeadStatus>('Contact Pending')
+  const [bulkActionLoading, setBulkActionLoading] = useState(false)
 
   // Filters and sorting
   const [filters, setFilters] = useState<FilterState>({})
@@ -77,18 +100,99 @@ export default function LeadsPage() {
     router.push(`/admin/leads-new/${lead.id}`)
   }
 
+  // Export leads to CSV
+  const exportToCSV = (ids: string[]) => {
+    const leadsToExport = leads.filter(l => ids.includes(l.id))
+    if (leadsToExport.length === 0) {
+      toast.error('No leads selected for export')
+      return
+    }
+
+    // Define CSV headers
+    const headers = [
+      'Name', 'Email', 'Phone', 'Status', 'Quality Score', 'Intent Score',
+      'Budget', 'Location', 'Bedrooms', 'Timeline', 'Source', 'Assigned To', 'Created At'
+    ]
+
+    // Map leads to CSV rows
+    const rows = leadsToExport.map(lead => [
+      lead.fullName || '',
+      lead.email || '',
+      lead.phone || '',
+      lead.status || '',
+      lead.qualityScore?.toString() || '',
+      lead.intentScore?.toString() || '',
+      lead.budgetRange || '',
+      lead.location || '',
+      lead.bedrooms?.toString() || '',
+      lead.timeline || '',
+      lead.source || '',
+      lead.assignedCaller || '',
+      lead.createdAt ? new Date(lead.createdAt).toLocaleDateString() : ''
+    ])
+
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${(cell || '').replace(/"/g, '""')}"`).join(','))
+    ].join('\n')
+
+    // Download file
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `leads-export-${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+    toast.success(`Exported ${leadsToExport.length} leads to CSV`)
+  }
+
+  // Handle bulk assign
+  const handleBulkAssign = async () => {
+    if (!selectedAssignee || selectedIds.length === 0) return
+    setBulkActionLoading(true)
+    try {
+      await bulkUpdateLeads(selectedIds, { assignedCaller: selectedAssignee })
+      toast.success(`Assigned ${selectedIds.length} leads to ${selectedAssignee}`)
+      setShowAssignModal(false)
+      setSelectedIds([])
+      loadData()
+    } catch (error) {
+      toast.error('Failed to assign leads')
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
+  // Handle bulk status change
+  const handleBulkStatusChange = async () => {
+    if (!selectedStatus || selectedIds.length === 0) return
+    setBulkActionLoading(true)
+    try {
+      await bulkUpdateLeads(selectedIds, { status: selectedStatus })
+      toast.success(`Updated ${selectedIds.length} leads to "${selectedStatus}"`)
+      setShowStatusModal(false)
+      setSelectedIds([])
+      loadData()
+    } catch (error) {
+      toast.error('Failed to update lead status')
+    } finally {
+      setBulkActionLoading(false)
+    }
+  }
+
   const handleBulkAction = async (action: string, ids: string[]) => {
     if (action === 'assign') {
-      // TODO: Show assign modal
-      console.log('Assign', ids)
+      setSelectedIds(ids)
+      setShowAssignModal(true)
     } else if (action === 'status') {
-      // TODO: Show status change modal
-      console.log('Change status', ids)
+      setSelectedIds(ids)
+      setShowStatusModal(true)
     } else if (action === 'export') {
-      // TODO: Export to CSV
-      console.log('Export', ids)
+      exportToCSV(ids)
     } else if (action === 'archive') {
       await bulkUpdateLeads(ids, { status: 'Not Proceeding' })
+      toast.success(`Archived ${ids.length} leads`)
       loadData()
     }
   }
@@ -120,8 +224,38 @@ export default function LeadsPage() {
   }
 
   const handleQuickAction = (leadId: string, action: string) => {
-    // TODO: Implement quick actions
-    console.log('Quick action', leadId, action)
+    const lead = leads.find(l => l.id === leadId)
+    if (!lead) return
+
+    switch (action) {
+      case 'call':
+        if (lead.phone) {
+          window.open(`tel:${lead.phone}`, '_self')
+        } else {
+          toast.error('No phone number available')
+        }
+        break
+      case 'whatsapp':
+        if (lead.phone) {
+          const phone = lead.phone.replace(/\D/g, '')
+          window.open(`https://wa.me/${phone}`, '_blank')
+        } else {
+          toast.error('No phone number available')
+        }
+        break
+      case 'email':
+        if (lead.email) {
+          window.open(`mailto:${lead.email}`, '_self')
+        } else {
+          toast.error('No email address available')
+        }
+        break
+      case 'view':
+        router.push(`/admin/leads-new/${leadId}`)
+        break
+      default:
+        router.push(`/admin/leads-new/${leadId}`)
+    }
   }
 
   return (
@@ -238,6 +372,87 @@ export default function LeadsPage() {
           )}
         </div>
       </div>
+
+      {/* Bulk Assign Modal */}
+      <Dialog open={showAssignModal} onOpenChange={setShowAssignModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Assign {selectedIds.length} Leads</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium">Select Assignee</label>
+            <select
+              className="w-full mt-2 h-10 px-3 border rounded-md bg-background"
+              value={selectedAssignee}
+              onChange={(e) => setSelectedAssignee(e.target.value)}
+            >
+              <option value="">Select an assignee...</option>
+              {availableAssignees.map((assignee) => (
+                <option key={assignee} value={assignee}>
+                  {assignee}
+                </option>
+              ))}
+            </select>
+            {availableAssignees.length === 0 && (
+              <p className="text-sm text-muted-foreground mt-2">
+                No assignees found. Leads will be assigned to the name you enter.
+              </p>
+            )}
+            <input
+              type="text"
+              className="w-full mt-2 h-10 px-3 border rounded-md bg-background"
+              placeholder="Or enter a new assignee name..."
+              value={selectedAssignee}
+              onChange={(e) => setSelectedAssignee(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAssignModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkAssign}
+              disabled={!selectedAssignee || bulkActionLoading}
+            >
+              {bulkActionLoading ? 'Assigning...' : `Assign ${selectedIds.length} Leads`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Status Change Modal */}
+      <Dialog open={showStatusModal} onOpenChange={setShowStatusModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Status for {selectedIds.length} Leads</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <label className="text-sm font-medium">Select New Status</label>
+            <select
+              className="w-full mt-2 h-10 px-3 border rounded-md bg-background"
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value as LeadStatus)}
+            >
+              {statusOptions.map((status) => (
+                <option key={status} value={status}>
+                  {status}
+                </option>
+              ))}
+            </select>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowStatusModal(false)}>
+              Cancel
+            </Button>
+            <Button
+              onClick={handleBulkStatusChange}
+              disabled={!selectedStatus || bulkActionLoading}
+            >
+              {bulkActionLoading ? 'Updating...' : `Update ${selectedIds.length} Leads`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

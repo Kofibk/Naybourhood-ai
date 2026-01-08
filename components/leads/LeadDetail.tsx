@@ -35,6 +35,7 @@ interface LeadDetailProps {
   onBack?: () => void
   onUpdate?: (updates: Partial<Lead>) => void
   onRescore?: () => void
+  onArchive?: () => void
   canEdit?: boolean
   className?: string
 }
@@ -56,11 +57,29 @@ export function LeadDetail({
   onBack,
   onUpdate,
   onRescore,
+  onArchive,
   canEdit = true,
   className,
 }: LeadDetailProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [rescoring, setRescoring] = useState(false)
+  const [archiving, setArchiving] = useState(false)
+
+  const handleArchive = async () => {
+    if (!window.confirm('Are you sure you want to archive this lead? They will be marked as "Not Proceeding".')) {
+      return
+    }
+    setArchiving(true)
+    try {
+      if (onArchive) {
+        await onArchive()
+      } else {
+        onUpdate?.({ status: 'Not Proceeding' })
+      }
+    } finally {
+      setArchiving(false)
+    }
+  }
 
   const handleStatusChange = (status: LeadStatus) => {
     onUpdate?.({ status })
@@ -115,9 +134,14 @@ export function LeadDetail({
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm">
-                <Archive className="h-4 w-4 mr-2" />
-                Archive
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleArchive}
+                disabled={archiving}
+              >
+                <Archive className={cn('h-4 w-4 mr-2', archiving && 'animate-pulse')} />
+                {archiving ? 'Archiving...' : 'Archive'}
               </Button>
             </>
           )}
