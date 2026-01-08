@@ -462,15 +462,15 @@ export default function CampaignsPage() {
                             <Megaphone className="h-4 w-4 text-muted-foreground" />
                             <div>
                               <p className="text-sm font-medium">{campaign.name}</p>
-                              <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Badge
                                   variant={statusIs(campaign.status, 'active') ? 'success' : 'secondary'}
-                                  className="text-[10px]"
+                                  className="text-xs whitespace-nowrap"
                                 >
                                   {campaign.status}
                                 </Badge>
                                 {campaign.platform && (
-                                  <Badge variant="outline" className="text-[10px]">
+                                  <Badge variant="outline" className="text-xs whitespace-nowrap">
                                     {campaign.platform}
                                   </Badge>
                                 )}

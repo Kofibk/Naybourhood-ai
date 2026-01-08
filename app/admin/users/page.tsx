@@ -410,23 +410,23 @@ export default function UsersPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                  <tr className="border-b border-border bg-muted/30">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[220px]">
                       User
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[130px]">
                       Role
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[160px]">
                       {userTypeFilter === 'internal' ? 'Department' : 'Company'}
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[120px]">
                       Status
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[120px]">
                       Last Active
                     </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-right p-4 text-sm font-medium text-muted-foreground min-w-[100px]">
                       Actions
                     </th>
                   </tr>

@@ -306,12 +306,12 @@ export default function BrokerFinanceLeadsPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-muted-foreground border-b">
-                    <th className="pb-2 font-medium">Client</th>
-                    <th className="pb-2 font-medium">Status</th>
-                    <th className="pb-2 font-medium">Loan Amount</th>
-                    <th className="pb-2 font-medium">Required By</th>
-                    <th className="pb-2 font-medium text-right">Actions</th>
+                  <tr className="text-left text-xs text-muted-foreground border-b bg-muted/30">
+                    <th className="p-3 font-medium min-w-[200px]">Client</th>
+                    <th className="p-3 font-medium min-w-[170px]">Status</th>
+                    <th className="p-3 font-medium min-w-[120px]">Loan Amount</th>
+                    <th className="p-3 font-medium min-w-[120px]">Required By</th>
+                    <th className="p-3 font-medium text-right min-w-[120px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -335,7 +335,7 @@ export default function BrokerFinanceLeadsPage() {
                           value={lead.status || 'Contact Pending'}
                           onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
                           disabled={updatingStatus === lead.id}
-                          className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${getStatusColor(lead.status)}`}
+                          className={`text-sm px-3 py-1.5 rounded-md border cursor-pointer transition-colors min-w-[160px] font-medium ${getStatusColor(lead.status)}`}
                         >
                           {FINANCE_STATUS_OPTIONS.map(s => (
                             <option key={s} value={s}>{s}</option>

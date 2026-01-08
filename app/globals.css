@@ -88,3 +88,64 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+
+/* ===== UI CLEANUP - Global Table Styles ===== */
+
+/* Ensure tables can scroll horizontally */
+.table-container {
+  @apply overflow-x-auto;
+}
+
+/* Table wrapper with horizontal scroll */
+table {
+  @apply min-w-full;
+}
+
+/* Prevent text truncation in table cells by default */
+table td,
+table th {
+  @apply whitespace-nowrap;
+}
+
+/* Status badges should never wrap */
+.status-badge,
+[class*="Badge"] {
+  @apply whitespace-nowrap;
+}
+
+/* Dropdowns in tables - ensure full text visibility */
+table select {
+  @apply min-w-[140px];
+}
+
+/* Card stats - ensure numbers don't squash */
+.stat-card .stat-value {
+  @apply text-2xl font-bold whitespace-nowrap;
+}
+
+/* Mobile responsive helpers */
+@media (max-width: 640px) {
+  .hide-on-mobile {
+    @apply hidden;
+  }
+
+  .stack-on-mobile {
+    @apply flex-col;
+  }
+}
+
+/* Ensure form controls have minimum widths */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="tel"],
+input[type="search"],
+select,
+textarea {
+  @apply min-w-0;
+}
+
+/* Button text should never wrap */
+button {
+  @apply whitespace-nowrap;
+}

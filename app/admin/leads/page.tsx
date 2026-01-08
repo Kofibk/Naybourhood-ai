@@ -166,20 +166,20 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
   ],
 }
 
-// Updated columns to match Buyer type fields
+// Updated columns to match Buyer type fields - wider widths to prevent truncation
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'full_name', label: 'Full Name', visible: true, width: 'w-[180px]', editable: true, type: 'text' },
-  { key: 'phone', label: 'Mobile', visible: true, width: 'w-[140px]', editable: true, type: 'text' },
-  { key: 'email', label: 'Email', visible: true, width: 'w-[200px]', editable: true, type: 'text' },
-  { key: 'budget', label: 'Budget', visible: true, width: 'w-[130px]', editable: true, type: 'text' },
-  { key: 'lead_score', label: 'Lead Score', visible: true, width: 'w-[100px]', editable: false, type: 'number' },
-  { key: 'ai_classification', label: 'Class', visible: true, width: 'w-[100px]', editable: false },
-  { key: 'status', label: 'Status', visible: true, width: 'w-[120px]', editable: true, type: 'select', options: STATUS_OPTIONS },
-  { key: 'payment_method', label: 'Payment', visible: true, width: 'w-[90px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
-  { key: 'created_at', label: 'Date Added', visible: true, width: 'w-[110px]', editable: false },
-  { key: 'assigned_user_name', label: 'Assigned', visible: false, width: 'w-[120px]', editable: true, type: 'text' },
-  { key: 'source', label: 'Source', visible: false, width: 'w-[100px]', editable: true, type: 'text' },
-  { key: 'campaign', label: 'Campaign', visible: false, width: 'w-[150px]', editable: true, type: 'text' },
+  { key: 'full_name', label: 'Full Name', visible: true, width: 'min-w-[200px]', editable: true, type: 'text' },
+  { key: 'phone', label: 'Mobile', visible: true, width: 'min-w-[140px]', editable: true, type: 'text' },
+  { key: 'email', label: 'Email', visible: true, width: 'min-w-[220px]', editable: true, type: 'text' },
+  { key: 'budget', label: 'Budget', visible: true, width: 'min-w-[150px]', editable: true, type: 'text' },
+  { key: 'lead_score', label: 'Lead Score', visible: true, width: 'min-w-[100px]', editable: false, type: 'number' },
+  { key: 'ai_classification', label: 'Class', visible: true, width: 'min-w-[120px]', editable: false },
+  { key: 'status', label: 'Status', visible: true, width: 'min-w-[160px]', editable: true, type: 'select', options: STATUS_OPTIONS },
+  { key: 'payment_method', label: 'Payment', visible: true, width: 'min-w-[110px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
+  { key: 'created_at', label: 'Date Added', visible: true, width: 'min-w-[110px]', editable: false },
+  { key: 'assigned_user_name', label: 'Assigned', visible: false, width: 'min-w-[150px]', editable: true, type: 'text' },
+  { key: 'source', label: 'Source', visible: false, width: 'min-w-[120px]', editable: true, type: 'text' },
+  { key: 'campaign', label: 'Campaign', visible: false, width: 'min-w-[180px]', editable: true, type: 'text' },
 ]
 
 const generateId = () => Math.random().toString(36).substring(2, 9)
@@ -1113,7 +1113,7 @@ export default function LeadsPage() {
                               <select
                                 value={cellValue || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'status', e.target.value)}
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                                className="w-full min-w-[150px] px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:border-primary transition-colors"
                               >
                                 <option value="">Select...</option>
                                 {(uniqueStatuses.length > 0 ? uniqueStatuses : STATUS_OPTIONS).map(opt => (
@@ -1130,7 +1130,7 @@ export default function LeadsPage() {
                               <select
                                 value={cellValue || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'payment_method', e.target.value)}
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                                className="w-full min-w-[100px] px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:border-primary transition-colors"
                               >
                                 <option value="">Select...</option>
                                 {PAYMENT_OPTIONS.map(opt => (
@@ -1147,7 +1147,7 @@ export default function LeadsPage() {
                               <select
                                 value={lead.assigned_to || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'assigned_to', e.target.value)}
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary max-w-[120px]"
+                                className="w-full min-w-[140px] px-3 py-1.5 rounded-md border border-input bg-background text-sm font-medium cursor-pointer hover:border-primary transition-colors"
                               >
                                 <option value="">Unassigned</option>
                                 {users.map(user => (

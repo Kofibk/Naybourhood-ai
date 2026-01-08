@@ -131,54 +131,54 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-              <Badge variant="success" className="text-[10px]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Users className="h-5 w-5 text-muted-foreground shrink-0" />
+              <Badge variant="success" className="text-xs whitespace-nowrap">
                 +12%
               </Badge>
             </div>
-            <div className="text-2xl font-bold">{myLeads.length}</div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-3xl font-bold">{myLeads.length}</div>
+            <div className="text-sm text-muted-foreground mt-1">
               {typeConfig.metricLabel}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <Badge variant="warning" className="text-[10px]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Flame className="h-5 w-5 text-orange-500 shrink-0" />
+              <Badge variant="warning" className="text-xs whitespace-nowrap">
                 Priority
               </Badge>
             </div>
-            <div className="text-2xl font-bold text-orange-500">
+            <div className="text-3xl font-bold text-orange-500">
               {myLeads.filter((l) => {
                 const score = l.ai_quality_score ?? l.quality_score
                 return score !== null && score !== undefined && score >= 85
               }).length}
             </div>
-            <div className="text-xs text-muted-foreground">
+            <div className="text-sm text-muted-foreground mt-1">
               Hot {typeConfig.title}
             </div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Calendar className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Calendar className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{viewingsCount}</div>
-            <div className="text-xs text-muted-foreground">Viewings Booked</div>
+            <div className="text-3xl font-bold">{viewingsCount}</div>
+            <div className="text-sm text-muted-foreground mt-1">Viewings Booked</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <MessageSquare className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <MessageSquare className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{myLeads.filter(l => l.status === 'New').length}</div>
-            <div className="text-xs text-muted-foreground">New {typeConfig.title}</div>
+            <div className="text-3xl font-bold">{myLeads.filter(l => l.status === 'New').length}</div>
+            <div className="text-sm text-muted-foreground mt-1">New {typeConfig.title}</div>
           </CardContent>
         </Card>
       </div>
@@ -209,13 +209,13 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                 </div>
               </div>
               <div className="flex items-center gap-2">
-                <Badge variant="muted" className="text-[10px]">
+                <Badge variant="muted" className="text-xs whitespace-nowrap px-2">
                   Q:{lead.ai_quality_score ?? lead.quality_score ?? '-'}
                 </Badge>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>
