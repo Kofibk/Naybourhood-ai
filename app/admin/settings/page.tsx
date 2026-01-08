@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
@@ -27,11 +27,22 @@ import {
   Zap,
   Clock,
   Flame,
+  Sun,
+  Moon,
+  Monitor,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { useTheme } from 'next-themes'
 
 export default function SettingsPage() {
   const { isLoading, leads, campaigns, companies, developments, refreshData } = useData()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   // System stats - excluding disqualified from lead count
   const systemStats = useMemo(() => {
@@ -167,6 +178,47 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sun className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+          <CardDescription>Customize how Naybourhood looks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mounted && (
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                onClick={() => setTheme('light')}
+              >
+                <Sun className="h-4 w-4" />
+                Light
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                onClick={() => setTheme('dark')}
+              >
+                <Moon className="h-4 w-4" />
+                Dark
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                onClick={() => setTheme('system')}
+              >
+                <Monitor className="h-4 w-4" />
+                System
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Lead Import */}
       <LeadImporter />
