@@ -122,14 +122,12 @@ export default function MatchesPage() {
       {/* Email Composer Modal */}
       {emailLead && (
         <EmailComposer
-          lead={{
-            id: emailLead.id,
-            fullName: emailLead.full_name || '',
-            email: emailLead.email || '',
-            status: emailLead.status || 'New',
-          }}
           open={!!emailLead}
           onOpenChange={(open) => !open && setEmailLead(null)}
+          recipientEmail={emailLead.email || ''}
+          recipientName={emailLead.full_name || 'Lead'}
+          leadId={emailLead.id}
+          leadStage={emailLead.status || 'Contact Pending'}
         />
       )}
     </div>

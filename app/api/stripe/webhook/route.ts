@@ -5,11 +5,17 @@ import Stripe from 'stripe'
 
 const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || ''
 
-// Create admin client for webhook operations
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-)
+// Lazy-initialize admin client for webhook operations (avoids build-time errors)
+function getSupabaseAdmin() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !key) {
+    throw new Error('Missing Supabase environment variables')
+  }
+
+  return createClient(url, key)
+}
 
 // Helper to update company subscription
 async function updateCompanySubscription(
@@ -21,7 +27,8 @@ async function updateCompanySubscription(
     next_billing_date?: string | null
   }
 ) {
-  const { error } = await supabaseAdmin
+  const supabase = getSupabaseAdmin()
+  const { error } = await supabase
     .from('companies')
     .update({
       ...updates,
