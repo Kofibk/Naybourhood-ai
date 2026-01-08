@@ -8,7 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { Bell, User, CreditCard, Save, CheckCircle, AlertCircle, Building2, Bot, Flame, Clock, Zap } from 'lucide-react'
+import { Bell, User, CreditCard, Save, CheckCircle, AlertCircle, Building2, Bot, Flame, Clock, Zap, Sun, Moon, Monitor } from 'lucide-react'
+import { useTheme } from 'next-themes'
 
 interface NotificationPreferences {
   newBuyerAlerts: boolean
@@ -32,6 +33,8 @@ const defaultPreferences: NotificationPreferences = {
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
+  const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -43,6 +46,11 @@ export default function SettingsPage() {
   } | null>(null)
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>(defaultPreferences)
   const [savingPrefs, setSavingPrefs] = useState(false)
+
+  // Prevent hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   useEffect(() => {
     setEditedName(user?.name || '')
@@ -217,6 +225,47 @@ export default function SettingsPage() {
               <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Sun className="h-5 w-5" />
+            Appearance
+          </CardTitle>
+          <CardDescription>Customize how Naybourhood looks</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {mounted && (
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant={theme === 'light' ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                onClick={() => setTheme('light')}
+              >
+                <Sun className="h-4 w-4" />
+                Light
+              </Button>
+              <Button
+                variant={theme === 'dark' ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                onClick={() => setTheme('dark')}
+              >
+                <Moon className="h-4 w-4" />
+                Dark
+              </Button>
+              <Button
+                variant={theme === 'system' ? 'default' : 'outline'}
+                className="flex items-center gap-2"
+                onClick={() => setTheme('system')}
+              >
+                <Monitor className="h-4 w-4" />
+                System
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
