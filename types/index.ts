@@ -304,7 +304,8 @@ export interface FinanceLead {
   message?: string
   status?: string
   notes?: string
-  assigned_agent?: string
+  assigned_to?: string     // User ID of assigned broker/agent
+  assigned_agent?: string  // Display name of assigned broker/agent
   company_id?: string      // Broker company assignment
   date_added?: string
   created_at?: string

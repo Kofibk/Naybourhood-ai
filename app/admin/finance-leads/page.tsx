@@ -154,9 +154,22 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
 // Helper to generate unique IDs
 const generateId = () => Math.random().toString(36).substring(2, 9)
 
+// Status options for finance leads
+const FINANCE_STATUS_OPTIONS = ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed']
+
+// Status color configuration
+const STATUS_CONFIG = {
+  'Contact Pending': { color: 'amber', category: 'pending' },
+  'Follow-up': { color: 'blue', category: 'pending' },
+  'Awaiting Documents': { color: 'purple', category: 'pending' },
+  'Not Proceeding': { color: 'red', category: 'negative' },
+  'Duplicate': { color: 'grey', category: 'disqualified' },
+  'Completed': { color: 'green', category: 'positive' },
+} as const
+
 export default function FinanceLeadsPage() {
   const router = useRouter()
-  const { financeLeads, companies, isLoading, refreshData, updateFinanceLead } = useData()
+  const { financeLeads, companies, users, isLoading, refreshData, updateFinanceLead } = useData()
 
   // Get broker companies only
   const brokerCompanies = useMemo(() => {
@@ -175,6 +188,28 @@ export default function FinanceLeadsPage() {
     e.stopPropagation()
     await updateFinanceLead(leadId, { company_id: companyId || undefined })
   }
+
+  // Handle status change
+  const handleStatusChange = async (leadId: string, status: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    await updateFinanceLead(leadId, { status })
+  }
+
+  // Handle agent assignment
+  const handleAssignAgent = async (leadId: string, agentId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    // Find user name for display
+    const user = users.find(u => u.id === agentId)
+    await updateFinanceLead(leadId, {
+      assigned_to: agentId || undefined,
+      assigned_agent: user?.name || undefined
+    })
+  }
+
+  // Get all users for assignment
+  const brokerUsers = useMemo(() => {
+    return users
+  }, [users])
 
   // Bulk assign all unassigned finance leads to a broker
   const [bulkAssigning, setBulkAssigning] = useState(false)
@@ -966,7 +1001,17 @@ export default function FinanceLeadsPage() {
                               </select>
                             )}
                             {col.key === 'assigned_agent' && (
-                              <span className="truncate">{lead.assigned_agent || '-'}</span>
+                              <select
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs w-full cursor-pointer hover:border-primary"
+                                value={lead.assigned_to || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => handleAssignAgent(lead.id, e.target.value, e as any)}
+                              >
+                                <option value="">Unassigned</option>
+                                {brokerUsers.map(user => (
+                                  <option key={user.id} value={user.id}>{user.name}</option>
+                                ))}
+                              </select>
                             )}
                             {col.key === 'required_by_date' && (
                               <span className="text-muted-foreground">{formatDate(lead.required_by_date)}</span>
@@ -977,9 +1022,17 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'status' && (
-                              <Badge variant={getStatusColor(lead.status) as any} className="text-[10px]">
-                                {lead.status || 'Unknown'}
-                              </Badge>
+                              <select
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary w-full"
+                                value={lead.status || ''}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
+                              >
+                                <option value="">Select...</option>
+                                {FINANCE_STATUS_OPTIONS.map(status => (
+                                  <option key={status} value={status}>{status}</option>
+                                ))}
+                              </select>
                             )}
                             {col.key === 'notes' && (
                               <span className="text-muted-foreground" title={lead.notes}>
