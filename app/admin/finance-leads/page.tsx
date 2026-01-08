@@ -136,17 +136,17 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'full_name', label: 'Name', visible: true, width: 'w-[180px]' },
-  { key: 'email', label: 'Email', visible: true, width: 'w-[200px]' },
-  { key: 'phone', label: 'Phone', visible: true, width: 'w-[130px]' },
-  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[140px]' },
-  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[120px]' },
-  { key: 'date_added', label: 'Date Added', visible: true, width: 'w-[110px]' },
-  { key: 'company_id', label: 'Broker', visible: true, width: 'w-[130px]' },
-  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'w-[130px]' },
+  { key: 'full_name', label: 'Name', visible: true, width: 'w-[160px]' },
+  { key: 'email', label: 'Email', visible: true, width: 'w-[180px]' },
+  { key: 'phone', label: 'Phone', visible: true, width: 'w-[120px]' },
+  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[130px]' },
+  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[110px]' },
+  { key: 'date_added', label: 'Date Added', visible: true, width: 'w-[100px]' },
+  { key: 'company_id', label: 'Broker', visible: true, width: 'w-[150px]' },
+  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'w-[140px]' },
   { key: 'required_by_date', label: 'Required By', visible: false, width: 'w-[120px]' },
   { key: 'message', label: 'Message', visible: false, width: 'w-[250px]' },
-  { key: 'status', label: 'Status', visible: true, width: 'w-[140px]' },
+  { key: 'status', label: 'Status', visible: true, width: 'w-[120px]' },
   { key: 'notes', label: 'Notes', visible: false, width: 'w-[200px]' },
   { key: 'created_at', label: 'Created', visible: false, width: 'w-[100px]' },
 ]
@@ -966,7 +966,7 @@ export default function FinanceLeadsPage() {
                               </select>
                             )}
                             {col.key === 'assigned_agent' && (
-                              <span className="truncate">{lead.assigned_agent || '-'}</span>
+                              <span>{lead.assigned_agent || 'Unassigned'}</span>
                             )}
                             {col.key === 'required_by_date' && (
                               <span className="text-muted-foreground">{formatDate(lead.required_by_date)}</span>
@@ -977,7 +977,7 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'status' && (
-                              <Badge variant={getStatusColor(lead.status) as any} className="text-[10px]">
+                              <Badge variant={getStatusColor(lead.status) as any} className="text-xs whitespace-nowrap">
                                 {lead.status || 'Unknown'}
                               </Badge>
                             )}
