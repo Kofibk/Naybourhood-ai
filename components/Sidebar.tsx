@@ -123,7 +123,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
         <Link href="/">
-          <Logo variant="light" size="sm" />
+          <Logo size="sm" />
         </Link>
       </div>
 

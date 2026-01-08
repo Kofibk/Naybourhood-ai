@@ -1,21 +1,37 @@
 'use client'
 
 import { cn } from '@/lib/utils'
+import { useTheme } from 'next-themes'
+import { useEffect, useState } from 'react'
 
 interface LogoProps {
   className?: string
-  variant?: 'dark' | 'light'
+  variant?: 'dark' | 'light' | 'auto'
   showText?: boolean
   size?: 'sm' | 'md' | 'lg'
 }
 
 export function Logo({
   className,
-  variant = 'dark',
+  variant = 'auto',
   showText = true,
   size = 'md'
 }: LogoProps) {
-  const color = variant === 'dark' ? '#000000' : '#ffffff'
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Determine color based on variant or theme
+  let color = '#000000' // default dark
+  if (variant === 'auto') {
+    // In auto mode, use opposite of theme (dark logo on light theme, light logo on dark theme)
+    color = mounted && resolvedTheme === 'dark' ? '#ffffff' : '#000000'
+  } else {
+    color = variant === 'dark' ? '#000000' : '#ffffff'
+  }
 
   const sizeClasses = {
     sm: { icon: 'w-8 h-8', text: 'text-sm', gap: 'gap-2' },
@@ -100,12 +116,24 @@ export function Logo({
 
 export function LogoIcon({
   className,
-  variant = 'dark'
+  variant = 'auto'
 }: {
   className?: string
-  variant?: 'dark' | 'light'
+  variant?: 'dark' | 'light' | 'auto'
 }) {
-  const color = variant === 'dark' ? '#000000' : '#ffffff'
+  const { resolvedTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  let color = '#000000'
+  if (variant === 'auto') {
+    color = mounted && resolvedTheme === 'dark' ? '#ffffff' : '#000000'
+  } else {
+    color = variant === 'dark' ? '#000000' : '#ffffff'
+  }
 
   return (
     <svg
