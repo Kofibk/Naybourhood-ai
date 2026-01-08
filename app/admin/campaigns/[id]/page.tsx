@@ -28,6 +28,11 @@ import {
   Save,
   CheckCircle,
   AlertCircle,
+  Target,
+  Link,
+  FileText,
+  AlertTriangle,
+  Percent,
 } from 'lucide-react'
 
 export default function CampaignDetailPage() {
@@ -156,6 +161,23 @@ export default function CampaignDetailPage() {
   const cpl = campaign.cpl || campaign.cost_per_lead || (leadCount > 0 ? Math.round(spend / leadCount) : 0)
   const hotLeads = leads.filter(l => (l.quality_score || 0) >= 85).length
   const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+
+  // Calculate additional metrics
+  const impressions = campaign.impressions || 0
+  const reach = campaign.reach || impressions  // Reach defaults to impressions if not set
+  const clicks = campaign.clicks || 0
+  const linkClicks = campaign.link_clicks || clicks  // Link clicks defaults to clicks
+  const lpvs = campaign.lpvs || 0  // Landing Page Views
+  const conversions = campaign.conversions || leadCount  // Conversions defaults to lead count
+  const ctr = campaign.ctr || (impressions > 0 ? ((clicks / impressions) * 100).toFixed(2) : 0)
+  const cpc = campaign.cpc || (clicks > 0 ? (spend / clicks) : 0)  // Cost per click
+  const linkClickToLpvRate = linkClicks > 0 && lpvs > 0 ? ((lpvs / linkClicks) * 100).toFixed(1) : null
+
+  // Define thresholds for red flagging
+  const isCpcHigh = cpc > 2  // CPC > £2 is flagged
+  const isCtrLow = Number(ctr) < 1  // CTR < 1% is flagged
+  const isCplHigh = cpl > 50  // CPL > £50 is flagged
+  const isLpvRateLow = linkClickToLpvRate !== null && Number(linkClickToLpvRate) < 50  // LPV rate < 50% is flagged
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -315,68 +337,158 @@ export default function CampaignDetailPage() {
         </Card>
       )}
 
-      {/* Performance Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Spend</span>
-            </div>
-            <p className="text-2xl font-bold">{formatCurrency(spend)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Leads</span>
-            </div>
-            <p className="text-2xl font-bold">{leadCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              {cpl > 50 ? (
-                <TrendingUp className="h-4 w-4 text-destructive" />
-              ) : (
-                <TrendingDown className="h-4 w-4 text-success" />
-              )}
-              <span className="text-xs text-muted-foreground">CPL</span>
-            </div>
-            <p className={`text-2xl font-bold ${cpl > 50 ? 'text-destructive' : 'text-success'}`}>
-              £{cpl}
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Impressions</span>
-            </div>
-            <p className="text-2xl font-bold">{(campaign.impressions || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <MousePointerClick className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Clicks</span>
-            </div>
-            <p className="text-2xl font-bold">{(campaign.clicks || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">CTR</span>
-            </div>
-            <p className="text-2xl font-bold">{campaign.ctr || 0}%</p>
-          </CardContent>
-        </Card>
+      {/* Performance Stats - Full Metrics */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-2">
+          <h3 className="text-lg font-semibold">Campaign Metrics</h3>
+          {(isCpcHigh || isCtrLow || isCplHigh || isLpvRateLow) && (
+            <Badge variant="destructive" className="flex items-center gap-1">
+              <AlertTriangle className="h-3 w-3" />
+              Needs Attention
+            </Badge>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          {/* Conversions */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Conversions</span>
+              </div>
+              <p className="text-2xl font-bold text-primary">{conversions.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+
+          {/* Spent */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <PoundSterling className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Spent</span>
+              </div>
+              <p className="text-2xl font-bold">{formatCurrency(spend)}</p>
+            </CardContent>
+          </Card>
+
+          {/* Reach */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Reach</span>
+              </div>
+              <p className="text-2xl font-bold">{reach.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+
+          {/* Impressions */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Eye className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Impressions</span>
+              </div>
+              <p className="text-2xl font-bold">{impressions.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+
+          {/* CPC - Red flag if > £2 */}
+          <Card className={isCpcHigh ? 'border-destructive bg-destructive/5' : ''}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                {isCpcHigh ? (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <MousePointerClick className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-xs text-muted-foreground">CPC</span>
+                {isCpcHigh && <span className="text-[10px] text-destructive ml-auto">Above £2</span>}
+              </div>
+              <p className={`text-2xl font-bold ${isCpcHigh ? 'text-destructive' : ''}`}>
+                £{typeof cpc === 'number' ? cpc.toFixed(2) : cpc}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* CTR - Red flag if < 1% */}
+          <Card className={isCtrLow ? 'border-destructive bg-destructive/5' : ''}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                {isCtrLow ? (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <Percent className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-xs text-muted-foreground">CTR</span>
+                {isCtrLow && <span className="text-[10px] text-destructive ml-auto">Below 1%</span>}
+              </div>
+              <p className={`text-2xl font-bold ${isCtrLow ? 'text-destructive' : ''}`}>
+                {ctr}%
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Link Clicks */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Link className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Link Clicks</span>
+              </div>
+              <p className="text-2xl font-bold">{linkClicks.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+
+          {/* LPVs */}
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <FileText className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">LPVs</span>
+              </div>
+              <p className="text-2xl font-bold">{lpvs.toLocaleString()}</p>
+              {lpvs === 0 && <p className="text-[10px] text-muted-foreground">No data</p>}
+            </CardContent>
+          </Card>
+
+          {/* % Link Clicks / LPV - Red flag if < 50% */}
+          <Card className={isLpvRateLow ? 'border-destructive bg-destructive/5' : ''}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                {isLpvRateLow ? (
+                  <AlertTriangle className="h-4 w-4 text-destructive" />
+                ) : (
+                  <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                )}
+                <span className="text-xs text-muted-foreground">% Clicks→LPV</span>
+                {isLpvRateLow && <span className="text-[10px] text-destructive ml-auto">Below 50%</span>}
+              </div>
+              <p className={`text-2xl font-bold ${isLpvRateLow ? 'text-destructive' : ''}`}>
+                {linkClickToLpvRate !== null ? `${linkClickToLpvRate}%` : 'N/A'}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* CPL - Red flag if > £50 */}
+          <Card className={isCplHigh ? 'border-destructive bg-destructive/5' : ''}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                {isCplHigh ? (
+                  <TrendingUp className="h-4 w-4 text-destructive" />
+                ) : (
+                  <TrendingDown className="h-4 w-4 text-success" />
+                )}
+                <span className="text-xs text-muted-foreground">CPL</span>
+                {isCplHigh && <span className="text-[10px] text-destructive ml-auto">Above £50</span>}
+              </div>
+              <p className={`text-2xl font-bold ${isCplHigh ? 'text-destructive' : 'text-success'}`}>
+                £{cpl}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Lead Quality Stats */}

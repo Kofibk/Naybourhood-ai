@@ -165,7 +165,12 @@ export interface Campaign {
   cpl?: number
   cost_per_lead?: number
   impressions?: number
+  reach?: number
   clicks?: number
+  link_clicks?: number
+  lpvs?: number  // Landing Page Views
+  conversions?: number
+  cpc?: number  // Cost per click
   ctr?: number
   start_date?: string
   end_date?: string

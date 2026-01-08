@@ -48,6 +48,9 @@ interface NewCampaign {
   spend: number
 }
 
+type SortOption = 'date-desc' | 'date-asc' | 'leads-desc' | 'leads-asc' | 'spend-desc'
+type PlatformFilter = 'all' | 'facebook' | 'instagram' | 'meta' | 'google' | 'tiktok' | 'linkedin'
+
 export default function CampaignsPage() {
   const router = useRouter()
   const { campaigns, leads, isLoading, createCampaign, updateCampaign } = useData()
@@ -63,6 +66,12 @@ export default function CampaignsPage() {
     status: 'active',
     spend: 0,
   })
+
+  // Filter state
+  const [showFilters, setShowFilters] = useState(false)
+  const [developmentFilter, setDevelopmentFilter] = useState<string>('all')
+  const [sortOption, setSortOption] = useState<SortOption>('date-desc')
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>('all')
 
   // Count leads from buyers table for each campaign
   // Match by: campaign_id, campaign name, development name, or client name
@@ -218,21 +227,115 @@ export default function CampaignsPage() {
     })
   }, [campaigns, leadCountByCampaign])
 
-  // Filter groups based on search
-  const filteredGroups = useMemo(() => {
-    if (!search) return groupedCampaigns
+  // Get unique development names for filter dropdown
+  const developmentNames = useMemo(() => {
+    const names = new Set<string>()
+    campaigns.forEach((c) => {
+      if (c.development) names.add(c.development)
+      if (c.client) names.add(c.client)
+    })
+    return Array.from(names).sort()
+  }, [campaigns])
 
-    return groupedCampaigns
-      .map((group) => ({
-        ...group,
-        campaigns: group.campaigns.filter(
-          (c) =>
-            c.name.toLowerCase().includes(search.toLowerCase()) ||
-            c.client?.toLowerCase().includes(search.toLowerCase())
-        ),
-      }))
-      .filter((group) => group.campaigns.length > 0)
-  }, [groupedCampaigns, search])
+  // Filter and sort groups based on search, filters, and sort option
+  const filteredGroups = useMemo(() => {
+    let result = groupedCampaigns
+
+    // Filter by development name
+    if (developmentFilter !== 'all') {
+      result = result.filter((group) =>
+        group.name.toLowerCase() === developmentFilter.toLowerCase()
+      )
+    }
+
+    // Filter by search
+    if (search) {
+      result = result
+        .map((group) => ({
+          ...group,
+          campaigns: group.campaigns.filter(
+            (c) =>
+              c.name.toLowerCase().includes(search.toLowerCase()) ||
+              c.client?.toLowerCase().includes(search.toLowerCase())
+          ),
+        }))
+        .filter((group) => group.campaigns.length > 0)
+    }
+
+    // Filter by platform (Facebook/Instagram = Meta)
+    if (platformFilter !== 'all') {
+      result = result
+        .map((group) => ({
+          ...group,
+          campaigns: group.campaigns.filter((c) => {
+            const platform = (c.platform || '').toLowerCase()
+            if (platformFilter === 'facebook' || platformFilter === 'instagram') {
+              return platform === 'meta' || platform === 'facebook' || platform === 'instagram'
+            }
+            if (platformFilter === 'meta') {
+              return platform === 'meta' || platform === 'facebook' || platform === 'instagram'
+            }
+            return platform === platformFilter
+          }),
+        }))
+        .filter((group) => group.campaigns.length > 0)
+
+      // Recalculate group totals after filtering
+      result = result.map((group) => {
+        const totalSpend = group.campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
+        const totalLeads = group.campaigns.reduce((sum, c) => sum + (leadCountByCampaign[c.id] || 0), 0)
+        const activeCampaigns = group.campaigns.filter((c) => statusIs(c.status, 'active')).length
+        const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
+        return { ...group, totalSpend, totalLeads, activeCampaigns, avgCPL }
+      })
+    }
+
+    // Sort groups
+    switch (sortOption) {
+      case 'date-desc':
+        result = result.sort((a, b) => {
+          const aDate = Math.max(...a.campaigns.map((c) => new Date(c.created_at || 0).getTime()))
+          const bDate = Math.max(...b.campaigns.map((c) => new Date(c.created_at || 0).getTime()))
+          return bDate - aDate
+        })
+        break
+      case 'date-asc':
+        result = result.sort((a, b) => {
+          const aDate = Math.min(...a.campaigns.filter(c => c.created_at).map((c) => new Date(c.created_at!).getTime()))
+          const bDate = Math.min(...b.campaigns.filter(c => c.created_at).map((c) => new Date(c.created_at!).getTime()))
+          return aDate - bDate
+        })
+        break
+      case 'leads-desc':
+        result = result.sort((a, b) => b.totalLeads - a.totalLeads)
+        break
+      case 'leads-asc':
+        result = result.sort((a, b) => a.totalLeads - b.totalLeads)
+        break
+      case 'spend-desc':
+        result = result.sort((a, b) => b.totalSpend - a.totalSpend)
+        break
+    }
+
+    // Keep "Uncategorized" at the end
+    const uncategorizedIndex = result.findIndex((g) => g.name === 'Uncategorized Campaigns')
+    if (uncategorizedIndex > 0) {
+      const [uncategorized] = result.splice(uncategorizedIndex, 1)
+      result.push(uncategorized)
+    }
+
+    return result
+  }, [groupedCampaigns, search, developmentFilter, platformFilter, sortOption, leadCountByCampaign])
+
+  // Check if any filters are active
+  const hasActiveFilters = developmentFilter !== 'all' || platformFilter !== 'all' || sortOption !== 'date-desc'
+
+  // Clear all filters
+  const clearFilters = () => {
+    setDevelopmentFilter('all')
+    setPlatformFilter('all')
+    setSortOption('date-desc')
+  }
 
   const toggleGroup = (name: string) => {
     setExpandedGroups((prev) => {
@@ -388,11 +491,131 @@ export default function CampaignsPage() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <Button variant="outline">
-          <Filter className="h-4 w-4 mr-2" />
-          Filter
-        </Button>
+        <div className="relative">
+          <Button
+            variant={hasActiveFilters ? 'default' : 'outline'}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filter
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5 text-xs">
+                Active
+              </Badge>
+            )}
+            <ChevronDown className={`h-4 w-4 ml-2 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+          </Button>
+
+          {/* Filter Dropdown */}
+          {showFilters && (
+            <div className="absolute right-0 top-full mt-2 w-80 bg-background border border-border rounded-lg shadow-lg z-50 p-4 space-y-4">
+              {/* Development Name Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Development Name</label>
+                <select
+                  value={developmentFilter}
+                  onChange={(e) => setDevelopmentFilter(e.target.value)}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="all">All Developments</option>
+                  {developmentNames.map((name) => (
+                    <option key={name} value={name}>
+                      {name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Sort Options */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Sort By</label>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value as SortOption)}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="date-desc">Date (Newest First)</option>
+                  <option value="date-asc">Date (Oldest First)</option>
+                  <option value="leads-desc">Leads (High to Low)</option>
+                  <option value="leads-asc">Leads (Low to High)</option>
+                  <option value="spend-desc">Spend (High to Low)</option>
+                </select>
+              </div>
+
+              {/* Platform Filter */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Platform</label>
+                <select
+                  value={platformFilter}
+                  onChange={(e) => setPlatformFilter(e.target.value as PlatformFilter)}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="all">All Platforms</option>
+                  <option value="meta">Facebook / Instagram (Meta)</option>
+                  <option value="google">Google</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="linkedin">LinkedIn</option>
+                </select>
+              </div>
+
+              {/* Filter Actions */}
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearFilters}
+                  disabled={!hasActiveFilters}
+                >
+                  Clear All
+                </Button>
+                <Button size="sm" onClick={() => setShowFilters(false)}>
+                  Apply
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
+
+      {/* Active Filter Tags */}
+      {hasActiveFilters && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Active filters:</span>
+          {developmentFilter !== 'all' && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {developmentFilter}
+              <X
+                className="h-3 w-3 cursor-pointer hover:text-destructive"
+                onClick={() => setDevelopmentFilter('all')}
+              />
+            </Badge>
+          )}
+          {platformFilter !== 'all' && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {platformFilter === 'meta' ? 'Facebook/Instagram' : platformFilter}
+              <X
+                className="h-3 w-3 cursor-pointer hover:text-destructive"
+                onClick={() => setPlatformFilter('all')}
+              />
+            </Badge>
+          )}
+          {sortOption !== 'date-desc' && (
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {sortOption === 'date-asc' && 'Oldest First'}
+              {sortOption === 'leads-desc' && 'Most Leads'}
+              {sortOption === 'leads-asc' && 'Least Leads'}
+              {sortOption === 'spend-desc' && 'Most Spend'}
+              <X
+                className="h-3 w-3 cursor-pointer hover:text-destructive"
+                onClick={() => setSortOption('date-desc')}
+              />
+            </Badge>
+          )}
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={clearFilters}>
+            Clear all
+          </Button>
+        </div>
+      )}
 
       {/* Grouped Campaigns */}
       <div className="space-y-4">
