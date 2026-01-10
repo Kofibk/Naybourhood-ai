@@ -164,11 +164,11 @@ export default function FinanceLeadsPage() {
   }, [companies])
 
   // Helper to get company name by ID
-  const getCompanyName = (companyId?: string) => {
+  const getCompanyName = useCallback((companyId?: string) => {
     if (!companyId) return '-'
     const company = companies.find(c => c.id === companyId)
     return company?.name || '-'
-  }
+  }, [companies])
 
   // Handle assigning broker to finance lead
   const handleAssignBroker = async (leadId: string, companyId: string, e: React.MouseEvent) => {
@@ -199,6 +199,9 @@ export default function FinanceLeadsPage() {
 
   // Search state
   const [search, setSearch] = useState('')
+
+  // Company filter state
+  const [companyFilter, setCompanyFilter] = useState<string>('all')
 
   // Advanced filter conditions (Airtable-style)
   const [filterConditions, setFilterConditions] = useState<FilterCondition[]>([])
@@ -342,6 +345,13 @@ export default function FinanceLeadsPage() {
   // Filter leads based on all conditions
   const filteredLeads = useMemo(() => {
     return financeLeads.filter((lead) => {
+      // Company filter
+      if (companyFilter !== 'all') {
+        const companyName = getCompanyName(lead.company_id).toLowerCase()
+        if (companyFilter === 'tudor-financial' && !companyName.includes('tudor')) return false
+        if (companyFilter === 'million-pound-homes' && !companyName.includes('million')) return false
+      }
+
       // Text search
       if (search) {
         const searchLower = search.toLowerCase()
@@ -367,7 +377,7 @@ export default function FinanceLeadsPage() {
 
       return true
     })
-  }, [financeLeads, search, filterConditions, filterLogic, matchesCondition])
+  }, [financeLeads, search, companyFilter, filterConditions, filterLogic, matchesCondition, getCompanyName])
 
   // Sort leads
   const sortedLeads = useMemo(() => {
@@ -641,6 +651,15 @@ export default function FinanceLeadsPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
+          <select
+            className="px-3 py-2 rounded-md border border-input bg-background text-sm"
+            value={companyFilter}
+            onChange={(e) => { setCompanyFilter(e.target.value); setCurrentPage(1) }}
+          >
+            <option value="all">All Companies</option>
+            <option value="tudor-financial">Tudor Financial</option>
+            <option value="million-pound-homes">Million Pound Homes</option>
+          </select>
           <div className="flex gap-2">
             <Button
               variant={showFilters ? 'default' : 'outline'}
