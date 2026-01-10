@@ -39,7 +39,7 @@ import {
 } from 'lucide-react'
 import { CSVImport } from '@/components/CSVImport'
 
-type SortField = 'full_name' | 'quality_score' | 'lead_score' | 'ai_confidence' | 'budget' | 'status' | 'created_at' | 'assigned_user_name' | 'source' | 'campaign'
+type SortField = 'full_name' | 'company' | 'quality_score' | 'lead_score' | 'ai_confidence' | 'budget' | 'status' | 'created_at' | 'assigned_user_name' | 'source' | 'campaign'
 type SortDirection = 'asc' | 'desc'
 type QuickFilter = 'all' | 'hot' | 'warm' | 'low'
 
@@ -112,6 +112,7 @@ interface ColumnConfig {
 
 const FILTER_FIELDS: FilterField[] = [
   { key: 'full_name', label: 'Name', type: 'text' },
+  { key: 'company', label: 'Company', type: 'select', options: ['Million Pound Homes', 'Tudor Financial'] },
   { key: 'phone', label: 'Mobile', type: 'text' },
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'budget', label: 'Budget', type: 'text' },
@@ -166,9 +167,13 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
   ],
 }
 
+// Company options for the dropdown
+const COMPANY_OPTIONS = ['Million Pound Homes', 'Tudor Financial']
+
 // Updated columns to match Buyer type fields
 const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'full_name', label: 'Full Name', visible: true, width: 'w-[180px]', editable: true, type: 'text' },
+  { key: 'company', label: 'Company', visible: true, width: 'w-[160px]', editable: true, type: 'select', options: COMPANY_OPTIONS },
   { key: 'phone', label: 'Mobile', visible: true, width: 'w-[140px]', editable: true, type: 'text' },
   { key: 'email', label: 'Email', visible: true, width: 'w-[200px]', editable: true, type: 'text' },
   { key: 'budget', label: 'Budget', visible: true, width: 'w-[130px]', editable: true, type: 'text' },
@@ -784,6 +789,19 @@ export default function LeadsPage() {
             className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
             onChange={(e) => {
               if (e.target.value) {
+                setFilterConditions(prev => [...prev.filter(c => c.field !== 'company'), { id: generateId(), field: 'company', operator: 'equals', value: e.target.value }])
+              } else {
+                setFilterConditions(filterConditions.filter(c => c.field !== 'company'))
+              }
+            }}
+          >
+            <option value="">All Companies ▾</option>
+            {COMPANY_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+          </select>
+          <select
+            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            onChange={(e) => {
+              if (e.target.value) {
                 setFilterConditions(prev => [...prev.filter(c => c.field !== 'status'), { id: generateId(), field: 'status', operator: 'equals', value: e.target.value }])
               } else {
                 setFilterConditions(filterConditions.filter(c => c.field !== 'status'))
@@ -1103,6 +1121,23 @@ export default function LeadsPage() {
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
                               {getClassBadge(classification)}
+                            </td>
+                          )
+                        }
+
+                        if (col.key === 'company') {
+                          return (
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`} onClick={(e) => e.stopPropagation()}>
+                              <select
+                                value={cellValue || ''}
+                                onChange={(e) => handleCellSave(lead.id, 'company', e.target.value)}
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                              >
+                                <option value="">Select...</option>
+                                {COMPANY_OPTIONS.map(opt => (
+                                  <option key={opt} value={opt}>{opt}</option>
+                                ))}
+                              </select>
                             </td>
                           )
                         }

@@ -88,6 +88,7 @@ export interface Buyer {
   assigned_caller?: string  // Supabase field name
   assigned_at?: string
   company_id?: string
+  company?: string  // 'Million Pound Homes' | 'Tudor Financial'
   // AI fields
   ai_quality_score?: number
   ai_intent_score?: number
@@ -306,6 +307,7 @@ export interface FinanceLead {
   notes?: string
   assigned_agent?: string
   company_id?: string      // Broker company assignment
+  company?: string         // 'Million Pound Homes' | 'Tudor Financial'
   date_added?: string
   created_at?: string
   updated_at?: string
