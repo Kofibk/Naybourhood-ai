@@ -113,8 +113,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // COMPANIES
         supabase.from('companies').select('*').order('name', { ascending: true }),
 
-        // DEVELOPMENTS - don't order by name as column might not exist
-        supabase.from('developments').select('*'),
+        // DEVELOPMENTS - join company data
+        supabase.from('developments').select('*, company:companies(*)'),
 
         // FINANCE LEADS
         supabase.from('finance_leads').select('*').order('created_at', { ascending: false }),
@@ -788,7 +788,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const { data: newData, error } = await supabase
         .from('developments')
         .insert(data)
-        .select()
+        .select('*, company:companies(*)')
         .single()
 
       if (error) {
@@ -828,7 +828,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .from('developments')
         .update(cleanData)
         .eq('id', id)
-        .select()
+        .select('*, company:companies(*)')
         .single()
 
       if (error) {

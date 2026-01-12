@@ -185,6 +185,8 @@ export interface Development {
   location?: string
   address?: string
   developer?: string
+  company_id?: string         // Foreign key to companies table
+  company?: Company           // Joined company data
   status?: string
   units?: number
   total_units?: number
