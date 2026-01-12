@@ -185,7 +185,7 @@ export default function InsightsPage() {
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            This Week's Performance
+            This Week&apos;s Performance
           </CardTitle>
         </CardHeader>
         <CardContent>
