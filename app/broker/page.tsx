@@ -1,17 +1,28 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { UserDashboard } from '@/components/UserDashboard'
-import { useAuth } from '@/contexts/AuthContext'
+
+interface StoredUser {
+  name?: string
+  company_id?: string
+}
 
 export default function BrokerDashboard() {
-  const { user, isLoading } = useAuth()
+  const [user, setUser] = useState<StoredUser | null>(null)
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    )
+  useEffect(() => {
+    const stored = localStorage.getItem('naybourhood_user')
+    if (stored) {
+      setUser(JSON.parse(stored))
+    } else {
+      setUser({}) // Set empty object to trigger demo mode
+    }
+  }, [])
+
+  // Show nothing briefly while checking localStorage
+  if (user === null) {
+    return null
   }
 
   const userName = user?.name?.split(' ')[0] || 'Broker'
