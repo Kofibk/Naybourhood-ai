@@ -6,8 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
-import type { User, Buyer } from '@/types'
-import { INTERNAL_ROLES } from '@/types'
 import {
   Users,
   Flame,
@@ -91,7 +89,7 @@ function AnimatedNumber({
 
 export default function AdminDashboard() {
   const { leads, campaigns, companies, isLoading, error, refreshData } = useData()
-  const [user, setUser] = useState<Partial<User>>({})
+  const [user, setUser] = useState<{ name?: string }>({})
 
   useEffect(() => {
     const stored = localStorage.getItem('naybourhood_user')
@@ -102,26 +100,11 @@ export default function AdminDashboard() {
 
   const userName = user.name?.split(' ')[0] || 'there'
 
-  // Check if user is admin (internal team) - they see all leads
-  const isAdmin = user.role ? INTERNAL_ROLES.includes(user.role) : true
-  const userCompany = user.company
-
-  // Filter leads by company for non-admin users
-  const filteredLeads = useMemo((): Buyer[] => {
-    if (isAdmin) {
-      return leads // Admin sees all leads
-    }
-    if (userCompany) {
-      return leads.filter(l => l.company === userCompany)
-    }
-    return leads // Fallback to all leads if no company set
-  }, [leads, isAdmin, userCompany])
-
   // Calculate real metrics from data - excluding disqualified
   const metrics = useMemo(() => {
     // Exclude disqualified from all stats
-    const activeLeads = filteredLeads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
-    const disqualifiedCount = filteredLeads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const disqualifiedCount = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
 
     const totalLeads = activeLeads.length
 
@@ -173,11 +156,11 @@ export default function AdminDashboard() {
       disqualifiedCount,
       scoredLeadsCount: scoredLeads.length,
     }
-  }, [filteredLeads, campaigns, companies])
+  }, [leads, campaigns, companies])
 
   // Calculate lead classifications by status category - excluding disqualified
   const classificationData = useMemo(() => {
-    const activeLeads = filteredLeads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
 
     // By status category
     const positive = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
@@ -189,7 +172,7 @@ export default function AdminDashboard() {
              !STATUS_CATEGORIES.pending.includes(status) &&
              !STATUS_CATEGORIES.negative.includes(status)
     }).length
-    const disqualified = filteredLeads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
+    const disqualified = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
 
     return [
       { name: 'Positive', value: positive, color: '#22c55e' },  // Green
@@ -198,11 +181,11 @@ export default function AdminDashboard() {
       { name: 'New/Other', value: uncategorized, color: '#3b82f6' },  // Blue
       { name: 'Disqualified', value: disqualified, color: '#6b7280' },  // Grey
     ]
-  }, [filteredLeads])
+  }, [leads])
 
   // Get leads requiring action - hot leads that need follow-up
   const actionLeads = useMemo(() => {
-    return filteredLeads
+    return leads
       .filter(l => {
         const status = l.status || ''
         // Exclude disqualified, completed, and negative statuses
@@ -219,12 +202,12 @@ export default function AdminDashboard() {
         return scoreB - scoreA
       })
       .slice(0, 5)
-  }, [filteredLeads])
+  }, [leads])
 
   // Calculate campaign lead counts based on actual buyer/lead data
   const campaignLeadCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    filteredLeads.forEach(lead => {
+    leads.forEach(lead => {
       // Count by campaign name or development
       const campaignKey = lead.campaign || lead.campaign_id
       if (campaignKey) {
@@ -232,7 +215,7 @@ export default function AdminDashboard() {
       }
     })
     return counts
-  }, [filteredLeads])
+  }, [leads])
 
   // Get campaign alerts (high CPL campaigns)
   const campaignAlerts = useMemo(() => {
@@ -244,7 +227,7 @@ export default function AdminDashboard() {
 
   // Build funnel from real data - using actual status values, excluding disqualified
   const funnelData = useMemo(() => {
-    const activeLeads = filteredLeads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
     const total = activeLeads.length
     const contacted = activeLeads.filter(l => l.status && l.status !== 'Contact Pending').length
     const interested = activeLeads.filter(l => ['Interested', 'Follow Up', 'Viewing Booked', 'Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
@@ -261,7 +244,7 @@ export default function AdminDashboard() {
       { name: 'Offer Made', value: offer, color: '#22c55e' },
       { name: 'Reserved', value: reserved, color: '#10b981' },
     ]
-  }, [filteredLeads])
+  }, [leads])
 
   return (
     <div className="space-y-6">
@@ -274,13 +257,8 @@ export default function AdminDashboard() {
           <p className="text-sm text-muted-foreground">{getDateString()}</p>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-xs text-muted-foreground">
-              Campaigns: {campaigns.length} · Leads: {filteredLeads.length}{!isAdmin && leads.length !== filteredLeads.length ? ` of ${leads.length}` : ''} · Companies: {companies.length}
+              Campaigns: {campaigns.length} · Leads: {leads.length} · Companies: {companies.length}
             </p>
-            {!isAdmin && userCompany && (
-              <Badge variant="outline" className="text-[10px]">
-                {userCompany}
-              </Badge>
-            )}
             <Badge
               variant={!error ? 'success' : 'destructive'}
               className="text-[10px]"
@@ -575,7 +553,7 @@ export default function AdminDashboard() {
               .map((campaign) => {
                 // Calculate leads from buyers that enquired about this campaign/development
                 const campaignName = (campaign.name || '').toLowerCase()
-                const campaignLeads = filteredLeads.filter(lead => {
+                const campaignLeads = leads.filter(lead => {
                   // Match by campaign_id first
                   if (lead.campaign_id && lead.campaign_id === campaign.id) return true
                   // Then match by campaign name

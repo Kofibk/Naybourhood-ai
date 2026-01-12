@@ -215,16 +215,16 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
   const typeConfig = config[userType]
 
   // Filter leads by companyId for multi-tenant data isolation
-  // For Quick Access/test users (mph-company), use demo data for investor pitches
-  const isDemo = companyId === 'mph-company'
+  // For Quick Access/demo users, use demo data for investor pitches
+  const isDemo = companyId === 'mph-company' || !companyId
   const myLeads = useMemo(() => {
-    if (!companyId) return []
     // Demo mode - use demo data for investor pitches
     if (isDemo) {
-      // If we have real leads, combine with demo; otherwise just use demo
+      // If we have real leads, show them; otherwise use demo data
       const realLeads = leads.filter(lead => lead.company === 'Million Pound Homes')
       return realLeads.length > 0 ? realLeads : DEMO_LEADS
     }
+    // Filter by company_id for real users
     return leads.filter(lead => lead.company_id === companyId)
   }, [leads, companyId, isDemo])
 
@@ -274,29 +274,6 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
     const converted = myLeads.filter(l => positiveStatuses.includes(l.status || '')).length
     return myLeads.length > 0 ? Math.round((converted / myLeads.length) * 100) : 0
   }, [myLeads])
-
-  // Show message if not assigned to a company
-  if (!companyId) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold font-display">
-            {getGreeting()}, {userName}
-          </h2>
-          <p className="text-sm text-muted-foreground">{getDateString()}</p>
-        </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Your account is not linked to a company.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Contact an administrator to assign you to a company to view your dashboard.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    )
-  }
 
   return (
     <div className="space-y-6">
