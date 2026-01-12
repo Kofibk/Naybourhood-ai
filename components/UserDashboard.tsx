@@ -254,6 +254,27 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       .slice(0, 3)
   }, [myLeads])
 
+  // Calculate pipeline value from budget ranges
+  const pipelineValue = useMemo(() => {
+    return myLeads.reduce((total, lead) => {
+      // Use budget_min as the pipeline value, or parse from budget string
+      if (lead.budget_min) return total + lead.budget_min
+      if (lead.budget) {
+        // Try to extract number from budget string like "£2.5M - £3.5M"
+        const match = lead.budget.match(/£([\d.]+)M/i)
+        if (match) return total + parseFloat(match[1]) * 1000000
+      }
+      return total
+    }, 0)
+  }, [myLeads])
+
+  // Calculate conversion rate
+  const conversionRate = useMemo(() => {
+    const positiveStatuses = ['Reserved', 'Exchanged', 'Completed', 'Negotiating']
+    const converted = myLeads.filter(l => positiveStatuses.includes(l.status || '')).length
+    return myLeads.length > 0 ? Math.round((converted / myLeads.length) * 100) : 0
+  }, [myLeads])
+
   // Show message if not assigned to a company
   if (!companyId) {
     return (
@@ -276,27 +297,6 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       </div>
     )
   }
-
-  // Calculate pipeline value from budget ranges
-  const pipelineValue = useMemo(() => {
-    return myLeads.reduce((total, lead) => {
-      // Use budget_min as the pipeline value, or parse from budget string
-      if (lead.budget_min) return total + lead.budget_min
-      if (lead.budget) {
-        // Try to extract number from budget string like "£2.5M - £3.5M"
-        const match = lead.budget.match(/£([\d.]+)M/i)
-        if (match) return total + parseFloat(match[1]) * 1000000
-      }
-      return total
-    }, 0)
-  }, [myLeads])
-
-  // Calculate conversion rate
-  const conversionRate = useMemo(() => {
-    const positiveStatuses = ['Reserved', 'Exchanged', 'Completed', 'Negotiating']
-    const converted = myLeads.filter(l => positiveStatuses.includes(l.status || '')).length
-    return myLeads.length > 0 ? Math.round((converted / myLeads.length) * 100) : 0
-  }, [myLeads])
 
   return (
     <div className="space-y-6">
