@@ -35,7 +35,7 @@ import {
 export default function DevelopmentDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { developments, campaigns, leads, isLoading, updateDevelopment } = useData()
+  const { developments, campaigns, leads, companies, isLoading, updateDevelopment } = useData()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editData, setEditData] = useState<Partial<Development>>({})
@@ -193,9 +193,11 @@ export default function DevelopmentDetailPage() {
                 <span>{development.location}</span>
               </div>
             )}
-            {development.developer && (
+            {(development.developer || development.company?.name) && (
               <p className="text-sm text-muted-foreground mt-1">
-                Developed by {development.developer}
+                {development.developer && <>Developed by {development.developer}</>}
+                {development.developer && development.company?.name && <> · </>}
+                {development.company?.name && <span className="text-primary">{development.company.name}</span>}
               </p>
             )}
           </div>
@@ -261,6 +263,21 @@ export default function DevelopmentDetailPage() {
                   value={editData.developer || ''}
                   onChange={(e) => setEditData({ ...editData, developer: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Company</label>
+                <select
+                  value={editData.company_id || ''}
+                  onChange={(e) => setEditData({ ...editData, company_id: e.target.value })}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">Select a company...</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>
