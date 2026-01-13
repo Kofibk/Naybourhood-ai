@@ -8,6 +8,7 @@ export interface UserProfile {
   phone: string | null
   job_title: string | null
   avatar_url: string | null
+  company_id: string | null
   company_name: string | null
   company_logo_url: string | null
   website: string | null
@@ -225,10 +226,60 @@ export async function completeOnboarding(): Promise<boolean> {
 
   if (!user) return false
 
+  // Fetch the user's profile to get company details
+  const { data: profile, error: profileError } = await supabase
+    .from('user_profiles')
+    .select('company_name, website, business_address, user_type, first_name, last_name')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) {
+    console.error('[Onboarding] Error fetching profile:', profileError)
+    return false
+  }
+
+  // Create the company if company_name exists
+  let companyId: string | null = null
+
+  if (profile?.company_name) {
+    // Map user_type to company type (capitalize first letter)
+    const companyType = profile.user_type
+      ? profile.user_type.charAt(0).toUpperCase() + profile.user_type.slice(1)
+      : 'Developer'
+
+    // Get contact info from user's email
+    const { data: { user: authUser } } = await supabase.auth.getUser()
+    const contactName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null
+    const contactEmail = authUser?.email || null
+
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        name: profile.company_name,
+        type: companyType as 'Developer' | 'Agent' | 'Broker' | 'Marketing Agency' | 'Financial Advisor',
+        website: profile.website || null,
+        business_address: profile.business_address || null,
+        contact_name: contactName,
+        contact_email: contactEmail,
+        status: 'Active',
+      })
+      .select('id')
+      .single()
+
+    if (companyError) {
+      console.error('[Onboarding] Error creating company:', companyError)
+      return false
+    }
+
+    companyId = company.id
+  }
+
+  // Update user_profiles with company_id and mark onboarding as completed
   const { error } = await supabase
     .from('user_profiles')
     .update({
       onboarding_completed: true,
+      ...(companyId && { company_id: companyId }),
     })
     .eq('id', user.id)
 
