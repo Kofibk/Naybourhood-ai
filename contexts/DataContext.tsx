@@ -107,8 +107,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return allBuyers
         })(),
 
-        // CAMPAIGNS
-        supabase.from('campaigns').select('*').order('created_at', { ascending: false }),
+        // CAMPAIGNS - join company and development data
+        supabase.from('campaigns').select('*, company:companies(*), developmentData:developments(*)').order('created_at', { ascending: false }),
 
         // COMPANIES
         supabase.from('companies').select('*').order('name', { ascending: true }),
@@ -527,7 +527,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .from('campaigns')
         .update(cleanData)
         .eq('id', id)
-        .select()
+        .select('*, company:companies(*), developmentData:developments(*)')
         .single()
 
       if (error) {
@@ -652,7 +652,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const { data: newData, error } = await supabase
         .from('campaigns')
         .insert(data)
-        .select()
+        .select('*, company:companies(*), developmentData:developments(*)')
         .single()
 
       if (error) {

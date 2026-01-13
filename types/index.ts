@@ -155,8 +155,11 @@ export interface Campaign {
   id: string
   name: string
   client?: string
-  development?: string
+  development?: string              // Legacy text field (backwards compatibility)
+  development_id?: string           // Foreign key to developments table
+  developmentData?: Development     // Joined development data
   company_id?: string
+  company?: Company                 // Joined company data
   platform?: string
   status?: string
   spend?: number
