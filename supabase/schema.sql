@@ -179,30 +179,6 @@ create trigger on_campaigns_updated before update on public.campaigns
 create trigger on_buyers_updated before update on public.buyers
   for each row execute function public.handle_updated_at();
 
--- Function to create profile on user signup
-create or replace function public.handle_new_user()
-returns trigger as $$
-begin
-  insert into public.profiles (id, email, full_name, role)
-  values (
-    new.id,
-    new.email,
-    coalesce(new.raw_user_meta_data->>'full_name', split_part(new.email, '@', 1)),
-    case
-      when new.email = 'kofi@naybourhood.ai' then 'admin'
-      else 'developer'
-    end
-  );
-  return new;
-end;
-$$ language plpgsql security definer;
-
--- Trigger for new user signup
-drop trigger if exists on_auth_user_created on auth.users;
-create trigger on_auth_user_created
-  after insert on auth.users
-  for each row execute function public.handle_new_user();
-
 -- Function to auto-populate first_name/last_name from full_name
 create or replace function public.handle_buyer_name_split()
 returns trigger as $$
