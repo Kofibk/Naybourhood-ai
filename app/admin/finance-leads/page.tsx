@@ -33,7 +33,7 @@ import {
   Clock,
 } from 'lucide-react'
 
-type SortField = 'full_name' | 'company' | 'email' | 'phone' | 'finance_type' | 'loan_amount' | 'required_by_date' | 'message' | 'status' | 'notes' | 'assigned_agent' | 'date_added' | 'created_at'
+type SortField = 'full_name' | 'email' | 'phone' | 'finance_type' | 'loan_amount' | 'required_by_date' | 'message' | 'status' | 'notes' | 'assigned_agent' | 'date_added' | 'created_at'
 type SortDirection = 'asc' | 'desc'
 type GroupBy = 'none' | 'status' | 'finance_type' | 'assigned_agent'
 
@@ -80,7 +80,6 @@ interface ColumnConfig {
 // Define all filterable fields with their types - matching actual Supabase columns
 const FILTER_FIELDS: FilterField[] = [
   { key: 'full_name', label: 'Name', type: 'text' },
-  { key: 'company', label: 'Company', type: 'select', options: ['Million Pound Homes', 'Tudor Financial'] },
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'phone', label: 'Phone', type: 'text' },
   { key: 'finance_type', label: 'Finance Type', type: 'select', options: ['Bridging Finance', 'Development Finance', 'Residential', 'Buy to let', 'Other'] },
@@ -136,12 +135,8 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
   ],
 }
 
-// Company options for the dropdown
-const COMPANY_OPTIONS = ['Million Pound Homes', 'Tudor Financial']
-
 const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'full_name', label: 'Name', visible: true, width: 'w-[180px]' },
-  { key: 'company', label: 'Company', visible: true, width: 'w-[160px]' },
   { key: 'email', label: 'Email', visible: true, width: 'w-[200px]' },
   { key: 'phone', label: 'Phone', visible: true, width: 'w-[130px]' },
   { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[140px]' },
@@ -927,24 +922,6 @@ export default function FinanceLeadsPage() {
                               <span className="font-medium">
                                 {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
                               </span>
-                            )}
-                            {col.key === 'company' && (
-                              <select
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs w-full"
-                                value={lead.company || ''}
-                                onClick={(e) => e.stopPropagation()}
-                                onChange={(e) => {
-                                  e.stopPropagation()
-                                  updateFinanceLead(lead.id, { company: e.target.value })
-                                }}
-                              >
-                                <option value="">Select...</option>
-                                {COMPANY_OPTIONS.map((opt) => (
-                                  <option key={opt} value={opt}>
-                                    {opt}
-                                  </option>
-                                ))}
-                              </select>
                             )}
                             {col.key === 'email' && (
                               <span className="truncate text-muted-foreground">{lead.email || '-'}</span>
