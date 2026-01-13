@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -89,7 +90,32 @@ const DEMO_WEEKLY_TRENDS = [
   { label: 'Avg Response Time', value: '2.4h', change: '-18%', positive: true },
 ]
 
+const EMPTY_METRICS = {
+  leadQuality: 0,
+  totalLeads: 0,
+  qualifiedRate: 0,
+  responseRate: 0,
+  avgDaysToConvert: 0,
+  pipelineValue: 0,
+  conversionRate: 0,
+  hotLeads: 0,
+}
+
 export default function InsightsPage() {
+  const [isDemo, setIsDemo] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('naybourhood_user')
+    if (stored) {
+      const user = JSON.parse(stored)
+      setIsDemo(user.isDemo === true)
+    }
+  }, [])
+
+  const metrics = isDemo ? DEMO_METRICS : EMPTY_METRICS
+  const insights = isDemo ? DEMO_INSIGHTS : []
+  const weeklyTrends = isDemo ? DEMO_WEEKLY_TRENDS : []
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -105,10 +131,22 @@ export default function InsightsPage() {
         </div>
         <Badge variant="outline" className="text-primary border-primary">
           <Sparkles className="h-3 w-3 mr-1" />
-          Live Analysis
+          {isDemo ? 'Demo Mode' : 'Live Analysis'}
         </Badge>
       </div>
 
+      {!isDemo && (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <Brain className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <h3 className="font-semibold mb-2">No insights yet</h3>
+            <p className="text-sm text-muted-foreground">AI-powered insights will appear here as you add leads</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {isDemo && (
+        <>
       {/* Key Metrics */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-gradient-to-br from-primary/10 to-transparent">
@@ -117,7 +155,7 @@ export default function InsightsPage() {
               <Target className="h-5 w-5 text-primary" />
               <Badge variant="success" className="text-[10px]">Excellent</Badge>
             </div>
-            <div className="text-2xl font-bold">{DEMO_METRICS.leadQuality}</div>
+            <div className="text-2xl font-bold">{metrics.leadQuality}</div>
             <div className="text-xs text-muted-foreground">Lead Quality Score</div>
           </CardContent>
         </Card>
@@ -127,7 +165,7 @@ export default function InsightsPage() {
               <Users className="h-5 w-5 text-blue-500" />
               <Badge variant="secondary" className="text-[10px]">+12%</Badge>
             </div>
-            <div className="text-2xl font-bold">{DEMO_METRICS.totalLeads}</div>
+            <div className="text-2xl font-bold">{metrics.totalLeads}</div>
             <div className="text-xs text-muted-foreground">Total Leads</div>
           </CardContent>
         </Card>
@@ -137,7 +175,7 @@ export default function InsightsPage() {
               <TrendingUp className="h-5 w-5 text-green-500" />
               <Badge variant="success" className="text-[10px]">Above avg</Badge>
             </div>
-            <div className="text-2xl font-bold">{DEMO_METRICS.qualifiedRate}%</div>
+            <div className="text-2xl font-bold">{metrics.qualifiedRate}%</div>
             <div className="text-xs text-muted-foreground">Qualified Rate</div>
           </CardContent>
         </Card>
@@ -147,7 +185,7 @@ export default function InsightsPage() {
               <Flame className="h-5 w-5 text-orange-500" />
               <Badge variant="destructive" className="text-[10px]">Priority</Badge>
             </div>
-            <div className="text-2xl font-bold text-orange-500">{DEMO_METRICS.hotLeads}</div>
+            <div className="text-2xl font-bold text-orange-500">{metrics.hotLeads}</div>
             <div className="text-xs text-muted-foreground">Hot Leads</div>
           </CardContent>
         </Card>
@@ -163,16 +201,16 @@ export default function InsightsPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Pipeline Value</p>
-                <p className="text-3xl font-bold text-primary">£{DEMO_METRICS.pipelineValue}M</p>
+                <p className="text-3xl font-bold text-primary">£{metrics.pipelineValue}M</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="text-center">
-                <p className="text-lg font-bold">{DEMO_METRICS.conversionRate}%</p>
+                <p className="text-lg font-bold">{metrics.conversionRate}%</p>
                 <p className="text-xs text-muted-foreground">Conversion Rate</p>
               </div>
               <div className="text-center">
-                <p className="text-lg font-bold">{DEMO_METRICS.avgDaysToConvert}</p>
+                <p className="text-lg font-bold">{metrics.avgDaysToConvert}</p>
                 <p className="text-xs text-muted-foreground">Avg Days to Convert</p>
               </div>
             </div>
@@ -190,7 +228,7 @@ export default function InsightsPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {DEMO_WEEKLY_TRENDS.map((trend, i) => (
+            {weeklyTrends.map((trend, i) => (
               <div key={i} className="p-3 rounded-lg bg-muted/30">
                 <p className="text-xs text-muted-foreground mb-1">{trend.label}</p>
                 <div className="flex items-center justify-between">
@@ -211,11 +249,11 @@ export default function InsightsPage() {
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-yellow-500" />
             AI Recommendations
-            <Badge variant="outline" className="text-[10px]">{DEMO_INSIGHTS.length} actions</Badge>
+            <Badge variant="outline" className="text-[10px]">{insights.length} actions</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {DEMO_INSIGHTS.map((insight, i) => (
+          {insights.map((insight, i) => (
             <div
               key={i}
               className={`flex items-start gap-4 p-4 rounded-lg border transition-colors hover:border-primary/50 ${
@@ -254,6 +292,8 @@ export default function InsightsPage() {
           ))}
         </CardContent>
       </Card>
+        </>
+      )}
     </div>
   )
 }

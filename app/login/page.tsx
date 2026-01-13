@@ -528,11 +528,11 @@ function LoginPageInner() {
           )}
         </p>
 
-        {/* Quick Access - Development/Testing */}
+        {/* Demo Access - For investor pitches */}
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-center text-muted-foreground mb-3 uppercase tracking-wider font-medium">
-              Quick Access
+              Demo Access
             </p>
             <div className="flex items-center gap-3 mb-3 p-2 rounded-md bg-muted/50">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -565,12 +565,13 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'demo-developer',
+                    email: 'demo@millionpound.homes',
+                    name: 'Demo User',
                     role: 'developer',
                     company: 'Million Pound Homes',
                     company_id: 'mph-company',
+                    isDemo: true,
                   }))
                   router.push('/developer')
                 }}
@@ -582,12 +583,13 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'demo-agent',
+                    email: 'demo@millionpound.homes',
+                    name: 'Demo User',
                     role: 'agent',
                     company: 'Million Pound Homes',
                     company_id: 'mph-company',
+                    isDemo: true,
                   }))
                   router.push('/agent')
                 }}
@@ -599,12 +601,13 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'demo-broker',
+                    email: 'demo@millionpound.homes',
+                    name: 'Demo User',
                     role: 'broker',
                     company: 'Million Pound Homes',
                     company_id: 'mph-company',
+                    isDemo: true,
                   }))
                   router.push('/broker')
                 }}

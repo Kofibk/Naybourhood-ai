@@ -96,21 +96,21 @@ export default function ConversationsPage() {
     const stored = localStorage.getItem('naybourhood_user')
     if (stored) {
       const user = JSON.parse(stored)
-      setIsDemo(user.company_id === 'mph-company' || !user.company_id)
-    } else {
-      setIsDemo(true)
+      setIsDemo(user.isDemo === true)
     }
   }, [])
 
+  const conversations = isDemo ? DEMO_CONVERSATIONS : []
+
   const filteredConversations = useMemo(() => {
-    if (!search) return DEMO_CONVERSATIONS
-    return DEMO_CONVERSATIONS.filter(c =>
+    if (!search) return conversations
+    return conversations.filter(c =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.lastMessage.toLowerCase().includes(search.toLowerCase())
     )
-  }, [search])
+  }, [search, conversations])
 
-  const unreadCount = DEMO_CONVERSATIONS.filter(c => c.unread).length
+  const unreadCount = conversations.filter(c => c.unread).length
 
   return (
     <div className="space-y-6">
@@ -135,6 +135,15 @@ export default function ConversationsPage() {
       </div>
 
       <div className="space-y-3">
+        {filteredConversations.length === 0 && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-semibold mb-2">No conversations yet</h3>
+              <p className="text-sm text-muted-foreground">Conversations with buyers will appear here</p>
+            </CardContent>
+          </Card>
+        )}
         {filteredConversations.map((conv) => (
           <Card
             key={conv.id}

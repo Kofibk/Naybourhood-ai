@@ -6,6 +6,7 @@ import { UserDashboard } from '@/components/UserDashboard'
 interface StoredUser {
   name?: string
   company_id?: string
+  isDemo?: boolean
 }
 
 export default function BrokerDashboard() {
@@ -16,7 +17,7 @@ export default function BrokerDashboard() {
     if (stored) {
       setUser(JSON.parse(stored))
     } else {
-      setUser({}) // Set empty object to trigger demo mode
+      setUser({})
     }
   }, [])
 
@@ -27,5 +28,12 @@ export default function BrokerDashboard() {
 
   const userName = user?.name?.split(' ')[0] || 'Broker'
 
-  return <UserDashboard userType="broker" userName={userName} companyId={user?.company_id} />
+  return (
+    <UserDashboard
+      userType="broker"
+      userName={userName}
+      companyId={user?.company_id}
+      isDemo={user?.isDemo}
+    />
+  )
 }

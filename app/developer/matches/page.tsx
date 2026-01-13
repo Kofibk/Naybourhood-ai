@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -94,12 +95,24 @@ const DEMO_MATCHES = [
 ]
 
 export default function MatchesPage() {
-  const totalPipelineValue = DEMO_MATCHES.reduce((sum, m) => {
+  const [isDemo, setIsDemo] = useState(false)
+
+  useEffect(() => {
+    const stored = localStorage.getItem('naybourhood_user')
+    if (stored) {
+      const user = JSON.parse(stored)
+      setIsDemo(user.isDemo === true)
+    }
+  }, [])
+
+  const matches = isDemo ? DEMO_MATCHES : []
+
+  const totalPipelineValue = matches.reduce((sum, m) => {
     const match = m.budget.match(/£([\d.]+)M/)
     return sum + (match ? parseFloat(match[1]) * 1000000 : 0)
   }, 0)
 
-  const hotMatches = DEMO_MATCHES.filter(m => m.status === 'Hot').length
+  const hotMatches = matches.filter(m => m.status === 'Hot').length
 
   return (
     <div className="space-y-6">
@@ -116,7 +129,7 @@ export default function MatchesPage() {
             <CardContent className="p-3 flex items-center gap-2">
               <Heart className="h-5 w-5 text-primary" />
               <div>
-                <p className="text-lg font-bold text-primary">{DEMO_MATCHES.length}</p>
+                <p className="text-lg font-bold text-primary">{matches.length}</p>
                 <p className="text-[10px] text-muted-foreground">Matches</p>
               </div>
             </CardContent>
@@ -135,7 +148,16 @@ export default function MatchesPage() {
 
       {/* Matches Grid */}
       <div className="grid md:grid-cols-2 gap-4">
-        {DEMO_MATCHES.map((match) => (
+        {matches.length === 0 && (
+          <Card className="md:col-span-2">
+            <CardContent className="p-8 text-center">
+              <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+              <h3 className="font-semibold mb-2">No matches yet</h3>
+              <p className="text-sm text-muted-foreground">AI-powered buyer matches will appear here</p>
+            </CardContent>
+          </Card>
+        )}
+        {matches.map((match) => (
           <Card key={match.id} className="hover:border-primary/50 transition-colors">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">

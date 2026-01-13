@@ -25,6 +25,7 @@ interface UserDashboardProps {
   userType: 'developer' | 'agent' | 'broker'
   userName: string
   companyId?: string  // For future multi-tenant data filtering
+  isDemo?: boolean    // Whether to show demo data (for investor pitches)
 }
 
 const config = {
@@ -209,23 +210,24 @@ function getTimeAgo(dateString: string): string {
   return date.toLocaleDateString()
 }
 
-export function UserDashboard({ userType, userName, companyId }: UserDashboardProps) {
+export function UserDashboard({ userType, userName, companyId, isDemo = false }: UserDashboardProps) {
   const router = useRouter()
   const { leads, isLoading } = useData()
   const typeConfig = config[userType]
 
   // Filter leads by companyId for multi-tenant data isolation
-  // For Quick Access/demo users, use demo data for investor pitches
-  const isDemo = companyId === 'mph-company' || !companyId
+  // Only show demo data when explicitly in demo mode
   const myLeads = useMemo(() => {
-    // Demo mode - use demo data for investor pitches
+    // Demo mode - show demo data for investor pitches
     if (isDemo) {
-      // If we have real leads, show them; otherwise use demo data
-      const realLeads = leads.filter(lead => lead.company === 'Million Pound Homes')
-      return realLeads.length > 0 ? realLeads : DEMO_LEADS
+      return DEMO_LEADS
     }
-    // Filter by company_id for real users
-    return leads.filter(lead => lead.company_id === companyId)
+    // Real mode - filter by company_id
+    if (companyId) {
+      return leads.filter(lead => lead.company_id === companyId)
+    }
+    // No company_id - show all leads (for admin view)
+    return leads
   }, [leads, companyId, isDemo])
 
   const hotLeads = useMemo(() =>
