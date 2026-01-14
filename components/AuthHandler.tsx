@@ -55,10 +55,10 @@ export function AuthHandler() {
               return
             }
 
-            // Check onboarding status first
+            // Check onboarding status and get user profile
             const { data: userProfile } = await supabase
               .from('user_profiles')
-              .select('onboarding_completed, user_type')
+              .select('onboarding_completed, user_type, first_name, last_name, company_id')
               .eq('id', data.user.id)
               .single()
 
@@ -69,22 +69,19 @@ export function AuthHandler() {
               return
             }
 
-            // Fetch user profile to get role
-            const { data: profile } = await supabase
-              .from('profiles')
-              .select('role, full_name, company_id')
-              .eq('id', data.user.id)
-              .single()
-
-            const role = profile?.role || userProfile?.user_type || data.user.user_metadata?.role || 'developer'
-            const name = profile?.full_name || data.user.user_metadata?.full_name || data.user.email?.split('@')[0]
+            // Build name from first_name + last_name
+            const firstName = userProfile?.first_name || ''
+            const lastName = userProfile?.last_name || ''
+            const fullName = `${firstName} ${lastName}`.trim() || data.user.user_metadata?.full_name || data.user.email?.split('@')[0]
+            const role = userProfile?.user_type || data.user.user_metadata?.role || 'developer'
 
             // Store user info in localStorage
             localStorage.setItem('naybourhood_user', JSON.stringify({
               id: data.user.id,
               email: data.user.email,
-              name: name,
+              name: fullName,
               role: role,
+              company_id: userProfile?.company_id,
             }))
 
             // Redirect based on role

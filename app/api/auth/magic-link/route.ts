@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
 
     // Get user's name for personalized email
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
+      .from('user_profiles')
+      .select('first_name, last_name')
       .eq('email', email)
       .single()
 

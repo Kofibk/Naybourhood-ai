@@ -53,9 +53,14 @@ export default function SettingsPage() {
 
     try {
       const supabase = createClient()
+      // Parse first and last name from edited name
+      const nameParts = editedName.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
       const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: editedName, updated_at: new Date().toISOString() })
+        .from('user_profiles')
+        .update({ first_name: firstName, last_name: lastName, updated_at: new Date().toISOString() })
         .eq('id', user.id)
 
       if (error) {
@@ -174,7 +179,7 @@ export default function SettingsPage() {
             <Building2 className="h-5 w-5" />
             Company & Subscription
           </CardTitle>
-          <CardDescription>Your organization&apos;s plan</CardDescription>
+          <CardDescription>Your organisation&apos;s plan</CardDescription>
         </CardHeader>
         <CardContent>
           {companyData ? (
@@ -202,7 +207,7 @@ export default function SettingsPage() {
             <div className="p-4 rounded-lg bg-muted/50 text-center">
               <p className="text-muted-foreground">No company subscription found.</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Contact support to set up your organization.
+                Contact support to set up your organisation.
               </p>
             </div>
           )}

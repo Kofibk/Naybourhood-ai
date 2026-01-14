@@ -48,12 +48,12 @@ export async function POST(request: NextRequest) {
       if (currentUser) {
         // Check if current user is admin
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
+          .from('user_profiles')
+          .select('user_type')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.role === 'admin'
+        isAdmin = profile?.user_type === 'admin'
       }
     }
 
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
 
         // If invite fails, try to just create the profile as fallback
         const { error: profileError } = await adminClient
-          .from('profiles')
+          .from('user_profiles')
           .insert({
             id: crypto.randomUUID(),
             email: email,
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
       // Create profile entry for the invited user
       if (data.user) {
         const { error: profileError } = await adminClient
-          .from('profiles')
+          .from('user_profiles')
           .upsert({
             id: data.user.id,
             email: email,
@@ -180,8 +180,8 @@ export async function POST(request: NextRequest) {
         const { data: { user: currentUser } } = await supabase.auth.getUser()
         if (currentUser) {
           const { data: inviterProfile } = await supabase
-            .from('profiles')
-            .select('full_name')
+            .from('user_profiles')
+            .select('first_name, last_name')
             .eq('id', currentUser.id)
             .single()
           inviterName = inviterProfile?.full_name || undefined
@@ -259,7 +259,7 @@ export async function GET(request: NextRequest) {
         // Use admin client to bypass RLS for demo mode
         const adminClient = createAdminClient()
         const { data: users, error } = await adminClient
-          .from('profiles')
+          .from('user_profiles')
           .select('*')
           .order('created_at', { ascending: false })
 
@@ -279,12 +279,12 @@ export async function GET(request: NextRequest) {
 
     // Check if current user is admin
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
+      .from('user_profiles')
+      .select('user_type')
       .eq('id', currentUser.id)
       .single()
 
-    if (profile?.role !== 'admin') {
+    if (profile?.user_type !== 'admin') {
       return NextResponse.json(
         { error: 'Only admins can view all users' },
         { status: 403 }
@@ -293,7 +293,7 @@ export async function GET(request: NextRequest) {
 
     // Get all profiles
     const { data: users, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select('*')
       .order('created_at', { ascending: false })
 

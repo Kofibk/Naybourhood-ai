@@ -119,8 +119,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // FINANCE LEADS
         supabase.from('finance_leads').select('*').order('created_at', { ascending: false }),
 
-        // PROFILES/USERS
-        supabase.from('profiles').select('*').order('full_name', { ascending: true }),
+        // USER PROFILES
+        supabase.from('user_profiles').select('*').order('first_name', { ascending: true }),
       ])
 
       // Process BUYERS
@@ -394,11 +394,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           status = 'active'
         }
 
+        // Build full name from first_name + last_name (user_profiles schema)
+        const firstName = p.first_name || ''
+        const lastName = p.last_name || ''
+        const fullName = `${firstName} ${lastName}`.trim() || p.full_name || p.email || 'Unknown'
+
         return {
           id: p.id,
-          name: p.full_name || p.email || 'Unknown',
+          name: fullName,
           email: p.email || '',
-          role: p.role || 'agent',
+          role: p.user_type || p.role || 'developer',
           company_id: p.company_id,
           company: p.company_id,
           avatar_url: p.avatar_url,
