@@ -24,22 +24,38 @@ export default function SettingsPage() {
   useEffect(() => {
     setEditedName(user?.name || '')
 
-    // Fetch company data if user has company_id
-    if (user?.company_id && isSupabaseConfigured()) {
-      const fetchCompany = async () => {
-        const supabase = createClient()
+    // Fetch company data - first try user.company_id, then look up from user_profiles
+    const fetchCompanyData = async () => {
+      if (!user?.id || !isSupabaseConfigured()) return
+
+      const supabase = createClient()
+
+      // First, try to get company_id from user_profiles if not in context
+      let companyId = user.company_id
+      if (!companyId) {
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+        companyId = profile?.company_id
+      }
+
+      // Now fetch company data
+      if (companyId) {
         const { data } = await supabase
           .from('companies')
           .select('name, subscription_tier, subscription_status')
-          .eq('id', user.company_id)
+          .eq('id', companyId)
           .single()
 
         if (data) {
           setCompanyData(data)
         }
       }
-      fetchCompany()
     }
+
+    fetchCompanyData()
   }, [user])
 
   const handleSave = async () => {
