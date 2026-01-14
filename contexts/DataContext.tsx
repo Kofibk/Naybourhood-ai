@@ -116,8 +116,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // DEVELOPMENTS - don't order by name as column might not exist
         supabase.from('developments').select('*'),
 
-        // FINANCE LEADS
-        supabase.from('finance_leads').select('*').order('created_at', { ascending: false }),
+        // BORROWERS (finance/mortgage leads)
+        supabase.from('borrowers').select('*').order('created_at', { ascending: false }),
 
         // USER PROFILES
         supabase.from('user_profiles').select('*').order('first_name', { ascending: true }),
@@ -339,11 +339,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log('[DataContext] Developments table error:', developmentsResult.error.message)
       }
 
-      // Process FINANCE LEADS
+      // Process BORROWERS
       if (!financeLeadsResult.error && financeLeadsResult.data) {
-        console.log('[DataContext] Finance Leads loaded:', financeLeadsResult.data.length)
+        console.log('[DataContext] Borrowers loaded:', financeLeadsResult.data.length)
         if (financeLeadsResult.data.length > 0) {
-          console.log('[DataContext] First finance lead columns:', Object.keys(financeLeadsResult.data[0]))
+          console.log('[DataContext] First borrower columns:', Object.keys(financeLeadsResult.data[0]))
         }
         // Map column names - combine first_name + last_name into full_name
         const mappedFinanceLeads = financeLeadsResult.data.map((f: any) => {
@@ -376,7 +376,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setFinanceLeads(mappedFinanceLeads)
       } else if (financeLeadsResult.error) {
         // Table might not exist yet - not critical
-        console.log('[DataContext] Finance Leads table error:', financeLeadsResult.error.message)
+        console.log('[DataContext] Borrowers table error:', financeLeadsResult.error.message)
       }
 
       // Process USERS - try direct query first, then API fallback for Quick Access users
@@ -871,7 +871,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Update a finance lead
+  // Update a borrower
   const updateFinanceLead = useCallback(async (id: string, data: Partial<FinanceLead>): Promise<FinanceLead | null> => {
     try {
       const supabase = createClient()
@@ -889,24 +889,24 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Add updated timestamp
       cleanData.updated_at = new Date().toISOString()
 
-      console.log('[DataContext] Updating finance lead with:', cleanData)
+      console.log('[DataContext] Updating borrower with:', cleanData)
 
       const { data: updatedData, error } = await supabase
-        .from('finance_leads')
+        .from('borrowers')
         .update(cleanData)
         .eq('id', id)
         .select()
         .single()
 
       if (error) {
-        console.error('[DataContext] Update finance lead error:', error)
+        console.error('[DataContext] Update borrower error:', error)
         return null
       }
 
       setFinanceLeads((prev) => prev.map((f) => (f.id === id ? { ...f, ...updatedData } : f)))
       return updatedData
     } catch (e) {
-      console.error('[DataContext] Update finance lead failed:', e)
+      console.error('[DataContext] Update borrower failed:', e)
       return null
     }
   }, [])
