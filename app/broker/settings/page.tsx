@@ -26,22 +26,32 @@ export default function SettingsPage() {
 
     // Fetch company data - first try user.company_id, then look up from user_profiles
     const fetchCompanyData = async () => {
-      if (!user?.id || !isSupabaseConfigured()) return
+      if (!user?.id || !isSupabaseConfigured()) {
+        // Fall back to user.company from context if Supabase not available
+        if (user?.company) {
+          setCompanyData({ name: user.company })
+        }
+        return
+      }
 
       const supabase = createClient()
 
-      // First, try to get company_id from user_profiles if not in context
+      // First, try to get company_id and company_name from user_profiles
       let companyId = user.company_id
-      if (!companyId) {
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('company_id')
-          .eq('id', user.id)
-          .single()
-        companyId = profile?.company_id
+      let companyNameFromProfile: string | undefined
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('company_id, company_name')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        companyId = companyId || profile.company_id
+        companyNameFromProfile = profile.company_name
       }
 
-      // Now fetch company data
+      // Try to fetch full company data from companies table
       if (companyId) {
         const { data } = await supabase
           .from('companies')
@@ -51,7 +61,14 @@ export default function SettingsPage() {
 
         if (data) {
           setCompanyData(data)
+          return
         }
+      }
+
+      // Fall back to company_name from user_profiles or user.company from context
+      const fallbackName = companyNameFromProfile || user.company
+      if (fallbackName) {
+        setCompanyData({ name: fallbackName })
       }
     }
 
