@@ -103,6 +103,9 @@ export async function GET(request: Request) {
     redirectUrl.searchParams.set('email', email)
     redirectUrl.searchParams.set('name', fullName)
     redirectUrl.searchParams.set('role', role)
+    if (userProfile?.company_id) {
+      redirectUrl.searchParams.set('companyId', userProfile.company_id)
+    }
 
     return NextResponse.redirect(redirectUrl.toString())
   }

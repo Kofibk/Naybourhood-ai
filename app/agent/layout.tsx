@@ -13,6 +13,7 @@ interface User {
   name: string
   email: string
   role: string
+  company_id?: string
 }
 
 function AgentLayoutInner({ children }: { children: React.ReactNode }) {
@@ -28,9 +29,16 @@ function AgentLayoutInner({ children }: { children: React.ReactNode }) {
       const email = searchParams.get('email')
       const name = searchParams.get('name')
       const role = searchParams.get('role')
+      const companyId = searchParams.get('companyId')
 
       if (userId && email && role) {
-        const userData = { id: userId, email, name: name || email.split('@')[0], role }
+        const userData: User = {
+          id: userId,
+          email,
+          name: name || email.split('@')[0],
+          role,
+          company_id: companyId || undefined
+        }
         localStorage.setItem('naybourhood_user', JSON.stringify(userData))
         setUser(userData)
         window.history.replaceState({}, '', '/agent')
