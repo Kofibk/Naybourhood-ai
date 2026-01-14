@@ -1,10 +1,42 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { UserDashboard } from '@/components/UserDashboard'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 export default function DeveloperDashboard() {
   const { user, isLoading } = useAuth()
+  const [companyId, setCompanyId] = useState<string | undefined>(user?.company_id)
+
+  // Fetch company_id from user_profiles if not in auth context
+  useEffect(() => {
+    const fetchCompanyId = async () => {
+      // First use company_id from auth context if available
+      if (user?.company_id) {
+        setCompanyId(user.company_id)
+        return
+      }
+
+      // Otherwise fetch from database
+      if (user?.id && isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', user.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+    }
+
+    if (user?.id) {
+      fetchCompanyId()
+    }
+  }, [user?.id, user?.company_id])
 
   if (isLoading) {
     return (
@@ -16,5 +48,5 @@ export default function DeveloperDashboard() {
 
   const userName = user?.name?.split(' ')[0] || 'Developer'
 
-  return <UserDashboard userType="developer" userName={userName} companyId={user?.company_id} />
+  return <UserDashboard userType="developer" userName={userName} companyId={companyId} />
 }
