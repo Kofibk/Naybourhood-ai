@@ -128,9 +128,9 @@ export default function BrokerFinanceLeadDetailPage() {
         </Button>
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Finance lead not found or you don&apos;t have access.</p>
-            <Button variant="link" onClick={() => router.push('/broker/finance-leads')}>
-              Return to Finance Leads
+            <p className="text-muted-foreground">Borrower not found or you don&apos;t have access.</p>
+            <Button variant="link" onClick={() => router.push('/broker/borrowers')}>
+              Return to Borrowers
             </Button>
           </CardContent>
         </Card>
@@ -143,9 +143,9 @@ export default function BrokerFinanceLeadDetailPage() {
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <Button variant="ghost" onClick={() => router.push('/broker/finance-leads')}>
+      <Button variant="ghost" onClick={() => router.push('/broker/borrowers')}>
         <ArrowLeft className="h-4 w-4 mr-2" />
-        Back to Finance Leads
+        Back to Borrowers
       </Button>
 
       {/* Save Message */}

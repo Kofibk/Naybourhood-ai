@@ -318,7 +318,7 @@ export default function BrokerFinanceLeadsPage() {
                   {filteredLeads.map((lead) => (
                     <tr
                       key={lead.id}
-                      onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
+                      onClick={() => router.push(`/broker/borrowers/${lead.id}`)}
                       className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
                     >
                       <td className="py-3">
@@ -395,7 +395,7 @@ export default function BrokerFinanceLeadsPage() {
                             className="h-7 w-7 p-0"
                             onClick={(e) => {
                               e.stopPropagation()
-                              router.push(`/broker/finance-leads/${lead.id}`)
+                              router.push(`/broker/borrowers/${lead.id}`)
                             }}
                             title="View Details"
                           >

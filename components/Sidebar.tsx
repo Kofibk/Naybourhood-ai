@@ -66,7 +66,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'Developments', icon: Home, href: '/admin/developments' },
         { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
         { name: 'Leads', icon: Users, href: '/admin/leads' },
-        { name: 'Borrowers', icon: Landmark, href: '/admin/finance-leads' },
+        { name: 'Borrowers', icon: Landmark, href: '/admin/borrowers' },
         { name: 'Companies', icon: Building2, href: '/admin/companies' },
         { name: 'Users', icon: UserCog, href: '/admin/users' },
       ]
@@ -87,7 +87,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
     if (userType === 'broker') {
       return [
         { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-        { name: 'Borrowers', icon: Landmark, href: `${basePath}/finance-leads` },
+        { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers` },
         { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
         { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
         { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns` },
