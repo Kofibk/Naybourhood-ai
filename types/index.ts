@@ -267,11 +267,30 @@ export interface Message {
   created_at?: string
 }
 
+// UserProfile matches the Supabase 'user_profiles' table exactly
+// IMPORTANT: Use these field names when querying Supabase
+export interface UserProfile {
+  id: string
+  email?: string
+  first_name?: string      // NOT full_name
+  last_name?: string       // NOT full_name
+  user_type?: UserRole     // NOT role
+  company_id?: string
+  company_name?: string    // Legacy text field
+  avatar_url?: string
+  onboarding_completed?: boolean
+  last_active?: string
+  created_at?: string
+  updated_at?: string
+}
+
+// Legacy Profile interface - DEPRECATED, use UserProfile instead
+// Kept for backwards compatibility
 export interface Profile {
   id: string
   email?: string
-  full_name?: string
-  role?: string
+  full_name?: string  // DEPRECATED: use first_name + last_name
+  role?: string       // DEPRECATED: use user_type
   company_id?: string
   avatar_url?: string
   last_active?: string
