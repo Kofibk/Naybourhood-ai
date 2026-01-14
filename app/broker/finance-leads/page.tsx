@@ -181,9 +181,9 @@ export default function BrokerFinanceLeadsPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
+          <h2 className="text-2xl font-bold font-display">Borrowers</h2>
           <p className="text-sm text-muted-foreground">
-            Manage your assigned finance leads
+            Manage your assigned borrowers
           </p>
         </div>
         <Card>
@@ -205,9 +205,9 @@ export default function BrokerFinanceLeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
+          <h2 className="text-2xl font-bold font-display">Borrowers</h2>
           <p className="text-sm text-muted-foreground">
-            Manage and convert your finance leads
+            Manage and convert your borrowers
           </p>
         </div>
         <Button
@@ -282,11 +282,11 @@ export default function BrokerFinanceLeadsPage() {
         </select>
       </div>
 
-      {/* Finance Leads Table */}
+      {/* Borrowers Table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">
-            Finance Leads ({filteredLeads.length})
+            Borrowers ({filteredLeads.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -299,8 +299,8 @@ export default function BrokerFinanceLeadsPage() {
           ) : filteredLeads.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
               {myFinanceLeads.length === 0
-                ? 'No finance leads assigned yet'
-                : 'No leads match your filters'}
+                ? 'No borrowers assigned yet'
+                : 'No borrowers match your filters'}
             </p>
           ) : (
             <div className="overflow-x-auto">

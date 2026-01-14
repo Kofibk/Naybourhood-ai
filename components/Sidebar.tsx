@@ -83,14 +83,14 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
       return adminItems
     }
-    // Broker gets Finance Leads
+    // Broker gets Borrowers (finance leads) - dedicated to mortgages/finance
     if (userType === 'broker') {
       return [
         { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-        { name: 'Finance Leads', icon: Landmark, href: `${basePath}/finance-leads` },
-        { name: 'Buyers', icon: Users, href: `${basePath}/buyers` },
+        { name: 'Borrowers', icon: Landmark, href: `${basePath}/finance-leads` },
         { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
         { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
+        { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns` },
         { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights` },
         { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
       ]
