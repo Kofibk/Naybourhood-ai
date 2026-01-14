@@ -1,27 +1,12 @@
--- Migration: Company creation on signup
+-- Migration: Customer creation on signup
 -- Run this in your Supabase SQL Editor
 
 -- =============================================
--- CREATE ROLE ENUM TYPE
--- =============================================
-
-DO $$ BEGIN
-  CREATE TYPE user_role AS ENUM ('developer', 'agent', 'broker');
-EXCEPTION
-  WHEN duplicate_object THEN null;
-END $$;
-
--- =============================================
--- ADD BUSINESS_ADDRESS TO COMPANIES TABLE
--- =============================================
-
-ALTER TABLE public.companies ADD COLUMN IF NOT EXISTS business_address text;
-
--- =============================================
 -- UPDATE HANDLE_NEW_USER_PROFILE TRIGGER
+-- Now creates a customer record instead of user_profiles
 -- =============================================
 
--- Update the trigger function to populate email and name fields
+-- Update the trigger function to create a customer record
 CREATE OR REPLACE FUNCTION handle_new_user_profile()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -43,19 +28,18 @@ BEGIN
     ELSE NULL
   END;
 
-  INSERT INTO user_profiles (
+  -- Insert into customers table
+  INSERT INTO customers (
     id,
     first_name,
     last_name,
-    onboarding_step,
-    onboarding_completed
+    email
   )
   VALUES (
     NEW.id,
     v_first_name,
     v_last_name,
-    1,
-    false
+    NEW.email
   )
   ON CONFLICT (id) DO NOTHING;
 

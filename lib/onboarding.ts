@@ -229,7 +229,7 @@ export async function completeOnboarding(): Promise<boolean> {
   // Fetch the user's profile to get company details
   const { data: profile, error: profileError } = await supabase
     .from('user_profiles')
-    .select('company_name, website, business_address, user_type, first_name, last_name')
+    .select('company_name, website, first_name, last_name')
     .eq('id', user.id)
     .single()
 
@@ -242,26 +242,11 @@ export async function completeOnboarding(): Promise<boolean> {
   let companyId: string | null = null
 
   if (profile?.company_name) {
-    // Map user_type to company type (capitalize first letter)
-    const companyType = profile.user_type
-      ? profile.user_type.charAt(0).toUpperCase() + profile.user_type.slice(1)
-      : 'Developer'
-
-    // Get contact info from user's email
-    const { data: { user: authUser } } = await supabase.auth.getUser()
-    const contactName = [profile.first_name, profile.last_name].filter(Boolean).join(' ') || null
-    const contactEmail = authUser?.email || null
-
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
         name: profile.company_name,
-        type: companyType as 'Developer' | 'Agent' | 'Broker' | 'Marketing Agency' | 'Financial Advisor',
         website: profile.website || null,
-        business_address: profile.business_address || null,
-        contact_name: contactName,
-        contact_email: contactEmail,
-        status: 'Active',
       })
       .select('id')
       .single()
@@ -274,12 +259,26 @@ export async function completeOnboarding(): Promise<boolean> {
     companyId = company.id
   }
 
-  // Update user_profiles with company_id and mark onboarding as completed
+  // Update customers table with company_id
+  if (companyId) {
+    const { error: customerError } = await supabase
+      .from('customers')
+      .update({
+        company_id: companyId,
+      })
+      .eq('id', user.id)
+
+    if (customerError) {
+      console.error('[Onboarding] Error linking company to customer:', customerError)
+      return false
+    }
+  }
+
+  // Mark onboarding as completed in user_profiles
   const { error } = await supabase
     .from('user_profiles')
     .update({
       onboarding_completed: true,
-      ...(companyId && { company_id: companyId }),
     })
     .eq('id', user.id)
 
