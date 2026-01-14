@@ -74,6 +74,7 @@ function LoginPageInner() {
               email: user.email,
               name: fullName,
               role: role,
+              company_id: profile.company_id,
             }))
 
             redirectBasedOnRole(role)
@@ -212,6 +213,7 @@ function LoginPageInner() {
                 email: data.user.email,
                 name: fullName,
                 role: role,
+                company_id: profile.company_id,
               }))
 
               redirectBasedOnRole(role)
