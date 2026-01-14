@@ -50,20 +50,35 @@ export default function BrokerFinanceLeadsPage() {
   const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
-  // Filter finance leads by broker's company_id
-  // For testing, show all leads if company is 'mph-company' or if user has test email
+  // Filter borrowers by broker's company_id
+  // For now, show all borrowers if none match the company filter (for testing)
   const myFinanceLeads = useMemo(() => {
-    if (!user?.company_id) {
-      if (user?.email?.includes('test') || user?.email?.includes('demo')) {
-        return financeLeads
-      }
+    console.log('[BrokerBorrowers] Total borrowers from DB:', financeLeads.length)
+    console.log('[BrokerBorrowers] User company_id:', user?.company_id)
+
+    // If no borrowers at all, return empty
+    if (financeLeads.length === 0) {
       return []
     }
-    if (user.company_id === 'mph-company') {
+
+    // If user has a company_id, try to filter
+    if (user?.company_id) {
+      const filtered = financeLeads.filter(lead => lead.company_id === user.company_id)
+      console.log('[BrokerBorrowers] Filtered by company:', filtered.length)
+
+      // If filtering returns results, use them
+      if (filtered.length > 0) {
+        return filtered
+      }
+
+      // If no results after filtering, show all borrowers (for testing/setup)
+      console.log('[BrokerBorrowers] No borrowers match company_id, showing all for setup')
       return financeLeads
     }
-    return financeLeads.filter(lead => lead.company_id === user.company_id)
-  }, [financeLeads, user?.company_id, user?.email])
+
+    // No company_id - show all for test/demo users or show all if setting up
+    return financeLeads
+  }, [financeLeads, user?.company_id])
 
   // Apply search and status filter
   const filteredLeads = useMemo(() => {
