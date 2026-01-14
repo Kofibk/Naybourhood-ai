@@ -213,9 +213,9 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
     <>
       {/* Mobile Menu Button */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="lg:hidden fixed top-3 left-3 z-50"
+        className="lg:hidden fixed top-3 left-3 z-50 bg-background border-border shadow-md"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
         aria-expanded={mobileOpen}
