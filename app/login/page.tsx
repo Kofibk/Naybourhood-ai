@@ -550,12 +550,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'admin',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/admin')
                 }}
@@ -567,12 +567,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'developer',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/developer')
                 }}
@@ -584,12 +584,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'agent',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/agent')
                 }}
@@ -601,12 +601,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'broker',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/broker')
                 }}
