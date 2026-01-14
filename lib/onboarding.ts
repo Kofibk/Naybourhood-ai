@@ -259,31 +259,17 @@ export async function completeOnboarding(): Promise<boolean> {
     companyId = company.id
   }
 
-  // Update customers table with company_id
-  if (companyId) {
-    const { error: customerError } = await supabase
-      .from('customers')
-      .update({
-        company_id: companyId,
-      })
-      .eq('id', user.id)
-
-    if (customerError) {
-      console.error('[Onboarding] Error linking company to customer:', customerError)
-      return false
-    }
-  }
-
-  // Mark onboarding as completed in user_profiles
-  const { error } = await supabase
-    .from('user_profiles')
+  // Update customers table with company_id and mark onboarding as completed
+  const { error: customerError } = await supabase
+    .from('customers')
     .update({
-      onboarding_completed: true,
+      ...(companyId && { company_id: companyId }),
+      onboarding_completed_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
-  if (error) {
-    console.error('[Onboarding] Error completing onboarding:', error)
+  if (customerError) {
+    console.error('[Onboarding] Error updating customer:', customerError)
     return false
   }
 
