@@ -53,10 +53,10 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
 
-    // Check if user has completed onboarding (user_profiles table)
+    // Check user_profiles table for onboarding status and role
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('onboarding_completed, user_type')
+      .select('onboarding_completed, user_type, first_name, last_name, company_id')
       .eq('id', authResult.user.id)
       .single()
 
@@ -70,33 +70,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(onboardingUrl.toString())
     }
 
-    // Fetch user profile from database to get their actual role
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, full_name, company_id')
-      .eq('id', authResult.user.id)
-      .single()
+    // Get role from user_profiles (set during onboarding)
+    const role = userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
 
-    // Use database role if available, otherwise check user metadata or user_type from onboarding
-    let role = profile?.role || userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
-
-    // If this is an invite and profile doesn't exist, create it from user metadata
-    if (!profile && authResult.user.user_metadata) {
-      const metadata = authResult.user.user_metadata
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: authResult.user.id,
-          email: email,
-          full_name: metadata.full_name || email.split('@')[0],
-          role: metadata.role || 'developer',
-          company_id: metadata.company_id || null,
-        })
-
-      if (!profileError) {
-        role = metadata.role || 'developer'
-      }
-    }
+    // Build full name from user_profiles
+    const fullName = userProfile?.first_name
+      ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
+      : authResult.user.user_metadata?.full_name || email.split('@')[0]
 
     // Determine redirect path based on role
     let redirectPath = '/developer'
@@ -121,8 +101,11 @@ export async function GET(request: Request) {
     redirectUrl.searchParams.set('auth', 'success')
     redirectUrl.searchParams.set('userId', authResult.user.id)
     redirectUrl.searchParams.set('email', email)
-    redirectUrl.searchParams.set('name', profile?.full_name || authResult.user.user_metadata?.full_name || email.split('@')[0])
+    redirectUrl.searchParams.set('name', fullName)
     redirectUrl.searchParams.set('role', role)
+    if (userProfile?.company_id) {
+      redirectUrl.searchParams.set('companyId', userProfile.company_id)
+    }
 
     return NextResponse.redirect(redirectUrl.toString())
   }

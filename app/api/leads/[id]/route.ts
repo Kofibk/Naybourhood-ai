@@ -162,13 +162,13 @@ export async function DELETE(
     }
 
     // Check if user is admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('user_type')
       .eq('id', user.id)
       .single()
 
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+    const isAdmin = userProfile?.user_type === 'admin'
 
     // Check for hard delete parameter (admin only)
     const { searchParams } = new URL(request.url)
