@@ -184,7 +184,8 @@ export async function POST(request: NextRequest) {
             .select('first_name, last_name')
             .eq('id', currentUser.id)
             .single()
-          inviterName = inviterProfile?.full_name || undefined
+          const fullName = inviterProfile ? `${inviterProfile.first_name || ''} ${inviterProfile.last_name || ''}`.trim() : ''
+          inviterName = fullName || undefined
         }
 
         // Get company name if applicable
