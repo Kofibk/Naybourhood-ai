@@ -30,17 +30,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // First check user_profiles (from onboarding)
+      // First check user_profiles (from onboarding) with company data joined
       const { data: userProfile } = await supabase
         .from('user_profiles')
-        .select('*')
+        .select('*, company:companies(*)')
         .eq('id', authUserId)
         .single()
 
-      // Also check profiles table (legacy or admin-created)
+      // Also check profiles table (legacy or admin-created) with company data joined
       const { data: profile } = await supabase
         .from('profiles')
-        .select('*')
+        .select('*, company:companies(*)')
         .eq('id', authUserId)
         .single()
 
@@ -50,24 +50,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
         : profile?.full_name || email.split('@')[0]
 
-      // If user has company_id, fetch company name
-      let companyName = userProfile?.company_name
-      if (!companyName && profile?.company_id) {
-        const { data: company } = await supabase
-          .from('companies')
-          .select('name')
-          .eq('id', profile.company_id)
-          .single()
-
-        companyName = company?.name
-      }
+      // Get company data - prefer joined company data, fall back to company_name text field
+      const companyData = userProfile?.company || profile?.company
+      const companyId = userProfile?.company_id || profile?.company_id
+      const companyName = companyData?.name || userProfile?.company_name
 
       const appUser: User = {
         id: authUserId,
         email: email,
         name: fullName,
         role: role as UserRole,
-        company_id: profile?.company_id,
+        company_id: companyId,
         company: companyName,
         avatarUrl: userProfile?.avatar_url || profile?.avatar_url,
       }

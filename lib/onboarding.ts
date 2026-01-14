@@ -1,5 +1,15 @@
 import { createClient } from '@/lib/supabase/client'
 
+export interface Company {
+  id: string
+  name: string
+  type: string | null
+  website: string | null
+  contact_name: string | null
+  contact_email: string | null
+  status: string | null
+}
+
 export interface UserProfile {
   id: string
   user_type: 'developer' | 'agent' | 'broker' | null
@@ -8,6 +18,7 @@ export interface UserProfile {
   phone: string | null
   job_title: string | null
   avatar_url: string | null
+  company_id: string | null
   company_name: string | null
   company_logo_url: string | null
   website: string | null
@@ -21,6 +32,8 @@ export interface UserProfile {
   onboarding_completed: boolean
   created_at: string
   updated_at: string
+  // Joined company data
+  company?: Company | null
 }
 
 export interface OnboardingFormData {
@@ -75,7 +88,7 @@ export async function getUserProfile(): Promise<UserProfile | null> {
 
   const { data, error } = await supabase
     .from('user_profiles')
-    .select('*')
+    .select('*, company:companies(*)')
     .eq('id', user.id)
     .single()
 
@@ -93,18 +106,29 @@ export async function createUserProfile(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  const { data, error } = await supabase
+  // First upsert the profile (this will trigger auto_link_user_to_company)
+  const { error } = await supabase
     .from('user_profiles')
     .upsert({
       id: user.id,
       onboarding_step: 1,
       onboarding_completed: false,
     })
-    .select()
-    .single()
 
   if (error) {
     console.error('[Onboarding] Error creating profile:', error)
+    return null
+  }
+
+  // Fetch the profile with company data (auto-linked by database trigger)
+  const { data, error: fetchError } = await supabase
+    .from('user_profiles')
+    .select('*, company:companies(*)')
+    .eq('id', user.id)
+    .single()
+
+  if (fetchError) {
+    console.error('[Onboarding] Error fetching created profile:', fetchError)
     return null
   }
 
