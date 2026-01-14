@@ -6,47 +6,66 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 export default function DeveloperDashboard() {
-  const { user, isLoading } = useAuth()
-  const [companyId, setCompanyId] = useState<string | undefined>(user?.company_id)
+  const { user } = useAuth()
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [userName, setUserName] = useState<string>('Developer')
+  const [isReady, setIsReady] = useState(false)
 
   // Fetch company_id from user_profiles if not in auth context
   useEffect(() => {
-    const fetchCompanyId = async () => {
-      // First use company_id from auth context if available
-      if (user?.company_id) {
-        setCompanyId(user.company_id)
+    const initializeDashboard = async () => {
+      // Try to get user from localStorage directly as fallback
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
+
+      setUserName(currentUser.name?.split(' ')[0] || 'Developer')
+
+      // First use company_id from context if available
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
         return
       }
 
       // Otherwise fetch from database
-      if (user?.id && isSupabaseConfigured()) {
+      if (isSupabaseConfigured()) {
         const supabase = createClient()
         const { data: profile } = await supabase
           .from('user_profiles')
           .select('company_id')
-          .eq('id', user.id)
+          .eq('id', currentUser.id)
           .single()
 
         if (profile?.company_id) {
           setCompanyId(profile.company_id)
         }
       }
+
+      setIsReady(true)
     }
 
-    if (user?.id) {
-      fetchCompanyId()
-    }
-  }, [user?.id, user?.company_id])
+    initializeDashboard()
+  }, [user])
 
-  if (isLoading) {
+  if (!isReady) {
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
   }
-
-  const userName = user?.name?.split(' ')[0] || 'Developer'
 
   return <UserDashboard userType="developer" userName={userName} companyId={companyId} />
 }
