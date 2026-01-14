@@ -170,13 +170,13 @@ export default function FinanceLeadsPage() {
     return company?.name || '-'
   }
 
-  // Handle assigning broker to finance lead
+  // Handle assigning broker to borrower
   const handleAssignBroker = async (leadId: string, companyId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     await updateFinanceLead(leadId, { company_id: companyId || undefined })
   }
 
-  // Bulk assign all unassigned finance leads to a broker
+  // Bulk assign all unassigned borrowers to a broker
   const [bulkAssigning, setBulkAssigning] = useState(false)
   const handleBulkAssignBroker = async (companyId: string) => {
     if (!companyId) return
@@ -414,7 +414,7 @@ export default function FinanceLeadsPage() {
   // Group leads
   const groupedLeads = useMemo(() => {
     if (groupBy === 'none') {
-      return { 'All Finance Leads': paginatedLeads }
+      return { 'All Borrowers': paginatedLeads }
     }
 
     const groups: Record<string, FinanceLead[]> = {}
@@ -524,11 +524,11 @@ export default function FinanceLeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
+          <h2 className="text-2xl font-bold font-display">Borrowers</h2>
           <p className="text-sm text-muted-foreground">
             {stats.filtered === stats.total
-              ? `${stats.total.toLocaleString()} total finance leads`
-              : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} finance leads`}
+              ? `${stats.total.toLocaleString()} total borrowers`
+              : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} borrowers`}
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -906,7 +906,7 @@ export default function FinanceLeadsPage() {
                   ) : groupLeads.length === 0 ? (
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
-                        No finance leads found
+                        No borrowers found
                       </td>
                     </tr>
                   ) : (

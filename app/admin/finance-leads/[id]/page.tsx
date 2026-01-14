@@ -77,14 +77,14 @@ export default function FinanceLeadDetailPage() {
     try {
       const result = await updateFinanceLead(lead.id, editData)
       if (result) {
-        setSaveMessage({ type: 'success', text: 'Finance lead updated successfully!' })
+        setSaveMessage({ type: 'success', text: 'Borrower updated successfully!' })
         setIsEditing(false)
         setEditData({})
       } else {
-        setSaveMessage({ type: 'error', text: 'Failed to update finance lead. Please try again.' })
+        setSaveMessage({ type: 'error', text: 'Failed to update borrower. Please try again.' })
       }
     } catch (error) {
-      console.error('Error updating finance lead:', error)
+      console.error('Error updating borrower:', error)
       setSaveMessage({ type: 'error', text: 'An error occurred while saving.' })
     } finally {
       setIsSaving(false)
@@ -519,7 +519,7 @@ export default function FinanceLeadDetailPage() {
                 value={editData.notes ?? displayData.notes ?? ''}
                 onChange={(e) => updateField('notes', e.target.value)}
                 className="w-full min-h-[120px] p-2 rounded-md border border-input bg-background text-sm resize-y"
-                placeholder="Add internal notes about this finance lead..."
+                placeholder="Add internal notes about this borrower..."
               />
             ) : (
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
