@@ -90,29 +90,7 @@ CREATE TRIGGER auto_link_user_company
   FOR EACH ROW
   EXECUTE FUNCTION auto_link_user_to_company();
 
--- Step 7: Also sync company_id to the profiles table when user_profiles is updated
-CREATE OR REPLACE FUNCTION sync_company_to_profiles()
-RETURNS TRIGGER AS $$
-BEGIN
-  -- Update profiles table with company_id from user_profiles
-  UPDATE profiles
-  SET company_id = NEW.company_id,
-      updated_at = NOW()
-  WHERE id = NEW.id
-    AND (company_id IS NULL OR company_id != NEW.company_id);
-
-  RETURN NEW;
-END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
-
-DROP TRIGGER IF EXISTS sync_user_profile_company ON user_profiles;
-CREATE TRIGGER sync_user_profile_company
-  AFTER INSERT OR UPDATE OF company_id ON user_profiles
-  FOR EACH ROW
-  WHEN (NEW.company_id IS NOT NULL)
-  EXECUTE FUNCTION sync_company_to_profiles();
-
--- Step 8: Backfill existing users - link them to companies based on email domain
+-- Step 7: Backfill existing users - link them to companies based on email domain
 DO $$
 DECLARE
   user_record RECORD;
@@ -133,7 +111,7 @@ BEGIN
   END LOOP;
 END $$;
 
--- Step 9: Ensure RLS allows users to read their linked company
+-- Step 8: Ensure RLS allows users to read their linked company
 -- Companies already have public read access from migration 002, but let's verify
 DO $$
 BEGIN

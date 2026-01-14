@@ -30,39 +30,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // First check user_profiles (from onboarding) with company data joined
-      const { data: userProfile } = await supabase
+      // Fetch user_profiles with company data joined
+      const { data: userProfile, error } = await supabase
         .from('user_profiles')
         .select('*, company:companies(*)')
         .eq('id', authUserId)
         .single()
 
-      // Also check profiles table (legacy or admin-created) with company data joined
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('*, company:companies(*)')
-        .eq('id', authUserId)
-        .single()
+      if (error) {
+        console.error('[AuthContext] Error fetching user_profiles:', error)
+        return null
+      }
 
-      // Merge data from both tables, preferring user_profiles for onboarded users
-      const role = userProfile?.user_type || profile?.role || 'developer'
+      // Build user object from user_profiles
       const fullName = userProfile?.first_name
         ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
-        : profile?.full_name || email.split('@')[0]
+        : email.split('@')[0]
 
-      // Get company data - prefer joined company data, fall back to company_name text field
-      const companyData = userProfile?.company || profile?.company
-      const companyId = userProfile?.company_id || profile?.company_id
+      // Get company data from joined query, fall back to company_name text field
+      const companyData = userProfile?.company
       const companyName = companyData?.name || userProfile?.company_name
 
       const appUser: User = {
         id: authUserId,
         email: email,
         name: fullName,
-        role: role as UserRole,
-        company_id: companyId,
+        role: (userProfile?.user_type || 'developer') as UserRole,
+        company_id: userProfile?.company_id,
         company: companyName,
-        avatarUrl: userProfile?.avatar_url || profile?.avatar_url,
+        avatarUrl: userProfile?.avatar_url,
       }
 
       return appUser
