@@ -204,7 +204,7 @@ export async function PATCH(
             .eq('id', userId)
             .single()
 
-          canUpdate = targetProfile?.role !== 'super_admin'
+          canUpdate = targetProfile?.user_type !== 'super_admin'
         }
       }
     }
