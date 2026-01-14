@@ -174,8 +174,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           country: b.country || b['Country'],
           timeline: b.timeline || b['timeline to purchase'] || b['Timeline to Purchase'],
           source: b.source || b['source platform'] || b['Source Platform'],
-          campaign: b.campaign || b['development'] || b['Development'],
+          campaign: b.campaign || b.source_campaign || b['Source Campaign'] || b['source campaign'],
           campaign_id: b.campaign_id,
+          source_campaign: b.source_campaign || b['Source Campaign'] || b['source campaign'],
+          development_id: b.development_id,
+          development_name: b.development_name || b.development || b['Development'] || b['development'],
           company_id: b.company_id,
           status: b.status || b['Status'] || 'New',
           // Scores - check both standard and AI-generated columns

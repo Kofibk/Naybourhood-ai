@@ -63,6 +63,10 @@ export default function DevelopmentDetailPage() {
     const campaignIds = devCampaigns.map(c => c.id).filter(Boolean)
 
     return leads.filter((l) => {
+      // Direct match by development_id (primary link)
+      if (l.development_id === development.id) return true
+      // Direct match by development_name
+      if (l.development_name && l.development_name.toLowerCase() === development.name.toLowerCase()) return true
       // Match by campaign
       if (l.campaign && campaignNames.includes(l.campaign)) return true
       if (l.campaign_id && campaignIds.includes(l.campaign_id)) return true
@@ -70,6 +74,8 @@ export default function DevelopmentDetailPage() {
       const devNameLower = development.name.toLowerCase()
       if (l.location?.toLowerCase().includes(devNameLower)) return true
       if (l.area?.toLowerCase().includes(devNameLower)) return true
+      // Match by source_campaign containing development name
+      if (l.source_campaign?.toLowerCase().includes(devNameLower)) return true
       return false
     })
   }, [leads, devCampaigns, development])
