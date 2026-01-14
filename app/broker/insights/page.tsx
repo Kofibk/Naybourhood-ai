@@ -1,70 +1,129 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Sparkles, TrendingUp, Users, Target, Lightbulb, CheckCircle } from 'lucide-react'
 
 export default function InsightsPage() {
-  const { leads, campaigns, isLoading } = useData()
+  const { financeLeads, campaigns, isLoading } = useData()
   const { user } = useAuth()
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [isReady, setIsReady] = useState(false)
 
-  // Filter data by company_id for multi-tenant
-  const myLeads = useMemo(() => {
-    if (!user?.company_id) return []
-    return leads.filter(lead => lead.company_id === user.company_id)
-  }, [leads, user?.company_id])
+  // Fetch company_id from localStorage or user_profiles
+  useEffect(() => {
+    const initializeCompany = async () => {
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
+
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
+        return
+      }
+
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+
+      setIsReady(true)
+    }
+
+    initializeCompany()
+  }, [user])
+
+  // Filter data by company_id for multi-tenant (using borrowers for broker)
+  const myBorrowers = useMemo(() => {
+    if (!companyId) return []
+    return financeLeads.filter(lead => lead.company_id === companyId)
+  }, [financeLeads, companyId])
 
   const myCampaigns = useMemo(() => {
-    if (!user?.company_id) return []
-    return campaigns.filter(c => c.company_id === user.company_id)
-  }, [campaigns, user?.company_id])
+    if (!companyId) return []
+    return campaigns.filter(c => c.company_id === companyId)
+  }, [campaigns, companyId])
 
   // Calculate real metrics from filtered data
   const metrics = useMemo(() => {
-    const totalLeads = myLeads.length
-    const avgScore = totalLeads > 0
-      ? (myLeads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads / 10).toFixed(1)
-      : '0'
+    const totalBorrowers = myBorrowers.length
 
-    const qualifiedLeads = myLeads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
-    const conversionRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
+    // Calculate total loan value
+    const totalLoanValue = myBorrowers.reduce((sum, l) => sum + (l.loan_amount || 0), 0)
+    const avgLoanValue = totalBorrowers > 0 ? Math.round(totalLoanValue / totalBorrowers) : 0
 
-    // Calculate response rate from contacted leads
-    const contactedLeads = myLeads.filter(l => l.status === 'Contacted' || l.status === 'Qualified' || l.status === 'Viewing Booked' || l.last_contact).length
-    const responseRate = totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0
+    const completedBorrowers = myBorrowers.filter(l => l.status === 'Approved' || l.status === 'Completed').length
+    const conversionRate = totalBorrowers > 0 ? Math.round((completedBorrowers / totalBorrowers) * 100) : 0
+
+    // Calculate progress rate from processed borrowers
+    const processedBorrowers = myBorrowers.filter(l =>
+      l.status === 'Processing' || l.status === 'Approved' || l.status === 'Completed'
+    ).length
+    const progressRate = totalBorrowers > 0 ? Math.round((processedBorrowers / totalBorrowers) * 100) : 0
 
     return {
-      leadQuality: avgScore,
-      responseRate,
+      avgLoanValue: avgLoanValue > 0 ? `£${(avgLoanValue / 1000).toFixed(0)}k` : '£0',
+      progressRate,
       conversion: conversionRate,
     }
-  }, [myLeads])
+  }, [myBorrowers])
 
   // Generate dynamic insights from filtered company data
   const insights = useMemo(() => {
     const generatedInsights: { title: string; description: string; priority: 'high' | 'medium' | 'low' }[] = []
 
-    // Find top scoring lead
-    const sortedLeads = [...myLeads].sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
-    const topLead = sortedLeads[0]
-    if (topLead && (topLead.quality_score || 0) >= 80) {
+    // Find highest value borrower
+    const sortedByLoan = [...myBorrowers].sort((a, b) => (b.loan_amount || 0) - (a.loan_amount || 0))
+    const topBorrower = sortedByLoan[0]
+    if (topBorrower && (topBorrower.loan_amount || 0) >= 500000) {
       generatedInsights.push({
-        title: 'Hot Lead Alert',
-        description: `${topLead.full_name || topLead.first_name || 'A lead'} (Score: ${topLead.quality_score}) is a high-value prospect. Contact immediately.`,
+        title: 'High-Value Borrower',
+        description: `${topBorrower.full_name || topBorrower.first_name || 'A borrower'} is seeking £${((topBorrower.loan_amount || 0) / 1000).toFixed(0)}k. Prioritise this application.`,
         priority: 'high',
       })
     }
 
-    // Check for new leads needing follow-up
-    const newLeadsCount = myLeads.filter(l => l.status === 'New').length
-    if (newLeadsCount > 0) {
+    // Check for contact pending borrowers
+    const pendingCount = myBorrowers.filter(l => l.status === 'Contact Pending' || !l.status).length
+    if (pendingCount > 0) {
       generatedInsights.push({
-        title: 'New Leads Awaiting',
-        description: `${newLeadsCount} new leads need initial contact. Prioritise outreach.`,
-        priority: newLeadsCount > 5 ? 'high' : 'medium',
+        title: 'Borrowers Awaiting Contact',
+        description: `${pendingCount} borrowers need initial contact. Prioritise outreach.`,
+        priority: pendingCount > 5 ? 'high' : 'medium',
+      })
+    }
+
+    // Check for awaiting documents
+    const awaitingDocs = myBorrowers.filter(l => l.status === 'Awaiting Documents').length
+    if (awaitingDocs > 0) {
+      generatedInsights.push({
+        title: 'Documents Required',
+        description: `${awaitingDocs} borrowers are awaiting document submission. Follow up to keep progress moving.`,
+        priority: awaitingDocs > 3 ? 'high' : 'medium',
       })
     }
 
@@ -83,13 +142,22 @@ export default function InsightsPage() {
     if (generatedInsights.length === 0) {
       generatedInsights.push({
         title: 'Getting Started',
-        description: 'No data available yet. Your leads and campaigns will appear here.',
+        description: 'No data available yet. Your borrowers and campaigns will appear here.',
         priority: 'low',
       })
     }
 
     return generatedInsights
-  }, [myLeads, myCampaigns])
+  }, [myBorrowers, myCampaigns])
+
+  // Show loading state
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
@@ -107,8 +175,8 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <Target className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
-            <div className="text-xs text-muted-foreground">Lead Quality</div>
+            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.avgLoanValue}</div>
+            <div className="text-xs text-muted-foreground">Avg Loan Value</div>
           </CardContent>
         </Card>
         <Card>
@@ -116,8 +184,8 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : myLeads.length}</div>
-            <div className="text-xs text-muted-foreground">Total Leads</div>
+            <div className="text-2xl font-bold">{isLoading ? '...' : myBorrowers.length}</div>
+            <div className="text-xs text-muted-foreground">Total Borrowers</div>
           </CardContent>
         </Card>
         <Card>
@@ -126,7 +194,7 @@ export default function InsightsPage() {
               <TrendingUp className="h-5 w-5 text-muted-foreground" />
             </div>
             <div className="text-2xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
-            <div className="text-xs text-muted-foreground">Qualified Rate</div>
+            <div className="text-xs text-muted-foreground">Completion Rate</div>
           </CardContent>
         </Card>
       </div>

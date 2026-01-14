@@ -1,12 +1,13 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Search, MessageSquare, Phone, Users } from 'lucide-react'
 
 function getTimeAgo(dateString: string): string {
@@ -26,12 +27,57 @@ function getTimeAgo(dateString: string): string {
 export default function ConversationsPage() {
   const { leads, isLoading } = useData()
   const { user } = useAuth()
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [isReady, setIsReady] = useState(false)
+
+  // Fetch company_id from localStorage or user_profiles
+  useEffect(() => {
+    const initializeCompany = async () => {
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
+
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
+        return
+      }
+
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+
+      setIsReady(true)
+    }
+
+    initializeCompany()
+  }, [user])
 
   // Filter leads by company_id first
   const myLeads = useMemo(() => {
-    if (!user?.company_id) return []
-    return leads.filter(lead => lead.company_id === user.company_id)
-  }, [leads, user?.company_id])
+    if (!companyId) return []
+    return leads.filter(lead => lead.company_id === companyId)
+  }, [leads, companyId])
 
   // Get leads with recent activity as conversations
   const conversations = useMemo(() => {
@@ -52,13 +98,22 @@ export default function ConversationsPage() {
       }))
   }, [myLeads])
 
+  // Show loading state
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
   // Show message if not assigned to company
-  if (!user?.company_id) {
+  if (!companyId) {
     return (
       <div className="space-y-6">
         <div>
           <h2 className="text-2xl font-bold font-display">Conversations</h2>
-          <p className="text-sm text-muted-foreground">Manage buyer communications</p>
+          <p className="text-sm text-muted-foreground">Manage borrower communications</p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
@@ -77,7 +132,7 @@ export default function ConversationsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold font-display">Conversations</h2>
-        <p className="text-sm text-muted-foreground">Manage buyer communications</p>
+        <p className="text-sm text-muted-foreground">Manage borrower communications</p>
       </div>
 
       <div className="relative">

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { EmailComposer } from '@/components/EmailComposer'
 import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import { formatCurrency } from '@/lib/utils'
@@ -49,36 +50,72 @@ export default function BrokerFinanceLeadsPage() {
   const [emailLead, setEmailLead] = useState<any>(null)
   const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [isReady, setIsReady] = useState(false)
+
+  // Fetch company_id from localStorage or user_profiles
+  useEffect(() => {
+    const initializeCompany = async () => {
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
+      }
+
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
+
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
+        return
+      }
+
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+
+      setIsReady(true)
+    }
+
+    initializeCompany()
+  }, [user])
 
   // Filter borrowers by broker's company_id
-  // For now, show all borrowers if none match the company filter (for testing)
   const myFinanceLeads = useMemo(() => {
     console.log('[BrokerBorrowers] Total borrowers from DB:', financeLeads.length)
-    console.log('[BrokerBorrowers] User company_id:', user?.company_id)
+    console.log('[BrokerBorrowers] Company ID:', companyId)
 
     // If no borrowers at all, return empty
     if (financeLeads.length === 0) {
       return []
     }
 
-    // If user has a company_id, try to filter
-    if (user?.company_id) {
-      const filtered = financeLeads.filter(lead => lead.company_id === user.company_id)
+    // If user has a company_id, filter by it
+    if (companyId) {
+      const filtered = financeLeads.filter(lead => lead.company_id === companyId)
       console.log('[BrokerBorrowers] Filtered by company:', filtered.length)
-
-      // If filtering returns results, use them
-      if (filtered.length > 0) {
-        return filtered
-      }
-
-      // If no results after filtering, show all borrowers (for testing/setup)
-      console.log('[BrokerBorrowers] No borrowers match company_id, showing all for setup')
-      return financeLeads
+      return filtered
     }
 
-    // No company_id - show all for test/demo users or show all if setting up
-    return financeLeads
-  }, [financeLeads, user?.company_id])
+    // No company_id - return empty (require company assignment)
+    return []
+  }, [financeLeads, companyId])
 
   // Apply search and status filter
   const filteredLeads = useMemo(() => {
@@ -191,8 +228,17 @@ export default function BrokerFinanceLeadsPage() {
     })
   }
 
+  // Show loading state
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
   // If user has no company_id, show message
-  if (!user?.company_id && !user?.email?.includes('test') && !user?.email?.includes('demo')) {
+  if (!companyId) {
     return (
       <div className="space-y-6">
         <div>
@@ -203,6 +249,7 @@ export default function BrokerFinanceLeadsPage() {
         </div>
         <Card>
           <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
               Your account is not linked to a company yet.
             </p>
