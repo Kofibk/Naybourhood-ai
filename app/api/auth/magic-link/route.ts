@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
       .eq('email', email)
       .single()
 
-    const recipientName = profile?.full_name || email.split('@')[0]
+    const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''
+    const recipientName = fullName || email.split('@')[0]
 
     // Send magic link via Supabase
     const { error } = await supabase.auth.signInWithOtp({
