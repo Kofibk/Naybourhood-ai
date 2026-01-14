@@ -151,7 +151,10 @@ export default function OnboardingWizard() {
       onboarding_completed: true,
     })
 
-    await completeOnboarding()
+    await completeOnboarding({
+      companyName: formData.companyName,
+      website: formData.website,
+    })
 
     const redirectPath = getRedirectPath(formData.userType)
     router.push(redirectPath)

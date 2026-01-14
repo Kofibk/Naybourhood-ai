@@ -220,33 +220,26 @@ export async function saveTeamInvites(emails: string[]): Promise<boolean> {
   return successCount > 0 || failCount === 0
 }
 
-export async function completeOnboarding(): Promise<boolean> {
+interface CompleteOnboardingParams {
+  companyName: string
+  website?: string
+}
+
+export async function completeOnboarding(params: CompleteOnboardingParams): Promise<boolean> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return false
 
-  // Fetch the user's profile to get company details
-  const { data: profile, error: profileError } = await supabase
-    .from('user_profiles')
-    .select('company_name, website, first_name, last_name')
-    .eq('id', user.id)
-    .single()
-
-  if (profileError) {
-    console.error('[Onboarding] Error fetching profile:', profileError)
-    return false
-  }
-
-  // Create the company if company_name exists
+  // Create the company
   let companyId: string | null = null
 
-  if (profile?.company_name) {
+  if (params.companyName) {
     const { data: company, error: companyError } = await supabase
       .from('companies')
       .insert({
-        name: profile.company_name,
-        website: profile.website || null,
+        name: params.companyName,
+        website: params.website || null,
       })
       .select('id')
       .single()
