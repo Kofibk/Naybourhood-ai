@@ -243,21 +243,49 @@ export async function saveTeamInvites(emails: string[]): Promise<boolean> {
   return successCount > 0 || failCount === 0
 }
 
-export async function completeOnboarding(): Promise<boolean> {
+interface CompleteOnboardingParams {
+  companyName: string
+  website?: string
+}
+
+export async function completeOnboarding(params: CompleteOnboardingParams): Promise<boolean> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) return false
 
-  const { error } = await supabase
-    .from('user_profiles')
+  // Create the company
+  let companyId: string | null = null
+
+  if (params.companyName) {
+    const { data: company, error: companyError } = await supabase
+      .from('companies')
+      .insert({
+        name: params.companyName,
+        website: params.website || null,
+      })
+      .select('id')
+      .single()
+
+    if (companyError) {
+      console.error('[Onboarding] Error creating company:', companyError)
+      return false
+    }
+
+    companyId = company.id
+  }
+
+  // Update customers table with company_id and mark onboarding as completed
+  const { error: customerError } = await supabase
+    .from('customers')
     .update({
-      onboarding_completed: true,
+      ...(companyId && { company_id: companyId }),
+      onboarding_completed_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
-  if (error) {
-    console.error('[Onboarding] Error completing onboarding:', error)
+  if (customerError) {
+    console.error('[Onboarding] Error updating customer:', customerError)
     return false
   }
 
