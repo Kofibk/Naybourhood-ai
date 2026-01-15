@@ -62,7 +62,22 @@ export default function DevelopmentDetailPage() {
     const campaignNames = devCampaigns.map(c => c.name).filter(Boolean)
     const campaignIds = devCampaigns.map(c => c.id).filter(Boolean)
 
-    return leads.filter((l) => {
+    console.log('[DevDetail] Development:', development.name, 'ID:', development.id)
+    console.log('[DevDetail] Total leads available:', leads.length)
+    console.log('[DevDetail] Campaign names for this dev:', campaignNames)
+
+    // Debug: Check first few leads for development fields
+    if (leads.length > 0) {
+      console.log('[DevDetail] Sample lead fields:', {
+        development_id: leads[0].development_id,
+        development_name: leads[0].development_name,
+        campaign: leads[0].campaign,
+        campaign_id: leads[0].campaign_id,
+        source_campaign: leads[0].source_campaign,
+      })
+    }
+
+    const filtered = leads.filter((l) => {
       // Direct match by development_id (primary link)
       if (l.development_id === development.id) return true
       // Direct match by development_name
@@ -78,6 +93,9 @@ export default function DevelopmentDetailPage() {
       if (l.source_campaign?.toLowerCase().includes(devNameLower)) return true
       return false
     })
+
+    console.log('[DevDetail] Filtered leads for this development:', filtered.length)
+    return filtered
   }, [leads, devCampaigns, development])
 
   // Calculate stats - use actual lead count from devLeads
