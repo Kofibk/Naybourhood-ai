@@ -425,10 +425,31 @@ export type AIClassification =
   | 'Disqualified'
   | 'Spam'
 
+// Naybourhood AI Scoring Framework classifications
+export type NaybourhoodClassification =
+  | 'Hot Lead'
+  | 'Qualified'
+  | 'Needs Qualification'
+  | 'Nurture'
+  | 'Low Priority'
+  | 'Disqualified'
+
 // Map AI classification to simple display classification
-export function getDisplayClassification(aiClassification?: AIClassification | string): LeadClassification {
+// Supports both legacy and Naybourhood classifications
+export function getDisplayClassification(aiClassification?: AIClassification | NaybourhoodClassification | string): LeadClassification {
   if (!aiClassification) return 'Low'
   switch (aiClassification) {
+    // Naybourhood classifications
+    case 'Hot Lead':
+      return 'Hot'
+    case 'Qualified':
+    case 'Needs Qualification':
+    case 'Nurture':
+      return 'Warm'
+    case 'Low Priority':
+    case 'Disqualified':
+      return 'Low'
+    // Legacy classifications
     case 'Hot':
       return 'Hot'
     case 'Warm-Qualified':
