@@ -199,7 +199,7 @@ export default function LandingPage() {
               </Link>
             </Button>
             <Button asChild variant="outline" size="lg">
-              <Link href="/about">Tour Platform</Link>
+              <Link href="/admin">Tour Platform</Link>
             </Button>
           </div>
         </div>
@@ -413,7 +413,7 @@ export default function LandingPage() {
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  <Link href="/about">Tour Platform</Link>
+                  <Link href="/admin">Tour Platform</Link>
                 </Button>
               </div>
             </CardContent>
