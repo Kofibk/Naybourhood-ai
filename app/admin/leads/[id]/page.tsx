@@ -698,7 +698,8 @@ export default function LeadDetailPage() {
   // Use null for unscored leads (will trigger auto-scoring)
   const qualityScore = scoreResult?.quality_score ?? lead.ai_quality_score ?? lead.quality_score
   const intentScore = scoreResult?.intent_score ?? lead.ai_intent_score ?? lead.intent_score
-  const confidenceScore = scoreResult?.confidence ?? (lead.ai_confidence ? lead.ai_confidence * 10 : null)
+  // ai_confidence is stored as 0-100 (e.g., 30 means 30%)
+  const confidenceScore = scoreResult?.confidence ?? lead.ai_confidence ?? null
   const classification = scoreResult?.classification ?? lead.ai_classification ?? 'Cold'
   const priority = scoreResult?.priority ?? lead.ai_priority ?? 'P4'
   const summary = scoreResult?.summary ?? lead.ai_summary
@@ -793,7 +794,7 @@ export default function LeadDetailPage() {
           <ScoreCard
             label="Confidence"
             score={confidenceScore !== null ? Math.round(confidenceScore) : null}
-            maxScore={10}
+            maxScore={100}
             explanation="AI certainty level"
           />
           <ClassificationBadge classification={classification} showExplanation />
@@ -1288,7 +1289,7 @@ export default function LeadDetailPage() {
               <DataRow label="Priority" value={lead.ai_priority || priority} />
               <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
               <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
-              <DataRow label="Confidence" value={lead.ai_confidence ? `${(lead.ai_confidence * 100).toFixed(0)}%` : '-'} />
+              <DataRow label="Confidence" value={lead.ai_confidence ? `${lead.ai_confidence}%` : '-'} />
             </CardContent>
           </Card>
 
