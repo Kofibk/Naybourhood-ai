@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 import type { Buyer } from '@/types'
+import {
+  scoreLeadNaybourhood,
+  convertToLegacyFormat,
+  NaybourhoodScoreResult
+} from '@/lib/scoring/naybourhood-scoring'
 
 // Get admin client for database operations (bypasses RLS)
 function getSupabaseClient() {
@@ -38,35 +43,34 @@ export interface ScoreBuyerResponse {
   recommendations: string[]
   is_spam: boolean
   spam_flags: string[]
+  // Naybourhood Framework Fields
+  is_28_day_buyer: boolean
+  call_priority: number
+  call_priority_reason: string
+  low_urgency_flag: boolean
+  naybourhood_classification: string
   score_breakdown: {
     quality: {
       total: number
-      profileCompleteness: { score: number; maxScore: number; details: string[] }
-      financialQualification: { score: number; maxScore: number; details: string[] }
-      verificationStatus: { score: number; maxScore: number; details: string[] }
-      inventoryFit: { score: number; maxScore: number; details: string[] }
+      breakdown: Array<{ factor: string; points: number; reason: string }>
+      isDisqualified: boolean
+      disqualificationReason?: string
     }
     intent: {
       total: number
-      timeline: { score: number; maxScore: number; details: string[] }
-      purpose: { score: number; maxScore: number; details: string[] }
-      engagement: { score: number; maxScore: number; details: string[] }
-      commitment: { score: number; maxScore: number; details: string[] }
-      negativeModifiers: { score: number; maxScore: number; details: string[] }
+      breakdown: Array<{ factor: string; points: number; reason: string }>
+      is28DayBuyer: boolean
     }
     confidence: {
       total: number
-      dataCompleteness: { score: number; maxScore: number; details: string[] }
-      verificationLevel: { score: number; maxScore: number; details: string[] }
-      engagementData: { score: number; maxScore: number; details: string[] }
-      transcriptQuality: { score: number; maxScore: number; details: string[] }
+      breakdown: Array<{ factor: string; points: number; reason: string }>
     }
   }
 }
 
-// Generate AI scores using Claude
-async function generateClaudeScores(client: Anthropic, buyer: any): Promise<any> {
-  const prompt = `You are a real estate CRM AI assistant specialized in lead scoring. Analyze this buyer lead and generate comprehensive scores.
+// Generate enhanced AI summary using Claude (complements Naybourhood scoring)
+async function generateClaudeSummary(client: Anthropic, buyer: any, naybourhoodScore: NaybourhoodScoreResult): Promise<{ summary: string; next_action: string; recommendations: string[] }> {
+  const prompt = `You are a real estate CRM AI assistant. Generate a concise buyer summary and action recommendations.
 
 BUYER DATA:
 - Name: ${buyer.full_name || buyer.first_name || 'Unknown'}
@@ -75,226 +79,114 @@ BUYER DATA:
 - Country: ${buyer.country || 'Not specified'}
 - Budget: ${buyer.budget || buyer.budget_range || 'Not specified'}
 - Payment Method: ${buyer.payment_method || 'Unknown'}
-- Mortgage Status: ${buyer.mortgage_status || 'N/A'}
+- Purchase Purpose: ${buyer.purchase_purpose || buyer.purpose || 'Not specified'}
 - Timeline: ${buyer.timeline || 'Not specified'}
+- Ready in 28 Days: ${buyer.ready_within_28_days || buyer.ready_in_28_days ? 'Yes' : 'No'}
 - Location Preference: ${buyer.location || buyer.area || 'Not specified'}
 - Bedrooms: ${buyer.bedrooms || buyer.preferred_bedrooms || 'Not specified'}
 - Status: ${buyer.status || 'New'}
-- Proof of Funds: ${buyer.proof_of_funds ? 'Yes' : 'No'}
-- UK Broker: ${buyer.uk_broker ? 'Yes' : 'No'}
-- UK Solicitor: ${buyer.uk_solicitor ? 'Yes' : 'No'}
+- UK Broker: ${buyer.uk_broker || 'Unknown'}
+- UK Solicitor: ${buyer.uk_solicitor || 'Unknown'}
 - Source: ${buyer.source || 'Unknown'}
 - Notes: ${buyer.notes || 'None'}
-- Created: ${buyer.created_at || buyer.date_added || 'Unknown'}
 
-SCORING CRITERIA:
+SCORING (already calculated by Naybourhood AI Framework):
+- Quality Score: ${naybourhoodScore.qualityScore.total}/100
+- Intent Score: ${naybourhoodScore.intentScore.total}/100
+- Classification: ${naybourhoodScore.classification}
+- Is 28-Day Buyer: ${naybourhoodScore.is28DayBuyer ? 'YES - HARD RULE AUTO HOT LEAD' : 'No'}
+- Call Priority: Level ${naybourhoodScore.callPriority.level} (${naybourhoodScore.callPriority.responseTime})
+- Risk Flags: ${naybourhoodScore.riskFlags.join(', ') || 'None'}
 
-1. QUALITY SCORE (0-100) - Based on:
-   - Profile Completeness (25 pts): Name, Email, Phone, Location, Country, Bedrooms
-   - Financial Qualification (35 pts): Cash=15pts, Mortgage=5pts; Mortgage approved/AIP=10pts; Proof of funds=10pts; Budget specified=5pts; Premium budget bonus=5pts
-   - Verification Status (20 pts): UK Broker=8pts, UK Solicitor=7pts, Valid email=2pts, Valid phone=3pts
-   - Inventory Fit (20 pts): Location preference=8pts, Bedroom preference=6pts, Budget range=6pts
+Based on this data, provide:
+1. A 2-3 sentence summary highlighting buyer readiness and key characteristics
+2. The single most important next action for the sales team
+3. Up to 3 actionable recommendations
 
-2. INTENT SCORE (0-100) - Based on:
-   - Timeline (30 pts): Immediate/ASAP=30, 1-3 months=20, 3-6 months=10, 6-12 months=5
-   - Purpose (25 pts): Cash buyer=15pts, Mortgage=10pts, Specific criteria=10pts
-   - Engagement (25 pts): Viewing booked/negotiating=25pts, Reserved/exchanged=25pts, Follow-up=15pts
-   - Commitment (20 pts): Proof of funds=10pts, Mortgage approved=8pts, Solicitor=5pts
-   - Apply negative modifiers for: Not proceeding (-50), Fake/unverifiable (-75), Duplicate (-25), Stale lead (-15)
-
-3. CONFIDENCE SCORE (0-10) - Based on data quality and verification level
-
-4. CLASSIFICATION (based on Quality + Intent):
-   - Hot: Quality >= 70 AND Intent >= 70
-   - Warm-Qualified: Quality >= 70 AND Intent >= 45
-   - Warm-Engaged: Quality >= 45 AND Intent >= 70
-   - Nurture: Quality 35-69 AND Intent 35-69
-   - Cold: Lower scores
-   - Disqualified: Quality < 20 OR Intent < 20
-
-5. PRIORITY:
-   - P1: Hot leads (respond < 1 hour)
-   - P2: Warm leads (respond < 4 hours)
-   - P3: Nurture leads (respond < 24 hours)
-   - P4: Cold/Disqualified (48+ hours)
-
-6. SPAM CHECK: Look for suspicious patterns (test names, fake emails, unrealistic budgets)
-
-Respond ONLY with valid JSON (no markdown, no explanation):
+Respond ONLY with valid JSON:
 {
-  "quality_score": <number 0-100>,
-  "intent_score": <number 0-100>,
-  "confidence": <number 0-10>,
-  "classification": "<Hot|Warm-Qualified|Warm-Engaged|Nurture|Cold|Disqualified|Spam>",
-  "priority": "<P1|P2|P3|P4>",
-  "priority_response_time": "<string>",
-  "summary": "<2-3 sentence buyer summary focusing on readiness and potential>",
-  "next_action": "<single specific action the sales team should take>",
-  "recommendations": ["<rec1>", "<rec2>", "<rec3>"],
-  "risk_flags": ["<flag1>", "<flag2>"],
-  "is_spam": <boolean>,
-  "spam_flags": [],
-  "score_breakdown": {
-    "quality": {
-      "total": <number>,
-      "profileCompleteness": { "score": <number>, "maxScore": 25, "details": ["<detail>"] },
-      "financialQualification": { "score": <number>, "maxScore": 35, "details": ["<detail>"] },
-      "verificationStatus": { "score": <number>, "maxScore": 20, "details": ["<detail>"] },
-      "inventoryFit": { "score": <number>, "maxScore": 20, "details": ["<detail>"] }
-    },
-    "intent": {
-      "total": <number>,
-      "timeline": { "score": <number>, "maxScore": 30, "details": ["<detail>"] },
-      "purpose": { "score": <number>, "maxScore": 25, "details": ["<detail>"] },
-      "engagement": { "score": <number>, "maxScore": 25, "details": ["<detail>"] },
-      "commitment": { "score": <number>, "maxScore": 20, "details": ["<detail>"] },
-      "negativeModifiers": { "score": <number>, "maxScore": 0, "details": [] }
-    },
-    "confidence": {
-      "total": <number>,
-      "dataCompleteness": { "score": <number>, "maxScore": 10, "details": ["<detail>"] },
-      "verificationLevel": { "score": <number>, "maxScore": 10, "details": ["<detail>"] },
-      "engagementData": { "score": <number>, "maxScore": 10, "details": ["<detail>"] },
-      "transcriptQuality": { "score": <number>, "maxScore": 10, "details": ["<detail>"] }
-    }
-  }
+  "summary": "<2-3 sentence summary>",
+  "next_action": "<single specific action>",
+  "recommendations": ["<rec1>", "<rec2>", "<rec3>"]
 }`
 
-  const response = await client.messages.create({
-    model: 'claude-3-haiku-20240307',
-    max_tokens: 1500,
-    messages: [{ role: 'user', content: prompt }],
-  })
+  try {
+    const response = await client.messages.create({
+      model: 'claude-3-haiku-20240307',
+      max_tokens: 500,
+      messages: [{ role: 'user', content: prompt }],
+    })
 
-  const textContent = response.content.find(c => c.type === 'text')
-  if (!textContent || textContent.type !== 'text') {
-    throw new Error('No text response from Claude')
+    const textContent = response.content.find(c => c.type === 'text')
+    if (!textContent || textContent.type !== 'text') {
+      throw new Error('No text response from Claude')
+    }
+
+    const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
+    }
+  } catch (err) {
+    console.log('[AI Score] Claude summary generation failed, using fallback')
   }
 
-  // Parse JSON from response
-  const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
-    return JSON.parse(jsonMatch[0])
-  }
-
-  throw new Error('Failed to parse Claude response')
+  // Fallback summary generation
+  return generateFallbackSummary(buyer, naybourhoodScore)
 }
 
-// Fallback scoring when no API key is available
-function getFallbackScores(buyer: any): any {
-  // Basic score calculation based on available data
-  let qualityScore = 20 // Base score
-  let intentScore = 20
-
-  // Profile completeness
-  if (buyer.full_name || buyer.first_name) qualityScore += 5
-  if (buyer.email) qualityScore += 5
-  if (buyer.phone) qualityScore += 5
-  if (buyer.location || buyer.area) qualityScore += 5
-  if (buyer.budget || buyer.budget_range) qualityScore += 5
-
-  // Financial qualification
-  if (buyer.payment_method?.toLowerCase() === 'cash') qualityScore += 15
-  else if (buyer.payment_method?.toLowerCase() === 'mortgage') qualityScore += 5
-  if (buyer.proof_of_funds) qualityScore += 10
-  if (buyer.mortgage_status?.toLowerCase() === 'approved') qualityScore += 10
-
-  // Intent signals
-  if (buyer.timeline) {
-    const timeline = buyer.timeline.toLowerCase()
-    if (/immediate|asap|now|urgent/i.test(timeline)) intentScore += 30
-    else if (/1-3 months|soon/i.test(timeline)) intentScore += 20
-    else if (/3-6 months/i.test(timeline)) intentScore += 10
-    else intentScore += 5
-  }
-
-  // Engagement
-  const status = (buyer.status || '').toLowerCase()
-  if (/viewing|negotiating|reserved|exchanged/i.test(status)) intentScore += 25
-  else if (/follow.?up/i.test(status)) intentScore += 15
-  else intentScore += 5
-
-  // Commitment
-  if (buyer.proof_of_funds) intentScore += 10
-  if (buyer.uk_solicitor) intentScore += 5
-  if (buyer.uk_broker) intentScore += 5
-
-  // Cap scores
-  qualityScore = Math.min(100, qualityScore)
-  intentScore = Math.min(100, intentScore)
-
-  // Determine classification
-  let classification = 'Nurture'
-  let priority = 'P3'
-  let responseTime = '< 24 hours'
-
-  if (qualityScore >= 70 && intentScore >= 70) {
-    classification = 'Hot'
-    priority = 'P1'
-    responseTime = '< 1 hour'
-  } else if (qualityScore >= 70 && intentScore >= 45) {
-    classification = 'Warm-Qualified'
-    priority = 'P2'
-    responseTime = '< 4 hours'
-  } else if (qualityScore >= 45 && intentScore >= 70) {
-    classification = 'Warm-Engaged'
-    priority = 'P2'
-    responseTime = '< 4 hours'
-  } else if (qualityScore < 20 || intentScore < 20) {
-    classification = 'Cold'
-    priority = 'P4'
-    responseTime = '48+ hours'
-  }
-
+// Generate fallback summary without Claude
+function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult): { summary: string; next_action: string; recommendations: string[] } {
   const name = buyer.full_name || buyer.first_name || 'This lead'
   const paymentType = buyer.payment_method || 'potential'
   const locationInfo = buyer.location || buyer.area || 'the area'
+  const budget = buyer.budget || buyer.budget_range || 'Not specified'
 
-  return {
-    quality_score: qualityScore,
-    intent_score: intentScore,
-    confidence: 5,
-    classification,
-    priority,
-    priority_response_time: responseTime,
-    summary: `${name} is a ${paymentType} buyer interested in ${locationInfo}. Budget: ${buyer.budget || buyer.budget_range || 'Not specified'}.`,
-    next_action: 'Contact lead to confirm interest and timeline',
-    recommendations: [
-      'Verify contact information',
-      'Confirm budget and timeline',
-      'Schedule discovery call'
-    ],
-    risk_flags: buyer.proof_of_funds ? [] : ['No proof of funds received'],
-    is_spam: false,
-    spam_flags: [],
-    score_breakdown: {
-      quality: {
-        total: qualityScore,
-        profileCompleteness: { score: 0, maxScore: 25, details: ['Fallback scoring'] },
-        financialQualification: { score: 0, maxScore: 35, details: ['Fallback scoring'] },
-        verificationStatus: { score: 0, maxScore: 20, details: ['Fallback scoring'] },
-        inventoryFit: { score: 0, maxScore: 20, details: ['Fallback scoring'] }
-      },
-      intent: {
-        total: intentScore,
-        timeline: { score: 0, maxScore: 30, details: ['Fallback scoring'] },
-        purpose: { score: 0, maxScore: 25, details: ['Fallback scoring'] },
-        engagement: { score: 0, maxScore: 25, details: ['Fallback scoring'] },
-        commitment: { score: 0, maxScore: 20, details: ['Fallback scoring'] },
-        negativeModifiers: { score: 0, maxScore: 0, details: [] }
-      },
-      confidence: {
-        total: 5,
-        dataCompleteness: { score: 5, maxScore: 10, details: ['Fallback scoring'] },
-        verificationLevel: { score: 0, maxScore: 10, details: ['Fallback scoring'] },
-        engagementData: { score: 0, maxScore: 10, details: ['Fallback scoring'] },
-        transcriptQuality: { score: 0, maxScore: 10, details: ['Fallback scoring'] }
-      }
+  let summary = `${name} is a ${paymentType} buyer interested in ${locationInfo}. Budget: ${budget}.`
+
+  if (score.is28DayBuyer) {
+    summary += ' URGENT: Ready to purchase within 28 days - immediate priority.'
+  } else if (score.classification === 'Hot Lead') {
+    summary += ' High-quality lead with strong purchase intent.'
+  }
+
+  let next_action = 'Contact lead to confirm interest and timeline'
+  if (score.is28DayBuyer) {
+    next_action = 'Call immediately - 28-day buyer requires same-day contact'
+  } else if (score.classification === 'Hot Lead') {
+    next_action = 'Schedule discovery call within 2 hours'
+  } else if (score.classification === 'Needs Qualification') {
+    next_action = 'Verify contact details and gather missing information'
+  }
+
+  const recommendations: string[] = []
+
+  if (score.fakeLeadCheck.flags.length > 0) {
+    recommendations.push('Verify lead authenticity - some red flags detected')
+  }
+
+  if (!buyer.proof_of_funds && buyer.payment_method?.toLowerCase() !== 'cash') {
+    recommendations.push('Request proof of funds or mortgage approval')
+  }
+
+  if (!buyer.uk_broker || buyer.uk_broker === 'no') {
+    if (buyer.payment_method?.toLowerCase() === 'mortgage') {
+      recommendations.push('Introduce to partner mortgage broker')
     }
   }
+
+  if (!buyer.timeline) {
+    recommendations.push('Confirm purchase timeline')
+  }
+
+  if (recommendations.length < 3) {
+    recommendations.push('Schedule property viewing')
+  }
+
+  return { summary, next_action, recommendations: recommendations.slice(0, 3) }
 }
 
-// Score a buyer using Claude AI
+
+// Score a buyer using Naybourhood AI Scoring Framework
 export async function POST(request: NextRequest) {
   try {
     const { buyerId } = await request.json()
@@ -316,37 +208,51 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Buyer not found' }, { status: 404 })
     }
 
-    // Get Anthropic client
+    // Use Naybourhood AI Scoring Framework
+    console.log('[AI Score] Using Naybourhood AI Scoring Framework')
+    const naybourhoodScore = scoreLeadNaybourhood(buyer as Buyer)
+
+    // Convert to legacy format for database storage
+    const legacyScores = convertToLegacyFormat(naybourhoodScore)
+
+    // Get Anthropic client for enhanced summary generation
     const client = getAnthropicClient()
 
-    let scores: any
-
+    // Generate summary (with Claude if available, otherwise fallback)
+    let summaryData: { summary: string; next_action: string; recommendations: string[] }
     if (client) {
-      // Use Claude AI for scoring
-      console.log('[AI Score] Using Claude AI for lead scoring')
-      scores = await generateClaudeScores(client, buyer)
+      console.log('[AI Score] Enhancing with Claude AI summary')
+      summaryData = await generateClaudeSummary(client, buyer, naybourhoodScore)
     } else {
-      // Fallback to basic scoring
-      console.log('[AI Score] No Anthropic API key, using fallback scoring')
-      scores = getFallbackScores(buyer)
+      console.log('[AI Score] Using fallback summary generation')
+      summaryData = generateFallbackSummary(buyer, naybourhoodScore)
     }
 
-    // Update buyer in database with scores
+    // Update buyer in database with Naybourhood scores
     const { error: updateError } = await supabase
       .from('buyers')
       .update({
-        ai_quality_score: scores.quality_score,
-        ai_intent_score: scores.intent_score,
-        ai_confidence: scores.confidence / 10, // Normalize to 0-1
-        ai_summary: scores.summary,
-        ai_next_action: scores.next_action,
-        ai_risk_flags: scores.risk_flags,
-        ai_classification: scores.classification,
-        ai_priority: scores.priority,
+        // AI scores
+        ai_quality_score: naybourhoodScore.qualityScore.total,
+        ai_intent_score: naybourhoodScore.intentScore.total,
+        ai_confidence: naybourhoodScore.confidenceScore.total / 10, // Normalize to 0-10
+        ai_summary: summaryData.summary,
+        ai_next_action: summaryData.next_action,
+        ai_risk_flags: naybourhoodScore.riskFlags,
+        ai_recommendations: summaryData.recommendations,
+        ai_classification: naybourhoodScore.classification,
+        ai_priority: legacyScores.ai_priority,
         ai_scored_at: new Date().toISOString(),
-        // Also update the standard score fields
-        quality_score: scores.quality_score,
-        intent_score: scores.intent_score
+        // Standard score fields
+        quality_score: naybourhoodScore.qualityScore.total,
+        intent_score: naybourhoodScore.intentScore.total,
+        // Naybourhood-specific fields
+        ready_within_28_days: naybourhoodScore.is28DayBuyer,
+        call_priority: naybourhoodScore.callPriority.level,
+        call_priority_reason: naybourhoodScore.callPriority.description,
+        low_urgency_flag: naybourhoodScore.lowUrgencyFlag,
+        is_fake_lead: naybourhoodScore.fakeLeadCheck.isFake,
+        fake_lead_flags: naybourhoodScore.fakeLeadCheck.flags
       })
       .eq('id', buyerId)
 
@@ -356,19 +262,41 @@ export async function POST(request: NextRequest) {
 
     const response: ScoreBuyerResponse = {
       success: true,
-      summary: scores.summary,
-      quality_score: scores.quality_score,
-      intent_score: scores.intent_score,
-      confidence: scores.confidence,
-      classification: scores.classification,
-      priority: scores.priority,
-      priority_response_time: scores.priority_response_time,
-      next_action: scores.next_action,
-      risk_flags: scores.risk_flags || [],
-      recommendations: scores.recommendations || [],
-      is_spam: scores.is_spam || false,
-      spam_flags: scores.spam_flags || [],
-      score_breakdown: scores.score_breakdown
+      summary: summaryData.summary,
+      quality_score: naybourhoodScore.qualityScore.total,
+      intent_score: naybourhoodScore.intentScore.total,
+      confidence: naybourhoodScore.confidenceScore.total,
+      classification: legacyScores.ai_classification,
+      priority: legacyScores.ai_priority,
+      priority_response_time: naybourhoodScore.callPriority.responseTime,
+      next_action: summaryData.next_action,
+      risk_flags: naybourhoodScore.riskFlags,
+      recommendations: summaryData.recommendations,
+      is_spam: naybourhoodScore.fakeLeadCheck.isFake,
+      spam_flags: naybourhoodScore.fakeLeadCheck.flags,
+      // Naybourhood Framework Fields
+      is_28_day_buyer: naybourhoodScore.is28DayBuyer,
+      call_priority: naybourhoodScore.callPriority.level,
+      call_priority_reason: naybourhoodScore.callPriority.description,
+      low_urgency_flag: naybourhoodScore.lowUrgencyFlag,
+      naybourhood_classification: naybourhoodScore.classification,
+      score_breakdown: {
+        quality: {
+          total: naybourhoodScore.qualityScore.total,
+          breakdown: naybourhoodScore.qualityScore.breakdown,
+          isDisqualified: naybourhoodScore.qualityScore.isDisqualified,
+          disqualificationReason: naybourhoodScore.qualityScore.disqualificationReason
+        },
+        intent: {
+          total: naybourhoodScore.intentScore.total,
+          breakdown: naybourhoodScore.intentScore.breakdown,
+          is28DayBuyer: naybourhoodScore.intentScore.is28DayBuyer
+        },
+        confidence: {
+          total: naybourhoodScore.confidenceScore.total,
+          breakdown: naybourhoodScore.confidenceScore.breakdown
+        }
+      }
     }
 
     return NextResponse.json(response)
@@ -381,7 +309,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Batch scoring endpoint using Claude AI
+// Batch scoring endpoint using Naybourhood AI Scoring Framework
 export async function PUT(request: NextRequest) {
   try {
     const { buyerIds } = await request.json()
@@ -407,40 +335,54 @@ export async function PUT(request: NextRequest) {
 
     for (const buyer of buyers || []) {
       try {
-        let scores: any
+        // Use Naybourhood AI Scoring Framework
+        const naybourhoodScore = scoreLeadNaybourhood(buyer as Buyer)
+        const legacyScores = convertToLegacyFormat(naybourhoodScore)
 
+        // Generate summary
+        let summaryData: { summary: string; next_action: string; recommendations: string[] }
         if (client) {
-          // Use Claude AI for scoring
-          scores = await generateClaudeScores(client, buyer)
+          summaryData = await generateClaudeSummary(client, buyer, naybourhoodScore)
         } else {
-          // Fallback scoring
-          scores = getFallbackScores(buyer)
+          summaryData = generateFallbackSummary(buyer, naybourhoodScore)
         }
 
         // Update in database
         await supabase
           .from('buyers')
           .update({
-            ai_quality_score: scores.quality_score,
-            ai_intent_score: scores.intent_score,
-            ai_confidence: scores.confidence / 10,
-            ai_summary: scores.summary,
-            ai_next_action: scores.next_action,
-            ai_risk_flags: scores.risk_flags,
-            ai_classification: scores.classification,
-            ai_priority: scores.priority,
+            // AI scores
+            ai_quality_score: naybourhoodScore.qualityScore.total,
+            ai_intent_score: naybourhoodScore.intentScore.total,
+            ai_confidence: naybourhoodScore.confidenceScore.total / 10,
+            ai_summary: summaryData.summary,
+            ai_next_action: summaryData.next_action,
+            ai_risk_flags: naybourhoodScore.riskFlags,
+            ai_recommendations: summaryData.recommendations,
+            ai_classification: naybourhoodScore.classification,
+            ai_priority: legacyScores.ai_priority,
             ai_scored_at: new Date().toISOString(),
-            quality_score: scores.quality_score,
-            intent_score: scores.intent_score
+            // Standard score fields
+            quality_score: naybourhoodScore.qualityScore.total,
+            intent_score: naybourhoodScore.intentScore.total,
+            // Naybourhood-specific fields
+            ready_within_28_days: naybourhoodScore.is28DayBuyer,
+            call_priority: naybourhoodScore.callPriority.level,
+            call_priority_reason: naybourhoodScore.callPriority.description,
+            low_urgency_flag: naybourhoodScore.lowUrgencyFlag,
+            is_fake_lead: naybourhoodScore.fakeLeadCheck.isFake,
+            fake_lead_flags: naybourhoodScore.fakeLeadCheck.flags
           })
           .eq('id', buyer.id)
 
         results.push({
           id: buyer.id,
           success: true,
-          classification: scores.classification,
-          quality_score: scores.quality_score,
-          intent_score: scores.intent_score
+          classification: naybourhoodScore.classification,
+          quality_score: naybourhoodScore.qualityScore.total,
+          intent_score: naybourhoodScore.intentScore.total,
+          is_28_day_buyer: naybourhoodScore.is28DayBuyer,
+          call_priority: naybourhoodScore.callPriority.level
         })
       } catch (err) {
         console.error(`[AI Score Batch] Error scoring ${buyer.id}:`, err)
