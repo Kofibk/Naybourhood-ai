@@ -952,70 +952,75 @@ export default function LeadDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {scoreBreakdown ? (
-                <>
-                  {/* Handle both Naybourhood (array) and legacy (object) formats */}
-                  <ScoreBreakdownSection
-                    title="Quality Score"
-                    items={
-                      Array.isArray(scoreBreakdown.quality?.breakdown)
-                        ? scoreBreakdown.quality.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
-                            label: item.factor,
-                            score: item.points,
-                            maxScore: Math.abs(item.points) || 10,
-                            details: [item.reason]
-                          }))
-                        : [
-                            { label: 'Profile Completeness', ...scoreBreakdown.quality?.profileCompleteness },
-                            { label: 'Financial Qualification', ...scoreBreakdown.quality?.financialQualification },
-                            { label: 'Verification Status', ...scoreBreakdown.quality?.verificationStatus },
-                            { label: 'Inventory Fit', ...scoreBreakdown.quality?.inventoryFit },
-                          ].filter(item => item.score !== undefined)
-                    }
-                    isOpen={openBreakdown === 'quality'}
-                    onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
-                  />
-                  <ScoreBreakdownSection
-                    title="Intent Score"
-                    items={
-                      Array.isArray(scoreBreakdown.intent?.breakdown)
-                        ? scoreBreakdown.intent.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
-                            label: item.factor,
-                            score: item.points,
-                            maxScore: Math.abs(item.points) || 10,
-                            details: [item.reason]
-                          }))
-                        : [
-                            { label: 'Timeline', ...scoreBreakdown.intent?.timeline },
-                            { label: 'Purpose/Payment', ...scoreBreakdown.intent?.purpose },
-                            { label: 'Engagement', ...scoreBreakdown.intent?.engagement },
-                            { label: 'Commitment', ...scoreBreakdown.intent?.commitment },
-                            { label: 'Negative Modifiers', ...scoreBreakdown.intent?.negativeModifiers },
-                          ].filter(item => item.score !== undefined)
-                    }
-                    isOpen={openBreakdown === 'intent'}
-                    onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
-                  />
-                  <ScoreBreakdownSection
-                    title="Confidence Score"
-                    items={
-                      Array.isArray(scoreBreakdown.confidence?.breakdown)
-                        ? scoreBreakdown.confidence.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
-                            label: item.factor,
-                            score: item.points,
-                            maxScore: Math.abs(item.points) || 10,
-                            details: [item.reason]
-                          }))
-                        : [
-                            { label: 'Data Completeness', ...scoreBreakdown.confidence?.dataCompleteness },
-                            { label: 'Verification Level', ...scoreBreakdown.confidence?.verificationLevel },
-                            { label: 'Engagement Data', ...scoreBreakdown.confidence?.engagementData },
-                            { label: 'Transcript Quality', ...scoreBreakdown.confidence?.transcriptQuality },
-                          ].filter(item => item.score !== undefined)
-                    }
-                    isOpen={openBreakdown === 'confidence'}
-                    onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
-                  />
-                </>
+                (() => {
+                  // Cast to any to handle both Naybourhood (array) and legacy (object) formats
+                  const breakdown = scoreBreakdown as any
+                  return (
+                    <>
+                      <ScoreBreakdownSection
+                        title="Quality Score"
+                        items={
+                          Array.isArray(breakdown.quality?.breakdown)
+                            ? breakdown.quality.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
+                                label: item.factor,
+                                score: item.points,
+                                maxScore: Math.abs(item.points) || 10,
+                                details: [item.reason]
+                              }))
+                            : [
+                                { label: 'Profile Completeness', ...breakdown.quality?.profileCompleteness },
+                                { label: 'Financial Qualification', ...breakdown.quality?.financialQualification },
+                                { label: 'Verification Status', ...breakdown.quality?.verificationStatus },
+                                { label: 'Inventory Fit', ...breakdown.quality?.inventoryFit },
+                              ].filter((item: any) => item.score !== undefined)
+                        }
+                        isOpen={openBreakdown === 'quality'}
+                        onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
+                      />
+                      <ScoreBreakdownSection
+                        title="Intent Score"
+                        items={
+                          Array.isArray(breakdown.intent?.breakdown)
+                            ? breakdown.intent.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
+                                label: item.factor,
+                                score: item.points,
+                                maxScore: Math.abs(item.points) || 10,
+                                details: [item.reason]
+                              }))
+                            : [
+                                { label: 'Timeline', ...breakdown.intent?.timeline },
+                                { label: 'Purpose/Payment', ...breakdown.intent?.purpose },
+                                { label: 'Engagement', ...breakdown.intent?.engagement },
+                                { label: 'Commitment', ...breakdown.intent?.commitment },
+                                { label: 'Negative Modifiers', ...breakdown.intent?.negativeModifiers },
+                              ].filter((item: any) => item.score !== undefined)
+                        }
+                        isOpen={openBreakdown === 'intent'}
+                        onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
+                      />
+                      <ScoreBreakdownSection
+                        title="Confidence Score"
+                        items={
+                          Array.isArray(breakdown.confidence?.breakdown)
+                            ? breakdown.confidence.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
+                                label: item.factor,
+                                score: item.points,
+                                maxScore: Math.abs(item.points) || 10,
+                                details: [item.reason]
+                              }))
+                            : [
+                                { label: 'Data Completeness', ...breakdown.confidence?.dataCompleteness },
+                                { label: 'Verification Level', ...breakdown.confidence?.verificationLevel },
+                                { label: 'Engagement Data', ...breakdown.confidence?.engagementData },
+                                { label: 'Transcript Quality', ...breakdown.confidence?.transcriptQuality },
+                              ].filter((item: any) => item.score !== undefined)
+                        }
+                        isOpen={openBreakdown === 'confidence'}
+                        onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
+                      />
+                    </>
+                  )
+                })()
               ) : (
                 <p className="text-sm text-muted-foreground">Re-score to see detailed breakdown</p>
               )}
