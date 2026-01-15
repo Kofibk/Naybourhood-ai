@@ -136,19 +136,19 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'full_name', label: 'Name', visible: true, width: 'w-[180px]' },
-  { key: 'email', label: 'Email', visible: true, width: 'w-[200px]' },
-  { key: 'phone', label: 'Phone', visible: true, width: 'w-[130px]' },
-  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[140px]' },
-  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[120px]' },
-  { key: 'date_added', label: 'Date Added', visible: true, width: 'w-[110px]' },
-  { key: 'company_id', label: 'Broker', visible: true, width: 'w-[130px]' },
-  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'w-[130px]' },
-  { key: 'required_by_date', label: 'Required By', visible: false, width: 'w-[120px]' },
-  { key: 'message', label: 'Message', visible: false, width: 'w-[250px]' },
-  { key: 'status', label: 'Status', visible: true, width: 'w-[140px]' },
-  { key: 'notes', label: 'Notes', visible: false, width: 'w-[200px]' },
-  { key: 'created_at', label: 'Created', visible: false, width: 'w-[100px]' },
+  { key: 'full_name', label: 'Name', visible: true, width: 'min-w-[140px] w-[14%]' },
+  { key: 'email', label: 'Email', visible: true, width: 'min-w-[160px] w-[16%]' },
+  { key: 'phone', label: 'Phone', visible: true, width: 'min-w-[120px] w-[12%]' },
+  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'min-w-[100px] w-[10%]' },
+  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'min-w-[100px] w-[10%]' },
+  { key: 'date_added', label: 'Date Added', visible: true, width: 'min-w-[90px] w-[9%]' },
+  { key: 'company_id', label: 'Broker', visible: true, width: 'min-w-[120px] w-[10%]' },
+  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'min-w-[110px] w-[10%]' },
+  { key: 'required_by_date', label: 'Required By', visible: false, width: 'min-w-[90px] w-[9%]' },
+  { key: 'message', label: 'Message', visible: false, width: 'min-w-[200px] w-[18%]' },
+  { key: 'status', label: 'Status', visible: true, width: 'min-w-[100px] w-[9%]' },
+  { key: 'notes', label: 'Notes', visible: false, width: 'min-w-[150px] w-[14%]' },
+  { key: 'created_at', label: 'Created', visible: false, width: 'min-w-[90px] w-[9%]' },
 ]
 
 // Helper to generate unique IDs
@@ -874,7 +874,7 @@ export default function FinanceLeadsPage() {
           )}
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
                     {visibleColumns.map((col) => (
