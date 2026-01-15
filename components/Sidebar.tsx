@@ -67,6 +67,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
         { name: 'Leads', icon: Users, href: '/admin/leads' },
         { name: 'Borrowers', icon: Landmark, href: '/admin/borrowers' },
+        { name: 'Conversations', icon: MessageSquare, href: '/admin/conversations' },
         { name: 'Companies', icon: Building2, href: '/admin/companies' },
         { name: 'Users', icon: UserCog, href: '/admin/users' },
       ]
