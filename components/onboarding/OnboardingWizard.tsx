@@ -151,10 +151,16 @@ export default function OnboardingWizard() {
       onboarding_completed: true,
     })
 
-    await completeOnboarding({
+    console.log('[Onboarding] Completing with:', { companyName: formData.companyName, website: formData.website })
+
+    const success = await completeOnboarding({
       companyName: formData.companyName,
       website: formData.website,
     })
+
+    if (!success) {
+      console.error('[Onboarding] Failed to complete onboarding - company may not have been created')
+    }
 
     const redirectPath = getRedirectPath(formData.userType)
     router.push(redirectPath)
