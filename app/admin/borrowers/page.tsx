@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { formatCurrency } from '@/lib/utils'
+import { formatPriceShort } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
 import {
   Search,
@@ -136,17 +136,17 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'full_name', label: 'Name', visible: true, width: 'min-w-[140px] w-[14%]' },
-  { key: 'email', label: 'Email', visible: true, width: 'min-w-[160px] w-[16%]' },
-  { key: 'phone', label: 'Phone', visible: true, width: 'min-w-[120px] w-[12%]' },
-  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'min-w-[100px] w-[10%]' },
-  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'min-w-[100px] w-[10%]' },
-  { key: 'date_added', label: 'Date Added', visible: true, width: 'min-w-[90px] w-[9%]' },
-  { key: 'company_id', label: 'Broker', visible: true, width: 'min-w-[120px] w-[10%]' },
+  { key: 'full_name', label: 'Name', visible: true, width: 'min-w-[130px] w-[12%]' },
+  { key: 'email', label: 'Email', visible: true, width: 'min-w-[160px] w-[15%]' },
+  { key: 'phone', label: 'Phone', visible: true, width: 'min-w-[120px] w-[11%]' },
+  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'min-w-[110px] w-[10%]' },
+  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'min-w-[90px] w-[8%]' },
+  { key: 'date_added', label: 'Date Added', visible: true, width: 'min-w-[85px] w-[8%]' },
+  { key: 'company_id', label: 'Broker', visible: true, width: 'min-w-[140px] w-[12%]' },
   { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'min-w-[110px] w-[10%]' },
   { key: 'required_by_date', label: 'Required By', visible: false, width: 'min-w-[90px] w-[9%]' },
   { key: 'message', label: 'Message', visible: false, width: 'min-w-[200px] w-[18%]' },
-  { key: 'status', label: 'Status', visible: true, width: 'min-w-[100px] w-[9%]' },
+  { key: 'status', label: 'Status', visible: true, width: 'min-w-[120px] w-[10%]' },
   { key: 'notes', label: 'Notes', visible: false, width: 'min-w-[150px] w-[14%]' },
   { key: 'created_at', label: 'Created', visible: false, width: 'min-w-[90px] w-[9%]' },
 ]
@@ -930,13 +930,16 @@ export default function FinanceLeadsPage() {
                               <span className="truncate">{lead.phone || '-'}</span>
                             )}
                             {col.key === 'finance_type' && (
-                              <Badge variant="outline" className="text-[10px]">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs px-2 py-0.5 font-medium whitespace-nowrap"
+                              >
                                 {lead.finance_type || '-'}
                               </Badge>
                             )}
                             {col.key === 'loan_amount' && (
                               <span className="font-medium">
-                                {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount) : '-')}
+                                {lead.loan_amount ? formatPriceShort(lead.loan_amount) : '-'}
                               </span>
                             )}
                             {col.key === 'date_added' && (
@@ -944,7 +947,7 @@ export default function FinanceLeadsPage() {
                             )}
                             {col.key === 'company_id' && (
                               <select
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs w-full"
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs min-w-[130px]"
                                 value={lead.company_id || ''}
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => handleAssignBroker(lead.id, e.target.value, e as any)}
@@ -977,7 +980,10 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'status' && (
-                              <Badge variant={getStatusColor(lead.status) as any} className="text-[10px]">
+                              <Badge
+                                variant={getStatusColor(lead.status) as any}
+                                className="text-xs px-2 py-0.5 font-medium whitespace-nowrap"
+                              >
                                 {lead.status || 'Unknown'}
                               </Badge>
                             )}
