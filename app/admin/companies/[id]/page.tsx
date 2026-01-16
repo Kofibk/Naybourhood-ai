@@ -30,6 +30,7 @@ export default function CompanyDetailPage() {
   const [company, setCompany] = useState<Company | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [leads, setLeads] = useState<Buyer[]>([])
+  const [totalLeadCount, setTotalLeadCount] = useState(0)
   const [borrowers, setBorrowers] = useState<FinanceLead[]>([])
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -63,32 +64,45 @@ export default function CompanyDetailPage() {
           setCampaigns(campaignsData)
         }
 
-        // Fetch leads directly by company_id (not just through campaigns)
-        const { data: leadsData } = await supabase
+        // Fetch leads - try multiple methods to find all related leads
+        let allLeads: Buyer[] = []
+
+        // Method 1: Direct company_id link
+        const { data: directLeads } = await supabase
           .from('buyers')
           .select('*')
           .eq('company_id', params.id)
           .order('created_at', { ascending: false })
-          .limit(10)
 
-        if (leadsData) {
-          setLeads(leadsData)
+        if (directLeads && directLeads.length > 0) {
+          allLeads = [...directLeads]
         }
 
-        // Also fetch leads through campaigns if company_id not set on leads
-        if (campaignsData && campaignsData.length > 0 && (!leadsData || leadsData.length === 0)) {
+        // Method 2: Through campaigns (if company has campaigns)
+        if (campaignsData && campaignsData.length > 0) {
           const campaignIds = campaignsData.map((c: { id: string }) => c.id)
           const { data: campaignLeads } = await supabase
             .from('buyers')
             .select('*')
             .in('campaign_id', campaignIds)
             .order('created_at', { ascending: false })
-            .limit(10)
 
           if (campaignLeads && campaignLeads.length > 0) {
-            setLeads(campaignLeads)
+            // Merge and dedupe by id
+            const existingIds = new Set(allLeads.map(l => l.id))
+            const newLeads = campaignLeads.filter(l => !existingIds.has(l.id))
+            allLeads = [...allLeads, ...newLeads]
           }
         }
+
+        // Sort by created_at and take recent 10 for display
+        allLeads.sort((a, b) => {
+          const dateA = new Date(a.created_at || 0).getTime()
+          const dateB = new Date(b.created_at || 0).getTime()
+          return dateB - dateA
+        })
+        setTotalLeadCount(allLeads.length)  // Store full count for stats
+        setLeads(allLeads.slice(0, 10))
 
         // Fetch borrowers (finance leads) linked to this company
         const { data: borrowersData } = await supabase
@@ -154,10 +168,9 @@ export default function CompanyDetailPage() {
   }
 
   const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0)
-  // Use actual lead count from fetched data, fallback to campaign metadata
-  const actualLeadCount = leads.length
+  // Use actual lead count from fetched data (totalLeadCount includes all leads, not just displayed 10)
   const campaignLeadCount = campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0)
-  const totalLeads = actualLeadCount > 0 ? actualLeadCount : campaignLeadCount
+  const totalLeads = totalLeadCount > 0 ? totalLeadCount : campaignLeadCount
   const totalBorrowers = borrowers.length
   const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
 
