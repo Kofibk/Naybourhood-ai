@@ -1,12 +1,11 @@
--- Migration: Customer creation on signup
+-- Migration: Customer and User Profile creation on signup
 -- Run this in your Supabase SQL Editor
 
 -- =============================================
 -- UPDATE HANDLE_NEW_USER_PROFILE TRIGGER
--- Now creates a customer record instead of user_profiles
+-- Creates both customers and user_profiles records on signup
 -- =============================================
 
--- Update the trigger function to create a customer record
 CREATE OR REPLACE FUNCTION handle_new_user_profile()
 RETURNS TRIGGER AS $$
 DECLARE
@@ -28,19 +27,14 @@ BEGIN
     ELSE NULL
   END;
 
-  -- Insert into customers table
-  INSERT INTO customers (
-    id,
-    first_name,
-    last_name,
-    email
-  )
-  VALUES (
-    NEW.id,
-    v_first_name,
-    v_last_name,
-    NEW.email
-  )
+  -- Create customers record
+  INSERT INTO public.customers (id, first_name, last_name, email)
+  VALUES (NEW.id, v_first_name, v_last_name, NEW.email)
+  ON CONFLICT (id) DO NOTHING;
+
+  -- Create user_profiles record with customer_id link
+  INSERT INTO public.user_profiles (id, customer_id, onboarding_step, onboarding_completed)
+  VALUES (NEW.id, NEW.id, 1, false)
   ON CONFLICT (id) DO NOTHING;
 
   RETURN NEW;
@@ -48,5 +42,34 @@ END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- =============================================
--- Done! The trigger already exists, this just updates the function
+-- RLS POLICIES FOR CUSTOMERS TABLE
+-- =============================================
+
+-- Allow users to view their own customer record
+DROP POLICY IF EXISTS "Users can view own customer record" ON public.customers;
+CREATE POLICY "Users can view own customer record"
+ON public.customers
+FOR SELECT
+USING (auth.uid() = id);
+
+-- Allow users to update their own customer record
+DROP POLICY IF EXISTS "Users can update own customer record" ON public.customers;
+CREATE POLICY "Users can update own customer record"
+ON public.customers
+FOR UPDATE
+USING (auth.uid() = id);
+
+-- =============================================
+-- RLS POLICIES FOR COMPANIES TABLE
+-- =============================================
+
+-- Allow authenticated users to create companies (needed for onboarding)
+DROP POLICY IF EXISTS "Authenticated users can create companies" ON public.companies;
+CREATE POLICY "Authenticated users can create companies"
+ON public.companies
+FOR INSERT
+WITH CHECK (auth.role() = 'authenticated');
+
+-- =============================================
+-- Done! Run this migration in Supabase SQL Editor
 -- =============================================
