@@ -89,8 +89,8 @@ export default function CompanyDetailPage() {
 
           if (campaignLeads && campaignLeads.length > 0) {
             // Merge and dedupe by id
-            const existingIds = new Set(allLeads.map(l => l.id))
-            const newLeads = campaignLeads.filter(l => !existingIds.has(l.id))
+            const existingIds = new Set(allLeads.map((l: Buyer) => l.id))
+            const newLeads = campaignLeads.filter((l: Buyer) => !existingIds.has(l.id))
             allLeads = [...allLeads, ...newLeads]
           }
         }
