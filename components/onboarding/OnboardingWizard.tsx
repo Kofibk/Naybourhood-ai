@@ -146,15 +146,29 @@ export default function OnboardingWizard() {
   const handleComplete = async (requestedCampaign: boolean) => {
     setIsSaving(true)
 
+    // Save the upsell preference first (but NOT onboarding_completed yet)
     await saveOnboardingProgress(TOTAL_STEPS, {
       requested_bespoke_campaign: requestedCampaign,
-      onboarding_completed: true,
     })
 
-    await completeOnboarding({
+    console.log('[Onboarding] Completing with:', { companyName: formData.companyName, website: formData.website })
+
+    // Create company and mark customer as completed
+    const success = await completeOnboarding({
       companyName: formData.companyName,
       website: formData.website,
     })
+
+    if (success) {
+      // Only mark onboarding as completed AFTER company creation succeeds
+      await saveOnboardingProgress(TOTAL_STEPS, {
+        onboarding_completed: true,
+      })
+    } else {
+      console.error('[Onboarding] Failed to complete onboarding - company may not have been created')
+      setIsSaving(false)
+      return // Don't redirect if failed
+    }
 
     const redirectPath = getRedirectPath(formData.userType)
     router.push(redirectPath)
