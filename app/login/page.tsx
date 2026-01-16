@@ -74,6 +74,7 @@ function LoginPageInner() {
               email: user.email,
               name: fullName,
               role: role,
+              company_id: profile.company_id,
             }))
 
             redirectBasedOnRole(role)
@@ -212,6 +213,7 @@ function LoginPageInner() {
                 email: data.user.email,
                 name: fullName,
                 role: role,
+                company_id: profile.company_id,
               }))
 
               redirectBasedOnRole(role)
@@ -528,11 +530,11 @@ function LoginPageInner() {
           )}
         </p>
 
-        {/* Demo Access - For investor pitches */}
+        {/* Quick Access - Development/Testing */}
         <Card className="border-dashed border-muted-foreground/30">
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-center text-muted-foreground mb-3 uppercase tracking-wider font-medium">
-              Demo Access
+              Quick Access
             </p>
             <div className="flex items-center gap-3 mb-3 p-2 rounded-md bg-muted/50">
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
@@ -548,12 +550,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'kofi-mph',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
                     email: 'kofi@millionpound.homes',
                     name: 'Kofi',
                     role: 'admin',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/admin')
                 }}
@@ -565,13 +567,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'demo-developer',
-                    email: 'demo@millionpound.homes',
-                    name: 'Demo User',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'developer',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
-                    isDemo: true,
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/developer')
                 }}
@@ -583,13 +584,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'demo-agent',
-                    email: 'demo@millionpound.homes',
-                    name: 'Demo User',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'agent',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
-                    isDemo: true,
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/agent')
                 }}
@@ -601,13 +601,12 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'demo-broker',
-                    email: 'demo@millionpound.homes',
-                    name: 'Demo User',
+                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
+                    email: 'kofi@millionpound.homes',
+                    name: 'Kofi',
                     role: 'broker',
                     company: 'Million Pound Homes',
-                    company_id: 'mph-company',
-                    isDemo: true,
+                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
                   }))
                   router.push('/broker')
                 }}

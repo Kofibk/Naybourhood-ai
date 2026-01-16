@@ -255,29 +255,87 @@ export interface Invoice {
 export interface Conversation {
   id: string
   buyer_id?: string
+  lead_id?: string
   user_id?: string
-  status?: string
+  channel?: 'call' | 'whatsapp' | 'email' | 'sms'
+  status?: 'active' | 'closed' | 'pending'
+  direction?: 'inbound' | 'outbound'
   last_message_at?: string
   message_count?: number
+  // Aircall integration fields
+  aircall_call_id?: string
+  aircall_contact_id?: string
+  call_duration?: number      // Duration in seconds
+  call_status?: 'answered' | 'missed' | 'voicemail' | 'busy' | 'failed'
+  recording_url?: string
   created_at?: string
+  updated_at?: string
 }
 
 export interface Message {
   id: string
   conversation_id?: string
-  sender_type?: 'user' | 'buyer'
+  lead_id?: string
+  sender_type?: 'user' | 'buyer' | 'system'
+  sender_name?: string
   content?: string
-  sent_via?: 'whatsapp' | 'email'
+  channel?: 'whatsapp' | 'email' | 'call' | 'sms'
+  direction?: 'inbound' | 'outbound'
   delivered?: boolean
   read?: boolean
+  // Call-specific fields
+  call_duration?: number
+  call_status?: 'answered' | 'missed' | 'voicemail' | 'busy' | 'failed'
+  recording_url?: string
+  // Aircall integration
+  aircall_message_id?: string
   created_at?: string
 }
 
+// Call log entry for Aircall integration
+export interface CallLog {
+  id: string
+  lead_id?: string
+  lead_name?: string
+  user_id?: string
+  user_name?: string
+  phone_number?: string
+  direction: 'inbound' | 'outbound'
+  status: 'answered' | 'missed' | 'voicemail' | 'busy' | 'failed'
+  duration?: number           // Duration in seconds
+  recording_url?: string
+  transcript?: string
+  notes?: string
+  aircall_call_id?: string
+  started_at?: string
+  ended_at?: string
+  created_at?: string
+}
+
+// UserProfile matches the Supabase 'user_profiles' table exactly
+// IMPORTANT: Use these field names when querying Supabase
+export interface UserProfile {
+  id: string
+  email?: string
+  first_name?: string      // NOT full_name
+  last_name?: string       // NOT full_name
+  user_type?: UserRole     // NOT role
+  company_id?: string
+  company_name?: string    // Legacy text field
+  avatar_url?: string
+  onboarding_completed?: boolean
+  last_active?: string
+  created_at?: string
+  updated_at?: string
+}
+
+// Legacy Profile interface - DEPRECATED, use UserProfile instead
+// Kept for backwards compatibility
 export interface Profile {
   id: string
   email?: string
-  full_name?: string
-  role?: string
+  full_name?: string  // DEPRECATED: use first_name + last_name
+  role?: string       // DEPRECATED: use user_type
   company_id?: string
   avatar_url?: string
   last_active?: string

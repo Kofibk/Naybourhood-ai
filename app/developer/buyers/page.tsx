@@ -63,20 +63,17 @@ export default function DeveloperBuyersPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   // Filter leads by company_id - only show leads assigned to the user's company
-  // For testing, if company is 'mph-company' show all leads
+  // Admin users can see all leads
+  const isAdmin = user?.role === 'admin'
   const myLeads = useMemo(() => {
+    if (isAdmin) {
+      return leads // Admin can see all
+    }
     if (!user?.company_id) {
-      // For demo/testing - show all leads if no company set
-      if (user?.email?.includes('test') || user?.email?.includes('demo')) {
-        return leads
-      }
       return []
     }
-    if (user.company_id === 'mph-company') {
-      return leads // Show all for test company
-    }
     return leads.filter(lead => lead.company_id === user.company_id)
-  }, [leads, user?.company_id, user?.email])
+  }, [leads, user?.company_id, isAdmin])
 
   const filteredLeads = useMemo(() => {
     return myLeads.filter((lead) => {
@@ -146,7 +143,7 @@ export default function DeveloperBuyersPage() {
     }
   }
 
-  if (!user?.company_id && !user?.email?.includes('test') && !user?.email?.includes('demo')) {
+  if (!user?.company_id && user?.role !== 'admin') {
     return (
       <div className="space-y-6">
         <div>

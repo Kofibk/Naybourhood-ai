@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { EmailComposer } from '@/components/EmailComposer'
 import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import { formatCurrency } from '@/lib/utils'
@@ -49,21 +50,72 @@ export default function BrokerFinanceLeadsPage() {
   const [emailLead, setEmailLead] = useState<any>(null)
   const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [isReady, setIsReady] = useState(false)
 
-  // Filter finance leads by broker's company_id
-  // For testing, show all leads if company is 'mph-company' or if user has test email
-  const myFinanceLeads = useMemo(() => {
-    if (!user?.company_id) {
-      if (user?.email?.includes('test') || user?.email?.includes('demo')) {
-        return financeLeads
+  // Fetch company_id from localStorage or user_profiles
+  useEffect(() => {
+    const initializeCompany = async () => {
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
       }
+
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
+
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
+        return
+      }
+
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+
+      setIsReady(true)
+    }
+
+    initializeCompany()
+  }, [user])
+
+  // Filter borrowers by broker's company_id
+  const myFinanceLeads = useMemo(() => {
+    console.log('[BrokerBorrowers] Total borrowers from DB:', financeLeads.length)
+    console.log('[BrokerBorrowers] Company ID:', companyId)
+
+    // If no borrowers at all, return empty
+    if (financeLeads.length === 0) {
       return []
     }
-    if (user.company_id === 'mph-company') {
-      return financeLeads
+
+    // If user has a company_id, filter by it
+    if (companyId) {
+      const filtered = financeLeads.filter(lead => lead.company_id === companyId)
+      console.log('[BrokerBorrowers] Filtered by company:', filtered.length)
+      return filtered
     }
-    return financeLeads.filter(lead => lead.company_id === user.company_id)
-  }, [financeLeads, user?.company_id, user?.email])
+
+    // No company_id - return empty (require company assignment)
+    return []
+  }, [financeLeads, companyId])
 
   // Apply search and status filter
   const filteredLeads = useMemo(() => {
@@ -176,18 +228,28 @@ export default function BrokerFinanceLeadsPage() {
     })
   }
 
+  // Show loading state
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
   // If user has no company_id, show message
-  if (!user?.company_id && !user?.email?.includes('test') && !user?.email?.includes('demo')) {
+  if (!companyId) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
+          <h2 className="text-2xl font-bold font-display">Borrowers</h2>
           <p className="text-sm text-muted-foreground">
-            Manage your assigned finance leads
+            Manage your assigned borrowers
           </p>
         </div>
         <Card>
           <CardContent className="py-12 text-center">
+            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <p className="text-muted-foreground">
               Your account is not linked to a company yet.
             </p>
@@ -205,9 +267,9 @@ export default function BrokerFinanceLeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
+          <h2 className="text-2xl font-bold font-display">Borrowers</h2>
           <p className="text-sm text-muted-foreground">
-            Manage and convert your finance leads
+            Manage and convert your borrowers
           </p>
         </div>
         <Button
@@ -282,11 +344,11 @@ export default function BrokerFinanceLeadsPage() {
         </select>
       </div>
 
-      {/* Finance Leads Table */}
+      {/* Borrowers Table */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-medium">
-            Finance Leads ({filteredLeads.length})
+            Borrowers ({filteredLeads.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -299,8 +361,8 @@ export default function BrokerFinanceLeadsPage() {
           ) : filteredLeads.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
               {myFinanceLeads.length === 0
-                ? 'No finance leads assigned yet'
-                : 'No leads match your filters'}
+                ? 'No borrowers assigned yet'
+                : 'No borrowers match your filters'}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -318,7 +380,7 @@ export default function BrokerFinanceLeadsPage() {
                   {filteredLeads.map((lead) => (
                     <tr
                       key={lead.id}
-                      onClick={() => router.push(`/broker/finance-leads/${lead.id}`)}
+                      onClick={() => router.push(`/broker/borrowers/${lead.id}`)}
                       className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
                     >
                       <td className="py-3">
@@ -395,7 +457,7 @@ export default function BrokerFinanceLeadsPage() {
                             className="h-7 w-7 p-0"
                             onClick={(e) => {
                               e.stopPropagation()
-                              router.push(`/broker/finance-leads/${lead.id}`)
+                              router.push(`/broker/borrowers/${lead.id}`)
                             }}
                             title="View Details"
                           >

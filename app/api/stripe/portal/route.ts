@@ -18,12 +18,12 @@ export async function POST(request: NextRequest) {
 
       // Check if user is super_admin (billing access)
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
+        .from('user_profiles')
+        .select('user_type')
         .eq('id', user.id)
         .single()
 
-      if (profile?.role !== 'super_admin') {
+      if (profile?.user_type !== 'super_admin') {
         return NextResponse.json(
           { error: 'Only Super Admins can access billing' },
           { status: 403 }

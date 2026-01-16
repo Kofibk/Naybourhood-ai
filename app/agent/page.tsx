@@ -1,39 +1,67 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState, useEffect } from 'react'
 import { UserDashboard } from '@/components/UserDashboard'
-
-interface StoredUser {
-  name?: string
-  company_id?: string
-  isDemo?: boolean
-}
+import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 export default function AgentDashboard() {
-  const [user, setUser] = useState<StoredUser | null>(null)
+  const { user } = useAuth()
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [userName, setUserName] = useState<string>('Agent')
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
-    const stored = localStorage.getItem('naybourhood_user')
-    if (stored) {
-      setUser(JSON.parse(stored))
-    } else {
-      setUser({})
-    }
-  }, [])
+    const initializeDashboard = async () => {
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
+      }
 
-  // Show nothing briefly while checking localStorage
-  if (user === null) {
-    return null
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
+
+      setUserName(currentUser.name?.split(' ')[0] || 'Agent')
+
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
+        return
+      }
+
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+
+      setIsReady(true)
+    }
+
+    initializeDashboard()
+  }, [user])
+
+  if (!isReady) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
   }
 
-  const userName = user?.name?.split(' ')[0] || 'Agent'
-
-  return (
-    <UserDashboard
-      userType="agent"
-      userName={userName}
-      companyId={user?.company_id}
-      isDemo={user?.isDemo}
-    />
-  )
+  return <UserDashboard userType="agent" userName={userName} companyId={companyId} />
 }

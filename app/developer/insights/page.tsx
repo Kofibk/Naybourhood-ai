@@ -1,299 +1,164 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-  Sparkles,
-  TrendingUp,
-  Users,
-  Target,
-  Lightbulb,
-  CheckCircle,
-  AlertTriangle,
-  ArrowUpRight,
-  PoundSterling,
-  Calendar,
-  Flame,
-  BarChart3,
-  Brain,
-} from 'lucide-react'
-
-// Demo insights for investor pitch
-const DEMO_METRICS = {
-  leadQuality: 8.4,
-  totalLeads: 847,
-  qualifiedRate: 32,
-  responseRate: 78,
-  avgDaysToConvert: 12,
-  pipelineValue: 127.5,
-  conversionRate: 18,
-  hotLeads: 23,
-}
-
-const DEMO_INSIGHTS = [
-  {
-    title: 'High-Value Lead Alert',
-    description: 'James Richardson (Score: 94) is ready to make an offer on The Bishops Avenue property. Immediate follow-up recommended.',
-    priority: 'high' as const,
-    action: 'Contact Now',
-    icon: Flame,
-    impact: '+£2.5M potential',
-  },
-  {
-    title: 'Optimal Contact Time',
-    description: 'Analysis shows 73% higher response rates when contacting leads between 10am-12pm. 5 hot leads are best contacted this morning.',
-    priority: 'high' as const,
-    action: 'View Schedule',
-    icon: Calendar,
-    impact: '+23% conversion',
-  },
-  {
-    title: 'Pipeline Opportunity',
-    description: 'Sarah Chen and Michael Okonkwo are both in negotiation stage. Combined pipeline value: £6.2M. Both showing strong buying signals.',
-    priority: 'high' as const,
-    action: 'Review Deals',
-    icon: PoundSterling,
-    impact: '£6.2M pipeline',
-  },
-  {
-    title: 'Lead Scoring Update',
-    description: 'AI has identified 8 leads with improved scores this week. Alexandra Müller moved from Warm to Hot after second viewing.',
-    priority: 'medium' as const,
-    action: 'View Changes',
-    icon: TrendingUp,
-    impact: '8 upgraded',
-  },
-  {
-    title: 'Campaign Performance',
-    description: 'Meta campaigns outperforming Google by 34% on CPL. Consider reallocating £5k budget from Google to Meta for Q1.',
-    priority: 'medium' as const,
-    action: 'Optimize',
-    icon: BarChart3,
-    impact: '-34% CPL',
-  },
-  {
-    title: 'Follow-up Required',
-    description: '3 leads have not been contacted in 48+ hours despite high scores. Risk of losing interest if not actioned today.',
-    priority: 'medium' as const,
-    action: 'Take Action',
-    icon: AlertTriangle,
-    impact: '3 at risk',
-  },
-]
-
-const DEMO_WEEKLY_TRENDS = [
-  { label: 'New Leads', value: 34, change: '+12%', positive: true },
-  { label: 'Viewings Booked', value: 8, change: '+60%', positive: true },
-  { label: 'Offers Made', value: 3, change: '+200%', positive: true },
-  { label: 'Avg Response Time', value: '2.4h', change: '-18%', positive: true },
-]
-
-const EMPTY_METRICS = {
-  leadQuality: 0,
-  totalLeads: 0,
-  qualifiedRate: 0,
-  responseRate: 0,
-  avgDaysToConvert: 0,
-  pipelineValue: 0,
-  conversionRate: 0,
-  hotLeads: 0,
-}
+import { useData } from '@/contexts/DataContext'
+import { useAuth } from '@/contexts/AuthContext'
+import { Sparkles, TrendingUp, Users, Target, Lightbulb, CheckCircle } from 'lucide-react'
 
 export default function InsightsPage() {
-  const [isDemo, setIsDemo] = useState(false)
+  const { leads, campaigns, isLoading } = useData()
+  const { user } = useAuth()
 
-  useEffect(() => {
-    const stored = localStorage.getItem('naybourhood_user')
-    if (stored) {
-      const user = JSON.parse(stored)
-      setIsDemo(user.isDemo === true)
+  // Filter data by company_id for multi-tenant
+  const myLeads = useMemo(() => {
+    if (!user?.company_id) return []
+    return leads.filter(lead => lead.company_id === user.company_id)
+  }, [leads, user?.company_id])
+
+  const myCampaigns = useMemo(() => {
+    if (!user?.company_id) return []
+    return campaigns.filter(c => c.company_id === user.company_id)
+  }, [campaigns, user?.company_id])
+
+  // Calculate real metrics from filtered data
+  const metrics = useMemo(() => {
+    const totalLeads = myLeads.length
+    const avgScore = totalLeads > 0
+      ? (myLeads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads / 10).toFixed(1)
+      : '0'
+
+    const qualifiedLeads = myLeads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+    const conversionRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
+
+    // Calculate response rate from contacted leads
+    const contactedLeads = myLeads.filter(l => l.status === 'Contacted' || l.status === 'Qualified' || l.status === 'Viewing Booked' || l.last_contact).length
+    const responseRate = totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0
+
+    return {
+      leadQuality: avgScore,
+      responseRate,
+      conversion: conversionRate,
     }
-  }, [])
+  }, [myLeads])
 
-  const metrics = isDemo ? DEMO_METRICS : EMPTY_METRICS
-  const insights = isDemo ? DEMO_INSIGHTS : []
-  const weeklyTrends = isDemo ? DEMO_WEEKLY_TRENDS : []
+  // Generate dynamic insights from filtered company data
+  const insights = useMemo(() => {
+    const generatedInsights: { title: string; description: string; priority: 'high' | 'medium' | 'low' }[] = []
+
+    // Find top scoring lead
+    const sortedLeads = [...myLeads].sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
+    const topLead = sortedLeads[0]
+    if (topLead && (topLead.quality_score || 0) >= 80) {
+      generatedInsights.push({
+        title: 'Hot Lead Alert',
+        description: `${topLead.full_name || topLead.first_name || 'A lead'} (Score: ${topLead.quality_score}) is a high-value prospect. Contact immediately.`,
+        priority: 'high',
+      })
+    }
+
+    // Check for new leads needing follow-up
+    const newLeadsCount = myLeads.filter(l => l.status === 'New').length
+    if (newLeadsCount > 0) {
+      generatedInsights.push({
+        title: 'New Leads Awaiting',
+        description: `${newLeadsCount} new leads need initial contact. Prioritize outreach.`,
+        priority: newLeadsCount > 5 ? 'high' : 'medium',
+      })
+    }
+
+    // Check campaign performance
+    const activeCampaigns = myCampaigns.filter(c => c.status === 'active')
+    if (activeCampaigns.length > 0) {
+      const avgCPL = activeCampaigns.reduce((sum, c) => sum + (c.cpl || 0), 0) / activeCampaigns.length
+      generatedInsights.push({
+        title: 'Campaign Performance',
+        description: `${activeCampaigns.length} active campaigns with avg £${Math.round(avgCPL)} CPL.`,
+        priority: avgCPL > 50 ? 'medium' : 'low',
+      })
+    }
+
+    // Add general insight if no specific ones
+    if (generatedInsights.length === 0) {
+      generatedInsights.push({
+        title: 'Getting Started',
+        description: 'No data available yet. Your leads and campaigns will appear here.',
+        priority: 'low',
+      })
+    }
+
+    return generatedInsights
+  }, [myLeads, myCampaigns])
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-            <Brain className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold font-display">AI Insights</h2>
-            <p className="text-sm text-muted-foreground">Personalized recommendations powered by AI</p>
-          </div>
+      <div className="flex items-center gap-2">
+        <Sparkles className="h-6 w-6 text-primary" />
+        <div>
+          <h2 className="text-2xl font-bold font-display">AI Insights</h2>
+          <p className="text-sm text-muted-foreground">Personalized recommendations</p>
         </div>
-        <Badge variant="outline" className="text-primary border-primary">
-          <Sparkles className="h-3 w-3 mr-1" />
-          {isDemo ? 'Demo Mode' : 'Live Analysis'}
-        </Badge>
       </div>
 
-      {!isDemo && (
+      <div className="grid md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="p-8 text-center">
-            <Brain className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h3 className="font-semibold mb-2">No insights yet</h3>
-            <p className="text-sm text-muted-foreground">AI-powered insights will appear here as you add leads</p>
-          </CardContent>
-        </Card>
-      )}
-
-      {isDemo && (
-        <>
-      {/* Key Metrics */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-primary/10 to-transparent">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Target className="h-5 w-5 text-primary" />
-              <Badge variant="success" className="text-[10px]">Excellent</Badge>
+              <Target className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{metrics.leadQuality}</div>
-            <div className="text-xs text-muted-foreground">Lead Quality Score</div>
+            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
+            <div className="text-xs text-muted-foreground">Lead Quality</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-blue-500" />
-              <Badge variant="secondary" className="text-[10px]">+12%</Badge>
+              <Users className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{metrics.totalLeads}</div>
+            <div className="text-2xl font-bold">{isLoading ? '...' : myLeads.length}</div>
             <div className="text-xs text-muted-foreground">Total Leads</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="h-5 w-5 text-green-500" />
-              <Badge variant="success" className="text-[10px]">Above avg</Badge>
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{metrics.qualifiedRate}%</div>
+            <div className="text-2xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
             <div className="text-xs text-muted-foreground">Qualified Rate</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-gradient-to-br from-orange-500/10 to-transparent">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <Badge variant="destructive" className="text-[10px]">Priority</Badge>
-            </div>
-            <div className="text-2xl font-bold text-orange-500">{metrics.hotLeads}</div>
-            <div className="text-xs text-muted-foreground">Hot Leads</div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Pipeline Value Card */}
-      <Card className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent border-primary/20">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-full bg-primary/20 flex items-center justify-center">
-                <PoundSterling className="h-7 w-7 text-primary" />
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground">Total Pipeline Value</p>
-                <p className="text-3xl font-bold text-primary">£{metrics.pipelineValue}M</p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center">
-                <p className="text-lg font-bold">{metrics.conversionRate}%</p>
-                <p className="text-xs text-muted-foreground">Conversion Rate</p>
-              </div>
-              <div className="text-center">
-                <p className="text-lg font-bold">{metrics.avgDaysToConvert}</p>
-                <p className="text-xs text-muted-foreground">Avg Days to Convert</p>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Weekly Trends */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            This Week&apos;s Performance
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {weeklyTrends.map((trend, i) => (
-              <div key={i} className="p-3 rounded-lg bg-muted/30">
-                <p className="text-xs text-muted-foreground mb-1">{trend.label}</p>
-                <div className="flex items-center justify-between">
-                  <p className="text-xl font-bold">{trend.value}</p>
-                  <Badge variant={trend.positive ? 'success' : 'destructive'} className="text-[10px]">
-                    {trend.change}
-                  </Badge>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* AI Recommendations */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-yellow-500" />
-            AI Recommendations
-            <Badge variant="outline" className="text-[10px]">{insights.length} actions</Badge>
+            Recommendations
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {insights.map((insight, i) => (
-            <div
-              key={i}
-              className={`flex items-start gap-4 p-4 rounded-lg border transition-colors hover:border-primary/50 ${
-                insight.priority === 'high' ? 'bg-orange-500/5 border-orange-500/20' : 'bg-muted/30'
-              }`}
-            >
-              <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                insight.priority === 'high' ? 'bg-orange-500/20' : 'bg-muted'
-              }`}>
-                <insight.icon className={`h-5 w-5 ${
-                  insight.priority === 'high' ? 'text-orange-500' : 'text-muted-foreground'
-                }`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h4 className="font-medium text-sm">{insight.title}</h4>
-                  <Badge
-                    variant={insight.priority === 'high' ? 'destructive' : 'warning'}
-                    className="text-[10px]"
-                  >
-                    {insight.priority}
-                  </Badge>
-                  {insight.impact && (
-                    <Badge variant="outline" className="text-[10px] text-primary border-primary">
-                      {insight.impact}
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading insights...</p>
+          ) : (
+            insights.map((insight, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
+                <CheckCircle className={`h-5 w-5 mt-0.5 ${insight.priority === 'high' ? 'text-orange-500' : insight.priority === 'medium' ? 'text-yellow-500' : 'text-success'}`} />
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h4 className="font-medium text-sm">{insight.title}</h4>
+                    <Badge variant={insight.priority === 'high' ? 'destructive' : insight.priority === 'medium' ? 'warning' : 'secondary'} className="text-[10px]">
+                      {insight.priority}
                     </Badge>
-                  )}
+                  </div>
+                  <p className="text-sm text-muted-foreground">{insight.description}</p>
                 </div>
-                <p className="text-sm text-muted-foreground">{insight.description}</p>
               </div>
-              <Button size="sm" variant={insight.priority === 'high' ? 'default' : 'outline'} className="shrink-0">
-                {insight.action}
-                <ArrowUpRight className="h-3 w-3 ml-1" />
-              </Button>
-            </div>
-          ))}
+            ))
+          )}
         </CardContent>
       </Card>
-        </>
-      )}
     </div>
   )
 }
