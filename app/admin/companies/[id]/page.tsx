@@ -32,6 +32,7 @@ export default function CompanyDetailPage() {
   const [leads, setLeads] = useState<Buyer[]>([])
   const [totalLeadCount, setTotalLeadCount] = useState(0)
   const [borrowers, setBorrowers] = useState<FinanceLead[]>([])
+  const [totalBorrowerCount, setTotalBorrowerCount] = useState(0)
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -105,6 +106,15 @@ export default function CompanyDetailPage() {
         setLeads(allLeads.slice(0, 10))
 
         // Fetch borrowers (finance leads) linked to this company
+        // First get count for stats
+        const { count: borrowerCount } = await supabase
+          .from('borrowers')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', params.id)
+
+        setTotalBorrowerCount(borrowerCount || 0)
+
+        // Then fetch recent 10 for display
         const { data: borrowersData } = await supabase
           .from('borrowers')
           .select('*')
@@ -171,7 +181,7 @@ export default function CompanyDetailPage() {
   // Use actual lead count from fetched data (totalLeadCount includes all leads, not just displayed 10)
   const campaignLeadCount = campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0)
   const totalLeads = totalLeadCount > 0 ? totalLeadCount : campaignLeadCount
-  const totalBorrowers = borrowers.length
+  const totalBorrowers = totalBorrowerCount
   const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
 
   // Determine company type for display (broker companies show borrowers)
