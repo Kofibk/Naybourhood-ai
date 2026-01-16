@@ -35,7 +35,7 @@ import {
 export default function DevelopmentDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { developments, campaigns, leads, isLoading, updateDevelopment } = useData()
+  const { developments, campaigns, leads, companies, isLoading, updateDevelopment } = useData()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editData, setEditData] = useState<Partial<Development>>({})
@@ -62,7 +62,26 @@ export default function DevelopmentDetailPage() {
     const campaignNames = devCampaigns.map(c => c.name).filter(Boolean)
     const campaignIds = devCampaigns.map(c => c.id).filter(Boolean)
 
-    return leads.filter((l) => {
+    console.log('[DevDetail] Development:', development.name, 'ID:', development.id)
+    console.log('[DevDetail] Total leads available:', leads.length)
+    console.log('[DevDetail] Campaign names for this dev:', campaignNames)
+
+    // Debug: Check first few leads for development fields
+    if (leads.length > 0) {
+      console.log('[DevDetail] Sample lead fields:', {
+        development_id: leads[0].development_id,
+        development_name: leads[0].development_name,
+        campaign: leads[0].campaign,
+        campaign_id: leads[0].campaign_id,
+        source_campaign: leads[0].source_campaign,
+      })
+    }
+
+    const filtered = leads.filter((l) => {
+      // Direct match by development_id (primary link)
+      if (l.development_id === development.id) return true
+      // Direct match by development_name
+      if (l.development_name && l.development_name.toLowerCase() === development.name.toLowerCase()) return true
       // Match by campaign
       if (l.campaign && campaignNames.includes(l.campaign)) return true
       if (l.campaign_id && campaignIds.includes(l.campaign_id)) return true
@@ -70,8 +89,13 @@ export default function DevelopmentDetailPage() {
       const devNameLower = development.name.toLowerCase()
       if (l.location?.toLowerCase().includes(devNameLower)) return true
       if (l.area?.toLowerCase().includes(devNameLower)) return true
+      // Match by source_campaign containing development name
+      if (l.source_campaign?.toLowerCase().includes(devNameLower)) return true
       return false
     })
+
+    console.log('[DevDetail] Filtered leads for this development:', filtered.length)
+    return filtered
   }, [leads, devCampaigns, development])
 
   // Calculate stats - use actual lead count from devLeads
@@ -193,9 +217,11 @@ export default function DevelopmentDetailPage() {
                 <span>{development.location}</span>
               </div>
             )}
-            {development.developer && (
+            {(development.developer || development.company?.name) && (
               <p className="text-sm text-muted-foreground mt-1">
-                Developed by {development.developer}
+                {development.developer && <>Developed by {development.developer}</>}
+                {development.developer && development.company?.name && <> · </>}
+                {development.company?.name && <span className="text-primary">{development.company.name}</span>}
               </p>
             )}
           </div>
@@ -261,6 +287,21 @@ export default function DevelopmentDetailPage() {
                   value={editData.developer || ''}
                   onChange={(e) => setEditData({ ...editData, developer: e.target.value })}
                 />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Company</label>
+                <select
+                  value={editData.company_id || ''}
+                  onChange={(e) => setEditData({ ...editData, company_id: e.target.value })}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">Select a company...</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>

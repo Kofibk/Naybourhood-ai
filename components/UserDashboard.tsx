@@ -66,7 +66,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
     if (companyId === 'mph-company') {
       return leads
     }
-    return leads.filter(lead => lead.company_id === companyId)
+    // Filter by company_id for multi-tenant isolation
+    const filtered = leads.filter(lead => lead.company_id === companyId)
+    console.log(`[UserDashboard] Filtering leads: companyId=${companyId}, total=${leads.length}, filtered=${filtered.length}`)
+    return filtered
   }, [leads, companyId])
 
   const hotLeads = useMemo(() =>
@@ -94,6 +97,38 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       })
       .slice(0, 3)
   }, [myLeads])
+
+  // Show loading state while data is being fetched
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h2 className="text-2xl font-bold font-display">
+            {getGreeting()}, {userName}
+          </h2>
+          <p className="text-sm text-muted-foreground">{getDateString()}</p>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Card key={i}>
+              <CardContent className="p-4">
+                <div className="animate-pulse">
+                  <div className="h-5 w-5 bg-muted rounded mb-2" />
+                  <div className="h-8 w-16 bg-muted rounded mb-1" />
+                  <div className="h-3 w-20 bg-muted rounded" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+        <Card>
+          <CardContent className="py-8 text-center">
+            <p className="text-muted-foreground animate-pulse">Loading your data...</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   // Show message if not assigned to a company
   if (!companyId) {

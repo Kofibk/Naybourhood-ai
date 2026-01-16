@@ -83,15 +83,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (session?.user && !error) {
             const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
             if (appUser) {
+              // Preserve company_id from localStorage if DB didn't return one
+              const stored = localStorage.getItem('naybourhood_user')
+              if (stored && !appUser.company_id) {
+                try {
+                  const storedUser = JSON.parse(stored)
+                  if (storedUser.company_id) {
+                    appUser.company_id = storedUser.company_id
+                    appUser.company = storedUser.company
+                  }
+                } catch { /* ignore parse errors */ }
+              }
+              console.log('[AuthContext] User loaded:', { id: appUser.id, company_id: appUser.company_id })
               setUser(appUser)
               localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
             }
           } else {
-            // No valid Supabase session - check localStorage for demo mode
+            // No valid Supabase session - check localStorage for Quick Access / demo mode
             const stored = localStorage.getItem('naybourhood_user')
             if (stored) {
               try {
-                setUser(JSON.parse(stored))
+                const storedUser = JSON.parse(stored)
+                console.log('[AuthContext] Using localStorage user:', { id: storedUser.id, company_id: storedUser.company_id })
+                setUser(storedUser)
               } catch {
                 localStorage.removeItem('naybourhood_user')
               }

@@ -30,13 +30,13 @@ export async function DELETE(
 
         // Check if current user is admin or super admin
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('role')
+          .from('user_profiles')
+          .select('user_type')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
-        isSuperAdmin = profile?.role === 'super_admin'
+        isAdmin = profile?.user_type === 'admin' || profile?.user_type === 'super_admin'
+        isSuperAdmin = profile?.user_type === 'super_admin'
       }
     }
 
@@ -70,7 +70,7 @@ export async function DELETE(
 
         // Delete from profiles table first
         const { error: profileError } = await adminClient
-          .from('profiles')
+          .from('user_profiles')
           .delete()
           .eq('id', userId)
 
@@ -133,7 +133,7 @@ export async function GET(
     const supabase = createClient()
 
     const { data: profile, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .select('*, companies(name)')
       .eq('id', userId)
       .single()
@@ -182,12 +182,12 @@ export async function PATCH(
     if (currentUser) {
       // Get current user's role
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
+        .from('user_profiles')
+        .select('user_type')
         .eq('id', currentUser.id)
         .single()
 
-      isSuperAdmin = profile?.role === 'super_admin'
+      isSuperAdmin = profile?.user_type === 'super_admin'
 
       // Users can update their own profile
       if (currentUser.id === userId) {
@@ -196,15 +196,15 @@ export async function PATCH(
         // Super admins can update anyone, regular admins can update non-admins
         if (isSuperAdmin) {
           canUpdate = true
-        } else if (profile?.role === 'admin') {
+        } else if (profile?.user_type === 'admin') {
           // Check target user's role - admins can't edit super_admins
           const { data: targetProfile } = await supabase
-            .from('profiles')
-            .select('role')
+            .from('user_profiles')
+            .select('user_type')
             .eq('id', userId)
             .single()
 
-          canUpdate = targetProfile?.role !== 'super_admin'
+          canUpdate = targetProfile?.user_type !== 'super_admin'
         }
       }
     }
@@ -236,7 +236,7 @@ export async function PATCH(
     }
 
     const { data, error } = await supabase
-      .from('profiles')
+      .from('user_profiles')
       .update(updateData)
       .eq('id', userId)
       .select()

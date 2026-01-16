@@ -24,22 +24,55 @@ export default function SettingsPage() {
   useEffect(() => {
     setEditedName(user?.name || '')
 
-    // Fetch company data if user has company_id
-    if (user?.company_id && isSupabaseConfigured()) {
-      const fetchCompany = async () => {
-        const supabase = createClient()
+    // Fetch company data - first try user.company_id, then look up from user_profiles
+    const fetchCompanyData = async () => {
+      if (!user?.id || !isSupabaseConfigured()) {
+        // Fall back to user.company from context if Supabase not available
+        if (user?.company) {
+          setCompanyData({ name: user.company })
+        }
+        return
+      }
+
+      const supabase = createClient()
+
+      // First, try to get company_id and company_name from user_profiles
+      let companyId = user.company_id
+      let companyNameFromProfile: string | undefined
+
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('company_id, company_name')
+        .eq('id', user.id)
+        .single()
+
+      if (profile) {
+        companyId = companyId || profile.company_id
+        companyNameFromProfile = profile.company_name
+      }
+
+      // Try to fetch full company data from companies table
+      if (companyId) {
         const { data } = await supabase
           .from('companies')
           .select('name, subscription_tier, subscription_status')
-          .eq('id', user.company_id)
+          .eq('id', companyId)
           .single()
 
         if (data) {
           setCompanyData(data)
+          return
         }
       }
-      fetchCompany()
+
+      // Fall back to company_name from user_profiles or user.company from context
+      const fallbackName = companyNameFromProfile || user.company
+      if (fallbackName) {
+        setCompanyData({ name: fallbackName })
+      }
     }
+
+    fetchCompanyData()
   }, [user])
 
   const handleSave = async () => {
@@ -53,9 +86,14 @@ export default function SettingsPage() {
 
     try {
       const supabase = createClient()
+      // Parse first and last name from edited name
+      const nameParts = editedName.trim().split(' ')
+      const firstName = nameParts[0] || ''
+      const lastName = nameParts.slice(1).join(' ') || ''
+
       const { error } = await supabase
-        .from('profiles')
-        .update({ full_name: editedName, updated_at: new Date().toISOString() })
+        .from('user_profiles')
+        .update({ first_name: firstName, last_name: lastName, updated_at: new Date().toISOString() })
         .eq('id', user.id)
 
       if (error) {
@@ -174,7 +212,7 @@ export default function SettingsPage() {
             <Building2 className="h-5 w-5" />
             Company & Subscription
           </CardTitle>
-          <CardDescription>Your organization&apos;s plan</CardDescription>
+          <CardDescription>Your organisation&apos;s plan</CardDescription>
         </CardHeader>
         <CardContent>
           {companyData ? (
@@ -202,7 +240,7 @@ export default function SettingsPage() {
             <div className="p-4 rounded-lg bg-muted/50 text-center">
               <p className="text-muted-foreground">No company subscription found.</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Contact support to set up your organization.
+                Contact support to set up your organisation.
               </p>
             </div>
           )}

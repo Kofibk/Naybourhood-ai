@@ -1,127 +1,94 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
+import { useMemo, useState, useEffect } from 'react'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
-import { Search, MessageSquare, Phone, Users } from 'lucide-react'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { ConversationsView, ConversationsEmptyCompany } from '@/components/ConversationsView'
 
-function getTimeAgo(dateString: string): string {
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 60) return `${diffMins} mins ago`
-  if (diffHours < 24) return `${diffHours} hours ago`
-  if (diffDays < 7) return `${diffDays} days ago`
-  return date.toLocaleDateString()
-}
-
-export default function ConversationsPage() {
-  const { leads, isLoading } = useData()
+export default function BrokerConversationsPage() {
+  const { financeLeads, isLoading } = useData()
   const { user } = useAuth()
+  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [isReady, setIsReady] = useState(false)
 
-  // Filter leads by company_id first
-  const myLeads = useMemo(() => {
-    if (!user?.company_id) return []
-    return leads.filter(lead => lead.company_id === user.company_id)
-  }, [leads, user?.company_id])
+  // Fetch company_id from localStorage or user_profiles
+  useEffect(() => {
+    const initializeCompany = async () => {
+      let currentUser = user
+      if (!currentUser) {
+        try {
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            currentUser = JSON.parse(stored)
+          }
+        } catch { /* ignore */ }
+      }
 
-  // Get leads with recent activity as conversations
-  const conversations = useMemo(() => {
-    return myLeads
-      .filter(l => l.last_contact || l.created_at)
-      .sort((a, b) => {
-        const dateA = new Date(a.last_contact || a.created_at || 0)
-        const dateB = new Date(b.last_contact || b.created_at || 0)
-        return dateB.getTime() - dateA.getTime()
-      })
-      .slice(0, 10)
-      .map(lead => ({
-        id: lead.id,
-        name: lead.full_name || lead.first_name || 'Unknown',
-        lastMessage: `Interested in ${lead.location || 'properties'} - ${lead.budget || 'Budget TBC'}`,
-        time: getTimeAgo(lead.last_contact || lead.created_at || ''),
-        status: lead.status,
-      }))
-  }, [myLeads])
+      if (!currentUser?.id) {
+        setIsReady(true)
+        return
+      }
 
-  // Show message if not assigned to company
-  if (!user?.company_id) {
+      if (currentUser.company_id) {
+        setCompanyId(currentUser.company_id)
+        setIsReady(true)
+        return
+      }
+
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        const { data: profile } = await supabase
+          .from('user_profiles')
+          .select('company_id')
+          .eq('id', currentUser.id)
+          .single()
+
+        if (profile?.company_id) {
+          setCompanyId(profile.company_id)
+        }
+      }
+
+      setIsReady(true)
+    }
+
+    initializeCompany()
+  }, [user])
+
+  // Filter borrowers by company_id
+  const myBorrowers = useMemo(() => {
+    if (!companyId) return []
+    return financeLeads.filter(lead => lead.company_id === companyId)
+  }, [financeLeads, companyId])
+
+  // Show loading state
+  if (!isReady) {
     return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-2xl font-bold font-display">Conversations</h2>
-          <p className="text-sm text-muted-foreground">Manage buyer communications</p>
-        </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Your account is not linked to a company.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Contact an administrator to assign you to a company.
-            </p>
-          </CardContent>
-        </Card>
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
       </div>
     )
   }
 
+  // Show message if not assigned to company
+  if (!companyId) {
+    return (
+      <ConversationsEmptyCompany
+        title="Conversations"
+        subtitle="Manage borrower communications"
+      />
+    )
+  }
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-bold font-display">Conversations</h2>
-        <p className="text-sm text-muted-foreground">Manage buyer communications</p>
-      </div>
-
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input placeholder="Search conversations..." className="pl-9" />
-      </div>
-
-      <div className="space-y-3">
-        {isLoading ? (
-          <p className="text-sm text-muted-foreground text-center py-8">Loading...</p>
-        ) : conversations.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <Users className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">No conversations yet</p>
-            </CardContent>
-          </Card>
-        ) : (
-          conversations.map((conv) => (
-            <Card key={conv.id} className="hover:border-primary/50 transition-colors cursor-pointer">
-              <CardContent className="p-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center">
-                    <MessageSquare className="h-6 w-6 text-muted-foreground" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-semibold">{conv.name}</h3>
-                        {conv.status && <Badge variant="outline">{conv.status}</Badge>}
-                      </div>
-                      <span className="text-xs text-muted-foreground">{conv.time}</span>
-                    </div>
-                    <p className="text-sm text-muted-foreground truncate mt-1">{conv.lastMessage}</p>
-                  </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))
-        )}
-      </div>
-    </div>
+    <ConversationsView
+      borrowers={myBorrowers}
+      source="borrowers"
+      isLoading={isLoading}
+      basePath="/broker"
+      title="Conversations"
+      subtitle="Manage borrower communications"
+      emptyMessage="No conversations with borrowers yet"
+    />
   )
 }

@@ -40,13 +40,13 @@ export async function POST(request: NextRequest) {
       if (user) {
         userId = user.id
         const { data: profile } = await supabase
-          .from('profiles')
-          .select('full_name, email')
+          .from('user_profiles')
+          .select('first_name, last_name, email')
           .eq('id', user.id)
           .single()
 
-        if (profile?.full_name) {
-          senderName = profile.full_name
+        if (profile?.first_name) {
+          senderName = `${profile.first_name} ${profile.last_name || ''}`.trim()
         }
       }
     }

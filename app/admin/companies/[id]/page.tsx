@@ -77,7 +77,7 @@ export default function CompanyDetailPage() {
 
         // Fetch users belonging to this company
         const { data: usersData } = await supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('*')
           .eq('company_id', params.id)
           .order('full_name', { ascending: true })
