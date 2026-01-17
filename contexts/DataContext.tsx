@@ -32,7 +32,7 @@ interface DataContextType {
   createDevelopment: (data: Partial<Development>) => Promise<Development | null>
   updateDevelopment: (id: string, data: Partial<Development>) => Promise<Development | null>
   deleteDevelopment: (id: string) => Promise<boolean>
-  // Finance Lead operations
+  // Borrower operations
   updateFinanceLead: (id: string, data: Partial<FinanceLead>) => Promise<FinanceLead | null>
 }
 
@@ -110,8 +110,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // DEVELOPMENTS - don't order by name as column might not exist
         supabase.from('developments').select('*'),
 
-        // FINANCE LEADS
-        supabase.from('finance_leads').select('*').order('created_at', { ascending: false }),
+        // BORROWERS (finance/mortgage leads)
+        supabase.from('borrowers').select('*').order('created_at', { ascending: false }),
 
         // PROFILES/USERS
         supabase.from('profiles').select('*').order('full_name', { ascending: true }),
@@ -303,7 +303,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         })
         setFinanceLeads(mappedFinanceLeads)
       }
-      // If finance_leads table doesn't exist yet, silently continue
+      // If borrowers table doesn't exist yet, silently continue
 
       // Process USERS - try direct query first, then API fallback for Quick Access users
       const mapProfileToUser = (p: any): AppUser => {
@@ -796,7 +796,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       cleanData.updated_at = new Date().toISOString()
 
       const { data: updatedData, error } = await supabase
-        .from('finance_leads')
+        .from('borrowers')
         .update(cleanData)
         .eq('id', id)
         .select()
@@ -844,7 +844,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         createDevelopment,
         updateDevelopment,
         deleteDevelopment,
-        // Finance Lead operations
+        // Borrower operations
         updateFinanceLead,
       }}
     >
