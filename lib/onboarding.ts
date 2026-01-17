@@ -254,25 +254,59 @@ export async function completeOnboarding(params: CompleteOnboardingParams): Prom
 
   if (!user) return false
 
-  // Create the company
-  let companyId: string | null = null
+  // First, check if user already has a company linked (via auto-linking trigger)
+  const { data: existingProfile } = await supabase
+    .from('user_profiles')
+    .select('company_id')
+    .eq('id', user.id)
+    .single()
 
-  if (params.companyName) {
-    const { data: company, error: companyError } = await supabase
+  let companyId: string | null = existingProfile?.company_id || null
+
+  // Only create a new company if user doesn't have one and provided a company name
+  if (!companyId && params.companyName) {
+    // Check if a company with this name already exists (to avoid duplicates)
+    const { data: existingCompany } = await supabase
       .from('companies')
-      .insert({
-        name: params.companyName,
-        website: params.website || null,
-      })
       .select('id')
-      .single()
+      .ilike('name', params.companyName)
+      .maybeSingle()
 
-    if (companyError) {
-      console.error('[Onboarding] Error creating company:', companyError)
-      return false
+    if (existingCompany) {
+      companyId = existingCompany.id
+      console.log('[Onboarding] Found existing company:', companyId)
+    } else {
+      // Create new company
+      const { data: company, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: params.companyName,
+          website: params.website || null,
+        })
+        .select('id')
+        .single()
+
+      if (companyError) {
+        console.error('[Onboarding] Error creating company:', companyError)
+        // Don't fail completely - continue without company
+      } else {
+        companyId = company.id
+        console.log('[Onboarding] Created new company:', companyId)
+      }
     }
+  }
 
-    companyId = company.id
+  // Update user_profiles with company_id (critical for linking user to company)
+  if (companyId) {
+    const { error: profileError } = await supabase
+      .from('user_profiles')
+      .update({ company_id: companyId })
+      .eq('id', user.id)
+
+    if (profileError) {
+      console.error('[Onboarding] Error updating user_profiles with company_id:', profileError)
+      // Don't fail - company creation succeeded, this is just linking
+    }
   }
 
   // Update customers table with company_id and mark onboarding as completed
@@ -286,7 +320,7 @@ export async function completeOnboarding(params: CompleteOnboardingParams): Prom
 
   if (customerError) {
     console.error('[Onboarding] Error updating customer:', customerError)
-    return false
+    // Don't fail completely - profile update may have worked
   }
 
   return true

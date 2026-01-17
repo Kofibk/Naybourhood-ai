@@ -157,11 +157,14 @@ function LoginPageInner() {
 
         if (isSignUp) {
           // Sign up with password
-          // Don't use emailRedirectTo - let Supabase use default token-based confirmation
-          // which works across browsers (PKCE requires same browser)
+          // Use token-based email confirmation (token_hash) which works across browsers
+          // Redirect to /auth/callback which handles the token verification
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+              emailRedirectTo: `${window.location.origin}/auth/callback?type=email`,
+            },
           })
 
           if (error) {

@@ -170,6 +170,31 @@ export default function OnboardingWizard() {
       return // Don't redirect if failed
     }
 
+    // Fetch the updated profile to get the company_id
+    const supabase = createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('company_id')
+        .eq('id', user.id)
+        .single()
+
+      // Save user info to localStorage for use across the app
+      const fullName = formData.firstName
+        ? `${formData.firstName} ${formData.lastName || ''}`.trim()
+        : user.email?.split('@')[0] || 'User'
+
+      localStorage.setItem('naybourhood_user', JSON.stringify({
+        id: user.id,
+        email: user.email,
+        name: fullName,
+        role: formData.userType || 'developer',
+        company_id: profile?.company_id || null,
+      }))
+    }
+
     const redirectPath = getRedirectPath(formData.userType)
     router.push(redirectPath)
   }
