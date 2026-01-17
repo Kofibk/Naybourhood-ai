@@ -37,7 +37,7 @@ interface NavItem {
   badge?: number
 }
 
-export type UserType = 'admin' | 'developer' | 'agent' | 'broker'
+export type UserType = 'admin' | 'super_admin' | 'developer' | 'agent' | 'broker'
 
 interface SidebarProps {
   userType: UserType

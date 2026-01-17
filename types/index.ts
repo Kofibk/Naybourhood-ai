@@ -664,3 +664,34 @@ export interface PriorityAction {
   description: string
   urgency: 'now' | 'today' | 'soon'
 }
+
+// Admin Notification Types
+export type AdminNotificationType =
+  | 'new_user_joined_company'
+  | 'new_company_created'
+  | 'first_user_for_company'
+  | 'subscription_expiring'
+  | 'high_priority_lead'
+  | 'campaign_performance_alert'
+  | 'system_alert'
+
+export type NotificationPriority = 'low' | 'medium' | 'high' | 'critical'
+
+export interface AdminNotification {
+  id: string
+  type: AdminNotificationType
+  title: string
+  message: string
+  user_id?: string
+  company_id?: string
+  development_id?: string
+  campaign_id?: string
+  metadata?: Record<string, unknown>
+  read: boolean
+  read_at?: string
+  dismissed: boolean
+  dismissed_at?: string
+  priority: NotificationPriority
+  created_at: string
+  updated_at?: string
+}
