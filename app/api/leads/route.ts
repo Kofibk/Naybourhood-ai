@@ -19,13 +19,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Get user profile to check role and company_id
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role, company_id')
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('user_type, company_id')
       .eq('id', user.id)
       .single()
 
-    const isAdmin = profile?.role === 'admin' || profile?.role === 'super_admin'
+    const isAdmin = userProfile?.user_type === 'admin'
 
     // Parse query parameters
     const { searchParams } = new URL(request.url)
@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact' })
 
     // Filter by company for non-admin users
-    if (!isAdmin && profile?.company_id) {
-      query = query.eq('company_id', profile.company_id)
+    if (!isAdmin && userProfile?.company_id) {
+      query = query.eq('company_id', userProfile.company_id)
     }
 
     // Apply filters

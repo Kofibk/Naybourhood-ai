@@ -12,15 +12,12 @@ export default function CampaignsPage() {
   const { campaigns } = useData()
   const { user } = useAuth()
 
-  // Filter campaigns by company_id
+  // Filter campaigns by company_id - strict filtering for multi-tenant
   const myCampaigns = useMemo(() => {
     if (!user?.company_id) {
       return []
     }
-    return campaigns.filter(c => {
-      if (c.company_id === user.company_id) return true
-      return c.status === 'active'
-    })
+    return campaigns.filter(c => c.company_id === user.company_id)
   }, [campaigns, user?.company_id])
 
   const stats = useMemo(() => ({

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
-import { formatCurrency } from '@/lib/utils'
+import { formatPriceShort } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
 import {
   Search,
@@ -136,19 +136,19 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'full_name', label: 'Name', visible: true, width: 'w-[180px]' },
-  { key: 'email', label: 'Email', visible: true, width: 'w-[200px]' },
-  { key: 'phone', label: 'Phone', visible: true, width: 'w-[130px]' },
-  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'w-[140px]' },
-  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'w-[120px]' },
-  { key: 'date_added', label: 'Date Added', visible: true, width: 'w-[110px]' },
-  { key: 'company_id', label: 'Broker', visible: true, width: 'w-[130px]' },
-  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'w-[130px]' },
-  { key: 'required_by_date', label: 'Required By', visible: false, width: 'w-[120px]' },
-  { key: 'message', label: 'Message', visible: false, width: 'w-[250px]' },
-  { key: 'status', label: 'Status', visible: true, width: 'w-[140px]' },
-  { key: 'notes', label: 'Notes', visible: false, width: 'w-[200px]' },
-  { key: 'created_at', label: 'Created', visible: false, width: 'w-[100px]' },
+  { key: 'full_name', label: 'Name', visible: true, width: 'min-w-[130px] w-[12%]' },
+  { key: 'email', label: 'Email', visible: true, width: 'min-w-[160px] w-[15%]' },
+  { key: 'phone', label: 'Phone', visible: true, width: 'min-w-[120px] w-[11%]' },
+  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'min-w-[110px] w-[10%]' },
+  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'min-w-[90px] w-[8%]' },
+  { key: 'date_added', label: 'Date Added', visible: true, width: 'min-w-[85px] w-[8%]' },
+  { key: 'company_id', label: 'Broker', visible: true, width: 'min-w-[140px] w-[12%]' },
+  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'min-w-[110px] w-[10%]' },
+  { key: 'required_by_date', label: 'Required By', visible: false, width: 'min-w-[90px] w-[9%]' },
+  { key: 'message', label: 'Message', visible: false, width: 'min-w-[200px] w-[18%]' },
+  { key: 'status', label: 'Status', visible: true, width: 'min-w-[120px] w-[10%]' },
+  { key: 'notes', label: 'Notes', visible: false, width: 'min-w-[150px] w-[14%]' },
+  { key: 'created_at', label: 'Created', visible: false, width: 'min-w-[90px] w-[9%]' },
 ]
 
 // Helper to generate unique IDs
@@ -170,13 +170,13 @@ export default function FinanceLeadsPage() {
     return company?.name || '-'
   }
 
-  // Handle assigning broker to finance lead
+  // Handle assigning broker to borrower
   const handleAssignBroker = async (leadId: string, companyId: string, e: React.MouseEvent) => {
     e.stopPropagation()
     await updateFinanceLead(leadId, { company_id: companyId || undefined })
   }
 
-  // Bulk assign all unassigned finance leads to a broker
+  // Bulk assign all unassigned borrowers to a broker
   const [bulkAssigning, setBulkAssigning] = useState(false)
   const handleBulkAssignBroker = async (companyId: string) => {
     if (!companyId) return
@@ -414,7 +414,7 @@ export default function FinanceLeadsPage() {
   // Group leads
   const groupedLeads = useMemo(() => {
     if (groupBy === 'none') {
-      return { 'All Finance Leads': paginatedLeads }
+      return { 'All Borrowers': paginatedLeads }
     }
 
     const groups: Record<string, FinanceLead[]> = {}
@@ -524,11 +524,11 @@ export default function FinanceLeadsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">Finance Leads</h2>
+          <h2 className="text-2xl font-bold font-display">Borrowers</h2>
           <p className="text-sm text-muted-foreground">
             {stats.filtered === stats.total
-              ? `${stats.total.toLocaleString()} total finance leads`
-              : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} finance leads`}
+              ? `${stats.total.toLocaleString()} total borrowers`
+              : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} borrowers`}
           </p>
         </div>
         <div className="flex gap-2 items-center">
@@ -874,7 +874,7 @@ export default function FinanceLeadsPage() {
           )}
           <CardContent className="p-0">
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="w-full table-auto">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
                     {visibleColumns.map((col) => (
@@ -906,7 +906,7 @@ export default function FinanceLeadsPage() {
                   ) : groupLeads.length === 0 ? (
                     <tr>
                       <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
-                        No finance leads found
+                        No borrowers found
                       </td>
                     </tr>
                   ) : (
@@ -914,7 +914,7 @@ export default function FinanceLeadsPage() {
                       <tr
                         key={lead.id}
                         className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                        onClick={() => router.push(`/admin/finance-leads/${lead.id}`)}
+                        onClick={() => router.push(`/admin/borrowers/${lead.id}`)}
                       >
                         {visibleColumns.map((col) => (
                           <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
@@ -930,13 +930,16 @@ export default function FinanceLeadsPage() {
                               <span className="truncate">{lead.phone || '-'}</span>
                             )}
                             {col.key === 'finance_type' && (
-                              <Badge variant="outline" className="text-[10px]">
+                              <Badge
+                                variant="secondary"
+                                className="text-xs px-2 py-0.5 font-medium whitespace-nowrap"
+                              >
                                 {lead.finance_type || '-'}
                               </Badge>
                             )}
                             {col.key === 'loan_amount' && (
                               <span className="font-medium">
-                                {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount) : '-')}
+                                {lead.loan_amount ? formatPriceShort(lead.loan_amount) : '-'}
                               </span>
                             )}
                             {col.key === 'date_added' && (
@@ -944,7 +947,7 @@ export default function FinanceLeadsPage() {
                             )}
                             {col.key === 'company_id' && (
                               <select
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs w-full"
+                                className="px-2 py-1 rounded-md border border-input bg-background text-xs min-w-[130px]"
                                 value={lead.company_id || ''}
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => handleAssignBroker(lead.id, e.target.value, e as any)}
@@ -977,7 +980,10 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'status' && (
-                              <Badge variant={getStatusColor(lead.status) as any} className="text-[10px]">
+                              <Badge
+                                variant={getStatusColor(lead.status) as any}
+                                className="text-xs px-2 py-0.5 font-medium whitespace-nowrap"
+                              >
                                 {lead.status || 'Unknown'}
                               </Badge>
                             )}
@@ -1015,7 +1021,7 @@ export default function FinanceLeadsPage() {
                               variant="ghost"
                               size="icon"
                               className="h-7 w-7"
-                              onClick={(e) => { e.stopPropagation(); router.push(`/admin/finance-leads/${lead.id}`) }}
+                              onClick={(e) => { e.stopPropagation(); router.push(`/admin/borrowers/${lead.id}`) }}
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>

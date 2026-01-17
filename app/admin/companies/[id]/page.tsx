@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import type { Company, Campaign, Buyer, AppUser } from '@/types'
+import type { Company, Campaign, Buyer, AppUser, FinanceLead } from '@/types'
 import {
   ArrowLeft,
   Building2,
@@ -20,6 +20,8 @@ import {
   TrendingUp,
   Edit,
   User,
+  Eye,
+  Landmark,
 } from 'lucide-react'
 
 export default function CompanyDetailPage() {
@@ -28,6 +30,9 @@ export default function CompanyDetailPage() {
   const [company, setCompany] = useState<Company | null>(null)
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [leads, setLeads] = useState<Buyer[]>([])
+  const [totalLeadCount, setTotalLeadCount] = useState(0)
+  const [borrowers, setBorrowers] = useState<FinanceLead[]>([])
+  const [totalBorrowerCount, setTotalBorrowerCount] = useState(0)
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -60,34 +65,82 @@ export default function CompanyDetailPage() {
           setCampaigns(campaignsData)
         }
 
-        // Fetch leads from those campaigns
+        // Fetch leads - try multiple methods to find all related leads
+        let allLeads: Buyer[] = []
+
+        // Method 1: Direct company_id link
+        const { data: directLeads } = await supabase
+          .from('buyers')
+          .select('*')
+          .eq('company_id', params.id)
+          .order('created_at', { ascending: false })
+
+        if (directLeads && directLeads.length > 0) {
+          allLeads = [...directLeads]
+        }
+
+        // Method 2: Through campaigns (if company has campaigns)
         if (campaignsData && campaignsData.length > 0) {
           const campaignIds = campaignsData.map((c: { id: string }) => c.id)
-          const { data: leadsData } = await supabase
+          const { data: campaignLeads } = await supabase
             .from('buyers')
             .select('*')
             .in('campaign_id', campaignIds)
             .order('created_at', { ascending: false })
-            .limit(10)
 
-          if (leadsData) {
-            setLeads(leadsData)
+          if (campaignLeads && campaignLeads.length > 0) {
+            // Merge and dedupe by id
+            const existingIds = new Set(allLeads.map((l: Buyer) => l.id))
+            const newLeads = campaignLeads.filter((l: Buyer) => !existingIds.has(l.id))
+            allLeads = [...allLeads, ...newLeads]
           }
+        }
+
+        // Sort by created_at and take recent 10 for display
+        allLeads.sort((a, b) => {
+          const dateA = new Date(a.created_at || 0).getTime()
+          const dateB = new Date(b.created_at || 0).getTime()
+          return dateB - dateA
+        })
+        setTotalLeadCount(allLeads.length)  // Store full count for stats
+        setLeads(allLeads.slice(0, 10))
+
+        // Fetch borrowers (finance leads) linked to this company
+        // First get count for stats
+        const { count: borrowerCount } = await supabase
+          .from('borrowers')
+          .select('*', { count: 'exact', head: true })
+          .eq('company_id', params.id)
+
+        setTotalBorrowerCount(borrowerCount || 0)
+
+        // Then fetch recent 10 for display
+        const { data: borrowersData } = await supabase
+          .from('borrowers')
+          .select('*')
+          .eq('company_id', params.id)
+          .order('created_at', { ascending: false })
+          .limit(10)
+
+        if (borrowersData) {
+          setBorrowers(borrowersData)
         }
 
         // Fetch users belonging to this company
         const { data: usersData } = await supabase
-          .from('profiles')
+          .from('user_profiles')
           .select('*')
           .eq('company_id', params.id)
-          .order('full_name', { ascending: true })
+          .order('first_name', { ascending: true })
 
         if (usersData) {
           const mappedUsers: AppUser[] = usersData.map((u: any) => ({
             id: u.id,
-            name: u.full_name || u.email?.split('@')[0] || 'Unknown',
+            name: u.first_name && u.last_name
+              ? `${u.first_name} ${u.last_name}`
+              : u.first_name || u.email?.split('@')[0] || 'Unknown',
             email: u.email || '',
-            role: u.role || 'developer',
+            role: u.user_type || 'developer',
             company_id: u.company_id,
             avatar_url: u.avatar_url,
             status: 'active',
@@ -125,8 +178,34 @@ export default function CompanyDetailPage() {
   }
 
   const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || c.amount_spent || 0), 0)
-  const totalLeads = campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0)
+  // Use actual lead count from fetched data (totalLeadCount includes all leads, not just displayed 10)
+  const campaignLeadCount = campaigns.reduce((sum, c) => sum + (c.leads || c.lead_count || 0), 0)
+  const totalLeads = totalLeadCount > 0 ? totalLeadCount : campaignLeadCount
+  const totalBorrowers = totalBorrowerCount
   const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
+
+  // Determine company type for display (broker companies show borrowers)
+  const isBrokerCompany = company.type?.toLowerCase().includes('broker') ||
+    company.type?.toLowerCase().includes('financial') ||
+    company.name?.toLowerCase().includes('tudor')
+
+  // View as Company function
+  const handleViewAsCompany = () => {
+    // Store the company info temporarily for viewing as this company
+    const viewAsUser = {
+      id: `view-as-${company.id}`,
+      email: company.contact_email || `admin@${company.name?.toLowerCase().replace(/\s+/g, '')}.com`,
+      name: company.contact_name || 'Company User',
+      role: isBrokerCompany ? 'broker' : 'developer',
+      company: company.name,
+      company_id: company.id,
+      isViewingAs: true, // Flag to indicate admin is viewing as this company
+    }
+    localStorage.setItem('naybourhood_user', JSON.stringify(viewAsUser))
+    // Navigate to the appropriate dashboard
+    const dashboardPath = isBrokerCompany ? '/broker' : '/developer'
+    router.push(dashboardPath)
+  }
 
   return (
     <div className="space-y-6">
@@ -154,14 +233,20 @@ export default function CompanyDetailPage() {
             </p>
           </div>
         </div>
-        <Button size="sm" variant="outline">
-          <Edit className="h-4 w-4 mr-2" />
-          Edit
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button size="sm" variant="default" onClick={handleViewAsCompany}>
+            <Eye className="h-4 w-4 mr-2" />
+            View as Company
+          </Button>
+          <Button size="sm" variant="outline">
+            <Edit className="h-4 w-4 mr-2" />
+            Edit
+          </Button>
+        </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -180,6 +265,17 @@ export default function CompanyDetailPage() {
             <p className="text-3xl font-bold">{totalLeads.toLocaleString()}</p>
           </CardContent>
         </Card>
+        {isBrokerCompany && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 mb-1">
+                <Landmark className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">Borrowers</span>
+              </div>
+              <p className="text-3xl font-bold">{totalBorrowers.toLocaleString()}</p>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center gap-2 mb-1">
@@ -357,6 +453,43 @@ export default function CompanyDetailPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Borrowers Section - for broker/financial companies */}
+      {isBrokerCompany && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <Landmark className="h-4 w-4" />
+              Recent Borrowers
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {borrowers.length === 0 ? (
+              <p className="text-sm text-muted-foreground">No borrowers yet</p>
+            ) : (
+              <div className="space-y-3">
+                {borrowers.map((borrower) => (
+                  <div
+                    key={borrower.id}
+                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 cursor-pointer hover:bg-muted"
+                    onClick={() => router.push(`/admin/borrowers/${borrower.id}`)}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {borrower.full_name || `${borrower.first_name || ''} ${borrower.last_name || ''}`.trim() || 'Unknown'}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {borrower.finance_type} · {borrower.loan_amount_display || `£${(borrower.loan_amount || 0).toLocaleString()}`}
+                      </p>
+                    </div>
+                    <Badge variant="outline">{borrower.status || 'New'}</Badge>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

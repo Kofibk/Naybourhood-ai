@@ -35,14 +35,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Verify user is admin or super_admin
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('role')
+    // Verify user is admin
+    const { data: userProfile } = await supabase
+      .from('user_profiles')
+      .select('user_type')
       .eq('id', user.id)
       .single()
 
-    if (profile?.role !== 'admin' && profile?.role !== 'super_admin') {
+    if (userProfile?.user_type !== 'admin') {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 

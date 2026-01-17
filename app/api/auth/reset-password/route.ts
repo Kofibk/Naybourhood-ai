@@ -26,12 +26,13 @@ export async function POST(request: NextRequest) {
 
     // Get user's name for personalized email
     const { data: profile } = await supabase
-      .from('profiles')
-      .select('full_name')
+      .from('user_profiles')
+      .select('first_name, last_name')
       .eq('email', email)
       .single()
 
-    const recipientName = profile?.full_name || email.split('@')[0]
+    const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''
+    const recipientName = fullName || email.split('@')[0]
 
     // Request password reset via Supabase
     const { error } = await supabase.auth.resetPasswordForEmail(email, {

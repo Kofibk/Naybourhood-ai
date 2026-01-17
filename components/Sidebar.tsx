@@ -66,7 +66,8 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'Developments', icon: Home, href: '/admin/developments' },
         { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
         { name: 'Leads', icon: Users, href: '/admin/leads' },
-        { name: 'Finance Leads', icon: Landmark, href: '/admin/finance-leads' },
+        { name: 'Borrowers', icon: Landmark, href: '/admin/borrowers' },
+        { name: 'Conversations', icon: MessageSquare, href: '/admin/conversations' },
         { name: 'Companies', icon: Building2, href: '/admin/companies' },
         { name: 'Users', icon: UserCog, href: '/admin/users' },
       ]
@@ -83,14 +84,14 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
       return adminItems
     }
-    // Broker gets Finance Leads
+    // Broker gets Borrowers (finance leads) - dedicated to mortgages/finance
     if (userType === 'broker') {
       return [
         { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-        { name: 'Finance Leads', icon: Landmark, href: `${basePath}/finance-leads` },
-        { name: 'Buyers', icon: Users, href: `${basePath}/buyers` },
+        { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers` },
         { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
         { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
+        { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns` },
         { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights` },
         { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
       ]
@@ -213,9 +214,9 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
     <>
       {/* Mobile Menu Button */}
       <Button
-        variant="ghost"
+        variant="outline"
         size="icon"
-        className="lg:hidden fixed top-3 left-3 z-50"
+        className="lg:hidden fixed top-3 left-3 z-50 bg-background border-border shadow-md"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
         aria-expanded={mobileOpen}

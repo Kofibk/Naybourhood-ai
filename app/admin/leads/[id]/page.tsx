@@ -87,27 +87,27 @@ function EditableTextField({
   }
 
   return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 group">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 group gap-4">
+      <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
       {editing ? (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-1 justify-end">
           <input
             type={type}
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
-            className="text-sm bg-background border border-input rounded-md px-2 py-1 w-40"
+            className="text-sm bg-background border border-input rounded-md px-2 py-1 w-full max-w-[200px]"
             autoFocus
           />
           <Button size="sm" variant="ghost" onClick={handleSave}><CheckCircle className="h-4 w-4 text-green-600" /></Button>
           <Button size="sm" variant="ghost" onClick={handleCancel}><XCircle className="h-4 w-4 text-red-400" /></Button>
         </div>
       ) : (
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-right max-w-[50%] truncate">{value || '-'}</span>
-          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0" onClick={() => setEditing(true)}>
+        <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
+          <span className="text-sm font-medium text-right break-words">{value || '-'}</span>
+          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 flex-shrink-0" onClick={() => setEditing(true)}>
             <Edit className="h-3 w-3" />
           </Button>
         </div>
@@ -131,11 +131,11 @@ function EditableBooleanField({
   const isTrue = Boolean(value)
 
   return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 gap-4">
+      <span className="text-sm text-muted-foreground flex-shrink-0 whitespace-nowrap">{label}</span>
       <button
         onClick={() => onSave(field, !isTrue)}
-        className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors ${
+        className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors flex-shrink-0 ${
           isTrue
             ? 'text-green-600 hover:bg-green-50'
             : 'text-red-400 hover:bg-red-50'
@@ -165,15 +165,15 @@ function EditableSelectField({
   icon?: any
 }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 gap-4">
+      <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
       <select
         value={value || ''}
         onChange={(e) => onSave(field, e.target.value)}
-        className="text-sm bg-background border border-input rounded-md px-2 py-1 max-w-[180px]"
+        className="text-sm bg-background border border-input rounded-md px-2 py-1 min-w-0 max-w-[220px]"
       >
         <option value="">-</option>
         {options.map(opt => (
@@ -357,12 +357,12 @@ function EditableConnectionStatus({
   const currentValue = typeof value === 'boolean' ? (value ? 'yes' : 'unknown') : (value || 'unknown')
 
   return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground">{label}</span>
+    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 gap-4">
+      <span className="text-sm text-muted-foreground flex-shrink-0 whitespace-nowrap">{label}</span>
       <select
         value={currentValue}
         onChange={(e) => onChange(e.target.value)}
-        className="text-sm bg-background border border-input rounded-md px-2 py-1 max-w-[180px]"
+        className="text-sm bg-background border border-input rounded-md px-2 py-1 min-w-0 max-w-[220px]"
       >
         {CONNECTION_STATUS_OPTIONS.map(option => (
           <option key={option.value} value={option.value}>
@@ -463,12 +463,12 @@ function PaymentBadge({ method }: { method: string | undefined | null }) {
 // Data Row Component for consistent styling
 function DataRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-start py-2 border-b border-border last:border-0 gap-4">
+      <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
-      <span className="text-sm font-medium text-right max-w-[60%] truncate">{value || '-'}</span>
+      <span className="text-sm font-medium text-right break-words">{value || '-'}</span>
     </div>
   )
 }
@@ -698,7 +698,8 @@ export default function LeadDetailPage() {
   // Use null for unscored leads (will trigger auto-scoring)
   const qualityScore = scoreResult?.quality_score ?? lead.ai_quality_score ?? lead.quality_score
   const intentScore = scoreResult?.intent_score ?? lead.ai_intent_score ?? lead.intent_score
-  const confidenceScore = scoreResult?.confidence ?? (lead.ai_confidence ? lead.ai_confidence * 10 : null)
+  // ai_confidence is stored as 0-100 (e.g., 30 means 30%)
+  const confidenceScore = scoreResult?.confidence ?? lead.ai_confidence ?? null
   const classification = scoreResult?.classification ?? lead.ai_classification ?? 'Cold'
   const priority = scoreResult?.priority ?? lead.ai_priority ?? 'P4'
   const summary = scoreResult?.summary ?? lead.ai_summary
@@ -793,7 +794,7 @@ export default function LeadDetailPage() {
           <ScoreCard
             label="Confidence"
             score={confidenceScore !== null ? Math.round(confidenceScore) : null}
-            maxScore={10}
+            maxScore={100}
             explanation="AI certainty level"
           />
           <ClassificationBadge classification={classification} showExplanation />
@@ -952,42 +953,75 @@ export default function LeadDetailPage() {
             </CardHeader>
             <CardContent className="space-y-2">
               {scoreBreakdown ? (
-                <>
-                  <ScoreBreakdownSection
-                    title="Quality Score"
-                    items={[
-                      { label: 'Profile Completeness', ...scoreBreakdown.quality.profileCompleteness },
-                      { label: 'Financial Qualification', ...scoreBreakdown.quality.financialQualification },
-                      { label: 'Verification Status', ...scoreBreakdown.quality.verificationStatus },
-                      { label: 'Inventory Fit', ...scoreBreakdown.quality.inventoryFit },
-                    ]}
-                    isOpen={openBreakdown === 'quality'}
-                    onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
-                  />
-                  <ScoreBreakdownSection
-                    title="Intent Score"
-                    items={[
-                      { label: 'Timeline', ...scoreBreakdown.intent.timeline },
-                      { label: 'Purpose/Payment', ...scoreBreakdown.intent.purpose },
-                      { label: 'Engagement', ...scoreBreakdown.intent.engagement },
-                      { label: 'Commitment', ...scoreBreakdown.intent.commitment },
-                      { label: 'Negative Modifiers', ...scoreBreakdown.intent.negativeModifiers },
-                    ]}
-                    isOpen={openBreakdown === 'intent'}
-                    onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
-                  />
-                  <ScoreBreakdownSection
-                    title="Confidence Score"
-                    items={[
-                      { label: 'Data Completeness', ...scoreBreakdown.confidence.dataCompleteness },
-                      { label: 'Verification Level', ...scoreBreakdown.confidence.verificationLevel },
-                      { label: 'Engagement Data', ...scoreBreakdown.confidence.engagementData },
-                      { label: 'Transcript Quality', ...scoreBreakdown.confidence.transcriptQuality },
-                    ]}
-                    isOpen={openBreakdown === 'confidence'}
-                    onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
-                  />
-                </>
+                (() => {
+                  // Cast to any to handle both Naybourhood (array) and legacy (object) formats
+                  const breakdown = scoreBreakdown as any
+                  return (
+                    <>
+                      <ScoreBreakdownSection
+                        title="Quality Score"
+                        items={
+                          Array.isArray(breakdown.quality?.breakdown)
+                            ? breakdown.quality.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
+                                label: item.factor,
+                                score: item.points,
+                                maxScore: Math.abs(item.points) || 10,
+                                details: [item.reason]
+                              }))
+                            : [
+                                { label: 'Profile Completeness', ...breakdown.quality?.profileCompleteness },
+                                { label: 'Financial Qualification', ...breakdown.quality?.financialQualification },
+                                { label: 'Verification Status', ...breakdown.quality?.verificationStatus },
+                                { label: 'Inventory Fit', ...breakdown.quality?.inventoryFit },
+                              ].filter((item: any) => item.score !== undefined)
+                        }
+                        isOpen={openBreakdown === 'quality'}
+                        onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
+                      />
+                      <ScoreBreakdownSection
+                        title="Intent Score"
+                        items={
+                          Array.isArray(breakdown.intent?.breakdown)
+                            ? breakdown.intent.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
+                                label: item.factor,
+                                score: item.points,
+                                maxScore: Math.abs(item.points) || 10,
+                                details: [item.reason]
+                              }))
+                            : [
+                                { label: 'Timeline', ...breakdown.intent?.timeline },
+                                { label: 'Purpose/Payment', ...breakdown.intent?.purpose },
+                                { label: 'Engagement', ...breakdown.intent?.engagement },
+                                { label: 'Commitment', ...breakdown.intent?.commitment },
+                                { label: 'Negative Modifiers', ...breakdown.intent?.negativeModifiers },
+                              ].filter((item: any) => item.score !== undefined)
+                        }
+                        isOpen={openBreakdown === 'intent'}
+                        onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
+                      />
+                      <ScoreBreakdownSection
+                        title="Confidence Score"
+                        items={
+                          Array.isArray(breakdown.confidence?.breakdown)
+                            ? breakdown.confidence.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
+                                label: item.factor,
+                                score: item.points,
+                                maxScore: Math.abs(item.points) || 10,
+                                details: [item.reason]
+                              }))
+                            : [
+                                { label: 'Data Completeness', ...breakdown.confidence?.dataCompleteness },
+                                { label: 'Verification Level', ...breakdown.confidence?.verificationLevel },
+                                { label: 'Engagement Data', ...breakdown.confidence?.engagementData },
+                                { label: 'Transcript Quality', ...breakdown.confidence?.transcriptQuality },
+                              ].filter((item: any) => item.score !== undefined)
+                        }
+                        isOpen={openBreakdown === 'confidence'}
+                        onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
+                      />
+                    </>
+                  )
+                })()
               ) : (
                 <p className="text-sm text-muted-foreground">Re-score to see detailed breakdown</p>
               )}
@@ -1288,7 +1322,7 @@ export default function LeadDetailPage() {
               <DataRow label="Priority" value={lead.ai_priority || priority} />
               <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
               <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
-              <DataRow label="Confidence" value={lead.ai_confidence ? `${(lead.ai_confidence * 100).toFixed(0)}%` : '-'} />
+              <DataRow label="Confidence" value={lead.ai_confidence ? `${lead.ai_confidence}%` : '-'} />
             </CardContent>
           </Card>
 

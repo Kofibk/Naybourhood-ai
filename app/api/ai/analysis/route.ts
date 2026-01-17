@@ -20,8 +20,8 @@ export async function GET() {
 
       // Verify user has a profile (internal team or valid client)
       const { data: profile } = await supabase
-        .from('profiles')
-        .select('role')
+        .from('user_profiles')
+        .select('user_type')
         .eq('id', user.id)
         .single()
 

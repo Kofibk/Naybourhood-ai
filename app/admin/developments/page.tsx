@@ -26,6 +26,7 @@ interface NewDevelopment {
   name: string
   location: string
   developer: string
+  company_id: string
   status: string
   total_units: number
   available_units: number
@@ -35,7 +36,7 @@ interface NewDevelopment {
 
 export default function DevelopmentsPage() {
   const router = useRouter()
-  const { developments, isLoading, refreshData, createDevelopment } = useData()
+  const { developments, companies, isLoading, refreshData, createDevelopment } = useData()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -45,6 +46,7 @@ export default function DevelopmentsPage() {
     name: '',
     location: '',
     developer: '',
+    company_id: '',
     status: 'Active',
     total_units: 0,
     available_units: 0,
@@ -114,6 +116,7 @@ export default function DevelopmentsPage() {
         name: newDev.name,
         location: newDev.location,
         developer: newDev.developer,
+        company_id: newDev.company_id || undefined,
         status: newDev.status,
         total_units: newDev.total_units,
         available_units: newDev.available_units,
@@ -125,7 +128,7 @@ export default function DevelopmentsPage() {
         setMessage({ type: 'success', text: 'Development created successfully!' })
         setIsModalOpen(false)
         setNewDev({
-          name: '', location: '', developer: '', status: 'Active',
+          name: '', location: '', developer: '', company_id: '', status: 'Active',
           total_units: 0, available_units: 0, price_from: '', price_to: '',
         })
       } else {
@@ -321,9 +324,11 @@ export default function DevelopmentsPage() {
                   )}
                 </div>
 
-                {dev.developer && (
+                {(dev.developer || dev.company?.name) && (
                   <p className="text-sm text-muted-foreground mb-3">
-                    by {dev.developer}
+                    {dev.developer && <>by {dev.developer}</>}
+                    {dev.developer && dev.company?.name && <> · </>}
+                    {dev.company?.name && <span className="text-primary">{dev.company.name}</span>}
                   </p>
                 )}
 
@@ -410,6 +415,21 @@ export default function DevelopmentsPage() {
                     placeholder="e.g., Berkeley Group"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Company</label>
+                <select
+                  value={newDev.company_id}
+                  onChange={(e) => setNewDev({ ...newDev, company_id: e.target.value })}
+                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                >
+                  <option value="">Select a company...</option>
+                  {companies.map((company) => (
+                    <option key={company.id} value={company.id}>
+                      {company.name}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">Status</label>

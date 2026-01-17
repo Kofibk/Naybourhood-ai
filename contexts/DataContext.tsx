@@ -101,20 +101,20 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return allBuyers
         })(),
 
-        // CAMPAIGNS
-        supabase.from('campaigns').select('*').order('created_at', { ascending: false }),
+        // CAMPAIGNS - join company and development data
+        supabase.from('campaigns').select('*, company:companies(*), developmentData:developments(*)').order('created_at', { ascending: false }),
 
         // COMPANIES
         supabase.from('companies').select('*').order('name', { ascending: true }),
 
-        // DEVELOPMENTS - don't order by name as column might not exist
-        supabase.from('developments').select('*'),
+        // DEVELOPMENTS - join company data
+        supabase.from('developments').select('*, company:companies(*)'),
 
         // BORROWERS (finance/mortgage leads)
         supabase.from('borrowers').select('*').order('created_at', { ascending: false }),
 
-        // PROFILES/USERS
-        supabase.from('profiles').select('*').order('full_name', { ascending: true }),
+        // USER PROFILES
+        supabase.from('user_profiles').select('*').order('first_name', { ascending: true }),
       ])
 
       // Process BUYERS
@@ -144,8 +144,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           country: b.country || b['Country'],
           timeline: b.timeline || b['timeline to purchase'] || b['Timeline to Purchase'],
           source: b.source || b['source platform'] || b['Source Platform'],
-          campaign: b.campaign || b['development'] || b['Development'],
+          campaign: b.campaign || b.source_campaign || b['Source Campaign'] || b['source campaign'],
           campaign_id: b.campaign_id,
+          source_campaign: b.source_campaign || b['Source Campaign'] || b['source campaign'],
+          development_id: b.development_id,
+          development_name: b.development_name || b.development || b['Development'] || b['development'],
           company_id: b.company_id,
           status: b.status || b['Status'] || 'New',
           // Scores - check both standard and AI-generated columns
@@ -271,7 +274,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
       // If developments table doesn't exist yet, silently continue
 
-      // Process FINANCE LEADS
+      // Process BORROWERS
       if (!financeLeadsResult.error && financeLeadsResult.data) {
         // Map column names - combine first_name + last_name into full_name
         const mappedFinanceLeads = financeLeadsResult.data.map((f: any) => {
@@ -320,11 +323,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           status = 'active'
         }
 
+        // Build full name from first_name + last_name (user_profiles schema)
+        const firstName = p.first_name || ''
+        const lastName = p.last_name || ''
+        const fullName = `${firstName} ${lastName}`.trim() || p.full_name || p.email || 'Unknown'
+
         return {
           id: p.id,
-          name: p.full_name || p.email || 'Unknown',
+          name: fullName,
           email: p.email || '',
-          role: p.role || 'agent',
+          role: p.user_type || p.role || 'developer',
           company_id: p.company_id,
           company: p.company_id,
           avatar_url: p.avatar_url,
@@ -442,7 +450,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .from('campaigns')
         .update(cleanData)
         .eq('id', id)
-        .select()
+        .select('*, company:companies(*), developmentData:developments(*)')
         .single()
 
       if (error) {
@@ -567,7 +575,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const { data: newData, error } = await supabase
         .from('campaigns')
         .insert(data)
-        .select()
+        .select('*, company:companies(*), developmentData:developments(*)')
         .single()
 
       if (error) {
@@ -701,7 +709,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const { data: newData, error } = await supabase
         .from('developments')
         .insert(data)
-        .select()
+        .select('*, company:companies(*)')
         .single()
 
       if (error) {
@@ -739,7 +747,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .from('developments')
         .update(cleanData)
         .eq('id', id)
-        .select()
+        .select('*, company:companies(*)')
         .single()
 
       if (error) {
@@ -777,7 +785,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  // Update a finance lead
+  // Update a borrower
   const updateFinanceLead = useCallback(async (id: string, data: Partial<FinanceLead>): Promise<FinanceLead | null> => {
     try {
       const supabase = createClient()
@@ -803,14 +811,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         .single()
 
       if (error) {
-        console.error('[DataContext] Update finance lead error:', error)
+        console.error('[DataContext] Update borrower error:', error)
         return null
       }
 
       setFinanceLeads((prev) => prev.map((f) => (f.id === id ? { ...f, ...updatedData } : f)))
       return updatedData
     } catch (e) {
-      console.error('[DataContext] Update finance lead failed:', e)
+      console.error('[DataContext] Update borrower failed:', e)
       return null
     }
   }, [])
