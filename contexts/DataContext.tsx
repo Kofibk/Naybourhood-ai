@@ -32,7 +32,7 @@ interface DataContextType {
   createDevelopment: (data: Partial<Development>) => Promise<Development | null>
   updateDevelopment: (id: string, data: Partial<Development>) => Promise<Development | null>
   deleteDevelopment: (id: string) => Promise<boolean>
-  // Finance Lead operations
+  // Borrower operations
   updateFinanceLead: (id: string, data: Partial<FinanceLead>) => Promise<FinanceLead | null>
 }
 
@@ -50,11 +50,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const isConfigured = isSupabaseConfigured()
 
-  console.log('[DataContext] Supabase configured:', isConfigured)
-
   const refreshData = useCallback(async () => {
     if (!isConfigured) {
-      console.log('[DataContext] Supabase not configured')
       setIsLoading(false)
       return
     }
@@ -62,9 +59,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setIsLoading(true)
     setError(null)
     const errors: string[] = []
-    const startTime = Date.now()
-
-    console.log('[DataContext] Starting data fetch from Supabase...')
 
     try {
       const supabase = createClient()
@@ -125,30 +119,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process BUYERS
       if (Array.isArray(buyersResult) && buyersResult.length > 0) {
-        console.log('[DataContext] ========== BUYERS DEBUG ==========')
-        console.log('[DataContext] Total buyers fetched:', buyersResult.length)
-        console.log('[DataContext] First buyer RAW:', JSON.stringify(buyersResult[0], null, 2))
-        console.log('[DataContext] All column names:', Object.keys(buyersResult[0]))
-        // Debug score fields specifically
-        const firstBuyer = buyersResult[0]
-        console.log('[DataContext] Score fields in raw data:', {
-          quality_score: firstBuyer.quality_score,
-          'Quality Score': firstBuyer['Quality Score'],
-          ai_quality_score: firstBuyer.ai_quality_score,
-          intent_score: firstBuyer.intent_score,
-          'Intent Score': firstBuyer['Intent Score'],
-          ai_intent_score: firstBuyer.ai_intent_score,
-          ai_confidence: firstBuyer.ai_confidence,
-        })
-      } else if (Array.isArray(buyersResult) && buyersResult.length === 0) {
-        console.warn('[DataContext] ⚠️ BUYERS: Empty result - this could be:')
-        console.warn('  1. No data in Supabase buyers table')
-        console.warn('  2. RLS blocking access (user not authenticated with Supabase)')
-        console.warn('  3. Quick Access test users bypass Supabase auth - use real login for data')
-      }
-
-      if (Array.isArray(buyersResult) && buyersResult.length > 0) {
-
         // Map column names - combine first_name + last_name into full_name
         const mappedBuyers = buyersResult.map((b: any) => {
           const firstName = b.first_name || b['First Name'] || b['first name'] || ''
@@ -222,38 +192,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           transcript: b.transcript || b['Transcript'],
           call_summary: b.call_summary || b['Call Summary'],
         }})
-        console.log('[DataContext] First MAPPED buyer:', JSON.stringify(mappedBuyers[0], null, 2))
-        console.log('[DataContext] ====================================')
-        console.log('[DataContext] Buyers loaded:', mappedBuyers.length)
         setLeads(mappedBuyers)
-      } else {
-        console.log('[DataContext] No buyers found or empty result')
       }
 
       // Process CAMPAIGNS
       if (!campaignsResult.error && campaignsResult.data) {
-        console.log('[DataContext] Campaigns loaded:', campaignsResult.data.length)
-        if (campaignsResult.data.length > 0) {
-          console.log('[DataContext] First campaign columns:', Object.keys(campaignsResult.data[0]))
-          // Debug: Show raw values for spend/leads columns
-          const first = campaignsResult.data[0]
-          console.log('[DataContext] First campaign raw values:', {
-            // Spend columns (check 'total spend' with space first)
-            'total spend': first['total spend'],
-            total_spend: first.total_spend,
-            'Total Spend': first['Total Spend'],
-            spend: first.spend,
-            ad_spend: first.ad_spend,
-            amount_spent: first.amount_spent,
-            // Lead columns
-            'total leads': first['total leads'],
-            total_leads: first.total_leads,
-            'Total Leads': first['Total Leads'],
-            leads: first.leads,
-            lead_count: first.lead_count,
-          })
-          console.log('[DataContext] First campaign full object:', first)
-        }
         // Map column names - prioritise total_spend and total_leads (confirmed Supabase columns)
         // Use ?? (nullish coalescing) so 0 values don't fall through
         // Check various naming patterns for compatibility
@@ -281,10 +224,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
             cpl: parseNumber(cplVal),
           }
         })
-        console.log('[DataContext] First mapped campaign:', {
-          spend: mappedCampaigns[0]?.spend,
-          leads: mappedCampaigns[0]?.leads,
-        })
         setCampaigns(mappedCampaigns)
       } else if (campaignsResult.error) {
         errors.push(`Campaigns: ${campaignsResult.error.message}`)
@@ -297,7 +236,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
           phone: c.contact_phone,
           tier: c.subscription_tier,
         }))
-        console.log('[DataContext] Companies loaded:', mappedCompanies.length)
         setCompanies(mappedCompanies)
       } else if (companiesResult.error) {
         errors.push(`Companies: ${companiesResult.error.message}`)
@@ -305,10 +243,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process DEVELOPMENTS
       if (!developmentsResult.error && developmentsResult.data) {
-        console.log('[DataContext] Developments loaded:', developmentsResult.data.length)
-        if (developmentsResult.data.length > 0) {
-          console.log('[DataContext] First development columns:', Object.keys(developmentsResult.data[0]))
-        }
         // Map column names (supports both Supabase schema names and imported CSV names)
         const mappedDevelopments = developmentsResult.data.map((d: any) => ({
           id: d.id,
@@ -337,17 +271,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           ...d,
         }))
         setDevelopments(mappedDevelopments)
-      } else if (developmentsResult.error) {
-        // Table might not exist yet - not critical
-        console.log('[DataContext] Developments table error:', developmentsResult.error.message)
       }
+      // If developments table doesn't exist yet, silently continue
 
       // Process BORROWERS
       if (!financeLeadsResult.error && financeLeadsResult.data) {
-        console.log('[DataContext] Borrowers loaded:', financeLeadsResult.data.length)
-        if (financeLeadsResult.data.length > 0) {
-          console.log('[DataContext] First borrower columns:', Object.keys(financeLeadsResult.data[0]))
-        }
         // Map column names - combine first_name + last_name into full_name
         const mappedFinanceLeads = financeLeadsResult.data.map((f: any) => {
           // Build full name from first_name + last_name if full_name doesn't exist
@@ -377,10 +305,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
         })
         setFinanceLeads(mappedFinanceLeads)
-      } else if (financeLeadsResult.error) {
-        // Table might not exist yet - not critical
-        console.log('[DataContext] Borrowers table error:', financeLeadsResult.error.message)
       }
+      // If borrowers table doesn't exist yet, silently continue
 
       // Process USERS - try direct query first, then API fallback for Quick Access users
       const mapProfileToUser = (p: any): AppUser => {
@@ -421,37 +347,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
       let usersLoaded = false
       if (!usersResult.error && usersResult.data && usersResult.data.length > 0) {
         const mappedUsers = usersResult.data.map(mapProfileToUser)
-        console.log('[DataContext] Users loaded from direct query:', mappedUsers.length)
         setUsers(mappedUsers)
         usersLoaded = true
       }
 
       // If direct query failed or returned empty, try API fallback (for Quick Access users)
       if (!usersLoaded) {
-        console.log('[DataContext] Trying API fallback for users...')
         try {
           const response = await fetch('/api/users/invite?demo=true')
           if (response.ok) {
             const data = await response.json()
             if (data.users && data.users.length > 0) {
               const mappedUsers = data.users.map(mapProfileToUser)
-              console.log('[DataContext] Users loaded from API:', mappedUsers.length)
               setUsers(mappedUsers)
               usersLoaded = true
             }
           }
-        } catch (apiError) {
-          console.log('[DataContext] API fallback failed:', apiError)
+        } catch {
+          // API fallback failed, continue with empty users
         }
       }
 
       if (!usersLoaded) {
-        console.log('[DataContext] No users found from any source')
         setUsers([])
       }
-
-      const elapsed = Date.now() - startTime
-      console.log(`[DataContext] All data fetched in ${elapsed}ms`)
 
       if (errors.length > 0) {
         setError(errors.join('; '))
@@ -485,8 +404,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Add updated timestamp
       cleanData.updated_at = new Date().toISOString()
-
-      console.log('[DataContext] Updating lead with:', cleanData)
 
       const { data: updatedData, error } = await supabase
         .from('buyers')
@@ -528,8 +445,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Add updated timestamp
       cleanData.updated_at = new Date().toISOString()
-
-      console.log('[DataContext] Updating campaign with:', cleanData)
 
       const { data: updatedData, error } = await supabase
         .from('campaigns')
@@ -575,7 +490,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Auto-score the new lead in the background
       if (newData?.id) {
-        console.log('[DataContext] Auto-scoring new lead:', newData.id)
         fetch('/api/ai/score-buyer', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -584,7 +498,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
           .then(async (res) => {
             if (res.ok) {
               const scoreResult = await res.json()
-              console.log('[DataContext] Lead auto-scored:', scoreResult)
               // Update the lead in state with scores
               setLeads((prev) =>
                 prev.map((l) =>
@@ -606,7 +519,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
               toast.success('Lead scored', { description: `Classification: ${scoreResult.classification}` })
             }
           })
-          .catch((err) => console.error('[DataContext] Auto-score failed:', err))
+          .catch(() => {
+            // Auto-score failed silently - not critical
+          })
       }
 
       return newData
@@ -745,8 +660,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Add updated timestamp
       cleanData.updated_at = new Date().toISOString()
 
-      console.log('[DataContext] Updating company with:', cleanData)
-
       const { data: updatedData, error } = await supabase
         .from('companies')
         .update(cleanData)
@@ -830,8 +743,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Add updated timestamp
       cleanData.updated_at = new Date().toISOString()
 
-      console.log('[DataContext] Updating development with:', cleanData)
-
       const { data: updatedData, error } = await supabase
         .from('developments')
         .update(cleanData)
@@ -892,8 +803,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Add updated timestamp
       cleanData.updated_at = new Date().toISOString()
 
-      console.log('[DataContext] Updating borrower with:', cleanData)
-
       const { data: updatedData, error } = await supabase
         .from('borrowers')
         .update(cleanData)
@@ -943,7 +852,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         createDevelopment,
         updateDevelopment,
         deleteDevelopment,
-        // Finance Lead operations
+        // Borrower operations
         updateFinanceLead,
       }}
     >
