@@ -197,11 +197,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process CAMPAIGNS
       if (!campaignsResult.error && campaignsResult.data) {
-        // Map column names - prioritise total_spend and total_leads (confirmed Supabase columns)
-        // Use ?? (nullish coalescing) so 0 values don't fall through
-        // Check various naming patterns for compatibility
         // Parse values as numbers in case they're stored as strings
         const parseNumber = (val: any): number => {
+          if (val === null || val === undefined) return 0
           if (typeof val === 'number') return val
           if (typeof val === 'string') {
             // Remove currency symbols, commas, and spaces
@@ -212,20 +210,30 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return 0
         }
 
+        // Map campaign data - prioritize actual database column names (spend, leads, cpl)
+        // Fallback to alternate names for backwards compatibility with legacy data
         const mappedCampaigns = campaignsResult.data.map((c: any) => {
-          const spendVal = c['total spend'] ?? c.total_spend ?? c['Total Spend'] ?? c.TotalSpend ?? c.spend ?? c.ad_spend ?? c.amount_spent
-          const leadsVal = c['total leads'] ?? c.total_leads ?? c['Total Leads'] ?? c.TotalLeads ?? c.leads ?? c.lead_count
-          const cplVal = c.cpl ?? c.cost_per_lead ?? c.CPL
+          // Prioritize actual Supabase column names first, then fallback to alternates
+          const spendVal = c.spend ?? c.amount_spent ?? c.ad_spend ?? c.total_spend ?? c['total spend'] ?? c['Total Spend'] ?? 0
+          const leadsVal = c.leads ?? c.lead_count ?? c.total_leads ?? c['total leads'] ?? c['Total Leads'] ?? 0
+          const cplVal = c.cpl ?? c.cost_per_lead ?? c.CPL ?? 0
 
           return {
             ...c,
+            // Ensure numeric values are properly parsed
             spend: parseNumber(spendVal),
             leads: parseNumber(leadsVal),
             cpl: parseNumber(cplVal),
+            // Map any additional fields that might be needed
+            impressions: parseNumber(c.impressions ?? 0),
+            clicks: parseNumber(c.clicks ?? 0),
+            ctr: parseNumber(c.ctr ?? 0),
           }
         })
         setCampaigns(mappedCampaigns)
+        console.log('[DataContext] Campaigns loaded:', mappedCampaigns.length)
       } else if (campaignsResult.error) {
+        console.error('[DataContext] Campaigns error:', campaignsResult.error)
         errors.push(`Campaigns: ${campaignsResult.error.message}`)
       }
 
@@ -433,8 +441,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Exclude computed/mapped fields (spend, leads, cpl are mapped from total spend, total leads)
-      const excludeColumns = ['id', 'created_at', 'spend', 'leads', 'cpl']
+      // Exclude system-managed fields only (id, created_at are immutable)
+      // Note: spend, leads, cpl are actual database columns and should be updatable
+      const excludeColumns = ['id', 'created_at', 'company', 'developmentData']
 
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
