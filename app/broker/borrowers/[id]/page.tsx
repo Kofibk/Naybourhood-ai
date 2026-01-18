@@ -365,7 +365,7 @@ export default function BrokerBorrowerDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/broker/borrowers')}>
+          <Button variant="ghost" size="icon" aria-label="Go back" onClick={() => router.push('/broker/borrowers')}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>

@@ -193,6 +193,7 @@ export default function CompaniesPage() {
             size="icon"
             className="h-6 w-6 ml-auto"
             onClick={() => setMessage(null)}
+            aria-label="Dismiss message"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -315,6 +316,7 @@ export default function CompaniesPage() {
                         e.stopPropagation()
                         handleEditCompany(company)
                       }}
+                      aria-label="Edit company"
                     >
                       <Edit className="h-4 w-4" />
                     </Button>
@@ -323,6 +325,7 @@ export default function CompaniesPage() {
                       size="icon"
                       className="h-8 w-8 text-destructive"
                       onClick={(e) => handleDeleteCompany(company.id, e)}
+                      aria-label="Delete company"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -382,6 +385,7 @@ export default function CompaniesPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Close modal"
               >
                 <X className="h-4 w-4" />
               </Button>

@@ -199,7 +199,7 @@ export function WhatsAppTemplateSelector({
                         <button
                           key={template.id}
                           onClick={() => applyTemplate(template)}
-                          className={`p-4 text-left rounded-lg border transition-all hover:border-green-500 hover:bg-green-50 ${
+                          className={`p-4 text-left rounded-lg border transition-colors hover:border-green-500 hover:bg-green-50 ${
                             selectedTemplate === template.id ? 'border-green-500 bg-green-50' : 'border-border'
                           }`}
                         >

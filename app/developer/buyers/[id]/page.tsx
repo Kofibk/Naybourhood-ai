@@ -116,7 +116,7 @@ function ScoreCard({ label, score, maxScore = 100 }: { label: string; score: num
       <div className="text-2xl font-bold">{score}</div>
       <div className="w-full h-2 bg-muted rounded-full mt-2">
         <div
-          className={`h-2 rounded-full transition-all ${getColor(percentage)}`}
+          className={`h-2 rounded-full transition-[width] ${getColor(percentage)}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>

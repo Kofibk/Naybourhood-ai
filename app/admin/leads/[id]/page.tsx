@@ -404,7 +404,7 @@ function ScoreCard({ label, score, maxScore = 100, explanation }: { label: strin
       <div className="text-3xl font-bold">{score}{maxScore !== 100 && <span className="text-lg text-muted-foreground">/{maxScore}</span>}</div>
       <div className="w-full h-2 bg-muted rounded-full mt-2">
         <div
-          className={`h-2 rounded-full transition-all ${getColor(percentage)}`}
+          className={`h-2 rounded-full transition-[width] ${getColor(percentage)}`}
           style={{ width: `${Math.min(percentage, 100)}%` }}
         />
       </div>
@@ -519,7 +519,7 @@ function ScoreBreakdownSection({
               </div>
               <div className="w-full h-1.5 bg-muted rounded-full">
                 <div
-                  className="h-1.5 rounded-full bg-primary transition-all"
+                  className="h-1.5 rounded-full bg-primary transition-[width]"
                   style={{ width: `${item.maxScore > 0 ? (item.score / item.maxScore) * 100 : 0}%` }}
                 />
               </div>

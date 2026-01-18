@@ -156,7 +156,7 @@ export default function BrokerClientsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      aria-label="Call"
                       onClick={() => lead.phone && window.open(`tel:${lead.phone}`)}
                     >
                       <Phone className="h-4 w-4" />
@@ -164,12 +164,12 @@ export default function BrokerClientsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      aria-label="Send email"
                       onClick={() => lead.email && window.open(`mailto:${lead.email}`)}
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" aria-label="View documents">
                       <FileText className="h-4 w-4" />
                     </Button>
                   </div>

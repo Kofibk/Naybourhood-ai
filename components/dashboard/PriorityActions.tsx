@@ -113,7 +113,7 @@ export function PriorityActions({
                 <div
                   key={action.id}
                   className={cn(
-                    'p-3 rounded-lg border transition-all',
+                    'p-3 rounded-lg border transition-colors',
                     urgencyStyles[action.urgency]
                   )}
                 >
@@ -143,6 +143,7 @@ export function PriorityActions({
                         size="icon"
                         className="h-7 w-7"
                         onClick={() => handleComplete(action.id)}
+                        aria-label="Mark action as complete"
                       >
                         <CheckCircle className="h-4 w-4 text-green-500" />
                       </Button>
@@ -209,6 +210,7 @@ export function PriorityActionsCompact({
                 size="icon"
                 className="h-7 w-7"
                 onClick={() => handleComplete(action.id)}
+                aria-label="Mark action as complete"
               >
                 <CheckCircle className="h-4 w-4" />
               </Button>

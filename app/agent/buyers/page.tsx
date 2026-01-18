@@ -120,7 +120,7 @@ export default function AgentBuyersPage() {
                       <p className="text-sm text-muted-foreground">{lead.email}</p>
                     </div>
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
+                  <Button variant="ghost" size="icon" aria-label="Add to favorites">
                     <Heart className="h-4 w-4" />
                   </Button>
                 </div>
@@ -150,7 +150,7 @@ export default function AgentBuyersPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      aria-label="Call"
                       onClick={() => lead.phone && window.open(`tel:${lead.phone}`)}
                     >
                       <Phone className="h-4 w-4" />
@@ -158,12 +158,12 @@ export default function AgentBuyersPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
+                      aria-label="Send email"
                       onClick={() => lead.email && window.open(`mailto:${lead.email}`)}
                     >
                       <Mail className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                    <Button variant="ghost" size="icon" aria-label="View details">
                       <Eye className="h-4 w-4" />
                     </Button>
                   </div>

@@ -244,7 +244,7 @@ export function EmailComposer({
                         <button
                           key={template.id}
                           onClick={() => applyTemplate(template)}
-                          className={`p-4 text-left rounded-lg border transition-all hover:border-primary hover:bg-primary/5 ${
+                          className={`p-4 text-left rounded-lg border transition-colors transition-border hover:border-primary hover:bg-primary/5 ${
                             selectedTemplate === template.id ? 'border-primary bg-primary/5' : 'border-border'
                           }`}
                         >

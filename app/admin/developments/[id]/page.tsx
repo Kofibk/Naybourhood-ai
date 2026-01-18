@@ -201,7 +201,7 @@ export default function DevelopmentDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.back()}>
+          <Button variant="ghost" size="icon" onClick={() => router.back()} aria-label="Go back">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
@@ -248,6 +248,7 @@ export default function DevelopmentDetailPage() {
             size="icon"
             className="h-6 w-6 ml-auto"
             onClick={() => setMessage(null)}
+            aria-label="Dismiss message"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -260,7 +261,7 @@ export default function DevelopmentDetailPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="text-sm font-medium">Edit Development</CardTitle>
-              <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
+              <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)} aria-label="Close">
                 <X className="h-4 w-4" />
               </Button>
             </div>

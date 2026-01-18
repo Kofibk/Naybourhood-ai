@@ -44,7 +44,7 @@ export function ScoreBar({
       )}
       <div className={cn('w-full bg-muted rounded-full overflow-hidden', sizeStyles[size])}>
         <div
-          className={cn('h-full rounded-full transition-all duration-300', getColor(value))}
+          className={cn('h-full rounded-full transition-[width] duration-300', getColor(value))}
           style={{ width: `${percentage}%` }}
         />
       </div>

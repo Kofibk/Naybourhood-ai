@@ -817,6 +817,7 @@ export default function FinanceLeadsPage() {
                         size="icon"
                         className="h-8 w-8 text-muted-foreground hover:text-destructive"
                         onClick={() => removeFilterCondition(condition.id)}
+                        aria-label="Remove filter"
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -1006,6 +1007,7 @@ export default function FinanceLeadsPage() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={(e) => { e.stopPropagation(); }}
+                              aria-label="Call"
                             >
                               <Phone className="h-3.5 w-3.5" />
                             </Button>
@@ -1014,6 +1016,7 @@ export default function FinanceLeadsPage() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={(e) => { e.stopPropagation(); }}
+                              aria-label="Email"
                             >
                               <Mail className="h-3.5 w-3.5" />
                             </Button>
@@ -1022,6 +1025,7 @@ export default function FinanceLeadsPage() {
                               size="icon"
                               className="h-7 w-7"
                               onClick={(e) => { e.stopPropagation(); router.push(`/admin/borrowers/${lead.id}`) }}
+                              aria-label="View details"
                             >
                               <Eye className="h-3.5 w-3.5" />
                             </Button>
@@ -1073,6 +1077,7 @@ export default function FinanceLeadsPage() {
               className="h-8 w-8"
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
+              aria-label="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -1107,6 +1112,7 @@ export default function FinanceLeadsPage() {
               className="h-8 w-8"
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
+              aria-label="Next page"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

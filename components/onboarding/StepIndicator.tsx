@@ -11,7 +11,7 @@ export default function StepIndicator({ currentStep, totalSteps }: StepIndicator
       {Array.from({ length: totalSteps }, (_, i) => i + 1).map((step) => (
         <div
           key={step}
-          className={`w-3 h-3 rounded-full transition-all duration-300 ${
+          className={`w-3 h-3 rounded-full transition-colors duration-300 ${
             step === currentStep
               ? 'bg-primary scale-110'
               : step < currentStep

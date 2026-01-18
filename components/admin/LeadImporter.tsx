@@ -146,7 +146,7 @@ export function LeadImporter() {
               <div className="space-y-3">
                 <button
                   onClick={() => setMode('upsert')}
-                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-colors ${
                     mode === 'upsert'
                       ? 'border-primary bg-primary/10 shadow-sm'
                       : 'border-border hover:border-primary/50 hover:bg-muted/30'
@@ -170,7 +170,7 @@ export function LeadImporter() {
 
                 <button
                   onClick={() => setMode('append')}
-                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-colors ${
                     mode === 'append'
                       ? 'border-primary bg-primary/10 shadow-sm'
                       : 'border-border hover:border-primary/50 hover:bg-muted/30'
@@ -191,7 +191,7 @@ export function LeadImporter() {
 
                 <button
                   onClick={() => setMode('replace')}
-                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`w-full flex items-start gap-4 p-4 rounded-xl border-2 text-left transition-colors ${
                     mode === 'replace'
                       ? 'border-red-500 bg-red-500/10 shadow-sm'
                       : 'border-red-500/30 hover:border-red-500/60 hover:bg-red-500/5 dark:border-red-500/40'

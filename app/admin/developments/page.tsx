@@ -175,7 +175,7 @@ export default function DevelopmentsPage() {
             <AlertCircle className="h-4 w-4" />
           )}
           <span className="text-sm">{message.text}</span>
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setMessage(null)}>
+          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setMessage(null)} aria-label="Dismiss message">
             <X className="h-3 w-3" />
           </Button>
         </div>
@@ -385,7 +385,7 @@ export default function DevelopmentsPage() {
           <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background">
               <h3 className="font-semibold">Add New Development</h3>
-              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
+              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} aria-label="Close modal">
                 <X className="h-4 w-4" />
               </Button>
             </div>
