@@ -141,7 +141,6 @@ export function PriorityActions({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-7 w-7"
                         onClick={() => handleComplete(action.id)}
                         aria-label="Mark action as complete"
                       >
@@ -208,7 +207,6 @@ export function PriorityActionsCompact({
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7"
                 onClick={() => handleComplete(action.id)}
                 aria-label="Mark action as complete"
               >

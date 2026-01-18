@@ -84,10 +84,10 @@ function EditableTextField({
             className="h-8 w-48"
             autoFocus
           />
-          <Button size="sm" variant="ghost" onClick={handleSave} className="h-8 w-8 p-0">
+          <Button size="sm" variant="ghost" onClick={handleSave} className="p-0">
             <CheckCircle className="h-4 w-4 text-green-600" />
           </Button>
-          <Button size="sm" variant="ghost" onClick={handleCancel} className="h-8 w-8 p-0">
+          <Button size="sm" variant="ghost" onClick={handleCancel} className="p-0">
             <XCircle className="h-4 w-4 text-red-400" />
           </Button>
         </div>
@@ -98,7 +98,7 @@ function EditableTextField({
             <Button
               size="sm"
               variant="ghost"
-              className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0"
+              className="opacity-0 group-hover:opacity-100 p-0"
               onClick={() => setEditing(true)}
             >
               <Edit className="h-3 w-3" />

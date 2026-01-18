@@ -191,7 +191,7 @@ export default function CompaniesPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 ml-auto"
+            className="ml-auto"
             onClick={() => setMessage(null)}
             aria-label="Dismiss message"
           >
@@ -311,7 +311,6 @@ export default function CompaniesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8"
                       onClick={(e) => {
                         e.stopPropagation()
                         handleEditCompany(company)
@@ -323,7 +322,7 @@ export default function CompaniesPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-destructive"
+                      className="text-destructive"
                       onClick={(e) => handleDeleteCompany(company.id, e)}
                       aria-label="Delete company"
                     >

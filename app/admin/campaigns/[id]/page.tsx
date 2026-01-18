@@ -222,7 +222,7 @@ export default function CampaignDetailPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 ml-auto"
+            className="ml-auto"
             onClick={() => setMessage(null)}
             aria-label="Dismiss message"
           >

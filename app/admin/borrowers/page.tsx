@@ -815,7 +815,7 @@ export default function FinanceLeadsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        className="text-muted-foreground hover:text-destructive"
                         onClick={() => removeFilterCondition(condition.id)}
                         aria-label="Remove filter"
                       >
@@ -1005,7 +1005,6 @@ export default function FinanceLeadsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
                               onClick={(e) => { e.stopPropagation(); }}
                               aria-label="Call"
                             >
@@ -1014,7 +1013,6 @@ export default function FinanceLeadsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
                               onClick={(e) => { e.stopPropagation(); }}
                               aria-label="Email"
                             >
@@ -1023,7 +1021,6 @@ export default function FinanceLeadsPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-7 w-7"
                               onClick={(e) => { e.stopPropagation(); router.push(`/admin/borrowers/${lead.id}`) }}
                               aria-label="View details"
                             >
@@ -1074,7 +1071,6 @@ export default function FinanceLeadsPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
               onClick={() => setCurrentPage(currentPage - 1)}
               disabled={currentPage === 1}
               aria-label="Previous page"
@@ -1098,7 +1094,7 @@ export default function FinanceLeadsPage() {
                     key={pageNum}
                     variant={currentPage === pageNum ? 'default' : 'outline'}
                     size="sm"
-                    className="h-8 w-8 p-0"
+                    className="p-0"
                     onClick={() => setCurrentPage(pageNum)}
                   >
                     {pageNum}
@@ -1109,7 +1105,6 @@ export default function FinanceLeadsPage() {
             <Button
               variant="outline"
               size="icon"
-              className="h-8 w-8"
               onClick={() => setCurrentPage(currentPage + 1)}
               disabled={currentPage === totalPages}
               aria-label="Next page"

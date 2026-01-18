@@ -113,10 +113,10 @@ function EditableField({
             className="h-8 w-44 text-sm"
             autoFocus
           />
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleSave}>
+          <Button size="sm" variant="ghost" className="p-0" onClick={handleSave}>
             <CheckCircle className="h-4 w-4 text-green-600" />
           </Button>
-          <Button size="sm" variant="ghost" className="h-7 w-7 p-0" onClick={handleCancel}>
+          <Button size="sm" variant="ghost" className="p-0" onClick={handleCancel}>
             <XCircle className="h-4 w-4 text-red-400" />
           </Button>
         </div>
@@ -128,7 +128,7 @@ function EditableField({
           <Button
             size="sm"
             variant="ghost"
-            className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 transition-opacity"
+            className="opacity-0 group-hover:opacity-100 p-0 transition-opacity"
             onClick={() => setEditing(true)}
           >
             <Edit className="h-3 w-3" />

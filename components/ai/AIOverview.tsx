@@ -281,7 +281,6 @@ export function AIOverview({
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
               onClick={() => setExpanded(!expanded)}
               aria-label={expanded ? "Collapse insights" : "Expand insights"}
             >
