@@ -3,11 +3,9 @@ import { createClient } from '@/lib/supabase/client'
 export interface Company {
   id: string
   name: string
-  type: string | null
   website: string | null
-  contact_name: string | null
-  contact_email: string | null
-  status: string | null
+  logo_url?: string | null
+  development_count?: number
 }
 
 export interface UserProfile {
@@ -19,46 +17,28 @@ export interface UserProfile {
   job_title: string | null
   avatar_url: string | null
   company_id: string | null
-  company_name: string | null
-  company_logo_url: string | null
-  website: string | null
-  linkedin: string | null
-  instagram: string | null
-  business_address: string | null
-  regions_covered: string[] | null
-  goals: string[] | null
-  requested_bespoke_campaign: boolean
+  is_company_admin: boolean
+  membership_status: 'pending_approval' | 'active' | 'rejected' | 'suspended'
   onboarding_step: number
   onboarding_completed: boolean
+  onboarding_completed_at: string | null
   created_at: string
   updated_at: string
   // Joined company data
   company?: Company | null
 }
 
+// Simplified form data for 2-step onboarding
 export interface OnboardingFormData {
-  // Step 1
-  userType: string
-  // Step 2
+  // Step 1: You
+  userType: 'developer' | 'agent' | 'broker' | ''
   firstName: string
   lastName: string
   phone: string
   jobTitle: string
-  avatarUrl: string
-  // Step 3
+  // Step 2: Company
   companyName: string
-  companyLogoUrl: string
   website: string
-  linkedin: string
-  instagram: string
-  businessAddress: string
-  regionsCovered: string[]
-  // Step 4
-  teamEmails: string[]
-  // Step 5
-  goals: string[]
-  // Step 6
-  requestedBespokeCampaign: boolean
 }
 
 export const defaultFormData: OnboardingFormData = {
@@ -67,17 +47,8 @@ export const defaultFormData: OnboardingFormData = {
   lastName: '',
   phone: '',
   jobTitle: '',
-  avatarUrl: '',
   companyName: '',
-  companyLogoUrl: '',
   website: '',
-  linkedin: '',
-  instagram: '',
-  businessAddress: '',
-  regionsCovered: [],
-  teamEmails: [],
-  goals: [],
-  requestedBespokeCampaign: false,
 }
 
 export async function getUserProfile(): Promise<UserProfile | null> {
@@ -106,7 +77,7 @@ export async function createUserProfile(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  // First upsert the profile (this will trigger auto_link_user_to_company)
+  // First upsert the profile
   const { error } = await supabase
     .from('user_profiles')
     .upsert({
@@ -120,7 +91,7 @@ export async function createUserProfile(): Promise<UserProfile | null> {
     return null
   }
 
-  // Fetch the profile with company data (auto-linked by database trigger)
+  // Fetch the profile with company data
   const { data, error: fetchError } = await supabase
     .from('user_profiles')
     .select('*, company:companies(*)')
@@ -143,17 +114,8 @@ export async function saveOnboardingProgress(
     last_name: string
     phone: string
     job_title: string
-    avatar_url: string
-    company_name: string
-    company_logo_url: string
-    website: string
-    linkedin: string
-    instagram: string
-    business_address: string
-    regions_covered: string[]
-    goals: string[]
-    requested_bespoke_campaign: boolean
     onboarding_completed: boolean
+    onboarding_completed_at: string
   }>
 ): Promise<boolean> {
   const supabase = createClient()
@@ -166,6 +128,7 @@ export async function saveOnboardingProgress(
     .update({
       ...data,
       onboarding_step: step,
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
@@ -177,119 +140,183 @@ export async function saveOnboardingProgress(
   return true
 }
 
-export async function saveTeamInvites(emails: string[]): Promise<boolean> {
+/**
+ * Check if a company with similar name exists
+ * Called when user clicks "Next" on step 2
+ */
+export async function checkCompanyMatch(companyName: string): Promise<Company | null> {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user || emails.length === 0) return true
-
-  // Get user's profile to determine their company and role
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('company_name, user_type')
-    .eq('id', user.id)
-    .single()
-
-  // Send actual email invitations for each team member
-  const results = await Promise.all(
-    emails.map(async (email) => {
-      const trimmedEmail = email.trim().toLowerCase()
-      try {
-        const response = await fetch('/api/users/invite', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: trimmedEmail,
-            name: trimmedEmail.split('@')[0], // Use email prefix as placeholder name
-            role: profile?.user_type || 'developer',
-            is_internal: true, // Team members are internal
-            inviter_role: 'admin', // Allow invite during onboarding
-          }),
-        })
-
-        const result = await response.json()
-        if (!result.success) {
-          console.warn('[Onboarding] Invite failed for', trimmedEmail, ':', result.error)
-        }
-        return { email: trimmedEmail, success: result.success, error: result.error }
-      } catch (err) {
-        console.error('[Onboarding] Error sending invite to', trimmedEmail, ':', err)
-        return { email: trimmedEmail, success: false, error: 'Network error' }
-      }
-    })
-  )
-
-  // Also save to team_invites table for tracking
-  const invites = emails.map(email => ({
-    invited_by: user.id,
-    email: email.trim().toLowerCase(),
-    status: 'pending',
-  }))
-
-  const { error } = await supabase
-    .from('team_invites')
-    .insert(invites)
+  // Case-insensitive search for exact or very similar match
+  const { data: companies, error } = await supabase
+    .from('companies')
+    .select('id, name, website, logo_url')
+    .ilike('name', companyName.trim())
+    .limit(1)
 
   if (error) {
-    console.error('[Onboarding] Error saving invites to table:', error)
-    // Don't fail completely - emails may have been sent
+    console.error('[Onboarding] Error checking company match:', error)
+    return null
   }
 
-  // Log results
-  const successCount = results.filter(r => r.success).length
-  const failCount = results.filter(r => !r.success).length
-  console.log(`[Onboarding] Team invites: ${successCount} sent, ${failCount} failed`)
+  if (companies && companies.length > 0) {
+    const company = companies[0]
 
-  return successCount > 0 || failCount === 0
+    // Get development count for the company
+    const { count } = await supabase
+      .from('developments')
+      .select('*', { count: 'exact', head: true })
+      .eq('company_id', company.id)
+
+    return {
+      id: company.id,
+      name: company.name,
+      website: company.website,
+      logo_url: company.logo_url,
+      development_count: count || 0,
+    }
+  }
+
+  return null
 }
 
-interface CompleteOnboardingParams {
-  companyName: string
-  website?: string
-}
-
-export async function completeOnboarding(params: CompleteOnboardingParams): Promise<boolean> {
+/**
+ * Complete onboarding by joining an existing company
+ * User gets pending_approval status - needs company admin approval
+ */
+export async function completeOnboardingWithExistingCompany(
+  formData: OnboardingFormData,
+  companyId: string
+): Promise<string | null> {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) return false
-
-  // Create the company
-  let companyId: string | null = null
-
-  if (params.companyName) {
-    const { data: company, error: companyError } = await supabase
-      .from('companies')
-      .insert({
-        name: params.companyName,
-        website: params.website || null,
-      })
-      .select('id')
-      .single()
-
-    if (companyError) {
-      console.error('[Onboarding] Error creating company:', companyError)
-      return false
-    }
-
-    companyId = company.id
+  if (!user) {
+    console.error('[Onboarding] Not authenticated')
+    return null
   }
 
-  // Update customers table with company_id and mark onboarding as completed
-  const { error: customerError } = await supabase
-    .from('customers')
+  // Update user profile - pending approval
+  const { error: profileError } = await supabase
+    .from('user_profiles')
     .update({
-      ...(companyId && { company_id: companyId }),
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      phone: formData.phone,
+      job_title: formData.jobTitle || null,
+      user_type: formData.userType,
+      company_id: companyId,
+      is_company_admin: false,
+      membership_status: 'pending_approval',
+      onboarding_completed: true,
       onboarding_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
     })
     .eq('id', user.id)
 
-  if (customerError) {
-    console.error('[Onboarding] Error updating customer:', customerError)
-    return false
+  if (profileError) {
+    console.error('[Onboarding] Error updating profile:', profileError)
+    return null
   }
 
-  return true
+  // Send verification email (non-blocking)
+  try {
+    await supabase.auth.resend({
+      type: 'signup',
+      email: user.email!,
+    })
+  } catch (e) {
+    console.warn('[Onboarding] Could not resend verification email:', e)
+  }
+
+  // Return dashboard path based on role
+  return getDashboardPath(formData.userType)
+}
+
+/**
+ * Complete onboarding by creating a new company
+ * User becomes company admin with active status immediately
+ */
+export async function completeOnboardingWithNewCompany(
+  formData: OnboardingFormData
+): Promise<string | null> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) {
+    console.error('[Onboarding] Not authenticated')
+    return null
+  }
+
+  // Create new company
+  const { data: newCompany, error: companyError } = await supabase
+    .from('companies')
+    .insert({
+      name: formData.companyName.trim(),
+      website: formData.website
+        ? (formData.website.startsWith('http')
+            ? formData.website
+            : `https://${formData.website}`)
+        : null,
+      created_by: user.id,
+    })
+    .select('id')
+    .single()
+
+  if (companyError) {
+    console.error('[Onboarding] Error creating company:', companyError)
+    return null
+  }
+
+  // Update user profile - active immediately as company admin
+  const { error: profileError } = await supabase
+    .from('user_profiles')
+    .update({
+      first_name: formData.firstName,
+      last_name: formData.lastName,
+      phone: formData.phone,
+      job_title: formData.jobTitle || null,
+      user_type: formData.userType,
+      company_id: newCompany.id,
+      is_company_admin: true,
+      membership_status: 'active',
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id)
+
+  if (profileError) {
+    console.error('[Onboarding] Error updating profile:', profileError)
+    return null
+  }
+
+  // Send verification email (non-blocking)
+  try {
+    await supabase.auth.resend({
+      type: 'signup',
+      email: user.email!,
+    })
+  } catch (e) {
+    console.warn('[Onboarding] Could not resend verification email:', e)
+  }
+
+  // Return dashboard path based on role
+  return getDashboardPath(formData.userType)
+}
+
+/**
+ * Get dashboard path based on user role
+ */
+export function getDashboardPath(role: string): string {
+  const paths: Record<string, string> = {
+    developer: '/developer',
+    agent: '/agent',
+    broker: '/broker',
+    admin: '/admin',
+    super_admin: '/admin',
+  }
+  return paths[role] || '/developer'
 }
 
 export function profileToFormData(profile: UserProfile): OnboardingFormData {
@@ -299,16 +326,7 @@ export function profileToFormData(profile: UserProfile): OnboardingFormData {
     lastName: profile.last_name || '',
     phone: profile.phone || '',
     jobTitle: profile.job_title || '',
-    avatarUrl: profile.avatar_url || '',
-    companyName: profile.company_name || '',
-    companyLogoUrl: profile.company_logo_url || '',
-    website: profile.website || '',
-    linkedin: profile.linkedin || '',
-    instagram: profile.instagram || '',
-    businessAddress: profile.business_address || '',
-    regionsCovered: profile.regions_covered || [],
-    teamEmails: [],
-    goals: profile.goals || [],
-    requestedBespokeCampaign: profile.requested_bespoke_campaign || false,
+    companyName: profile.company?.name || '',
+    website: profile.company?.website || '',
   }
 }
