@@ -105,9 +105,11 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
       </div>
 
       {/* Role Selection */}
-      <div className="space-y-3">
-        <Label>I am a...</Label>
-        <div className="grid grid-cols-3 gap-3">
+      <fieldset className="space-y-3">
+        <legend className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+          I am a...
+        </legend>
+        <div className="grid grid-cols-3 gap-3" role="radiogroup" aria-label="Select your role">
           {userTypes.map((type) => {
             const Icon = type.icon
             const isSelected = selectedType === type.id
@@ -116,10 +118,13 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
               <button
                 key={type.id}
                 type="button"
+                role="radio"
+                aria-checked={isSelected}
                 onClick={() => setSelectedType(type.id)}
                 className={cn(
                   'flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200',
                   'hover:border-primary/50 hover:bg-primary/5',
+                  'focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2',
                   isSelected
                     ? 'border-primary bg-primary/10'
                     : 'border-border bg-card'
@@ -131,49 +136,55 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
                     isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
                   )}
                 >
-                  <Icon className="w-6 h-6" />
+                  <Icon className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <h3 className="font-medium text-sm">{type.title}</h3>
+                <span className="font-medium text-sm">{type.title}</span>
               </button>
             )
           })}
         </div>
         {errors.userType && (
-          <p className="text-sm text-destructive">{errors.userType}</p>
+          <p className="text-sm text-destructive" role="alert">{errors.userType}</p>
         )}
-      </div>
+      </fieldset>
 
       {/* Name Fields */}
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="firstName">
-            First name <span className="text-destructive">*</span>
+            First name <span className="text-destructive" aria-hidden="true">*</span>
+            <span className="sr-only">(required)</span>
           </Label>
           <Input
             id="firstName"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             placeholder="John"
+            aria-invalid={!!errors.firstName}
+            aria-describedby={errors.firstName ? 'firstName-error' : undefined}
             className={errors.firstName ? 'border-destructive' : ''}
           />
           {errors.firstName && (
-            <p className="text-sm text-destructive">{errors.firstName}</p>
+            <p id="firstName-error" className="text-sm text-destructive" role="alert">{errors.firstName}</p>
           )}
         </div>
 
         <div className="space-y-2">
           <Label htmlFor="lastName">
-            Last name <span className="text-destructive">*</span>
+            Last name <span className="text-destructive" aria-hidden="true">*</span>
+            <span className="sr-only">(required)</span>
           </Label>
           <Input
             id="lastName"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             placeholder="Smith"
+            aria-invalid={!!errors.lastName}
+            aria-describedby={errors.lastName ? 'lastName-error' : undefined}
             className={errors.lastName ? 'border-destructive' : ''}
           />
           {errors.lastName && (
-            <p className="text-sm text-destructive">{errors.lastName}</p>
+            <p id="lastName-error" className="text-sm text-destructive" role="alert">{errors.lastName}</p>
           )}
         </div>
       </div>
@@ -182,17 +193,22 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
           <Label htmlFor="phone">
-            Phone <span className="text-destructive">*</span>
+            Phone <span className="text-destructive" aria-hidden="true">*</span>
+            <span className="sr-only">(required)</span>
           </Label>
           <Input
             id="phone"
+            type="tel"
+            autoComplete="tel"
             value={phone}
             onChange={(e) => setPhone(formatPhone(e.target.value))}
             placeholder="07700 900000"
+            aria-invalid={!!errors.phone}
+            aria-describedby={errors.phone ? 'phone-error' : undefined}
             className={errors.phone ? 'border-destructive' : ''}
           />
           {errors.phone && (
-            <p className="text-sm text-destructive">{errors.phone}</p>
+            <p id="phone-error" className="text-sm text-destructive" role="alert">{errors.phone}</p>
           )}
         </div>
 
@@ -212,7 +228,7 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
         <Button onClick={handleContinue} disabled={isSaving} size="lg">
           {isSaving ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
               Saving...
             </>
           ) : (

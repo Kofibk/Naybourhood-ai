@@ -4,10 +4,14 @@ import { Clock } from 'lucide-react'
 
 export function PendingApprovalBanner() {
   return (
-    <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
+    <div
+      role="status"
+      aria-live="polite"
+      className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6"
+    >
       <div className="flex items-start gap-3">
         <div className="w-10 h-10 bg-amber-500/20 rounded-full flex items-center justify-center flex-shrink-0">
-          <Clock className="w-5 h-5 text-amber-500" />
+          <Clock className="w-5 h-5 text-amber-500" aria-hidden="true" />
         </div>
         <div>
           <h3 className="font-medium text-amber-500">Pending approval</h3>

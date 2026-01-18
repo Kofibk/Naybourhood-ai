@@ -133,14 +133,14 @@ export default function CompanyStep({
         disabled={isLoading || isSaving}
         className="p-0 h-auto"
       >
-        <ArrowLeft className="w-4 h-4 mr-2" />
+        <ArrowLeft className="w-4 h-4 mr-2" aria-hidden="true" />
         Back
       </Button>
 
       {/* Header */}
       <div className="text-center">
         <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-          <Building2 className="w-7 h-7 text-primary" />
+          <Building2 className="w-7 h-7 text-primary" aria-hidden="true" />
         </div>
         <h1 className="font-display text-2xl md:text-3xl font-medium mb-2">
           Your Company
@@ -153,18 +153,21 @@ export default function CompanyStep({
       {/* Company Name - SIMPLE INPUT, NO AUTOCOMPLETE */}
       <div className="space-y-2">
         <Label htmlFor="companyName">
-          Company name <span className="text-destructive">*</span>
+          Company name <span className="text-destructive" aria-hidden="true">*</span>
+          <span className="sr-only">(required)</span>
         </Label>
         <Input
           id="companyName"
           value={companyName}
           onChange={(e) => setCompanyName(e.target.value)}
           placeholder="Enter your company name"
+          aria-invalid={!!errors.companyName}
+          aria-describedby={errors.companyName ? 'companyName-error' : undefined}
           className={errors.companyName ? 'border-destructive' : ''}
           disabled={isLoading}
         />
         {errors.companyName && (
-          <p className="text-sm text-destructive">{errors.companyName}</p>
+          <p id="companyName-error" className="text-sm text-destructive" role="alert">{errors.companyName}</p>
         )}
       </div>
 
@@ -172,15 +175,17 @@ export default function CompanyStep({
       <div className="space-y-2">
         <Label htmlFor="website">Website</Label>
         <div className="flex">
-          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm" aria-hidden="true">
             https://
           </span>
           <Input
             id="website"
+            type="url"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
             className="rounded-l-none"
             placeholder="yourcompany.com (optional)"
+            aria-label="Website URL without https://"
             disabled={isLoading}
           />
         </div>
@@ -188,7 +193,7 @@ export default function CompanyStep({
 
       {/* Info note */}
       <div className="flex items-start gap-2 text-sm text-muted-foreground">
-        <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
         <p>Logo and address can be added later in settings</p>
       </div>
 
@@ -201,7 +206,7 @@ export default function CompanyStep({
         >
           {isLoading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
               Checking...
             </>
           ) : (

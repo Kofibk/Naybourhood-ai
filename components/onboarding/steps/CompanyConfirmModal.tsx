@@ -35,7 +35,7 @@ export default function CompanyConfirmModal({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <div className="flex items-center gap-2">
-            <Search className="w-5 h-5 text-primary" />
+            <Search className="w-5 h-5 text-primary" aria-hidden="true" />
             <DialogTitle className="text-xl">We found a match</DialogTitle>
           </div>
           <DialogDescription>
@@ -47,7 +47,7 @@ export default function CompanyConfirmModal({
         <div className="p-4 bg-muted/50 border border-border rounded-xl my-2">
           <div className="flex items-start gap-4">
             <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-6 h-6 text-primary" />
+              <Building2 className="w-6 h-6 text-primary" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
               <h3 className="text-lg font-semibold truncate">{company.name}</h3>
@@ -70,7 +70,7 @@ export default function CompanyConfirmModal({
           <Button onClick={onConfirm} disabled={isLoading} className="w-full">
             {isLoading ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
                 Joining...
               </>
             ) : (
