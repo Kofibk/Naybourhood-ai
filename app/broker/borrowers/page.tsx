@@ -287,37 +287,37 @@ export default function BrokerFinanceLeadsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
         <Card className="p-3 cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('all')}>
           <div className="text-xs text-muted-foreground">Total Leads</div>
-          <div className="text-2xl font-bold">{stats.total}</div>
+          <div className="text-2xl font-bold tabular-nums">{stats.total}</div>
         </Card>
         <Card className="p-3 border-yellow-200 bg-yellow-50 cursor-pointer" onClick={() => setStatusFilter('Contact Pending')}>
           <div className="text-xs text-yellow-600 flex items-center gap-1">
             <Phone className="h-3 w-3" /> Contact Pending
           </div>
-          <div className="text-2xl font-bold text-yellow-600">{stats.contactPending}</div>
+          <div className="text-2xl font-bold text-yellow-600 tabular-nums">{stats.contactPending}</div>
         </Card>
         <Card className="p-3 border-blue-200 bg-blue-50 cursor-pointer" onClick={() => setStatusFilter('Follow-up')}>
           <div className="text-xs text-blue-600 flex items-center gap-1">
             <Clock className="h-3 w-3" /> Follow-up
           </div>
-          <div className="text-2xl font-bold text-blue-600">{stats.followUp}</div>
+          <div className="text-2xl font-bold text-blue-600 tabular-nums">{stats.followUp}</div>
         </Card>
         <Card className="p-3 border-purple-200 bg-purple-50 cursor-pointer" onClick={() => setStatusFilter('Awaiting Documents')}>
           <div className="text-xs text-purple-600 flex items-center gap-1">
             <FileText className="h-3 w-3" /> Awaiting Docs
           </div>
-          <div className="text-2xl font-bold text-purple-600">{stats.awaitingDocs}</div>
+          <div className="text-2xl font-bold text-purple-600 tabular-nums">{stats.awaitingDocs}</div>
         </Card>
         <Card className="p-3 border-green-200 bg-green-50 cursor-pointer" onClick={() => setStatusFilter('Completed')}>
           <div className="text-xs text-green-600 flex items-center gap-1">
             <CheckCircle className="h-3 w-3" /> Completed
           </div>
-          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+          <div className="text-2xl font-bold text-green-600 tabular-nums">{stats.completed}</div>
         </Card>
         <Card className="p-3 border-primary/50 bg-primary/5">
           <div className="text-xs text-primary flex items-center gap-1">
             <TrendingUp className="h-3 w-3" /> Conv. Rate
           </div>
-          <div className="text-2xl font-bold text-primary">{stats.conversionRate}%</div>
+          <div className="text-2xl font-bold text-primary tabular-nums">{stats.conversionRate}%</div>
         </Card>
       </div>
 
@@ -423,18 +423,18 @@ export default function BrokerFinanceLeadsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="p-0"
                                 onClick={(e) => handleQuickCall(lead, e)}
-                                title="Call"
+                                aria-label="Call"
                               >
                                 <Phone className="h-3.5 w-3.5 text-green-600" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="p-0"
                                 onClick={(e) => handleQuickWhatsApp(lead, e)}
-                                title="WhatsApp"
+                                aria-label="WhatsApp"
                               >
                                 <MessageCircle className="h-3.5 w-3.5 text-green-600" />
                               </Button>
@@ -444,9 +444,9 @@ export default function BrokerFinanceLeadsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0"
+                              className="p-0"
                               onClick={(e) => handleQuickEmail(lead, e)}
-                              title="Email"
+                              aria-label="Email"
                             >
                               <Mail className="h-3.5 w-3.5 text-blue-600" />
                             </Button>
@@ -454,12 +454,12 @@ export default function BrokerFinanceLeadsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0"
+                            className="p-0"
                             onClick={(e) => {
                               e.stopPropagation()
                               router.push(`/broker/borrowers/${lead.id}`)
                             }}
-                            title="View Details"
+                            aria-label="View Details"
                           >
                             <ChevronRight className="h-3.5 w-3.5" />
                           </Button>

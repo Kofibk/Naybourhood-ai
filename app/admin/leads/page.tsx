@@ -259,7 +259,7 @@ function ScoreIndicator({ score }: { score: number | undefined | null }) {
   return (
     <div className="flex items-center gap-2 justify-center">
       <div className={`w-3 h-3 rounded-full ${config.color}`} title={config.label} />
-      <span className={`text-sm font-medium ${config.textColor}`}>{score}</span>
+      <span className={`text-sm font-medium tabular-nums ${config.textColor}`}>{score}</span>
     </div>
   )
 }
@@ -759,7 +759,7 @@ export default function LeadsPage() {
           className={quickFilter === 'hot' ? 'bg-red-500 hover:bg-red-600' : ''}
         >
           <Flame className="h-4 w-4 mr-1" />
-          Hot {leadCounts.hot}
+          Hot <span className="tabular-nums">{leadCounts.hot}</span>
         </Button>
         <Button
           variant={quickFilter === 'warm' ? 'default' : 'outline'}
@@ -768,14 +768,14 @@ export default function LeadsPage() {
           className={quickFilter === 'warm' ? 'bg-orange-500 hover:bg-orange-600' : ''}
         >
           <Thermometer className="h-4 w-4 mr-1" />
-          Warm {leadCounts.warm}
+          Warm <span className="tabular-nums">{leadCounts.warm}</span>
         </Button>
         <Button
           variant={quickFilter === 'low' ? 'default' : 'outline'}
           size="sm"
           onClick={() => { setQuickFilter('low'); setCurrentPage(1) }}
         >
-          Low {leadCounts.low}
+          Low <span className="tabular-nums">{leadCounts.low}</span>
         </Button>
 
         {/* Dropdown Filters */}
@@ -961,8 +961,9 @@ export default function LeadsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="text-muted-foreground hover:text-destructive"
                       onClick={() => removeFilterCondition(condition.id)}
+                      aria-label="Remove filter"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -1192,9 +1193,9 @@ export default function LeadsPage() {
                       })}
                       <td className="p-3">
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Phone className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Mail className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/admin/leads/${lead.id}`)}><Eye className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" aria-label="Call lead"><Phone className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" aria-label="Email lead"><Mail className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" aria-label="View lead details" onClick={() => router.push(`/admin/leads/${lead.id}`)}><Eye className="h-3.5 w-3.5" /></Button>
                         </div>
                       </td>
                     </tr>
@@ -1209,7 +1210,7 @@ export default function LeadsPage() {
       {/* Pagination */}
       <div className="flex items-center justify-between border-t pt-4">
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sortedLeads.length)} of {sortedLeads.length.toLocaleString()}</span>
+          <span>Showing <span className="tabular-nums">{((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sortedLeads.length)}</span> of <span className="tabular-nums">{sortedLeads.length.toLocaleString()}</span></span>
           <select
             className="px-2 py-1 rounded-md border border-input bg-background text-sm"
             value={pageSize}
@@ -1224,7 +1225,7 @@ export default function LeadsPage() {
           <Button variant="outline" size="sm" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>
             <ChevronLeft className="h-4 w-4 mr-1" />Prev
           </Button>
-          <span className="px-3 text-sm">Page {currentPage} of {totalPages || 1}</span>
+          <span className="px-3 text-sm">Page <span className="tabular-nums">{currentPage}</span> of <span className="tabular-nums">{totalPages || 1}</span></span>
           <Button variant="outline" size="sm" onClick={() => setCurrentPage(currentPage + 1)} disabled={currentPage === totalPages || totalPages === 0}>
             Next<ChevronRight className="h-4 w-4 ml-1" />
           </Button>

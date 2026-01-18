@@ -277,8 +277,9 @@ export default function UsersPage() {
           <Button
             variant="ghost"
             size="icon"
-            className="h-6 w-6 ml-auto"
+            className="ml-auto"
             onClick={() => setMessage(null)}
+            aria-label="Dismiss message"
           >
             <X className="h-3 w-3" />
           </Button>
@@ -315,7 +316,7 @@ export default function UsersPage() {
               : 'text-muted-foreground hover:text-foreground hover:bg-muted'
           }`}
         >
-          All Users ({users.length})
+          All Users (<span className="tabular-nums">{users.length}</span>)
         </button>
         <button
           onClick={() => setUserTypeFilter('internal')}
@@ -326,7 +327,7 @@ export default function UsersPage() {
           }`}
         >
           <Users className="h-4 w-4" />
-          Naybourhood Team ({internalUsers.length})
+          Naybourhood Team (<span className="tabular-nums">{internalUsers.length}</span>)
         </button>
         <button
           onClick={() => setUserTypeFilter('client')}
@@ -337,7 +338,7 @@ export default function UsersPage() {
           }`}
         >
           <Briefcase className="h-4 w-4" />
-          Client Users ({clientUsers.length})
+          Client Users (<span className="tabular-nums">{clientUsers.length}</span>)
         </button>
       </div>
 
@@ -500,7 +501,7 @@ export default function UsersPage() {
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <Link href={`/admin/users/${user.id}`}>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" size="icon" aria-label="View user details">
                               <Eye className="h-4 w-4" />
                             </Button>
                           </Link>
@@ -509,8 +510,9 @@ export default function UsersPage() {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive"
+                              className="text-destructive"
                               onClick={() => handleDeleteUser(user.id)}
+                              aria-label="Delete user"
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -557,6 +559,7 @@ export default function UsersPage() {
                 variant="ghost"
                 size="icon"
                 onClick={() => setIsModalOpen(false)}
+                aria-label="Close modal"
               >
                 <X className="h-4 w-4" />
               </Button>

@@ -65,25 +65,25 @@ export default function CampaignsPage() {
         <Card>
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Total Campaigns</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold tabular-nums">{stats.total}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Active</div>
-            <div className="text-2xl font-bold text-success">{stats.active}</div>
+            <div className="text-2xl font-bold text-success tabular-nums">{stats.active}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Total Spend</div>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalSpend)}</div>
+            <div className="text-2xl font-bold tabular-nums">{formatCurrency(stats.totalSpend)}</div>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <div className="text-sm text-muted-foreground">Total Leads</div>
-            <div className="text-2xl font-bold">{stats.totalLeads}</div>
+            <div className="text-2xl font-bold tabular-nums">{stats.totalLeads}</div>
           </CardContent>
         </Card>
       </div>
@@ -117,18 +117,18 @@ export default function CampaignsPage() {
 
                   <div className="flex items-center gap-6">
                     <div className="text-center">
-                      <div className="text-lg font-semibold">
+                      <div className="text-lg font-semibold tabular-nums">
                         {formatCurrency(campaign.spend || 0)}
                       </div>
                       <div className="text-xs text-muted-foreground">Spend</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold">{campaign.leads || 0}</div>
+                      <div className="text-lg font-semibold tabular-nums">{campaign.leads || 0}</div>
                       <div className="text-xs text-muted-foreground">Leads</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center gap-1 justify-center">
-                        <span className="text-lg font-semibold">
+                        <span className="text-lg font-semibold tabular-nums">
                           £{campaign.cpl || 0}
                         </span>
                         {(campaign.cpl || 0) < 50 ? (

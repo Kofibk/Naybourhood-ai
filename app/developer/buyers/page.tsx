@@ -179,37 +179,37 @@ export default function DeveloperBuyersPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
         <Card className="p-3">
           <div className="text-xs text-muted-foreground">Total Leads</div>
-          <div className="text-2xl font-bold">{stats.total}</div>
+          <div className="text-2xl font-bold tabular-nums">{stats.total}</div>
         </Card>
         <Card className="p-3 border-red-200 bg-red-50">
           <div className="text-xs text-red-600 flex items-center gap-1">
             <Flame className="h-3 w-3" /> Hot Leads
           </div>
-          <div className="text-2xl font-bold text-red-600">{stats.hot}</div>
+          <div className="text-2xl font-bold text-red-600 tabular-nums">{stats.hot}</div>
         </Card>
         <Card className="p-3 border-purple-200 bg-purple-50">
           <div className="text-xs text-purple-600">Viewings</div>
-          <div className="text-2xl font-bold text-purple-600">{stats.viewings}</div>
+          <div className="text-2xl font-bold text-purple-600 tabular-nums">{stats.viewings}</div>
         </Card>
         <Card className="p-3 border-blue-200 bg-blue-50">
           <div className="text-xs text-blue-600">Negotiating</div>
-          <div className="text-2xl font-bold text-blue-600">{stats.negotiating}</div>
+          <div className="text-2xl font-bold text-blue-600 tabular-nums">{stats.negotiating}</div>
         </Card>
         <Card className="p-3 border-amber-200 bg-amber-50">
           <div className="text-xs text-amber-600">Reserved</div>
-          <div className="text-2xl font-bold text-amber-600">{stats.reserved}</div>
+          <div className="text-2xl font-bold text-amber-600 tabular-nums">{stats.reserved}</div>
         </Card>
         <Card className="p-3 border-green-200 bg-green-50">
           <div className="text-xs text-green-600 flex items-center gap-1">
             <CheckCircle className="h-3 w-3" /> Completed
           </div>
-          <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
+          <div className="text-2xl font-bold text-green-600 tabular-nums">{stats.completed}</div>
         </Card>
         <Card className="p-3 border-primary/50 bg-primary/5">
           <div className="text-xs text-primary flex items-center gap-1">
             <TrendingUp className="h-3 w-3" /> Conv. Rate
           </div>
-          <div className="text-2xl font-bold text-primary">{stats.conversionRate}%</div>
+          <div className="text-2xl font-bold text-primary tabular-nums">{stats.conversionRate}%</div>
         </Card>
       </div>
 
@@ -295,7 +295,7 @@ export default function DeveloperBuyersPage() {
                           {lead.full_name || 'Unknown'}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Q{lead.ai_quality_score || lead.quality_score || 0}/I{lead.ai_intent_score || lead.intent_score || 0}
+                          <span className="tabular-nums">Q{lead.ai_quality_score || lead.quality_score || 0}/I{lead.ai_intent_score || lead.intent_score || 0}</span>
                           {lead.email && ` • ${lead.email}`}
                         </div>
                       </td>
@@ -331,18 +331,18 @@ export default function DeveloperBuyersPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="p-0"
                                 onClick={(e) => handleQuickCall(lead, e)}
-                                title="Call"
+                                aria-label="Call"
                               >
                                 <Phone className="h-3.5 w-3.5 text-green-600" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="p-0"
                                 onClick={(e) => handleQuickWhatsApp(lead, e)}
-                                title="WhatsApp"
+                                aria-label="WhatsApp"
                               >
                                 <MessageCircle className="h-3.5 w-3.5 text-green-600" />
                               </Button>
@@ -352,9 +352,9 @@ export default function DeveloperBuyersPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0"
+                              className="p-0"
                               onClick={(e) => handleQuickEmail(lead, e)}
-                              title="Email"
+                              aria-label="Email"
                             >
                               <Mail className="h-3.5 w-3.5 text-blue-600" />
                             </Button>
@@ -362,12 +362,12 @@ export default function DeveloperBuyersPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0"
+                            className="p-0"
                             onClick={(e) => {
                               e.stopPropagation()
                               router.push(`/developer/buyers/${lead.id}`)
                             }}
-                            title="View Details"
+                            aria-label="View Details"
                           >
                             <ChevronRight className="h-3.5 w-3.5" />
                           </Button>

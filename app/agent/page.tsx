@@ -58,7 +58,10 @@ export default function AgentDashboard() {
   if (!isReady) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <div className="flex items-center gap-2 text-muted-foreground">
+          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+          <span>Loading...</span>
+        </div>
       </div>
     )
   }

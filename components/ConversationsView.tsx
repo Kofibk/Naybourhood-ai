@@ -280,7 +280,7 @@ export function ConversationsView({
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Total</span>
             </div>
-            <p className="text-xl font-bold">{stats.total}</p>
+            <p className="text-xl font-bold tabular-nums">{stats.total}</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('Contact Pending')}>
@@ -289,7 +289,7 @@ export function ConversationsView({
               <Clock className="h-4 w-4 text-yellow-500" />
               <span className="text-xs text-muted-foreground">Pending</span>
             </div>
-            <p className="text-xl font-bold text-yellow-500">{stats.pending}</p>
+            <p className="text-xl font-bold text-yellow-500 tabular-nums">{stats.pending}</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:border-primary/50" onClick={() => setChannelFilter('call')}>
@@ -298,7 +298,7 @@ export function ConversationsView({
               <Phone className="h-4 w-4 text-green-500" />
               <span className="text-xs text-muted-foreground">Calls</span>
             </div>
-            <p className="text-xl font-bold text-green-500">{stats.calls}</p>
+            <p className="text-xl font-bold text-green-500 tabular-nums">{stats.calls}</p>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:border-primary/50" onClick={() => setChannelFilter('whatsapp')}>
@@ -307,7 +307,7 @@ export function ConversationsView({
               <WhatsAppIcon className="h-4 w-4 text-green-600" />
               <span className="text-xs text-muted-foreground">WhatsApp</span>
             </div>
-            <p className="text-xl font-bold text-green-600">{stats.whatsapp}</p>
+            <p className="text-xl font-bold text-green-600 tabular-nums">{stats.whatsapp}</p>
           </CardContent>
         </Card>
       </div>
@@ -455,18 +455,18 @@ export function ConversationsView({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                              className="hover:bg-green-50 hover:text-green-600"
                               onClick={(e) => handleCall(conv.phone, e)}
-                              title="Call"
+                              aria-label="Call"
                             >
                               <Phone className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                              className="hover:bg-green-50 hover:text-green-600"
                               onClick={(e) => handleWhatsApp(conv.phone, e)}
-                              title="WhatsApp"
+                              aria-label="Message on WhatsApp"
                             >
                               <WhatsAppIcon className="h-4 w-4" />
                             </Button>
@@ -476,9 +476,9 @@ export function ConversationsView({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
+                            className="hover:bg-blue-50 hover:text-blue-600"
                             onClick={(e) => handleEmail(conv.email, e)}
-                            title="Email"
+                            aria-label="Send email"
                           >
                             <Mail className="h-4 w-4" />
                           </Button>

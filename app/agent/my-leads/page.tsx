@@ -183,7 +183,7 @@ export default function AgentMyLeadsPage() {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-sm font-medium">My Leads</CardTitle>
-            <span className="text-xs text-muted-foreground">{leads.length} leads</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{leads.length} leads</span>
           </div>
         </CardHeader>
         <CardContent>
@@ -218,7 +218,7 @@ export default function AgentMyLeadsPage() {
                     >
                       <td className="py-3">
                         <div className="font-medium">{lead.fullName}</div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-muted-foreground tabular-nums">
                           Q{lead.qualityScore || 0}/I{lead.intentScore || 0}
                         </div>
                       </td>
@@ -251,18 +251,18 @@ export default function AgentMyLeadsPage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="p-0"
                                 onClick={(e) => handleQuickCall(lead, e)}
-                                title="Call"
+                                aria-label="Call lead"
                               >
                                 <Phone className="h-3.5 w-3.5 text-green-600" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-7 w-7 p-0"
+                                className="p-0"
                                 onClick={(e) => handleQuickWhatsApp(lead, e)}
-                                title="WhatsApp"
+                                aria-label="Message on WhatsApp"
                               >
                                 <MessageCircle className="h-3.5 w-3.5 text-green-600" />
                               </Button>
@@ -272,9 +272,9 @@ export default function AgentMyLeadsPage() {
                             <Button
                               variant="ghost"
                               size="sm"
-                              className="h-7 w-7 p-0"
+                              className="p-0"
                               onClick={(e) => handleQuickEmail(lead, e)}
-                              title="Email"
+                              aria-label="Send email"
                             >
                               <Mail className="h-3.5 w-3.5 text-blue-600" />
                             </Button>
@@ -282,12 +282,12 @@ export default function AgentMyLeadsPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-7 w-7 p-0"
+                            className="p-0"
                             onClick={(e) => {
                               e.stopPropagation()
                               router.push(`/agent/my-leads/${lead.id}`)
                             }}
-                            title="View Details"
+                            aria-label="View lead details"
                           >
                             <ChevronRight className="h-3.5 w-3.5" />
                           </Button>

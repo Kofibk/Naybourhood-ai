@@ -107,7 +107,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <Target className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
+            <div className="text-2xl font-bold tabular-nums">{isLoading ? '...' : metrics.leadQuality}</div>
             <div className="text-xs text-muted-foreground">Lead Quality</div>
           </CardContent>
         </Card>
@@ -116,7 +116,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : myLeads.length}</div>
+            <div className="text-2xl font-bold tabular-nums">{isLoading ? '...' : myLeads.length}</div>
             <div className="text-xs text-muted-foreground">Total Leads</div>
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
+            <div className="text-2xl font-bold tabular-nums">{isLoading ? '...' : `${metrics.conversion}%`}</div>
             <div className="text-xs text-muted-foreground">Qualified Rate</div>
           </CardContent>
         </Card>

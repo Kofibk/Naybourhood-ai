@@ -232,7 +232,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">{getTierPrice(companyData.subscription_tier)}</div>
+                  <div className="text-2xl font-bold tabular-nums">{getTierPrice(companyData.subscription_tier)}</div>
                   <div className="text-sm text-muted-foreground">/month</div>
                 </div>
               </div>

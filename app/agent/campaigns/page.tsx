@@ -51,7 +51,7 @@ export default function CampaignsPage() {
       <div>
         <h2 className="text-2xl font-bold font-display">Campaigns</h2>
         <p className="text-sm text-muted-foreground">
-          {stats.active} active campaigns • {formatCurrency(stats.totalSpend)} total spend
+          <span className="tabular-nums">{stats.active}</span> active campaigns • <span className="tabular-nums">{formatCurrency(stats.totalSpend)}</span> total spend
         </p>
       </div>
 
@@ -80,16 +80,16 @@ export default function CampaignsPage() {
                   </div>
                   <div className="flex items-center gap-6">
                     <div className="text-center">
-                      <div className="text-lg font-semibold">{formatCurrency(campaign.spend || 0)}</div>
+                      <div className="text-lg font-semibold tabular-nums">{formatCurrency(campaign.spend || 0)}</div>
                       <div className="text-xs text-muted-foreground">Spend</div>
                     </div>
                     <div className="text-center">
-                      <div className="text-lg font-semibold">{campaign.leads || 0}</div>
+                      <div className="text-lg font-semibold tabular-nums">{campaign.leads || 0}</div>
                       <div className="text-xs text-muted-foreground">Leads</div>
                     </div>
                     <div className="text-center">
                       <div className="flex items-center gap-1 justify-center">
-                        <span className="text-lg font-semibold">£{campaign.cpl || 0}</span>
+                        <span className="text-lg font-semibold tabular-nums">£{campaign.cpl || 0}</span>
                         {(campaign.cpl || 0) < 50 ? (
                           <TrendingDown className="h-4 w-4 text-success" />
                         ) : (

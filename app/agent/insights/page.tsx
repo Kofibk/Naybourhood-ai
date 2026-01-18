@@ -107,7 +107,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <Target className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
+            <div className="text-2xl font-bold tabular-nums">{isLoading ? '...' : metrics.leadQuality}</div>
             <div className="text-xs text-muted-foreground">Lead Quality</div>
           </CardContent>
         </Card>
@@ -116,7 +116,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : myLeads.length}</div>
+            <div className="text-2xl font-bold tabular-nums">{isLoading ? '...' : myLeads.length}</div>
             <div className="text-xs text-muted-foreground">Total Leads</div>
           </CardContent>
         </Card>
@@ -125,7 +125,7 @@ export default function InsightsPage() {
             <div className="flex items-center justify-between mb-2">
               <TrendingUp className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
+            <div className="text-2xl font-bold tabular-nums">{isLoading ? '...' : `${metrics.conversion}%`}</div>
             <div className="text-xs text-muted-foreground">Qualified Rate</div>
           </CardContent>
         </Card>
@@ -140,7 +140,10 @@ export default function InsightsPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading insights...</p>
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              <span>Loading insights...</span>
+            </div>
           ) : (
             insights.map((insight, i) => (
               <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">

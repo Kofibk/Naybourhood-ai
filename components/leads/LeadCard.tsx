@@ -28,7 +28,7 @@ export function LeadCard({ lead, onClick, onQuickAction, selected, className }: 
   return (
     <Card
       className={cn(
-        'cursor-pointer transition-all hover:shadow-md',
+        'cursor-pointer transition-shadow transition-colors hover:shadow-md',
         selected && 'ring-2 ring-primary',
         className
       )}
@@ -48,11 +48,11 @@ export function LeadCard({ lead, onClick, onQuickAction, selected, className }: 
         <div className="flex items-center gap-4 mb-3 text-sm">
           <div>
             <span className="text-muted-foreground">Q:</span>{' '}
-            <span className="font-medium">{lead.qualityScore}</span>
+            <span className="font-medium tabular-nums">{lead.qualityScore}</span>
           </div>
           <div>
             <span className="text-muted-foreground">I:</span>{' '}
-            <span className="font-medium">{lead.intentScore}</span>
+            <span className="font-medium tabular-nums">{lead.intentScore}</span>
           </div>
         </div>
 
@@ -77,24 +77,24 @@ export function LeadCard({ lead, onClick, onQuickAction, selected, className }: 
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
               onClick={() => onQuickAction?.('call')}
+              aria-label="Call lead"
             >
               <Phone className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
               onClick={() => onQuickAction?.('whatsapp')}
+              aria-label="Message on WhatsApp"
             >
               <MessageCircle className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
               onClick={() => onQuickAction?.('book_viewing')}
+              aria-label="Book viewing"
             >
               <Calendar className="h-4 w-4" />
             </Button>

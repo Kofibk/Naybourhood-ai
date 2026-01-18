@@ -100,7 +100,7 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
           Let&apos;s get you set up
         </h1>
         <p className="text-muted-foreground">
-          This takes about 60 seconds
+          This takes about <span className="tabular-nums">60</span> seconds
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
                 type="button"
                 onClick={() => setSelectedType(type.id)}
                 className={cn(
-                  'flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200',
+                  'flex flex-col items-center p-4 rounded-xl border-2 transition-colors duration-200',
                   'hover:border-primary/50 hover:bg-primary/5',
                   isSelected
                     ? 'border-primary bg-primary/10'

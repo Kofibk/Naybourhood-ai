@@ -15,7 +15,7 @@ export function PendingApprovalBanner() {
             Your account is being reviewed. Once approved, you&apos;ll have full access to your company&apos;s leads and campaigns.
           </p>
           <p className="text-xs text-muted-foreground mt-2">
-            This usually takes less than 24 hours
+            This usually takes less than <span className="tabular-nums">24</span> hours
           </p>
         </div>
       </div>

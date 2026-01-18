@@ -173,7 +173,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                 +12%
               </Badge>
             </div>
-            <div className="text-2xl font-bold">{myLeads.length}</div>
+            <div className="text-2xl font-bold tabular-nums">{myLeads.length}</div>
             <div className="text-xs text-muted-foreground">
               {typeConfig.metricLabel}
             </div>
@@ -203,7 +203,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             <div className="flex items-center justify-between mb-2">
               <Calendar className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{viewingsCount}</div>
+            <div className="text-2xl font-bold tabular-nums">{viewingsCount}</div>
             <div className="text-xs text-muted-foreground">Viewings Booked</div>
           </CardContent>
         </Card>
@@ -212,7 +212,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             <div className="flex items-center justify-between mb-2">
               <MessageSquare className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{myLeads.filter(l => l.status === 'New').length}</div>
+            <div className="text-2xl font-bold tabular-nums">{myLeads.filter(l => l.status === 'New').length}</div>
             <div className="text-xs text-muted-foreground">New {typeConfig.title}</div>
           </CardContent>
         </Card>
@@ -247,10 +247,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                 <Badge variant="muted" className="text-[10px]">
                   Q:{lead.ai_quality_score ?? lead.quality_score ?? '-'}
                 </Badge>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" aria-label="Call lead">
                   <Phone className="h-4 w-4" />
                 </Button>
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" size="icon" aria-label="View lead details">
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>

@@ -179,7 +179,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{analytics.leads.total.toLocaleString()}</div>
+            <div className="text-2xl font-bold tabular-nums">{analytics.leads.total.toLocaleString()}</div>
             <div className="text-xs text-muted-foreground">Total Leads</div>
           </CardContent>
         </Card>
@@ -188,10 +188,10 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <Flame className="h-5 w-5 text-orange-500" />
               <Badge variant="success" className="text-[10px]">
-                {analytics.leads.hotPercentage}%
+                <span className="tabular-nums">{analytics.leads.hotPercentage}</span>%
               </Badge>
             </div>
-            <div className="text-2xl font-bold text-orange-500">{analytics.leads.hot}</div>
+            <div className="text-2xl font-bold text-orange-500 tabular-nums">{analytics.leads.hot}</div>
             <div className="text-xs text-muted-foreground">Hot Leads (80+)</div>
           </CardContent>
         </Card>
@@ -200,7 +200,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <Target className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className={`text-2xl font-bold ${getScoreColor(analytics.leads.avgQualityScore)}`}>
+            <div className={`text-2xl font-bold tabular-nums ${getScoreColor(analytics.leads.avgQualityScore)}`}>
               {analytics.leads.avgQualityScore}
             </div>
             <div className="text-xs text-muted-foreground">Avg Quality Score</div>
@@ -211,7 +211,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <PoundSterling className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{formatCurrency(analytics.campaigns.totalSpend)}</div>
+            <div className="text-2xl font-bold tabular-nums">{formatCurrency(analytics.campaigns.totalSpend)}</div>
             <div className="text-xs text-muted-foreground">Total Spend</div>
           </CardContent>
         </Card>
@@ -220,7 +220,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <TrendingDown className="h-5 w-5 text-success" />
             </div>
-            <div className={`text-2xl font-bold ${analytics.campaigns.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
+            <div className={`text-2xl font-bold tabular-nums ${analytics.campaigns.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
               £{analytics.campaigns.avgCPL}
             </div>
             <div className="text-xs text-muted-foreground">Avg CPL</div>
@@ -231,7 +231,7 @@ export default function AnalyticsPage() {
             <div className="flex items-center justify-between mb-2">
               <Megaphone className="h-5 w-5 text-muted-foreground" />
             </div>
-            <div className="text-2xl font-bold">{analytics.campaigns.active}</div>
+            <div className="text-2xl font-bold tabular-nums">{analytics.campaigns.active}</div>
             <div className="text-xs text-muted-foreground">Active Campaigns</div>
           </CardContent>
         </Card>
@@ -254,8 +254,8 @@ export default function AnalyticsPage() {
                   <span className="text-sm">Hot Leads (80+)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold">{analytics.leads.hot}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm font-bold tabular-nums">{analytics.leads.hot}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
                     ({analytics.leads.hotPercentage}%)
                   </span>
                 </div>
@@ -274,8 +274,8 @@ export default function AnalyticsPage() {
                   <span className="text-sm">Warm Leads (60-79)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold">{analytics.leads.warm}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm font-bold tabular-nums">{analytics.leads.warm}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
                     ({analytics.leads.total > 0 ? Math.round((analytics.leads.warm / analytics.leads.total) * 100) : 0}%)
                   </span>
                 </div>
@@ -294,8 +294,8 @@ export default function AnalyticsPage() {
                   <span className="text-sm">Cold Leads (&lt;60)</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold">{analytics.leads.cold}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-sm font-bold tabular-nums">{analytics.leads.cold}</span>
+                  <span className="text-xs text-muted-foreground tabular-nums">
                     ({analytics.leads.total > 0 ? Math.round((analytics.leads.cold / analytics.leads.total) * 100) : 0}%)
                   </span>
                 </div>
@@ -335,14 +335,14 @@ export default function AnalyticsPage() {
                   <span className="text-xs w-24 text-muted-foreground">{stage.label}</span>
                   <div className="flex-1">
                     <div
-                      className="h-6 rounded flex items-center justify-end pr-2 transition-all"
+                      className="h-6 rounded flex items-center justify-end pr-2 transition-[width]"
                       style={{ width: `${widthPercent}%`, backgroundColor: stage.color }}
                     >
-                      <span className="text-xs font-medium text-white">{stage.value}</span>
+                      <span className="text-xs font-medium text-white tabular-nums">{stage.value}</span>
                     </div>
                   </div>
                   {i > 0 && (
-                    <span className={`text-xs w-10 text-right ${rate >= 50 ? 'text-success' : 'text-warning'}`}>
+                    <span className={`text-xs w-10 text-right tabular-nums ${rate >= 50 ? 'text-success' : 'text-warning'}`}>
                       {rate}%
                     </span>
                   )}
@@ -373,8 +373,8 @@ export default function AnalyticsPage() {
                 {analytics.sources.slice(0, 10).map((source) => (
                   <tr key={source.source} className="border-b border-border hover:bg-muted/50">
                     <td className="p-3 font-medium">{source.source}</td>
-                    <td className="p-3 text-right">{source.count}</td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right tabular-nums">{source.count}</td>
+                    <td className="p-3 text-right tabular-nums">
                       <span className={getScoreColor(source.avgScore)}>{source.avgScore}</span>
                     </td>
                     <td className="p-3 text-right">
@@ -411,15 +411,15 @@ export default function AnalyticsPage() {
                   </div>
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-right">
-                      <p className="font-medium">{formatCurrency(dev.spend)}</p>
+                      <p className="font-medium tabular-nums">{formatCurrency(dev.spend)}</p>
                       <p className="text-xs text-muted-foreground">Spend</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium">{dev.leads}</p>
+                      <p className="font-medium tabular-nums">{dev.leads}</p>
                       <p className="text-xs text-muted-foreground">Leads</p>
                     </div>
                     <div className="text-right">
-                      <p className={`font-medium ${dev.cpl > 50 ? 'text-destructive' : 'text-success'}`}>
+                      <p className={`font-medium tabular-nums ${dev.cpl > 50 ? 'text-destructive' : 'text-success'}`}>
                         £{dev.cpl}
                       </p>
                       <p className="text-xs text-muted-foreground">CPL</p>
@@ -453,8 +453,8 @@ export default function AnalyticsPage() {
                       <p className="text-xs text-muted-foreground">{campaign.development || campaign.client}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-success">£{campaign.cpl || 0} CPL</p>
-                      <p className="text-xs text-muted-foreground">{campaign.leads || 0} leads</p>
+                      <p className="font-medium text-success tabular-nums">£{campaign.cpl || 0} CPL</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{campaign.leads || 0} leads</p>
                     </div>
                   </div>
                 ))
@@ -482,8 +482,8 @@ export default function AnalyticsPage() {
                       <p className="text-xs text-muted-foreground">{campaign.development || campaign.client}</p>
                     </div>
                     <div className="text-right">
-                      <p className="font-medium text-destructive">£{campaign.cpl || 0} CPL</p>
-                      <p className="text-xs text-muted-foreground">{campaign.leads || 0} leads</p>
+                      <p className="font-medium text-destructive tabular-nums">£{campaign.cpl || 0} CPL</p>
+                      <p className="text-xs text-muted-foreground tabular-nums">{campaign.leads || 0} leads</p>
                     </div>
                   </div>
                 ))
@@ -507,7 +507,7 @@ export default function AnalyticsPage() {
               .sort((a, b) => b[1] - a[1])
               .map(([status, count]) => (
                 <div key={status} className="text-center p-3 rounded-lg bg-muted/30">
-                  <p className="text-2xl font-bold">{count}</p>
+                  <p className="text-2xl font-bold tabular-nums">{count}</p>
                   <p className="text-xs text-muted-foreground">{status}</p>
                 </div>
               ))}

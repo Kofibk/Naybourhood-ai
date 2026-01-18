@@ -212,7 +212,7 @@ export function AIOverview({
       <Card className={cn('bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20', className)}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3">
-            <Brain className="h-5 w-5 text-primary animate-pulse" />
+            <RefreshCw className="h-5 w-5 text-primary animate-spin" />
             <span className="text-sm text-muted-foreground">Claude AI is analyzing your leads...</span>
           </div>
         </CardContent>
@@ -263,7 +263,7 @@ export function AIOverview({
                 <p className="text-xs text-muted-foreground">{summary}</p>
               )}
             </div>
-            <Badge variant="secondary" className="text-[10px]">
+            <Badge variant="secondary" className="text-[10px] tabular-nums">
               {insights.length} insights
             </Badge>
           </div>
@@ -283,6 +283,7 @@ export function AIOverview({
               size="icon"
               className="h-7 w-7"
               onClick={() => setExpanded(!expanded)}
+              aria-label={expanded ? "Collapse insights" : "Expand insights"}
             >
               {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
@@ -310,7 +311,7 @@ export function AIOverview({
                 <div
                   key={i}
                   className={cn(
-                    'p-3 rounded-lg border transition-all hover:scale-[1.02]',
+                    'p-3 rounded-lg border transition-transform hover:scale-[1.02]',
                     getTypeStyles(insight.type)
                   )}
                 >
@@ -347,7 +348,7 @@ export function AIOverview({
                 <div
                   key={`other-${i}`}
                   className={cn(
-                    'p-3 rounded-lg border transition-all hover:scale-[1.02]',
+                    'p-3 rounded-lg border transition-transform hover:scale-[1.02]',
                     getTypeStyles(insight.type)
                   )}
                 >

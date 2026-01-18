@@ -228,7 +228,7 @@ export function CSVImport({ tableName, onComplete, onClose }: CSVImportProps) {
             <CardDescription>Upload a CSV file to bulk import data</CardDescription>
           </div>
           {onClose && (
-            <Button variant="ghost" size="icon" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} aria-label="Close import dialog">
               <X className="h-4 w-4" />
             </Button>
           )}
@@ -325,11 +325,11 @@ export function CSVImport({ tableName, onComplete, onClose }: CSVImportProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
               <span>Importing...</span>
-              <span>{progress.done} / {progress.total}</span>
+              <span className="tabular-nums">{progress.done} / {progress.total}</span>
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div
-                className="bg-primary h-2 rounded-full transition-all"
+                className="bg-primary h-2 rounded-full transition-[width]"
                 style={{ width: `${(progress.done / progress.total) * 100}%` }}
               />
             </div>

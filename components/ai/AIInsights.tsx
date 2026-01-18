@@ -145,7 +145,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
               <Lightbulb className="h-5 w-5 text-primary" />
               AI Insights
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={loading}>
+            <Button variant="ghost" size="sm" onClick={fetchInsights} disabled={loading} aria-label="Refresh insights">
               <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
@@ -194,14 +194,14 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
           {insights?.recommendedActions.map((action, index) => (
             <div
               key={index}
-              className={`p-3 rounded-md border transition-all ${
+              className={`p-3 rounded-md border transition-colors ${
                 completedActions.has(String(index))
                   ? 'bg-muted/50 opacity-60'
                   : 'hover:bg-muted/50'
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                <div className="flex items-center justify-center h-6 w-6 rounded-full bg-primary/10 text-primary text-xs font-medium tabular-nums">
                   {action.priority}
                 </div>
                 <div className="flex-1 min-w-0">

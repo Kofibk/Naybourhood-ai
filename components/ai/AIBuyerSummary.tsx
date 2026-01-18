@@ -127,20 +127,20 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Quality</span>
-              <span className="text-sm font-medium">{summary.quality_score}</span>
+              <span className="text-sm font-medium tabular-nums">{summary.quality_score}</span>
             </div>
             <Progress value={summary.quality_score} className="h-2" />
           </div>
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs text-muted-foreground">Intent</span>
-              <span className="text-sm font-medium">{summary.intent_score}</span>
+              <span className="text-sm font-medium tabular-nums">{summary.intent_score}</span>
             </div>
             <Progress value={summary.intent_score} className="h-2" />
           </div>
           <div className="flex flex-col items-center justify-center">
             <span className="text-xs text-muted-foreground mb-1">Confidence</span>
-            <span className="text-lg font-bold">{Math.round(summary.confidence * 100)}%</span>
+            <span className="text-lg font-bold tabular-nums">{Math.round(summary.confidence * 100)}%</span>
           </div>
         </div>
 

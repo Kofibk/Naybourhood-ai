@@ -329,7 +329,7 @@ export default function CampaignsPage() {
             <AlertCircle className="h-4 w-4" />
           )}
           <span className="text-sm">{message.text}</span>
-          <Button variant="ghost" size="icon" className="h-6 w-6 ml-auto" onClick={() => setMessage(null)}>
+          <Button variant="ghost" size="icon" className="ml-auto" onClick={() => setMessage(null)} aria-label="Dismiss message">
             <X className="h-3 w-3" />
           </Button>
         </div>
@@ -343,7 +343,7 @@ export default function CampaignsPage() {
               <Megaphone className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Active</span>
             </div>
-            <p className="text-2xl font-bold">{totalStats.activeCampaigns}</p>
+            <p className="text-2xl font-bold tabular-nums">{totalStats.activeCampaigns}</p>
           </CardContent>
         </Card>
         <Card>
@@ -352,7 +352,7 @@ export default function CampaignsPage() {
               <Users className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Total Leads</span>
             </div>
-            <p className="text-2xl font-bold">{totalStats.totalLeads.toLocaleString()}</p>
+            <p className="text-2xl font-bold tabular-nums">{totalStats.totalLeads.toLocaleString()}</p>
           </CardContent>
         </Card>
         <Card>
@@ -361,7 +361,7 @@ export default function CampaignsPage() {
               <PoundSterling className="h-4 w-4 text-muted-foreground" />
               <span className="text-xs text-muted-foreground">Total Spend</span>
             </div>
-            <p className="text-2xl font-bold">{formatCurrency(totalStats.totalSpend)}</p>
+            <p className="text-2xl font-bold tabular-nums">{formatCurrency(totalStats.totalSpend)}</p>
           </CardContent>
         </Card>
         <Card>
@@ -370,7 +370,7 @@ export default function CampaignsPage() {
               <TrendingDown className="h-4 w-4 text-success" />
               <span className="text-xs text-muted-foreground">Avg CPL</span>
             </div>
-            <p className="text-2xl font-bold text-success">
+            <p className="text-2xl font-bold text-success tabular-nums">
               £{totalStats.totalLeads > 0 ? Math.round(totalStats.totalSpend / totalStats.totalLeads) : 0}
             </p>
           </CardContent>
@@ -428,15 +428,15 @@ export default function CampaignsPage() {
                     </div>
                     <div className="flex items-center gap-6">
                       <div className="text-right">
-                        <p className="text-sm font-semibold">{formatCurrency(group.totalSpend)}</p>
+                        <p className="text-sm font-semibold tabular-nums">{formatCurrency(group.totalSpend)}</p>
                         <p className="text-xs text-muted-foreground">Spend</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold">{group.totalLeads.toLocaleString()}</p>
+                        <p className="text-sm font-semibold tabular-nums">{group.totalLeads.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">Leads</p>
                       </div>
                       <div className="text-right">
-                        <p className={`text-sm font-semibold ${group.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
+                        <p className={`text-sm font-semibold tabular-nums ${group.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
                           £{group.avgCPL}
                         </p>
                         <p className="text-xs text-muted-foreground">Avg CPL</p>
@@ -497,7 +497,7 @@ export default function CampaignsPage() {
                               <p className="text-xs text-muted-foreground">Spend</p>
                             </div>
                             <div className="text-right">
-                              <p className="text-sm font-medium text-primary">
+                              <p className="text-sm font-medium text-primary tabular-nums">
                                 {getLeadCount(campaign) || '-'}
                               </p>
                               <p className="text-xs text-muted-foreground">Leads</p>
@@ -512,7 +512,7 @@ export default function CampaignsPage() {
                                 const actualCPL = Math.round(spend / actualLeads)
                                 return (
                                   <div className="flex items-center justify-end gap-1">
-                                    <span className={`text-sm font-medium ${
+                                    <span className={`text-sm font-medium tabular-nums ${
                                       actualCPL > 50 ? 'text-destructive' : 'text-success'
                                     }`}>
                                       £{actualCPL}
@@ -545,7 +545,7 @@ export default function CampaignsPage() {
           <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
             <div className="flex items-center justify-between p-4 border-b border-border">
               <h3 className="font-semibold">Create New Campaign</h3>
-              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
+              <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)} aria-label="Close modal">
                 <X className="h-4 w-4" />
               </Button>
             </div>

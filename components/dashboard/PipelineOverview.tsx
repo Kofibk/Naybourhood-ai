@@ -112,7 +112,7 @@ export function PipelineOverview({
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-medium">Pipeline Overview</CardTitle>
-          <span className="text-xs text-muted-foreground">{total} total leads</span>
+          <span className="text-xs text-muted-foreground tabular-nums">{total} total leads</span>
         </div>
       </CardHeader>
       <CardContent>
@@ -126,13 +126,14 @@ export function PipelineOverview({
               <button
                 key={stage}
                 onClick={() => onStageClick?.(stage)}
+                aria-label={`${config.label}: ${count} leads`}
                 className={cn(
-                  'flex flex-col items-center justify-center p-4 rounded-lg border transition-all hover:scale-105',
+                  'flex flex-col items-center justify-center p-4 rounded-lg border transition-transform hover:scale-105',
                   config.color
                 )}
               >
                 <Icon className="h-5 w-5 mb-2" />
-                <div className="text-2xl font-bold">{count}</div>
+                <div className="text-2xl font-bold tabular-nums">{count}</div>
                 <div className="text-[10px] font-medium opacity-80">{config.label}</div>
               </button>
             )
@@ -142,14 +143,14 @@ export function PipelineOverview({
         {/* Secondary stats row */}
         <div className="flex items-center justify-center gap-6 mt-4 pt-4 border-t text-xs text-muted-foreground">
           <span>
-            <span className="font-medium text-green-600">{stats.exchanged + stats.completed}</span>{' '}
+            <span className="font-medium text-green-600 tabular-nums">{stats.exchanged + stats.completed}</span>{' '}
             completed
           </span>
           <span>
-            <span className="font-medium text-red-600">{stats.notProceeding}</span> lost
+            <span className="font-medium text-red-600 tabular-nums">{stats.notProceeding}</span> lost
           </span>
           <span>
-            <span className="font-medium text-gray-600">{stats.disqualified}</span> disqualified
+            <span className="font-medium text-gray-600 tabular-nums">{stats.disqualified}</span> disqualified
           </span>
         </div>
       </CardContent>
@@ -175,10 +176,11 @@ export function PipelineCompact({
           <button
             key={stage}
             onClick={() => onStageClick?.(stage)}
+            aria-label={`${config.label}: ${count} leads`}
             className="w-full flex items-center justify-between p-2 rounded hover:bg-muted/50 transition-colors"
           >
             <span className="text-sm text-muted-foreground">{config.label}</span>
-            <span className="font-medium">{count}</span>
+            <span className="font-medium tabular-nums">{count}</span>
           </button>
         )
       })}

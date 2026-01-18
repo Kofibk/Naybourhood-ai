@@ -79,7 +79,7 @@ function AnimatedNumber({
 }) {
   const count = useAnimatedCounter(value)
   return (
-    <span className={className}>
+    <span className={`tabular-nums ${className}`}>
       {prefix}
       {count.toLocaleString()}
       {suffix}
@@ -382,7 +382,7 @@ export default function AdminDashboard() {
             <div className="flex items-center gap-4">
               <div className="w-32 h-32 relative flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold tabular-nums">
                     {metrics.totalLeads.toLocaleString()}
                   </div>
                   <div className="text-xs text-muted-foreground">Total</div>
@@ -401,7 +401,7 @@ export default function AdminDashboard() {
                       />
                       <span>{item.name}</span>
                     </div>
-                    <span className="font-medium">{item.value}</span>
+                    <span className="font-medium tabular-nums">{item.value}</span>
                   </div>
                 ))}
               </div>
@@ -432,20 +432,20 @@ export default function AdminDashboard() {
                   </span>
                   <div className="flex-1">
                     <div
-                      className="h-8 rounded flex items-center justify-end pr-3 transition-all"
+                      className="h-8 rounded flex items-center justify-end pr-3 transition-[width]"
                       style={{
                         width: `${widthPercent}%`,
                         backgroundColor: stage.color,
                       }}
                     >
-                      <span className="text-xs font-medium text-white">
+                      <span className="text-xs font-medium text-white tabular-nums">
                         {stage.value}
                       </span>
                     </div>
                   </div>
                   {i > 0 && (
                     <span
-                      className={`text-xs w-12 text-right ${
+                      className={`text-xs w-12 text-right tabular-nums ${
                         rate >= 50 ? 'text-success' : 'text-warning'
                       }`}
                     >
@@ -468,7 +468,7 @@ export default function AdminDashboard() {
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Flame className="h-4 w-4 text-orange-500" />
             Priority Leads - AI Next Actions
-            <Badge variant="destructive">{actionLeads.length}</Badge>
+            <Badge variant="destructive"><span className="tabular-nums">{actionLeads.length}</span></Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -497,8 +497,8 @@ export default function AdminDashboard() {
                       {lead.status && <Badge variant="muted">{lead.status}</Badge>}
                     </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">Score: {score}</span>
-                      {intentScore && <span>Intent: {intentScore}</span>}
+                      <span className="font-medium text-foreground">Score: <span className="tabular-nums">{score}</span></span>
+                      {intentScore && <span>Intent: <span className="tabular-nums">{intentScore}</span></span>}
                       {lead.budget && <span>{lead.budget}</span>}
                     </div>
                     {nextAction && (
@@ -509,20 +509,20 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex gap-2 shrink-0">
                     {lead.phone && (
-                      <Button size="icon" className="h-8 w-8" asChild>
+                      <Button size="icon" aria-label="Call lead" asChild>
                         <a href={`tel:${lead.phone}`}>
                           <Phone className="h-3.5 w-3.5" />
                         </a>
                       </Button>
                     )}
                     {lead.phone && (
-                      <Button size="icon" variant="outline" className="h-8 w-8" asChild>
+                      <Button size="icon" variant="outline" aria-label="WhatsApp lead" asChild>
                         <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
                           <MessageCircle className="h-3.5 w-3.5" />
                         </a>
                       </Button>
                     )}
-                    <Button size="icon" variant="outline" className="h-8 w-8" asChild>
+                    <Button size="icon" variant="outline" aria-label="View lead details" asChild>
                       <a href={`/admin/leads/${lead.id}`}>
                         <Eye className="h-3.5 w-3.5" />
                       </a>
@@ -541,7 +541,7 @@ export default function AdminDashboard() {
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Megaphone className="h-4 w-4 text-primary" />
             Campaign Performance
-            <Badge variant="secondary">{campaigns.length} campaigns</Badge>
+            <Badge variant="secondary"><span className="tabular-nums">{campaigns.length}</span> campaigns</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -580,10 +580,10 @@ export default function AdminDashboard() {
                         {campaign.status === 'active' && <Badge variant="success">Active</Badge>}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span>Spend: {formatCurrency(spend)}</span>
-                        <span className="font-medium text-foreground">Leads: {campaignLeads}</span>
+                        <span>Spend: <span className="tabular-nums">{formatCurrency(spend)}</span></span>
+                        <span className="font-medium text-foreground">Leads: <span className="tabular-nums">{campaignLeads}</span></span>
                         <span className={`font-medium ${actualCPL > 50 ? 'text-warning' : 'text-success'}`}>
-                          CPL: {campaignLeads > 0 ? `£${actualCPL}` : 'N/A'}
+                          CPL: <span className="tabular-nums">{campaignLeads > 0 ? `£${actualCPL}` : 'N/A'}</span>
                         </span>
                       </div>
                     </div>
@@ -606,7 +606,7 @@ export default function AdminDashboard() {
           <CardTitle className="text-sm font-medium flex items-center gap-2">
             <Building2 className="h-4 w-4 text-primary" />
             Companies
-            <Badge variant="secondary">{companies.length}</Badge>
+            <Badge variant="secondary"><span className="tabular-nums">{companies.length}</span></Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
