@@ -157,25 +157,26 @@ function LoginPageInner() {
 
         if (isSignUp) {
           // Sign up with password
-          // Don't use emailRedirectTo - let Supabase use default token-based confirmation
-          // which works across browsers (PKCE requires same browser)
+          // Email verification happens AFTER onboarding (non-blocking)
           const { data, error } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+              // Redirect to callback after email verification (if they click the link later)
+              emailRedirectTo: `${window.location.origin}/auth/callback`,
+            },
           })
 
           if (error) {
             setError(error.message)
           } else if (data.user) {
-            // Check if email confirmation is required
+            // Check if account already exists
             if (data.user.identities?.length === 0) {
               setError('An account with this email already exists. Please sign in instead.')
-            } else if (data.session) {
-              // User is signed in immediately (email confirmation disabled)
-              router.push('/onboarding')
             } else {
-              // Email confirmation required
-              setMagicLinkSent(true)
+              // Always redirect to onboarding - email verification is non-blocking
+              // User will see EmailVerificationBanner on dashboard after onboarding
+              router.push('/onboarding')
             }
           }
         } else {
