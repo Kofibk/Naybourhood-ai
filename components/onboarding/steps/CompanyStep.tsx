@@ -1,226 +1,224 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { OnboardingFormData } from '@/lib/onboarding'
-import { ArrowLeft, Building2, Loader2, Upload, X } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import {
+  OnboardingFormData,
+  Company,
+  checkCompanyMatch,
+  completeOnboardingWithExistingCompany,
+  completeOnboardingWithNewCompany,
+} from '@/lib/onboarding'
+import { ArrowLeft, Building2, Loader2, Lightbulb } from 'lucide-react'
+import CompanyConfirmModal from './CompanyConfirmModal'
 
 interface CompanyStepProps {
   data: OnboardingFormData
-  onNext: (data: Partial<OnboardingFormData>) => void
   onBack: () => void
   isSaving: boolean
 }
 
-const regionSuggestions = [
-  'London',
-  'South East',
-  'South West',
-  'Midlands',
-  'North West',
-  'North East',
-  'Scotland',
-  'Wales',
-  'International',
-]
-
 export default function CompanyStep({
   data,
-  onNext,
   onBack,
   isSaving,
 }: CompanyStepProps) {
+  const router = useRouter()
   const [companyName, setCompanyName] = useState(data.companyName)
-  const [companyLogoUrl, setCompanyLogoUrl] = useState(data.companyLogoUrl)
   const [website, setWebsite] = useState(data.website)
-  const [linkedin, setLinkedin] = useState(data.linkedin)
-  const [instagram, setInstagram] = useState(data.instagram)
-  const [businessAddress, setBusinessAddress] = useState(data.businessAddress)
-  const [regionsCovered, setRegionsCovered] = useState<string[]>(data.regionsCovered)
   const [errors, setErrors] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(false)
+  const [matchedCompany, setMatchedCompany] = useState<Company | null>(null)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
 
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!companyName.trim()) newErrors.companyName = 'Company name is required'
-    if (regionsCovered.length === 0) newErrors.regions = 'Select at least one region'
+    if (!companyName.trim() || companyName.trim().length < 2) {
+      newErrors.companyName = 'Company name is required (min 2 characters)'
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
   }
 
-  const handleContinue = () => {
-    if (validate()) {
-      onNext({
-        companyName: companyName.trim(),
-        companyLogoUrl,
-        website: website.trim(),
-        linkedin: linkedin.trim(),
-        instagram: instagram.trim(),
-        businessAddress: businessAddress.trim(),
-        regionsCovered,
-      })
+  const handleNext = async () => {
+    if (!validate()) return
+
+    setIsLoading(true)
+
+    try {
+      // Check for existing company match
+      const match = await checkCompanyMatch(companyName.trim())
+
+      if (match) {
+        // Found a match - show confirmation modal
+        setMatchedCompany(match)
+        setShowConfirmModal(true)
+      } else {
+        // No match - create new company directly
+        await handleCreateNewCompany()
+      }
+    } catch (error) {
+      console.error('Error checking company:', error)
+      setErrors({ companyName: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  const toggleRegion = (region: string) => {
-    if (regionsCovered.includes(region)) {
-      setRegionsCovered(regionsCovered.filter((r) => r !== region))
-    } else {
-      setRegionsCovered([...regionsCovered, region])
+  const handleConfirmExisting = async () => {
+    if (!matchedCompany) return
+
+    setIsLoading(true)
+    setShowConfirmModal(false)
+
+    try {
+      const formData: OnboardingFormData = {
+        ...data,
+        companyName: matchedCompany.name,
+        website: matchedCompany.website || website,
+      }
+
+      const redirectPath = await completeOnboardingWithExistingCompany(formData, matchedCompany.id)
+
+      if (redirectPath) {
+        router.push(redirectPath)
+      } else {
+        setErrors({ companyName: 'Failed to complete setup. Please try again.' })
+      }
+    } catch (error) {
+      console.error('Error joining company:', error)
+      setErrors({ companyName: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleCreateNewCompany = async () => {
+    setIsLoading(true)
+    setShowConfirmModal(false)
+
+    try {
+      const formData: OnboardingFormData = {
+        ...data,
+        companyName: companyName.trim(),
+        website: website.trim(),
+      }
+
+      const redirectPath = await completeOnboardingWithNewCompany(formData)
+
+      if (redirectPath) {
+        router.push(redirectPath)
+      } else {
+        setErrors({ companyName: 'Failed to complete setup. Please try again.' })
+      }
+    } catch (error) {
+      console.error('Error creating company:', error)
+      setErrors({ companyName: 'Something went wrong. Please try again.' })
+    } finally {
+      setIsLoading(false)
     }
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
+      {/* Back button */}
+      <Button
+        variant="ghost"
+        onClick={onBack}
+        disabled={isLoading || isSaving}
+        className="p-0 h-auto"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back
+      </Button>
+
+      {/* Header */}
       <div className="text-center">
+        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+          <Building2 className="w-7 h-7 text-primary" />
+        </div>
         <h1 className="font-display text-2xl md:text-3xl font-medium mb-2">
-          Company Information
+          Your Company
         </h1>
         <p className="text-muted-foreground">
-          Tell us about your business
+          Enter your company name to get started
         </p>
       </div>
 
-      {/* Company Logo Upload */}
-      <div className="flex justify-center">
-        <div className="relative">
-          <div
-            className={cn(
-              'w-24 h-24 rounded-lg border-2 border-dashed flex items-center justify-center',
-              'bg-muted/50 cursor-pointer hover:bg-muted transition-colors',
-              companyLogoUrl ? 'border-primary' : 'border-border'
-            )}
-          >
-            {companyLogoUrl ? (
-              <img
-                src={companyLogoUrl}
-                alt="Company logo"
-                className="w-full h-full rounded-lg object-contain p-2"
-              />
-            ) : (
-              <Building2 className="w-10 h-10 text-muted-foreground" />
-            )}
-          </div>
-          <button
-            className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors"
-            title="Upload logo"
-          >
-            <Upload className="w-4 h-4" />
-          </button>
-        </div>
+      {/* Company Name - SIMPLE INPUT, NO AUTOCOMPLETE */}
+      <div className="space-y-2">
+        <Label htmlFor="companyName">
+          Company name <span className="text-destructive">*</span>
+        </Label>
+        <Input
+          id="companyName"
+          value={companyName}
+          onChange={(e) => setCompanyName(e.target.value)}
+          placeholder="Enter your company name"
+          className={errors.companyName ? 'border-destructive' : ''}
+          disabled={isLoading}
+        />
+        {errors.companyName && (
+          <p className="text-sm text-destructive">{errors.companyName}</p>
+        )}
       </div>
 
-      <div className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="companyName">
-            Company Name <span className="text-destructive">*</span>
-          </Label>
+      {/* Website (optional) */}
+      <div className="space-y-2">
+        <Label htmlFor="website">Website</Label>
+        <div className="flex">
+          <span className="inline-flex items-center px-3 rounded-l-md border border-r-0 border-input bg-muted text-muted-foreground text-sm">
+            https://
+          </span>
           <Input
-            id="companyName"
-            value={companyName}
-            onChange={(e) => setCompanyName(e.target.value)}
-            placeholder="Your Company Ltd"
-            className={errors.companyName ? 'border-destructive' : ''}
+            id="website"
+            value={website}
+            onChange={(e) => setWebsite(e.target.value)}
+            className="rounded-l-none"
+            placeholder="yourcompany.com (optional)"
+            disabled={isLoading}
           />
-          {errors.companyName && (
-            <p className="text-sm text-destructive">{errors.companyName}</p>
-          )}
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="website">Website</Label>
-            <Input
-              id="website"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              placeholder="https://yourcompany.com"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="businessAddress">Business Address</Label>
-            <Input
-              id="businessAddress"
-              value={businessAddress}
-              onChange={(e) => setBusinessAddress(e.target.value)}
-              placeholder="123 Business Street, London"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="linkedin">LinkedIn</Label>
-            <Input
-              id="linkedin"
-              value={linkedin}
-              onChange={(e) => setLinkedin(e.target.value)}
-              placeholder="linkedin.com/company/..."
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="instagram">Instagram</Label>
-            <Input
-              id="instagram"
-              value={instagram}
-              onChange={(e) => setInstagram(e.target.value)}
-              placeholder="@yourcompany"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <Label>
-            Regions Covered <span className="text-destructive">*</span>
-          </Label>
-          <div className="flex flex-wrap gap-2">
-            {regionSuggestions.map((region) => {
-              const isSelected = regionsCovered.includes(region)
-              return (
-                <Badge
-                  key={region}
-                  variant={isSelected ? 'default' : 'outline'}
-                  className={cn(
-                    'cursor-pointer transition-colors px-3 py-1.5',
-                    isSelected
-                      ? 'bg-primary hover:bg-primary/90'
-                      : 'hover:bg-muted'
-                  )}
-                  onClick={() => toggleRegion(region)}
-                >
-                  {region}
-                  {isSelected && <X className="w-3 h-3 ml-1" />}
-                </Badge>
-              )
-            })}
-          </div>
-          {errors.regions && (
-            <p className="text-sm text-destructive">{errors.regions}</p>
-          )}
         </div>
       </div>
 
-      <div className="flex justify-between">
-        <Button variant="ghost" onClick={onBack}>
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back
-        </Button>
-        <Button onClick={handleContinue} disabled={isSaving} size="lg">
-          {isSaving ? (
+      {/* Info note */}
+      <div className="flex items-start gap-2 text-sm text-muted-foreground">
+        <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
+        <p>Logo and address can be added later in settings</p>
+      </div>
+
+      {/* Next Button */}
+      <div className="flex justify-end pt-2">
+        <Button
+          onClick={handleNext}
+          disabled={isLoading || isSaving}
+          size="lg"
+        >
+          {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Saving...
+              Checking...
             </>
           ) : (
-            'Continue'
+            'Get Started'
           )}
         </Button>
       </div>
+
+      {/* Company Confirmation Modal */}
+      <CompanyConfirmModal
+        isOpen={showConfirmModal}
+        company={matchedCompany}
+        onConfirm={handleConfirmExisting}
+        onCreateNew={handleCreateNewCompany}
+        onClose={() => setShowConfirmModal(false)}
+        isLoading={isLoading}
+      />
     </div>
   )
 }
