@@ -366,9 +366,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         setCampaigns(aggregatedCampaigns)
         console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
-      } else if (campaignsResult.error) {
-        console.error('[DataContext] Campaigns error:', campaignsResult.error)
-        errors.push(`Campaigns: ${campaignsResult.error.message}`)
       }
 
       // Process COMPANIES
