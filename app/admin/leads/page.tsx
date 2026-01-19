@@ -68,6 +68,8 @@ const STATUS_OPTIONS = Object.keys(STATUS_CONFIG)
 
 const PAYMENT_OPTIONS = ['Cash', 'Mortgage']
 
+const CLASS_OPTIONS = ['Hot', 'Hot Lead', 'Qualified', 'Needs Qualification', 'Warm-Qualified', 'Warm-Engaged', 'Nurture', 'Low Priority', 'Cold', 'Disqualified']
+
 type FilterOperator =
   | 'contains'
   | 'not_contains'
@@ -116,6 +118,7 @@ const FILTER_FIELDS: FilterField[] = [
   { key: 'email', label: 'Email', type: 'text' },
   { key: 'budget', label: 'Budget', type: 'text' },
   { key: 'quality_score', label: 'Lead Score', type: 'number' },
+  { key: 'ai_classification', label: 'Class', type: 'select', options: CLASS_OPTIONS },
   { key: 'ai_confidence', label: 'Confidence', type: 'number' },
   { key: 'status', label: 'Status', type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', type: 'select', options: PAYMENT_OPTIONS },
@@ -796,6 +799,19 @@ export default function LeadsPage() {
               ? uniqueStatuses.map(opt => <option key={opt} value={opt}>{opt}</option>)
               : STATUS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)
             }
+          </select>
+          <select
+            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            onChange={(e) => {
+              if (e.target.value) {
+                setFilterConditions(prev => [...prev.filter(c => c.field !== 'ai_classification'), { id: generateId(), field: 'ai_classification', operator: 'equals', value: e.target.value }])
+              } else {
+                setFilterConditions(filterConditions.filter(c => c.field !== 'ai_classification'))
+              }
+            }}
+          >
+            <option value="">Class ▾</option>
+            {CLASS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
           <select
             className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
