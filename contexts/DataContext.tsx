@@ -102,7 +102,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         })(),
 
         // CAMPAIGNS - join company and development data
-        supabase.from('campaigns').select('*, company:companies(*), developmentData:developments(*)').order('created_at', { ascending: false }),
+        // Note: Supabase campaigns table uses 'date' instead of 'created_at'
+        supabase.from('campaigns').select('*, company:companies(*), developmentData:developments(*)').order('date', { ascending: false }),
 
         // COMPANIES
         supabase.from('companies').select('*').order('name', { ascending: true }),
@@ -210,24 +211,41 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return 0
         }
 
-        // Map campaign data - prioritize actual database column names (spend, leads, cpl)
-        // Fallback to alternate names for backwards compatibility with legacy data
+        // Map campaign data from Supabase schema to app expected field names
+        // Supabase uses: campaign_name, total_spent, number_of_leads, delivery_status, date
+        // App expects: name, spend, leads, status, created_at, cpl
         const mappedCampaigns = campaignsResult.data.map((c: any) => {
-          // Prioritize actual Supabase column names first, then fallback to alternates
-          const spendVal = c.spend ?? c.amount_spent ?? c.ad_spend ?? c.total_spend ?? c['total spend'] ?? c['Total Spend'] ?? 0
-          const leadsVal = c.leads ?? c.lead_count ?? c.total_leads ?? c['total leads'] ?? c['Total Leads'] ?? 0
-          const cplVal = c.cpl ?? c.cost_per_lead ?? c.CPL ?? 0
+          // Map from actual Supabase column names to expected names
+          const spendVal = c.total_spent ?? c.spend ?? c.amount_spent ?? c.ad_spend ?? 0
+          const leadsVal = c.number_of_leads ?? c.leads ?? c.lead_count ?? 0
+
+          const spend = parseNumber(spendVal)
+          const leads = parseNumber(leadsVal)
+          // Calculate CPL if not provided
+          const cplVal = c.cpl ?? c.cost_per_lead ?? (leads > 0 ? spend / leads : 0)
 
           return {
             ...c,
-            // Ensure numeric values are properly parsed
-            spend: parseNumber(spendVal),
-            leads: parseNumber(leadsVal),
+            // Map Supabase column names to expected app field names
+            name: c.campaign_name ?? c.name ?? c.ad_name ?? 'Unnamed Campaign',
+            status: c.delivery_status ?? c.status ?? 'draft',
+            created_at: c.date ?? c.created_at,
+            // Numeric fields
+            spend,
+            leads,
             cpl: parseNumber(cplVal),
-            // Map any additional fields that might be needed
             impressions: parseNumber(c.impressions ?? 0),
-            clicks: parseNumber(c.clicks ?? 0),
+            clicks: parseNumber(c.link_clicks ?? c.clicks ?? 0),
             ctr: parseNumber(c.ctr ?? 0),
+            reach: parseNumber(c.reach ?? 0),
+            cpc: parseNumber(c.cpc ?? 0),
+            cpm: parseNumber(c.cpm ?? 0),
+            // Keep original fields for reference
+            campaign_name: c.campaign_name,
+            ad_set_name: c.ad_set_name,
+            ad_name: c.ad_name,
+            total_spent: c.total_spent,
+            number_of_leads: c.number_of_leads,
           }
         })
         setCampaigns(mappedCampaigns)
@@ -441,19 +459,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Exclude system-managed fields only (id, created_at are immutable)
-      // Note: spend, leads, cpl are actual database columns and should be updatable
-      const excludeColumns = ['id', 'created_at', 'company', 'developmentData']
+      // Exclude computed/joined fields that don't exist in Supabase
+      const excludeColumns = ['id', 'created_at', 'company', 'developmentData', 'cpl', 'updated_at']
+
+      // Map app field names to Supabase column names
+      const fieldMapping: Record<string, string> = {
+        name: 'campaign_name',
+        spend: 'total_spent',
+        leads: 'number_of_leads',
+        status: 'delivery_status',
+      }
 
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
         if (!excludeColumns.includes(key) && value !== undefined) {
-          cleanData[key] = value
+          // Use mapped field name if it exists, otherwise use original
+          const dbFieldName = fieldMapping[key] || key
+          cleanData[dbFieldName] = value
         }
       }
-
-      // Add updated timestamp
-      cleanData.updated_at = new Date().toISOString()
 
       const { data: updatedData, error } = await supabase
         .from('campaigns')
@@ -468,9 +492,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return null
       }
 
-      setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...updatedData } : c)))
+      // Map the returned data back to app field names
+      const mappedData = {
+        ...updatedData,
+        name: updatedData.campaign_name ?? updatedData.name,
+        spend: updatedData.total_spent ?? updatedData.spend ?? 0,
+        leads: updatedData.number_of_leads ?? updatedData.leads ?? 0,
+        status: updatedData.delivery_status ?? updatedData.status,
+      }
+
+      setCampaigns((prev) => prev.map((c) => (c.id === id ? { ...c, ...mappedData } : c)))
       toast.success('Campaign updated')
-      return updatedData
+      return mappedData
     } catch (e) {
       console.error('[DataContext] Update campaign failed:', e)
       toast.error('Failed to update campaign')
@@ -581,9 +614,39 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const createCampaign = useCallback(async (data: Partial<Campaign>): Promise<Campaign | null> => {
     try {
       const supabase = createClient()
+
+      // Map app field names to Supabase column names
+      const fieldMapping: Record<string, string> = {
+        name: 'campaign_name',
+        spend: 'total_spent',
+        leads: 'number_of_leads',
+        status: 'delivery_status',
+      }
+
+      // Exclude computed fields that don't exist in Supabase
+      const excludeColumns = ['cpl', 'created_at', 'updated_at', 'company', 'developmentData']
+
+      const cleanData: Record<string, any> = {}
+      for (const [key, value] of Object.entries(data)) {
+        if (!excludeColumns.includes(key) && value !== undefined) {
+          const dbFieldName = fieldMapping[key] || key
+          cleanData[dbFieldName] = value
+        }
+      }
+
+      // Generate ID if not provided (Supabase expects text id)
+      if (!cleanData.id) {
+        cleanData.id = crypto.randomUUID()
+      }
+
+      // Set date if not provided
+      if (!cleanData.date) {
+        cleanData.date = new Date().toISOString().split('T')[0]
+      }
+
       const { data: newData, error } = await supabase
         .from('campaigns')
-        .insert(data)
+        .insert(cleanData)
         .select('*, company:companies(*), developmentData:developments(*)')
         .single()
 
@@ -593,9 +656,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return null
       }
 
-      setCampaigns((prev) => [newData, ...prev])
+      // Map returned data back to app field names
+      const mappedData = {
+        ...newData,
+        name: newData.campaign_name ?? newData.name,
+        spend: newData.total_spent ?? newData.spend ?? 0,
+        leads: newData.number_of_leads ?? newData.leads ?? 0,
+        status: newData.delivery_status ?? newData.status,
+        created_at: newData.date,
+      }
+
+      setCampaigns((prev) => [mappedData, ...prev])
       toast.success('Campaign created')
-      return newData
+      return mappedData
     } catch (e) {
       console.error('[DataContext] Create campaign failed:', e)
       toast.error('Failed to create campaign')
