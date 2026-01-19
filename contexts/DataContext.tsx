@@ -101,9 +101,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return allBuyers
         })(),
 
-        // CAMPAIGNS - join company and development data
-        // Note: Supabase campaigns table uses 'date' instead of 'created_at'
-        supabase.from('campaigns').select('*, company:companies(*), developmentData:developments(*)').order('date', { ascending: false }),
+        // CAMPAIGNS - fetch all with pagination (data is at ad-level, will aggregate by campaign)
+        (async () => {
+          let allCampaigns: any[] = []
+          let from = 0
+          const batchSize = 1000
+          let hasMore = true
+
+          while (hasMore) {
+            const { data, error } = await supabase
+              .from('campaigns')
+              .select('*, company:companies(*), developmentData:developments(*)')
+              .order('date', { ascending: false })
+              .range(from, from + batchSize - 1)
+
+            if (error) {
+              console.error('[DataContext] Campaigns batch error:', error.message)
+              return { error, data: null }
+            }
+            if (data && data.length > 0) {
+              allCampaigns = [...allCampaigns, ...data]
+              from += batchSize
+              hasMore = data.length === batchSize
+            } else {
+              hasMore = false
+            }
+          }
+          console.log(`[DataContext] Fetched ${allCampaigns.length} campaign records`)
+          return { error: null, data: allCampaigns }
+        })(),
 
         // COMPANIES
         supabase.from('companies').select('*').order('name', { ascending: true }),
@@ -196,14 +222,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setLeads(mappedBuyers)
       }
 
-      // Process CAMPAIGNS
+      // Process CAMPAIGNS - aggregate ad-level data into campaign-level insights
       if (!campaignsResult.error && campaignsResult.data) {
         // Parse values as numbers in case they're stored as strings
         const parseNumber = (val: any): number => {
           if (val === null || val === undefined) return 0
           if (typeof val === 'number') return val
           if (typeof val === 'string') {
-            // Remove currency symbols, commas, and spaces
             const cleaned = val.replace(/[£$€,\s]/g, '')
             const parsed = parseFloat(cleaned)
             return isNaN(parsed) ? 0 : parsed
@@ -211,45 +236,141 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return 0
         }
 
-        // Map campaign data from Supabase schema to app expected field names
-        // Supabase uses: campaign_name, total_spent, number_of_leads, delivery_status, date
-        // App expects: name, spend, leads, status, created_at, cpl
-        const mappedCampaigns = campaignsResult.data.map((c: any) => {
-          // Map from actual Supabase column names to expected names
-          const spendVal = c.total_spent ?? c.spend ?? c.amount_spent ?? c.ad_spend ?? 0
-          const leadsVal = c.number_of_leads ?? c.leads ?? c.lead_count ?? 0
+        // Aggregate ad-level data by campaign_name for insights
+        // Each row in Supabase is at ad-level, we aggregate to campaign-level
+        const campaignAggregates = new Map<string, {
+          id: string
+          name: string
+          company_id: string | null
+          development_id: string | null
+          company: any
+          developmentData: any
+          platform: string
+          status: string
+          totalSpend: number
+          totalLeads: number
+          totalImpressions: number
+          totalClicks: number
+          totalReach: number
+          adCount: number
+          dates: string[]
+          adSets: Set<string>
+          ads: any[]
+        }>()
 
-          const spend = parseNumber(spendVal)
-          const leads = parseNumber(leadsVal)
-          // Calculate CPL if not provided
-          const cplVal = c.cpl ?? c.cost_per_lead ?? (leads > 0 ? spend / leads : 0)
+        // First pass: aggregate all ad-level data by campaign name
+        for (const c of campaignsResult.data) {
+          const campaignName = c.campaign_name || c.name || 'Unnamed Campaign'
+          const existing = campaignAggregates.get(campaignName)
+
+          const spend = parseNumber(c.total_spent ?? c.spend ?? 0)
+          const leads = parseNumber(c.number_of_leads ?? c.leads ?? 0)
+          const impressions = parseNumber(c.impressions ?? 0)
+          const clicks = parseNumber(c.link_clicks ?? c.clicks ?? 0)
+          const reach = parseNumber(c.reach ?? 0)
+
+          if (existing) {
+            existing.totalSpend += spend
+            existing.totalLeads += leads
+            existing.totalImpressions += impressions
+            existing.totalClicks += clicks
+            existing.totalReach += reach
+            existing.adCount += 1
+            if (c.date) existing.dates.push(c.date)
+            if (c.ad_set_name) existing.adSets.add(c.ad_set_name)
+            // Keep reference to individual ads for drill-down
+            existing.ads.push({
+              id: c.id,
+              ad_name: c.ad_name,
+              ad_set_name: c.ad_set_name,
+              spend,
+              leads,
+              impressions,
+              clicks,
+              date: c.date,
+              status: c.delivery_status,
+            })
+          } else {
+            campaignAggregates.set(campaignName, {
+              id: c.id, // Use first ad's ID as campaign ID
+              name: campaignName,
+              company_id: c.company_id,
+              development_id: c.development_id,
+              company: c.company,
+              developmentData: c.developmentData,
+              platform: c.platform || 'Meta',
+              status: c.delivery_status || 'active',
+              totalSpend: spend,
+              totalLeads: leads,
+              totalImpressions: impressions,
+              totalClicks: clicks,
+              totalReach: reach,
+              adCount: 1,
+              dates: c.date ? [c.date] : [],
+              adSets: new Set(c.ad_set_name ? [c.ad_set_name] : []),
+              ads: [{
+                id: c.id,
+                ad_name: c.ad_name,
+                ad_set_name: c.ad_set_name,
+                spend,
+                leads,
+                impressions,
+                clicks,
+                date: c.date,
+                status: c.delivery_status,
+              }],
+            })
+          }
+        }
+
+        // Convert aggregates to campaign objects
+        const aggregatedCampaigns = Array.from(campaignAggregates.values()).map(agg => {
+          const cpl = agg.totalLeads > 0 ? agg.totalSpend / agg.totalLeads : 0
+          const ctr = agg.totalImpressions > 0 ? (agg.totalClicks / agg.totalImpressions) * 100 : 0
+          const cpc = agg.totalClicks > 0 ? agg.totalSpend / agg.totalClicks : 0
+          const cpm = agg.totalImpressions > 0 ? (agg.totalSpend / agg.totalImpressions) * 1000 : 0
+
+          // Sort dates to get date range
+          const sortedDates = agg.dates.sort()
+          const startDate = sortedDates[0]
+          const endDate = sortedDates[sortedDates.length - 1]
 
           return {
-            ...c,
-            // Map Supabase column names to expected app field names
-            name: c.campaign_name ?? c.name ?? c.ad_name ?? 'Unnamed Campaign',
-            status: c.delivery_status ?? c.status ?? 'draft',
-            created_at: c.date ?? c.created_at,
-            // Numeric fields
-            spend,
-            leads,
-            cpl: parseNumber(cplVal),
-            impressions: parseNumber(c.impressions ?? 0),
-            clicks: parseNumber(c.link_clicks ?? c.clicks ?? 0),
-            ctr: parseNumber(c.ctr ?? 0),
-            reach: parseNumber(c.reach ?? 0),
-            cpc: parseNumber(c.cpc ?? 0),
-            cpm: parseNumber(c.cpm ?? 0),
-            // Keep original fields for reference
-            campaign_name: c.campaign_name,
-            ad_set_name: c.ad_set_name,
-            ad_name: c.ad_name,
-            total_spent: c.total_spent,
-            number_of_leads: c.number_of_leads,
+            id: agg.id,
+            name: agg.name,
+            campaign_name: agg.name,
+            company_id: agg.company_id,
+            development_id: agg.development_id,
+            company: agg.company,
+            developmentData: agg.developmentData,
+            platform: agg.platform,
+            status: agg.status,
+            // Aggregated metrics
+            spend: Math.round(agg.totalSpend * 100) / 100,
+            leads: agg.totalLeads,
+            cpl: Math.round(cpl * 100) / 100,
+            impressions: agg.totalImpressions,
+            clicks: agg.totalClicks,
+            ctr: Math.round(ctr * 100) / 100,
+            reach: agg.totalReach,
+            cpc: Math.round(cpc * 100) / 100,
+            cpm: Math.round(cpm * 100) / 100,
+            // Meta information
+            ad_count: agg.adCount,
+            ad_set_count: agg.adSets.size,
+            start_date: startDate,
+            end_date: endDate,
+            created_at: startDate,
+            // Keep ads for drill-down if needed
+            ads: agg.ads,
           }
         })
-        setCampaigns(mappedCampaigns)
-        console.log('[DataContext] Campaigns loaded:', mappedCampaigns.length)
+
+        // Sort by spend (highest first) for insights
+        aggregatedCampaigns.sort((a, b) => b.spend - a.spend)
+
+        setCampaigns(aggregatedCampaigns)
+        console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
       } else if (campaignsResult.error) {
         console.error('[DataContext] Campaigns error:', campaignsResult.error)
         errors.push(`Campaigns: ${campaignsResult.error.message}`)
