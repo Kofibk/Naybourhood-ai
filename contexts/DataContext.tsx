@@ -241,10 +241,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         const campaignAggregates = new Map<string, {
           id: string
           name: string
-          company_id: string | null
-          development_id: string | null
-          company: any
-          developmentData: any
+          company_id?: string
+          development_id?: string
+          company?: any
+          developmentData?: any
           platform: string
           status: string
           totalSpend: number
@@ -294,10 +294,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             campaignAggregates.set(campaignName, {
               id: c.id, // Use first ad's ID as campaign ID
               name: campaignName,
-              company_id: c.company_id,
-              development_id: c.development_id,
-              company: c.company,
-              developmentData: c.developmentData,
+              company_id: c.company_id ?? undefined,
+              development_id: c.development_id ?? undefined,
+              company: c.company ?? undefined,
+              developmentData: c.developmentData ?? undefined,
               platform: c.platform || 'Meta',
               status: c.delivery_status || 'active',
               totalSpend: spend,
