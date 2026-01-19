@@ -109,15 +109,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
           let hasMore = true
 
           while (hasMore) {
+            // Simple query without joins - joins may fail if FK not set up
             const { data, error } = await supabase
               .from('campaigns')
-              .select('*, company:companies(*), developmentData:developments(*)')
-              .order('date', { ascending: false })
+              .select('*')
               .range(from, from + batchSize - 1)
 
             if (error) {
               console.error('[DataContext] Campaigns batch error:', error.message)
-              return { error, data: null }
+              // Don't fail completely - return empty array so other data still loads
+              return { error: null, data: [] }
             }
             if (data && data.length > 0) {
               allCampaigns = [...allCampaigns, ...data]
@@ -243,8 +244,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
           name: string
           company_id?: string
           development_id?: string
-          company?: any
-          developmentData?: any
           platform: string
           status: string
           totalSpend: number
@@ -296,10 +295,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
               name: campaignName,
               company_id: c.company_id ?? undefined,
               development_id: c.development_id ?? undefined,
-              company: c.company ?? undefined,
-              developmentData: c.developmentData ?? undefined,
               platform: c.platform || 'Meta',
-              status: c.delivery_status || 'active',
+              status: c.delivery_status || c.status || 'active',
               totalSpend: spend,
               totalLeads: leads,
               totalImpressions: impressions,
@@ -339,10 +336,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
             id: agg.id,
             name: agg.name,
             campaign_name: agg.name,
-            company_id: agg.company_id ?? undefined,
-            development_id: agg.development_id ?? undefined,
-            company: agg.company,
-            developmentData: agg.developmentData,
+            company_id: agg.company_id,
+            development_id: agg.development_id,
             platform: agg.platform,
             status: agg.status,
             // Aggregated metrics
