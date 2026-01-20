@@ -136,13 +136,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       ])
       console.log(`[DataContext] Total counts in Supabase - Buyers: ${buyersCount.count}, Campaigns: ${campaignsCount.count}, Borrowers: ${borrowersCount.count}`)
 
-      // Fetch all data in PARALLEL with larger batch sizes for speed
+      // Fetch all data in PARALLEL with pagination to get ALL records
       const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
-        // BUYERS - fetch all columns (safer) with larger batch size
+        // BUYERS - fetch ALL with pagination (Supabase default limit is 1000)
         (async () => {
           let allBuyers: any[] = []
           let from = 0
-          const batchSize = 2000  // Larger batch = fewer round trips
+          const batchSize = 1000  // Supabase default limit
           let hasMore = true
 
           while (hasMore) {
@@ -158,6 +158,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               return []
             }
             if (data && data.length > 0) {
+              console.log(`[DataContext] Buyers batch ${from}-${from + data.length - 1}: ${data.length} rows`)
               allBuyers = [...allBuyers, ...data]
               from += batchSize
               hasMore = data.length === batchSize
@@ -165,20 +166,22 @@ export function DataProvider({ children }: { children: ReactNode }) {
               hasMore = false
             }
           }
+          console.log(`[DataContext] Total buyers fetched: ${allBuyers.length}`)
           return allBuyers
         })(),
 
-        // CAMPAIGNS - fetch all columns with larger batch size
+        // CAMPAIGNS - fetch ALL with pagination
         (async () => {
           let allCampaigns: any[] = []
           let from = 0
-          const batchSize = 2000
+          const batchSize = 1000  // Supabase default limit
           let hasMore = true
 
           while (hasMore) {
             const { data, error } = await supabase
               .from('campaigns')
               .select('*')
+              .order('date', { ascending: false })
               .range(from, from + batchSize - 1)
 
             if (error) {
@@ -186,6 +189,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               return { error: null, data: [] }
             }
             if (data && data.length > 0) {
+              console.log(`[DataContext] Campaigns batch ${from}-${from + data.length - 1}: ${data.length} rows`)
               allCampaigns = [...allCampaigns, ...data]
               from += batchSize
               hasMore = data.length === batchSize
@@ -193,7 +197,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               hasMore = false
             }
           }
-          console.log(`[DataContext] Fetched ${allCampaigns.length} campaign records`)
+          console.log(`[DataContext] Total campaigns fetched: ${allCampaigns.length}`)
           return { error: null, data: allCampaigns }
         })(),
 
@@ -207,7 +211,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         (async () => {
           let allBorrowers: any[] = []
           let from = 0
-          const batchSize = 2000
+          const batchSize = 1000  // Supabase default limit
           let hasMore = true
 
           while (hasMore) {
@@ -222,6 +226,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               return { error, data: [] }
             }
             if (data && data.length > 0) {
+              console.log(`[DataContext] Borrowers batch ${from}-${from + data.length - 1}: ${data.length} rows`)
               allBorrowers = [...allBorrowers, ...data]
               from += batchSize
               hasMore = data.length === batchSize
@@ -229,7 +234,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
               hasMore = false
             }
           }
-          console.log(`[DataContext] Fetched ${allBorrowers.length} borrower records`)
+          console.log(`[DataContext] Total borrowers fetched: ${allBorrowers.length}`)
           return { error: null, data: allBorrowers }
         })(),
 
