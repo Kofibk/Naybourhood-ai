@@ -116,7 +116,7 @@ function AnimatedNumber({
 }
 
 export default function AdminDashboard() {
-  const { leads, campaigns, companies, isLoading, error, refreshData } = useData()
+  const { leads, campaigns, companies, financeLeads, isLoading, error, refreshData } = useData()
   const [user, setUser] = useState<{ name?: string }>({})
 
   useEffect(() => {
@@ -319,7 +319,7 @@ export default function AdminDashboard() {
           <p className="text-sm text-muted-foreground">{getDateString()}</p>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-xs text-muted-foreground">
-              Campaigns: {campaigns.length} · Leads: {leads.length} · Companies: {companies.length}
+              Campaigns: {campaigns.length} · Leads: {leads.length} · Borrowers: {financeLeads.length} · Companies: {companies.length}
             </p>
             <Badge
               variant={!error ? 'success' : 'destructive'}

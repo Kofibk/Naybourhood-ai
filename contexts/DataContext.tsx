@@ -305,7 +305,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         console.log(`[DataContext] Processed buyers: ${mappedBuyers.length}`)
       }
 
-      // Process CAMPAIGNS - aggregate ad-level data into campaign-level insights
+      // Process CAMPAIGNS - pass through ALL rows (no aggregation to preserve spend)
       if (!campaignsResult.error && campaignsResult.data) {
         // Parse values as numbers in case they're stored as strings
         const parseNumber = (val: any): number => {
@@ -319,136 +319,48 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return 0
         }
 
-        // Aggregate ad-level data by campaign_name for insights
-        // Each row in Supabase is at ad-level, we aggregate to campaign-level
-        const campaignAggregates = new Map<string, {
-          id: string
-          name: string
-          company_id?: string
-          development_id?: string
-          platform: string
-          status: string
-          totalSpend: number
-          totalLeads: number
-          totalImpressions: number
-          totalClicks: number
-          totalReach: number
-          adCount: number
-          dates: string[]
-          adSets: Set<string>
-          ads: any[]
-        }>()
-
-        // First pass: aggregate all ad-level data by campaign name
-        for (const c of campaignsResult.data) {
-          const campaignName = c.campaign_name || c.name || 'Unnamed Campaign'
-          const existing = campaignAggregates.get(campaignName)
-
-          const spend = parseNumber(c.total_spent ?? c.spend ?? 0)
+        // Map ALL campaign rows directly (no aggregation)
+        const mappedCampaigns = campaignsResult.data.map((c: any) => {
+          const spend = parseNumber(c.total_spent ?? c.spend ?? c.amount_spent ?? 0)
           const leads = parseNumber(c.number_of_leads ?? c.leads ?? 0)
           const impressions = parseNumber(c.impressions ?? 0)
           const clicks = parseNumber(c.link_clicks ?? c.clicks ?? 0)
           const reach = parseNumber(c.reach ?? 0)
 
-          if (existing) {
-            existing.totalSpend += spend
-            existing.totalLeads += leads
-            existing.totalImpressions += impressions
-            existing.totalClicks += clicks
-            existing.totalReach += reach
-            existing.adCount += 1
-            if (c.date) existing.dates.push(c.date)
-            if (c.ad_set_name) existing.adSets.add(c.ad_set_name)
-            // Keep reference to individual ads for drill-down
-            existing.ads.push({
-              id: c.id,
-              ad_name: c.ad_name,
-              ad_set_name: c.ad_set_name,
-              spend,
-              leads,
-              impressions,
-              clicks,
-              date: c.date,
-              status: c.delivery_status,
-            })
-          } else {
-            campaignAggregates.set(campaignName, {
-              id: c.id, // Use first ad's ID as campaign ID
-              name: campaignName,
-              company_id: c.company_id ?? undefined,
-              development_id: c.development_id ?? undefined,
-              platform: c.platform || 'Meta',
-              status: c.delivery_status || c.status || 'active',
-              totalSpend: spend,
-              totalLeads: leads,
-              totalImpressions: impressions,
-              totalClicks: clicks,
-              totalReach: reach,
-              adCount: 1,
-              dates: c.date ? [c.date] : [],
-              adSets: new Set(c.ad_set_name ? [c.ad_set_name] : []),
-              ads: [{
-                id: c.id,
-                ad_name: c.ad_name,
-                ad_set_name: c.ad_set_name,
-                spend,
-                leads,
-                impressions,
-                clicks,
-                date: c.date,
-                status: c.delivery_status,
-              }],
-            })
-          }
-        }
-
-        // Convert aggregates to campaign objects
-        const aggregatedCampaigns = Array.from(campaignAggregates.values()).map(agg => {
-          const cpl = agg.totalLeads > 0 ? agg.totalSpend / agg.totalLeads : 0
-          const ctr = agg.totalImpressions > 0 ? (agg.totalClicks / agg.totalImpressions) * 100 : 0
-          const cpc = agg.totalClicks > 0 ? agg.totalSpend / agg.totalClicks : 0
-          const cpm = agg.totalImpressions > 0 ? (agg.totalSpend / agg.totalImpressions) * 1000 : 0
-
-          // Sort dates to get date range
-          const sortedDates = agg.dates.sort()
-          const startDate = sortedDates[0]
-          const endDate = sortedDates[sortedDates.length - 1]
+          const cpl = leads > 0 ? spend / leads : 0
+          const ctr = impressions > 0 ? (clicks / impressions) * 100 : 0
 
           return {
-            id: agg.id,
-            name: agg.name,
-            campaign_name: agg.name,
-            company_id: agg.company_id,
-            development_id: agg.development_id,
-            platform: agg.platform,
-            status: agg.status,
-            // Aggregated metrics
-            spend: Math.round(agg.totalSpend * 100) / 100,
-            leads: agg.totalLeads,
+            id: c.id,
+            name: c.campaign_name || c.name || 'Unnamed Campaign',
+            campaign_name: c.campaign_name || c.name,
+            company_id: c.company_id,
+            development_id: c.development_id,
+            platform: c.platform || 'Meta',
+            status: c.delivery_status || c.status || 'active',
+            spend: Math.round(spend * 100) / 100,
+            leads,
             cpl: Math.round(cpl * 100) / 100,
-            impressions: agg.totalImpressions,
-            clicks: agg.totalClicks,
+            impressions,
+            clicks,
             ctr: Math.round(ctr * 100) / 100,
-            reach: agg.totalReach,
-            cpc: Math.round(cpc * 100) / 100,
-            cpm: Math.round(cpm * 100) / 100,
-            // Meta information
-            ad_count: agg.adCount,
-            ad_set_count: agg.adSets.size,
-            start_date: startDate,
-            end_date: endDate,
-            created_at: startDate,
-            // Keep ads for drill-down if needed
-            ads: agg.ads,
+            reach,
+            ad_name: c.ad_name,
+            ad_set_name: c.ad_set_name,
+            date: c.date,
+            created_at: c.date || c.created_at,
           }
         })
 
-        // Sort by spend (highest first) for insights
-        aggregatedCampaigns.sort((a, b) => b.spend - a.spend)
+        // Calculate total spend from ALL rows
+        const totalRawSpend = mappedCampaigns.reduce((sum, c) => sum + c.spend, 0)
+        console.log(`[DataContext] Campaigns: ${mappedCampaigns.length} rows, Total Spend: £${totalRawSpend.toLocaleString()}`)
 
-        setCampaigns(aggregatedCampaigns)
-        processedCampaigns = aggregatedCampaigns
-        console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
+        // Sort by spend (highest first)
+        mappedCampaigns.sort((a, b) => b.spend - a.spend)
+
+        setCampaigns(mappedCampaigns)
+        processedCampaigns = mappedCampaigns
       }
 
       // Process COMPANIES
