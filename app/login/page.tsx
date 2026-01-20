@@ -531,21 +531,21 @@ function LoginPageInner() {
         </p>
 
         {/* Quick Access - Development/Testing */}
-        <Card className="border-dashed border-muted-foreground/30">
+        <Card className="border-dashed border-white/20">
           <CardContent className="pt-4 pb-4">
-            <p className="text-xs text-center text-muted-foreground mb-3 uppercase tracking-wider font-medium">
+            <p className="text-xs text-center text-white/50 mb-3 uppercase tracking-wider font-medium">
               Quick Access
             </p>
-            <div className="flex items-center gap-3 mb-3 p-2 rounded-md bg-muted/50">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-primary" />
+            <div className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-[#0A0A0A]">
+              <div className="w-8 h-8 rounded-full bg-[#34D399]/20 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-[#34D399]" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium">Kofi</p>
-                <p className="text-xs text-muted-foreground">kofi@millionpound.homes</p>
+                <p className="text-sm font-medium text-white">Kofi</p>
+                <p className="text-xs text-white/50">kofi@millionpound.homes</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mb-2 text-center">Select dashboard:</p>
+            <p className="text-xs text-white/50 mb-2 text-center">Select dashboard:</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
@@ -559,7 +559,7 @@ function LoginPageInner() {
                   }))
                   router.push('/admin')
                 }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#34D399] text-[#0A0A0A] font-medium hover:bg-[#34D399]/90 transition-colors"
               >
                 <Shield className="h-4 w-4" />
                 Admin
@@ -576,7 +576,7 @@ function LoginPageInner() {
                   }))
                   router.push('/developer')
                 }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors"
               >
                 <HardHat className="h-4 w-4" />
                 Developer
@@ -593,7 +593,7 @@ function LoginPageInner() {
                   }))
                   router.push('/agent')
                 }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors"
               >
                 <Users className="h-4 w-4" />
                 Agent
@@ -610,7 +610,7 @@ function LoginPageInner() {
                   }))
                   router.push('/broker')
                 }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-md text-sm bg-muted hover:bg-muted/80 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors"
               >
                 <Briefcase className="h-4 w-4" />
                 Broker
