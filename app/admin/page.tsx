@@ -50,11 +50,18 @@ const STATUS_CATEGORIES = {
   disqualified: ['disqualified', 'duplicate', 'invalid', 'fake', 'agent'],
 }
 
-// Helper function for case-insensitive status matching
+// Helper function for case-insensitive status matching (word boundary aware)
 const statusMatches = (status: string | undefined, category: string[]): boolean => {
   if (!status) return false
   const normalised = status.toLowerCase().trim()
-  return category.some(s => normalised === s || normalised.includes(s))
+  return category.some(s => {
+    // Exact match
+    if (normalised === s) return true
+    // Word boundary match - status contains the keyword as a complete phrase
+    // Use regex to match word boundaries for multi-word phrases
+    const pattern = new RegExp(`(^|\\s|-)${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|\\s|-)`, 'i')
+    return pattern.test(normalised)
+  })
 }
 
 // Only match exact disqualified statuses (not partial matches)
@@ -190,20 +197,28 @@ export default function AdminDashboard() {
     }
   }, [leads, campaigns, companies])
 
-  // Calculate lead classifications by status category - excluding disqualified
+  // Calculate lead classifications by status category - MUTUALLY EXCLUSIVE
+  // Each lead is only counted in ONE category (priority order: positive > negative > pending > other)
   const classificationData = useMemo(() => {
-    const activeLeads = leads.filter(l => !isDisqualified(l.status))
-
-    // By status category (case-insensitive)
-    const positive = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.positive)).length
-    const pending = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.pending)).length
-    const negative = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.negative)).length
-    const uncategorized = activeLeads.filter(l => {
-      return !statusMatches(l.status, STATUS_CATEGORIES.positive) &&
-             !statusMatches(l.status, STATUS_CATEGORIES.pending) &&
-             !statusMatches(l.status, STATUS_CATEGORIES.negative)
-    }).length
+    let positive = 0
+    let pending = 0
+    let negative = 0
+    let uncategorized = 0
     const disqualified = leads.filter(l => isDisqualified(l.status)).length
+
+    // Process each active lead and assign to exactly one category
+    const activeLeads = leads.filter(l => !isDisqualified(l.status))
+    activeLeads.forEach(l => {
+      if (statusMatches(l.status, STATUS_CATEGORIES.positive)) {
+        positive++
+      } else if (statusMatches(l.status, STATUS_CATEGORIES.negative)) {
+        negative++
+      } else if (statusMatches(l.status, STATUS_CATEGORIES.pending)) {
+        pending++
+      } else {
+        uncategorized++
+      }
+    })
 
     return [
       { name: 'Positive', value: positive, color: '#22c55e' },  // Green

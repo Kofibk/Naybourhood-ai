@@ -33,11 +33,17 @@ const STATUS_CATEGORIES = {
   disqualified: ['disqualified', 'duplicate', 'invalid', 'fake', 'agent'],
 }
 
-// Helper function for case-insensitive status matching
+// Helper function for case-insensitive status matching (word boundary aware)
 const statusMatches = (status: string | undefined, category: string[]): boolean => {
   if (!status) return false
   const normalised = status.toLowerCase().trim()
-  return category.some(s => normalised === s || normalised.includes(s))
+  return category.some(s => {
+    // Exact match
+    if (normalised === s) return true
+    // Word boundary match - status contains the keyword as a complete phrase
+    const pattern = new RegExp(`(^|\\s|-)${s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|\\s|-)`, 'i')
+    return pattern.test(normalised)
+  })
 }
 
 // Only match exact disqualified statuses
