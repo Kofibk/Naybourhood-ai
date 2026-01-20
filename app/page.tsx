@@ -1,5 +1,7 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Button } from '@/components/ui/button'
 import { Logo, LogoIcon } from '@/components/Logo'
 import { AuthHandler } from '@/components/AuthHandler'
 import {
@@ -8,11 +10,11 @@ import {
   ShieldCheck,
   TrendingUp,
   Users,
-  Building2,
   BarChart3,
   Clock,
   CheckCircle2,
   Zap,
+  X,
 } from 'lucide-react'
 
 // Client logos for the trusted by section
@@ -127,6 +129,28 @@ const caseStudies = [
 ]
 
 export default function LandingPage() {
+  const [showModal, setShowModal] = useState(false)
+
+  // Handle escape key to close modal
+  useEffect(() => {
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowModal(false)
+      }
+    }
+
+    if (showModal) {
+      document.addEventListener('keydown', handleEscape)
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden'
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = 'unset'
+    }
+  }, [showModal])
+
   return (
     <div className="min-h-screen">
       {/* Handle auth tokens from URL hash */}
@@ -143,7 +167,7 @@ export default function LandingPage() {
             backgroundImage: `url('https://images.unsplash.com/photo-1486325212027-8081e485255e?auto=format&fit=crop&w=2000&q=80')`,
           }}
         >
-          <div className="absolute inset-0 bg-gradient-to-b from-[#0A0A0A]/50 via-[#0A0A0A]/60 to-[#0A0A0A]" />
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0.7) 100%)' }} />
         </div>
 
         {/* Navigation */}
@@ -173,12 +197,12 @@ export default function LandingPage() {
                 >
                   Sign in
                 </Link>
-                <Link
-                  href="/login"
+                <a
+                  href="mailto:kofi@naybourhood.ai"
                   className="px-5 py-2.5 text-sm font-medium text-white border border-white/30 rounded-lg hover:bg-white/10 transition-colors"
                 >
                   Talk to us
-                </Link>
+                </a>
               </div>
 
               <Link
@@ -195,31 +219,31 @@ export default function LandingPage() {
         <div className="relative z-10 container mx-auto px-6 pt-20 md:pt-32 pb-20">
           <div className="max-w-4xl mx-auto text-center">
             {/* Early Access Badge */}
-            <div className="inline-flex items-center gap-3 mb-8">
-              <span className="w-2 h-2 rounded-full bg-emerald" />
-              <span className="text-label text-white/70">
+            <div className="inline-flex items-center gap-2 mb-8">
+              <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+              <span className="text-xs font-medium tracking-[0.1em] uppercase text-white/70">
                 NAYBOURHOOD EARLY ACCESS
               </span>
             </div>
 
             {/* Main Headline */}
             <h1 className="text-4xl md:text-5xl lg:text-[56px] font-normal text-white leading-[1.15] tracking-[-0.02em] mb-6">
-              AI that knows which buyers will complete.
+              Know which buyers are proceedable.
             </h1>
 
             {/* Subheadline */}
-            <p className="text-lg md:text-xl text-white/70 mb-10 max-w-2xl mx-auto">
-              Buyer intelligence for UK housebuilders
+            <p className="text-lg text-white/70 mb-10 max-w-2xl mx-auto">
+              Predicts who will complete—not just who&apos;s interested.
             </p>
 
             {/* CTA Button */}
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-[#0A0A0A] font-medium rounded-lg hover:bg-white/90 transition-colors"
+            <button
+              onClick={() => setShowModal(true)}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-medium rounded-md hover:bg-white/90 hover:shadow-lg transition-all duration-200"
             >
-              Talk to us
+              Join Waitlist
               <ArrowRight className="w-4 h-4" />
-            </Link>
+            </button>
           </div>
         </div>
 
@@ -241,6 +265,41 @@ export default function LandingPage() {
       </section>
 
       {/* ============================================
+          WAITLIST MODAL
+          ============================================ */}
+      {showModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-in fade-in duration-200"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowModal(false)
+            }
+          }}
+        >
+          <div className="relative w-full max-w-lg bg-white rounded-xl p-4 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+            {/* Close Button */}
+            <button
+              onClick={() => setShowModal(false)}
+              className="absolute top-4 right-4 z-10 p-1 text-gray-500 hover:text-gray-700 transition-colors"
+              aria-label="Close modal"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Airtable Embed */}
+            <iframe
+              src="https://airtable.com/embed/appvUyGsAfHWOlQtf/pagoI3F8SKAC3pQKd/form"
+              width="100%"
+              height="533"
+              frameBorder="0"
+              style={{ background: 'transparent' }}
+              className="rounded-lg"
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ============================================
           PRODUCT OVERVIEW - White background
           ============================================ */}
       <section id="product" className="bg-white py-24 md:py-32">
@@ -250,8 +309,8 @@ export default function LandingPage() {
             <div>
               {/* Section Label */}
               <div className="inline-flex items-center gap-3 mb-6">
-                <span className="w-2 h-2 rounded-full bg-emerald" />
-                <span className="text-label text-[#525252]">
+                <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+                <span className="text-xs font-medium tracking-[0.15em] uppercase text-[#525252]">
                   BUYER INTELLIGENCE
                 </span>
               </div>
@@ -297,7 +356,7 @@ export default function LandingPage() {
                     </div>
                     <span className="text-white font-medium">Buyer Pipeline</span>
                   </div>
-                  <span className="text-emerald text-sm font-medium">Live</span>
+                  <span className="text-[#34D399] text-sm font-medium">Live</span>
                 </div>
 
                 {/* Mock Stats Row */}
@@ -307,7 +366,7 @@ export default function LandingPage() {
                     <p className="text-xs text-white/60">Active Buyers</p>
                   </div>
                   <div className="bg-[#0A0A0A] rounded-lg p-4">
-                    <p className="text-2xl font-semibold text-emerald mb-1">92</p>
+                    <p className="text-2xl font-semibold text-[#34D399] mb-1">92</p>
                     <p className="text-xs text-white/60">Score 80+</p>
                   </div>
                   <div className="bg-[#0A0A0A] rounded-lg p-4">
@@ -334,11 +393,11 @@ export default function LandingPage() {
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className={`text-xs px-2 py-1 rounded-full ${buyer.status === 'Verified' ? 'bg-emerald-200 text-emerald-500' : 'bg-amber/20 text-amber'}`}>
+                        <span className={`text-xs px-2 py-1 rounded-full ${buyer.status === 'Verified' ? 'bg-emerald-200 text-emerald-500' : 'bg-amber-100 text-amber-600'}`}>
                           {buyer.status}
                         </span>
                         <div className="text-right">
-                          <p className="text-lg font-semibold text-emerald">{buyer.score}</p>
+                          <p className="text-lg font-semibold text-[#34D399]">{buyer.score}</p>
                           <p className="text-[10px] text-white/50 uppercase">Score</p>
                         </div>
                       </div>
@@ -348,8 +407,8 @@ export default function LandingPage() {
               </div>
 
               {/* Decorative elements */}
-              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-emerald/10 rounded-full blur-3xl" />
-              <div className="absolute -top-8 -left-8 w-24 h-24 bg-emerald/5 rounded-full blur-2xl" />
+              <div className="absolute -bottom-4 -right-4 w-32 h-32 bg-[#34D399]/10 rounded-full blur-3xl" />
+              <div className="absolute -top-8 -left-8 w-24 h-24 bg-[#34D399]/5 rounded-full blur-2xl" />
             </div>
           </div>
         </div>
@@ -363,8 +422,8 @@ export default function LandingPage() {
           {/* Section Header */}
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-flex items-center gap-3 mb-6">
-              <span className="w-2 h-2 rounded-full bg-emerald" />
-              <span className="text-label text-white/70">
+              <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+              <span className="text-xs font-medium tracking-[0.15em] uppercase text-white/70">
                 HOW IT WORKS
               </span>
             </div>
@@ -379,11 +438,11 @@ export default function LandingPage() {
               <div key={i} className="relative">
                 {/* Connector line (except last) */}
                 {i < howItWorks.length - 1 && (
-                  <div className="hidden lg:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-emerald/50 to-transparent" />
+                  <div className="hidden lg:block absolute top-8 left-full w-full h-px bg-gradient-to-r from-[#34D399]/50 to-transparent" />
                 )}
 
                 <div className="bg-[#171717] rounded-xl p-6 h-full">
-                  <span className="text-emerald text-label mb-4 block">
+                  <span className="text-[#34D399] text-xs font-medium tracking-[0.15em] uppercase mb-4 block">
                     {item.step}
                   </span>
                   <h3 className="text-lg font-medium text-white mb-3">
@@ -407,8 +466,8 @@ export default function LandingPage() {
           {/* Section Header */}
           <div className="max-w-3xl mx-auto text-center mb-16">
             <div className="inline-flex items-center gap-3 mb-6">
-              <span className="w-2 h-2 rounded-full bg-emerald" />
-              <span className="text-label text-[#525252]">
+              <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+              <span className="text-xs font-medium tracking-[0.15em] uppercase text-[#525252]">
                 RESULTS
               </span>
             </div>
@@ -449,13 +508,13 @@ export default function LandingPage() {
               {caseStudies.map((study, i) => (
                 <div
                   key={i}
-                  className="p-6 border border-[#E5E5E5] rounded-xl hover:border-emerald/30 hover:shadow-card-light transition-all duration-300"
+                  className="p-6 border border-[#E5E5E5] rounded-xl hover:border-[#34D399]/30 hover:shadow-lg transition-all duration-300"
                 >
                   <p className="text-sm text-[#525252] mb-2">{study.developer}</p>
                   <h4 className="text-lg font-medium text-[#0A0A0A] mb-3">
                     {study.development}
                   </h4>
-                  <p className="text-2xl font-normal text-emerald mb-3">
+                  <p className="text-2xl font-normal text-[#34D399] mb-3">
                     {study.result}
                   </p>
                   <p className="text-sm text-[#525252]">
@@ -477,8 +536,8 @@ export default function LandingPage() {
             {/* Left - Content */}
             <div>
               <div className="inline-flex items-center gap-3 mb-6">
-                <span className="w-2 h-2 rounded-full bg-emerald" />
-                <span className="text-label text-white/70">
+                <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+                <span className="text-xs font-medium tracking-[0.15em] uppercase text-white/70">
                   WHO IT&apos;S FOR
                 </span>
               </div>
@@ -497,7 +556,7 @@ export default function LandingPage() {
                   'Property investment platforms',
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
-                    <CheckCircle2 className="w-5 h-5 text-emerald" />
+                    <CheckCircle2 className="w-5 h-5 text-[#34D399]" />
                     <span className="text-white">{item}</span>
                   </div>
                 ))}
@@ -520,7 +579,7 @@ export default function LandingPage() {
                         <p className="text-white font-medium">Average deal value</p>
                         <p className="text-sm text-white/60">Qualified buyers</p>
                       </div>
-                      <p className="text-3xl font-normal text-emerald">$1.2M</p>
+                      <p className="text-3xl font-normal text-[#34D399]">£1.2M</p>
                     </div>
                   </div>
                 </div>
@@ -538,13 +597,13 @@ export default function LandingPage() {
           <div className="max-w-4xl mx-auto">
             <div className="bg-[#0A0A0A] rounded-2xl p-10 md:p-16 text-center relative overflow-hidden">
               {/* Background decoration */}
-              <div className="absolute top-0 right-0 w-64 h-64 bg-emerald/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[#34D399]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#34D399]/5 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
 
               <div className="relative z-10">
                 <div className="inline-flex items-center gap-3 mb-6">
-                  <span className="w-2 h-2 rounded-full bg-emerald" />
-                  <span className="text-label text-white/70">
+                  <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+                  <span className="text-xs font-medium tracking-[0.15em] uppercase text-white/70">
                     GET STARTED
                   </span>
                 </div>
@@ -555,19 +614,19 @@ export default function LandingPage() {
                   Join the UK&apos;s leading developers using AI to predict which buyers will complete.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                  <Link
-                    href="/login"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white text-[#0A0A0A] font-medium rounded-lg hover:bg-white/90 transition-colors"
+                  <a
+                    href="mailto:kofi@naybourhood.ai"
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-white text-black font-medium rounded-md hover:bg-white/90 hover:shadow-lg transition-all duration-200"
                   >
                     Talk to us
                     <ArrowRight className="w-4 h-4" />
-                  </Link>
-                  <Link
-                    href="/admin"
-                    className="inline-flex items-center justify-center gap-2 px-8 py-4 text-white border border-white/30 font-medium rounded-lg hover:bg-white/10 transition-colors"
+                  </a>
+                  <button
+                    onClick={() => setShowModal(true)}
+                    className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white border border-white/30 font-medium rounded-md hover:bg-white/10 transition-colors"
                   >
-                    View demo
-                  </Link>
+                    Join Waitlist
+                  </button>
                 </div>
               </div>
             </div>
