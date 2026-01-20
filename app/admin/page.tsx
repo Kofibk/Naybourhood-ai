@@ -32,22 +32,37 @@ const COLORS = {
   cold: '#6b7280',
 }
 
-// Status categories - matching leads page
+// Status categories - matching leads page (all lowercase for case-insensitive matching)
 // Green (Positive) = Active engagement, viewings, offers, reservations
 // Amber (In Progress) = New leads, contacted, following up
 // Red (Negative) = Not proceeding, lost
 // Hidden = Disqualified (duplicate, fake, can't verify, agent)
 const STATUS_CATEGORIES = {
   positive: [
-    'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed',
-    'Qualified', 'Interested', 'Offer Made', 'Under Offer'
+    'viewing booked', 'negotiating', 'reserved', 'exchanged', 'completed',
+    'qualified', 'interested', 'offer made', 'under offer'
   ],
   pending: [
-    'New', 'Contact Pending', 'Follow Up', 'Contacted', 'Callback Requested',
-    'Awaiting Response', 'In Progress', 'Pending', 'To Contact', 'Enquiry'
+    'new', 'contact pending', 'follow up', 'contacted', 'callback requested',
+    'awaiting response', 'in progress', 'pending', 'to contact', 'enquiry'
   ],
-  negative: ['Not Proceeding', 'Lost', 'Unresponsive', 'Not Interested', 'Withdrawn'],
-  disqualified: ['Disqualified', 'Duplicate', 'Invalid', 'Fake', 'Agent'],
+  negative: ['not proceeding', 'lost', 'unresponsive', 'not interested', 'withdrawn'],
+  disqualified: ['disqualified', 'duplicate', 'invalid', 'fake', 'agent'],
+}
+
+// Helper function for case-insensitive status matching
+const statusMatches = (status: string | undefined, category: string[]): boolean => {
+  if (!status) return false
+  const normalised = status.toLowerCase().trim()
+  return category.some(s => normalised === s || normalised.includes(s))
+}
+
+// Only match exact disqualified statuses (not partial matches)
+const isDisqualified = (status: string | undefined): boolean => {
+  if (!status) return false
+  const normalised = status.toLowerCase().trim()
+  // Only exact matches for disqualified to avoid false positives
+  return STATUS_CATEGORIES.disqualified.includes(normalised)
 }
 
 // Animated counter hook
@@ -108,22 +123,22 @@ export default function AdminDashboard() {
 
   // Calculate real metrics from data - excluding disqualified
   const metrics = useMemo(() => {
-    // Exclude disqualified from all stats
-    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
-    const disqualifiedCount = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
+    // Exclude only exact disqualified matches
+    const activeLeads = leads.filter(l => !isDisqualified(l.status))
+    const disqualifiedCount = leads.filter(l => isDisqualified(l.status)).length
 
     const totalLeads = activeLeads.length
 
     // Hot leads: score >= 50 OR positive status (lowered threshold for better visibility)
     const hotLeads = activeLeads.filter(l => {
       // Include leads with positive status (actively engaged)
-      if (STATUS_CATEGORIES.positive.includes(l.status || '')) return true
+      if (statusMatches(l.status, STATUS_CATEGORIES.positive)) return true
       // Include leads with score >= 50
       const score = l.ai_quality_score ?? l.quality_score
       return score !== null && score !== undefined && score >= 50
     }).length
 
-    // Warm leads: score 30-49 OR pending status with some engagement
+    // Warm leads: score 30-49
     const warmLeads = activeLeads.filter(l => {
       const score = l.ai_quality_score ?? l.quality_score
       if (score !== null && score !== undefined && score >= 30 && score < 50) return true
@@ -143,14 +158,14 @@ export default function AdminDashboard() {
     // Avg CPL = Total Spend / Total Leads (buyers count)
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
 
-    // Status category counts
-    const positiveLeads = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
-    const pendingLeads = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
-    const negativeLeads = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
+    // Status category counts (case-insensitive)
+    const positiveLeads = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.positive)).length
+    const pendingLeads = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.pending)).length
+    const negativeLeads = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.negative)).length
 
     // Qualified = positive status OR score >= 50
     const qualifiedLeads = activeLeads.filter(l => {
-      if (STATUS_CATEGORIES.positive.includes(l.status || '')) return true
+      if (statusMatches(l.status, STATUS_CATEGORIES.positive)) return true
       const score = l.ai_quality_score ?? l.quality_score
       return score !== null && score !== undefined && score >= 50
     }).length
@@ -177,19 +192,18 @@ export default function AdminDashboard() {
 
   // Calculate lead classifications by status category - excluding disqualified
   const classificationData = useMemo(() => {
-    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const activeLeads = leads.filter(l => !isDisqualified(l.status))
 
-    // By status category
-    const positive = activeLeads.filter(l => STATUS_CATEGORIES.positive.includes(l.status || '')).length
-    const pending = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
-    const negative = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
+    // By status category (case-insensitive)
+    const positive = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.positive)).length
+    const pending = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.pending)).length
+    const negative = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.negative)).length
     const uncategorized = activeLeads.filter(l => {
-      const status = l.status || ''
-      return !STATUS_CATEGORIES.positive.includes(status) &&
-             !STATUS_CATEGORIES.pending.includes(status) &&
-             !STATUS_CATEGORIES.negative.includes(status)
+      return !statusMatches(l.status, STATUS_CATEGORIES.positive) &&
+             !statusMatches(l.status, STATUS_CATEGORIES.pending) &&
+             !statusMatches(l.status, STATUS_CATEGORIES.negative)
     }).length
-    const disqualified = leads.filter(l => STATUS_CATEGORIES.disqualified.includes(l.status || '')).length
+    const disqualified = leads.filter(l => isDisqualified(l.status)).length
 
     return [
       { name: 'Positive', value: positive, color: '#22c55e' },  // Green

@@ -19,18 +19,32 @@ import {
   CheckCircle,
 } from 'lucide-react'
 
-// Status categories - matching leads page
+// Status categories - matching leads page (lowercase for case-insensitive matching)
 const STATUS_CATEGORIES = {
   positive: [
-    'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed',
-    'Qualified', 'Interested', 'Offer Made', 'Under Offer'
+    'viewing booked', 'negotiating', 'reserved', 'exchanged', 'completed',
+    'qualified', 'interested', 'offer made', 'under offer'
   ],
   pending: [
-    'New', 'Contact Pending', 'Follow Up', 'Contacted', 'Callback Requested',
-    'Awaiting Response', 'In Progress', 'Pending', 'To Contact', 'Enquiry'
+    'new', 'contact pending', 'follow up', 'contacted', 'callback requested',
+    'awaiting response', 'in progress', 'pending', 'to contact', 'enquiry'
   ],
-  negative: ['Not Proceeding', 'Lost', 'Unresponsive', 'Not Interested', 'Withdrawn'],
-  disqualified: ['Disqualified', 'Duplicate', 'Invalid', 'Fake', 'Agent'],
+  negative: ['not proceeding', 'lost', 'unresponsive', 'not interested', 'withdrawn'],
+  disqualified: ['disqualified', 'duplicate', 'invalid', 'fake', 'agent'],
+}
+
+// Helper function for case-insensitive status matching
+const statusMatches = (status: string | undefined, category: string[]): boolean => {
+  if (!status) return false
+  const normalised = status.toLowerCase().trim()
+  return category.some(s => normalised === s || normalised.includes(s))
+}
+
+// Only match exact disqualified statuses
+const isDisqualified = (status: string | undefined): boolean => {
+  if (!status) return false
+  const normalised = status.toLowerCase().trim()
+  return STATUS_CATEGORIES.disqualified.includes(normalised)
 }
 
 interface Insight {
@@ -63,7 +77,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
     const actionsList: RecommendedAction[] = []
 
     // Exclude disqualified from all stats
-    const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
+    const activeLeads = leads.filter(l => !isDisqualified(l.status))
 
     // Calculate stats
     const totalLeads = activeLeads.length
@@ -77,20 +91,22 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
     // Find stale leads (in Follow Up status for 5+ days)
     const now = new Date()
     const staleLeads = activeLeads.filter(b => {
-      if (b.status !== 'Follow Up' && b.status !== 'Contacted' && b.status !== 'Contact Pending') return false
+      const status = (b.status || '').toLowerCase()
+      if (status !== 'follow up' && status !== 'contacted' && status !== 'contact pending') return false
       const createdAt = new Date(b.created_at || now)
       const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
       return daysDiff >= 5
     })
 
     // Find hot leads without viewing booked
-    const hotLeadsNoViewing = activeLeads.filter(b =>
-      (b.ai_quality_score ?? b.quality_score ?? 0) >= 50 &&
-      b.status !== 'Viewing Booked' &&
-      b.status !== 'Completed' &&
-      b.status !== 'Reserved' &&
-      b.status !== 'Exchanged'
-    )
+    const hotLeadsNoViewing = activeLeads.filter(b => {
+      const status = (b.status || '').toLowerCase()
+      return (b.ai_quality_score ?? b.quality_score ?? 0) >= 50 &&
+        status !== 'viewing booked' &&
+        status !== 'completed' &&
+        status !== 'reserved' &&
+        status !== 'exchanged'
+    })
 
     // Calculate week over week change
     const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)

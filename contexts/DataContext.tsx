@@ -38,14 +38,60 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
+// Cache key for sessionStorage
+const CACHE_KEY = 'naybourhood_data_cache'
+const CACHE_TTL = 5 * 60 * 1000  // 5 minutes
+
+interface CachedData {
+  leads: Buyer[]
+  campaigns: Campaign[]
+  companies: Company[]
+  developments: Development[]
+  financeLeads: FinanceLead[]
+  users: AppUser[]
+  timestamp: number
+}
+
+// Load cached data from sessionStorage
+const loadFromCache = (): CachedData | null => {
+  try {
+    const cached = sessionStorage.getItem(CACHE_KEY)
+    if (cached) {
+      const data = JSON.parse(cached) as CachedData
+      // Check if cache is still valid (within TTL)
+      if (Date.now() - data.timestamp < CACHE_TTL) {
+        console.log('[DataContext] Loading from cache')
+        return data
+      }
+    }
+  } catch (e) {
+    console.warn('[DataContext] Failed to load cache:', e)
+  }
+  return null
+}
+
+// Save data to sessionStorage cache
+const saveToCache = (data: Omit<CachedData, 'timestamp'>) => {
+  try {
+    const cacheData: CachedData = { ...data, timestamp: Date.now() }
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify(cacheData))
+    console.log('[DataContext] Saved to cache')
+  } catch (e) {
+    console.warn('[DataContext] Failed to save cache:', e)
+  }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Buyer[]>([])
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [developments, setDevelopments] = useState<Development[]>([])
-  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>([])
-  const [users, setUsers] = useState<AppUser[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  // Try to load from cache immediately for faster initial render
+  const cachedData = loadFromCache()
+
+  const [leads, setLeads] = useState<Buyer[]>(cachedData?.leads || [])
+  const [campaigns, setCampaigns] = useState<Campaign[]>(cachedData?.campaigns || [])
+  const [companies, setCompanies] = useState<Company[]>(cachedData?.companies || [])
+  const [developments, setDevelopments] = useState<Development[]>(cachedData?.developments || [])
+  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>(cachedData?.financeLeads || [])
+  const [users, setUsers] = useState<AppUser[]>(cachedData?.users || [])
+  const [isLoading, setIsLoading] = useState(!cachedData)  // Not loading if we have cache
   const [error, setError] = useState<string | null>(null)
 
   const isConfigured = isSupabaseConfigured()
@@ -143,7 +189,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
         supabase.from('user_profiles').select('*').order('first_name', { ascending: true }),
       ])
 
+      // Track processed data for caching
+      let processedLeads: Buyer[] = []
+      let processedCampaigns: Campaign[] = []
+      let processedCompanies: Company[] = []
+      let processedDevelopments: Development[] = []
+      let processedFinanceLeads: FinanceLead[] = []
+      let processedUsers: AppUser[] = []
+
       // Process BUYERS
+      console.log(`[DataContext] Raw buyers fetched: ${buyersResult?.length || 0}`)
       if (Array.isArray(buyersResult) && buyersResult.length > 0) {
         // Map column names - combine first_name + last_name into full_name
         const mappedBuyers = buyersResult.map((b: any) => {
@@ -219,6 +274,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           call_summary: b.call_summary || b['Call Summary'],
         }})
         setLeads(mappedBuyers)
+        processedLeads = mappedBuyers
+        console.log(`[DataContext] Processed buyers: ${mappedBuyers.length}`)
       }
 
       // Process CAMPAIGNS - aggregate ad-level data into campaign-level insights
@@ -363,6 +420,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         aggregatedCampaigns.sort((a, b) => b.spend - a.spend)
 
         setCampaigns(aggregatedCampaigns)
+        processedCampaigns = aggregatedCampaigns
         console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
       }
 
@@ -374,6 +432,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           tier: c.subscription_tier,
         }))
         setCompanies(mappedCompanies)
+        processedCompanies = mappedCompanies
       } else if (companiesResult.error) {
         errors.push(`Companies: ${companiesResult.error.message}`)
       }
@@ -408,6 +467,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           ...d,
         }))
         setDevelopments(mappedDevelopments)
+        processedDevelopments = mappedDevelopments
       }
       // If developments table doesn't exist yet, silently continue
 
@@ -442,6 +502,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
           }
         })
         setFinanceLeads(mappedFinanceLeads)
+        processedFinanceLeads = mappedFinanceLeads
+        console.log(`[DataContext] Processed borrowers: ${mappedFinanceLeads.length}`)
       }
       // If borrowers table doesn't exist yet, silently continue
 
@@ -485,6 +547,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (!usersResult.error && usersResult.data && usersResult.data.length > 0) {
         const mappedUsers = usersResult.data.map(mapProfileToUser)
         setUsers(mappedUsers)
+        processedUsers = mappedUsers
         usersLoaded = true
       }
 
@@ -497,6 +560,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
             if (data.users && data.users.length > 0) {
               const mappedUsers = data.users.map(mapProfileToUser)
               setUsers(mappedUsers)
+              processedUsers = mappedUsers
               usersLoaded = true
             }
           }
@@ -512,6 +576,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
       if (errors.length > 0) {
         setError(errors.join('; '))
       }
+
+      // Save to cache for faster subsequent loads
+      saveToCache({
+        leads: processedLeads,
+        campaigns: processedCampaigns,
+        companies: processedCompanies,
+        developments: processedDevelopments,
+        financeLeads: processedFinanceLeads,
+        users: processedUsers,
+      })
     } catch (err) {
       console.error('[DataContext] Error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
