@@ -69,33 +69,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return
       }
 
-      // Optimised columns for buyers - only fetch what's needed for dashboards
-      const buyerColumns = `
-        id, first_name, last_name, full_name, email, phone, country,
-        budget, budget_range, budget_min, budget_max,
-        bedrooms, preferred_bedrooms, location, area,
-        timeline, purpose, ready_in_28_days,
-        quality_score, intent_score, ai_quality_score, ai_intent_score,
-        ai_confidence, ai_summary, ai_next_action, ai_classification, ai_priority, ai_scored_at,
-        source, campaign, source_campaign, campaign_id,
-        development_id, development_name, company_id,
-        status, payment_method, proof_of_funds, mortgage_status,
-        uk_broker, uk_solicitor, notes,
-        assigned_to, assigned_user_name, assigned_at,
-        created_at, updated_at, date_added
-      `.replace(/\s+/g, '')
-
-      // Optimised columns for campaigns
-      const campaignColumns = `
-        id, campaign_name, name, platform, delivery_status, status,
-        total_spent, spend, number_of_leads, leads, impressions, link_clicks, clicks, reach,
-        ad_name, ad_set_name, date,
-        company_id, development_id
-      `.replace(/\s+/g, '')
-
-      // Fetch all data in PARALLEL with optimised queries
+      // Fetch all data in PARALLEL with larger batch sizes for speed
       const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
-        // BUYERS - fetch with optimised columns and larger batch size
+        // BUYERS - fetch all columns (safer) with larger batch size
         (async () => {
           let allBuyers: any[] = []
           let from = 0
@@ -105,7 +81,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           while (hasMore) {
             const { data, error } = await supabase
               .from('buyers')
-              .select(buyerColumns)
+              .select('*')
               .order('created_at', { ascending: false })
               .range(from, from + batchSize - 1)
 
@@ -125,7 +101,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return allBuyers
         })(),
 
-        // CAMPAIGNS - fetch with optimised columns
+        // CAMPAIGNS - fetch all columns with larger batch size
         (async () => {
           let allCampaigns: any[] = []
           let from = 0
@@ -135,7 +111,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           while (hasMore) {
             const { data, error } = await supabase
               .from('campaigns')
-              .select(campaignColumns)
+              .select('*')
               .range(from, from + batchSize - 1)
 
             if (error) {
