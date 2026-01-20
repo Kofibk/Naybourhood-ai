@@ -64,16 +64,16 @@ const howItWorks = [
   {
     step: '02',
     title: 'Enrich & Score',
-    description: 'Our AI analyzes each buyer against 50+ data points to generate a proceedability score from 0-100.',
+    description: 'Our AI analyses each buyer against 50+ data points to generate a proceedability score from 0-100.',
   },
   {
     step: '03',
-    title: 'Prioritize & Act',
+    title: 'Prioritise & Act',
     description: 'Focus your team on buyers most likely to complete. Automate nurture sequences for others.',
   },
   {
     step: '04',
-    title: 'Track & Optimize',
+    title: 'Track & Optimise',
     description: 'Real-time dashboards show conversion rates, time-to-completion, and pipeline health.',
   },
 ]
@@ -118,7 +118,7 @@ const caseStudies = [
     development: 'Battersea Exchange',
     developer: 'Berkeley Group',
     result: '40% faster sales cycle',
-    detail: 'AI scoring prioritized buyers with verified proof of funds',
+    detail: 'AI scoring prioritised buyers with verified proof of funds',
   },
   {
     development: 'Canary Wharf Residences',
@@ -233,7 +233,7 @@ export default function LandingPage() {
 
             {/* Subheadline */}
             <p className="text-lg text-white/70 mb-10 max-w-2xl mx-auto">
-              Predicts who will complete—not just who&apos;s interested.
+              Predict who will complete—not just who&apos;s interested.
             </p>
 
             {/* CTA Button */}
