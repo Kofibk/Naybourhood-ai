@@ -554,6 +554,7 @@ export default function LandingPage() {
                   'Sales and marketing directors',
                   'Estate agents with new homes teams',
                   'Property investment platforms',
+                  'Mortgage brokers, wealth managers and financial advisors',
                 ].map((item, i) => (
                   <div key={i} className="flex items-center gap-3">
                     <CheckCircle2 className="w-5 h-5 text-[#34D399]" />
