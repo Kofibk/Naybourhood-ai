@@ -120,9 +120,9 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   ]
 
   const NavContent = () => (
-    <div className="flex flex-col h-full bg-sidebar">
+    <div className="flex flex-col h-full bg-[#0A0A0A]">
       {/* Logo */}
-      <div className="p-4 border-b border-sidebar-border">
+      <div className="p-4 border-b border-white/10">
         <Link href="/">
           <Logo variant="light" size="sm" />
         </Link>
@@ -138,16 +138,19 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
                 onClick={() => setMobileOpen(false)}
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-md text-sm transition-colors',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200',
                   isActive(item.href)
-                    ? 'bg-sidebar-accent text-white font-medium'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-white'
+                    ? 'bg-[#34D399]/15 text-[#34D399] font-medium'
+                    : 'text-white/60 hover:bg-white/5 hover:text-white'
                 )}
               >
-                <item.icon className="h-5 w-5" aria-hidden="true" />
+                <item.icon className={cn(
+                  'h-5 w-5',
+                  isActive(item.href) ? 'text-[#34D399]' : ''
+                )} aria-hidden="true" />
                 <span>{item.name}</span>
                 {item.badge && (
-                  <Badge variant="muted" className="ml-auto text-[10px]">
+                  <Badge variant="secondary" className="ml-auto text-[10px] bg-[#34D399]/20 text-[#34D399] border-0">
                     {item.badge.toLocaleString()}
                   </Badge>
                 )}
@@ -159,8 +162,8 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
       {/* Quick Access - Admin Only */}
       {userType === 'admin' && (
-        <div className="p-3 border-t border-sidebar-border">
-          <div className="flex items-center gap-2 px-2 mb-2 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">
+        <div className="p-3 border-t border-white/10">
+          <div className="flex items-center gap-2 px-2 mb-2 text-xs font-medium text-white/40 uppercase tracking-wider">
             <ArrowRightLeft className="h-3 w-3" />
             Quick Access
           </div>
@@ -171,10 +174,10 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
                 href={dashboard.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  'flex items-center gap-2 px-2 py-1.5 rounded text-xs transition-colors',
+                  'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200',
                   userType === dashboard.type
-                    ? 'bg-sidebar-accent text-white font-medium'
-                    : 'text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-white'
+                    ? 'bg-[#34D399]/15 text-[#34D399] font-medium'
+                    : 'text-white/50 hover:bg-white/5 hover:text-white'
                 )}
               >
                 <dashboard.icon className="h-3.5 w-3.5" />
@@ -186,21 +189,21 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       )}
 
       {/* User Profile */}
-      <div className="p-3 border-t border-sidebar-border space-y-3">
-        <div className="flex items-center gap-3 px-2 py-2 rounded-md bg-sidebar-accent">
-          <div className="h-9 w-9 rounded-full bg-white/10 flex items-center justify-center">
-            <span className="text-sm font-medium">
+      <div className="p-3 border-t border-white/10 space-y-3">
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#171717]">
+          <div className="h-9 w-9 rounded-full bg-[#34D399]/20 flex items-center justify-center">
+            <span className="text-sm font-medium text-[#34D399]">
               {userName?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{userName}</p>
-            <p className="text-xs text-sidebar-foreground/60 capitalize">{userType}</p>
+            <p className="text-sm font-medium text-white truncate">{userName}</p>
+            <p className="text-xs text-white/50 capitalize">{userType}</p>
           </div>
         </div>
         <Button
           variant="ghost"
-          className="w-full justify-start text-sidebar-foreground/70 hover:text-destructive hover:bg-destructive/10"
+          className="w-full justify-start text-white/50 hover:text-red-400 hover:bg-red-400/10"
           onClick={onLogout}
         >
           <LogOut className="h-5 w-5 mr-3" />
@@ -216,7 +219,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       <Button
         variant="outline"
         size="icon"
-        className="lg:hidden fixed top-3 left-3 z-50 bg-background border-border shadow-md"
+        className="lg:hidden fixed top-3 left-3 z-50 bg-[#171717] border-white/10 text-white shadow-lg hover:bg-[#171717]/80"
         onClick={() => setMobileOpen(!mobileOpen)}
         aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
         aria-expanded={mobileOpen}
@@ -228,7 +231,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       {/* Mobile Overlay */}
       {mobileOpen && (
         <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          className="lg:hidden fixed inset-0 bg-black/70 z-40"
           onClick={() => setMobileOpen(false)}
           aria-hidden="true"
           role="presentation"
@@ -241,7 +244,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         role="navigation"
         aria-label="Main navigation"
         className={cn(
-          'fixed lg:static inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 lg:transform-none',
+          'fixed lg:static inset-y-0 left-0 z-40 w-64 transform transition-transform duration-300 lg:transform-none border-r border-white/10',
           mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         )}
       >
