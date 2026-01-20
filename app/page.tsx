@@ -267,7 +267,7 @@ export default function LandingPage() {
 
             {/* Airtable Embed */}
             <iframe
-              src="https://airtable.com/embed/appvUyGsAfHWOlQtf/pagoI3F8SKAC3pQKd/form"
+              src="https://airtable.com/embed/appvUyGsAfHWOlQtf/pagmGkZGFLEwGNo9s/form"
               width="100%"
               height="533"
               frameBorder="0"
