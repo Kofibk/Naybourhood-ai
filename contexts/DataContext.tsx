@@ -81,6 +81,16 @@ const saveToCache = (data: Omit<CachedData, 'timestamp'>) => {
   }
 }
 
+// Clear the cache
+const clearCache = () => {
+  try {
+    sessionStorage.removeItem(CACHE_KEY)
+    console.log('[DataContext] Cache cleared')
+  } catch (e) {
+    console.warn('[DataContext] Failed to clear cache:', e)
+  }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   // Try to load from cache immediately for faster initial render
   const cachedData = loadFromCache()
@@ -102,6 +112,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return
     }
 
+    // Clear cache to ensure fresh data
+    clearCache()
+
     setIsLoading(true)
     setError(null)
     const errors: string[] = []
@@ -114,6 +127,14 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setIsLoading(false)
         return
       }
+
+      // First, get counts to verify how many records exist
+      const [buyersCount, campaignsCount, borrowersCount] = await Promise.all([
+        supabase.from('buyers').select('*', { count: 'exact', head: true }),
+        supabase.from('campaigns').select('*', { count: 'exact', head: true }),
+        supabase.from('borrowers').select('*', { count: 'exact', head: true }),
+      ])
+      console.log(`[DataContext] Total counts in Supabase - Buyers: ${buyersCount.count}, Campaigns: ${campaignsCount.count}, Borrowers: ${borrowersCount.count}`)
 
       // Fetch all data in PARALLEL with larger batch sizes for speed
       const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
@@ -307,6 +328,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process CAMPAIGNS - pass through ALL rows (no aggregation to preserve spend)
       if (!campaignsResult.error && campaignsResult.data) {
+        // Log first row to see all available columns
+        if (campaignsResult.data.length > 0) {
+          const firstRow = campaignsResult.data[0]
+          console.log('[DataContext] Campaign columns:', Object.keys(firstRow))
+          console.log('[DataContext] First campaign row:', JSON.stringify(firstRow, null, 2))
+        }
+
         // Parse values as numbers in case they're stored as strings
         const parseNumber = (val: any): number => {
           if (val === null || val === undefined) return 0
@@ -321,7 +349,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
         // Map ALL campaign rows directly (no aggregation)
         const mappedCampaigns = campaignsResult.data.map((c: any) => {
-          const spend = parseNumber(c.total_spent ?? c.spend ?? c.amount_spent ?? 0)
+          const spend = parseNumber(c.total_spent ?? c.spend ?? c.amount_spent ?? c['Total Spent'] ?? c['Amount Spent'] ?? 0)
           const leads = parseNumber(c.number_of_leads ?? c.leads ?? 0)
           const impressions = parseNumber(c.impressions ?? 0)
           const clicks = parseNumber(c.link_clicks ?? c.clicks ?? 0)
