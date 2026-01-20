@@ -182,8 +182,35 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // DEVELOPMENTS - join company data
         supabase.from('developments').select('*, company:companies(*)'),
 
-        // BORROWERS (finance/mortgage leads)
-        supabase.from('borrowers').select('*').order('created_at', { ascending: false }),
+        // BORROWERS (finance/mortgage leads) - fetch ALL with pagination
+        (async () => {
+          let allBorrowers: any[] = []
+          let from = 0
+          const batchSize = 2000
+          let hasMore = true
+
+          while (hasMore) {
+            const { data, error } = await supabase
+              .from('borrowers')
+              .select('*')
+              .order('created_at', { ascending: false })
+              .range(from, from + batchSize - 1)
+
+            if (error) {
+              console.error('[DataContext] Borrowers error:', error.message)
+              return { error, data: [] }
+            }
+            if (data && data.length > 0) {
+              allBorrowers = [...allBorrowers, ...data]
+              from += batchSize
+              hasMore = data.length === batchSize
+            } else {
+              hasMore = false
+            }
+          }
+          console.log(`[DataContext] Fetched ${allBorrowers.length} borrower records`)
+          return { error: null, data: allBorrowers }
+        })(),
 
         // USER PROFILES
         supabase.from('user_profiles').select('*').order('first_name', { ascending: true }),
