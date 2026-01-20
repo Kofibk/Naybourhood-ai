@@ -1,43 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Naybourhood Premium Dark Monochrome Design System */
+/* Naybourhood Giga-Inspired Design System */
 
 @layer base {
   :root {
+    /* Brand Colors - Giga Aesthetic */
+    --background-dark: 0 0% 4%; /* #0A0A0A */
+    --background-light: 0 0% 100%; /* #FFFFFF */
+    --surface-dark: 0 0% 9%; /* #171717 */
+    --surface-light: 0 0% 96%; /* #F5F5F5 */
+    --text-dark: 0 0% 4%; /* #0A0A0A */
+    --text-light: 0 0% 100%; /* #FFFFFF */
+    --text-muted-dark: 0 0% 32%; /* #525252 */
+    --text-muted-light: 0 0% 64%; /* #A3A3A3 */
+    --emerald: 160 84% 39%; /* #34D399 - Accent */
+    --emerald-bg: 160 84% 39%; /* rgba(52,211,153,0.15) */
+    --amber: 43 96% 56%; /* #FBBF24 */
+    --blue: 217 91% 68%; /* #60A5FA */
+
+    /* Default (Dark Mode) */
     --primary: 0 0% 100%;
-    --primary-foreground: 0 0% 5%;
-    --secondary: 0 0% 12%;
+    --primary-foreground: 0 0% 4%;
+    --secondary: 0 0% 9%;
     --secondary-foreground: 0 0% 96%;
-    --accent: 0 0% 85%;
-    --accent-foreground: 0 0% 5%;
-    --background: 0 0% 5%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --background: 0 0% 4%;
     --foreground: 0 0% 96%;
-    --card: 0 0% 8%;
+    --card: 0 0% 9%;
     --card-foreground: 0 0% 96%;
-    --popover: 0 0% 10%;
+    --popover: 0 0% 9%;
     --popover-foreground: 0 0% 96%;
     --muted: 0 0% 15%;
-    --muted-foreground: 0 0% 60%;
+    --muted-foreground: 0 0% 64%;
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 18%;
     --input: 0 0% 15%;
-    --ring: 0 0% 100%;
-    --radius: 0.5rem;
-    --success: 142 76% 36%;
+    --ring: 160 84% 39%;
+    --radius: 0.75rem;
+    --success: 160 84% 39%;
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 43 96% 56%;
     --warning-foreground: 0 0% 0%;
-    --info: 217 91% 60%;
+    --info: 217 91% 68%;
     --info-foreground: 0 0% 100%;
     --sidebar-background: 0 0% 3%;
     --sidebar-foreground: 0 0% 96%;
     --sidebar-primary: 0 0% 100%;
-    --sidebar-primary-foreground: 0 0% 5%;
+    --sidebar-primary-foreground: 0 0% 4%;
     --sidebar-accent: 0 0% 12%;
     --sidebar-accent-foreground: 0 0% 96%;
     --sidebar-border: 0 0% 15%;
@@ -54,22 +69,105 @@
     font-family: 'Inter', sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
-    font-family: 'Playfair Display', serif;
+  /* Typography System - Giga Inspired */
+  h1 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 3.5rem;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+  }
+
+  h2 {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 2.5rem;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  h3 {
+    font-family: 'Inter', sans-serif;
     font-weight: 500;
+    font-size: 1.25rem;
+    line-height: 1.4;
+  }
+
+  p {
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    font-size: 1rem;
+    line-height: 1.6;
   }
 }
 
 @layer utilities {
   .font-display {
-    font-family: 'Playfair Display', serif;
+    font-family: 'Inter', sans-serif;
   }
 
   .font-body {
     font-family: 'Inter', sans-serif;
   }
+
+  /* Label style */
+  .text-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  /* Accent dot */
+  .accent-dot {
+    @apply inline-block w-2 h-2 rounded-full mr-3;
+    background-color: hsl(var(--emerald));
+  }
+
+  /* Giga card shadow */
+  .giga-shadow {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+
+  /* Floating UI effect */
+  .floating-ui {
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Dark overlay for photos */
+  .photo-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 10, 10, 0.5) 0%,
+      rgba(10, 10, 10, 0.7) 100%
+    );
+  }
+
+  /* Hero gradient */
+  .hero-gradient {
+    background: linear-gradient(
+      180deg,
+      rgba(10, 10, 10, 0.4) 0%,
+      rgba(10, 10, 10, 0.8) 100%
+    );
+  }
+
+  /* Section transitions */
+  .section-dark {
+    @apply bg-[#0A0A0A] text-white;
+  }
+
+  .section-light {
+    @apply bg-white text-[#0A0A0A];
+  }
+
+  /* Emerald accent background */
+  .emerald-bg {
+    background-color: rgba(52, 211, 153, 0.15);
+  }
 }
 
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -88,3 +186,39 @@
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground));
 }
+
+/* Animation for floating elements */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(-2deg);
+  }
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* Fade in animation */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+}
+
+/* Stagger animations */
+.stagger-1 { animation-delay: 0.1s; }
+.stagger-2 { animation-delay: 0.2s; }
+.stagger-3 { animation-delay: 0.3s; }
+.stagger-4 { animation-delay: 0.4s; }
