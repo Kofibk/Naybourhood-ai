@@ -75,7 +75,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
   const hotLeads = useMemo(() =>
     myLeads.filter((l) => {
       const score = l.ai_quality_score ?? l.quality_score
-      return score !== null && score !== undefined && score >= 85
+      return score !== null && score !== undefined && score >= 70
     }).slice(0, 3),
     [myLeads]
   )
@@ -190,7 +190,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
             <div className="text-2xl font-bold text-orange-500">
               {myLeads.filter((l) => {
                 const score = l.ai_quality_score ?? l.quality_score
-                return score !== null && score !== undefined && score >= 85
+                return score !== null && score !== undefined && score >= 70
               }).length}
             </div>
             <div className="text-xs text-muted-foreground">

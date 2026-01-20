@@ -64,34 +64,56 @@ export default function CampaignsPage() {
     spend: 0,
   })
 
-  // Count leads from buyers table for each campaign
-  // Match by: campaign_id, campaign name, development name, or client name
-  const leadCountByCampaign = useMemo(() => {
+  // Count leads by development name from buyers table
+  // Leads have development_name field which should match campaign development groups
+  const leadsByDevelopment = useMemo(() => {
     const counts: Record<string, number> = {}
 
-    // First pass: count leads by their campaign/development field
-    const leadsByDevelopment: Record<string, number> = {}
     leads.forEach((lead) => {
-      const devName = (lead.campaign || '').toLowerCase().trim()
+      // Get development name from lead - try multiple fields
+      const devName = (
+        lead.development_name ||
+        lead.source_campaign ||
+        lead.campaign ||
+        ''
+      ).toLowerCase().trim()
+
       if (devName) {
-        leadsByDevelopment[devName] = (leadsByDevelopment[devName] || 0) + 1
-      }
-      // Also count by campaign_id if present
-      if (lead.campaign_id) {
-        counts[lead.campaign_id] = (counts[lead.campaign_id] || 0) + 1
+        counts[devName] = (counts[devName] || 0) + 1
       }
     })
 
-    // Second pass: match campaigns to lead counts
+    return counts
+  }, [leads])
+
+  // Count leads from buyers table for each campaign
+  // Match by: development name, campaign_id, campaign name
+  const leadCountByCampaign = useMemo(() => {
+    const counts: Record<string, number> = {}
+
     campaigns.forEach((campaign) => {
       let matchedLeads = 0
 
-      // Try matching by campaign ID first
-      if (counts[campaign.id]) {
-        matchedLeads = counts[campaign.id]
+      // Extract development name from campaign name (e.g., "River Park Tower - Regional" -> "river park tower")
+      const campaignName = (campaign.name || '').toLowerCase()
+      const developmentFromCampaign = campaignName.split(' - ')[0].trim()
+
+      // Try matching by development name extracted from campaign
+      if (developmentFromCampaign) {
+        // Exact match first
+        matchedLeads = leadsByDevelopment[developmentFromCampaign] || 0
+
+        // If no exact match, try partial matching
+        if (matchedLeads === 0) {
+          Object.entries(leadsByDevelopment).forEach(([devName, count]) => {
+            if (devName.includes(developmentFromCampaign) || developmentFromCampaign.includes(devName)) {
+              matchedLeads += count
+            }
+          })
+        }
       }
 
-      // Try matching by development name (most common for lead data)
+      // Try matching by campaign's development field
       if (matchedLeads === 0 && campaign.development) {
         const devKey = campaign.development.toLowerCase().trim()
         matchedLeads = leadsByDevelopment[devKey] || 0
@@ -103,29 +125,13 @@ export default function CampaignsPage() {
         matchedLeads = leadsByDevelopment[clientKey] || 0
       }
 
-      // Try matching by campaign name
-      if (matchedLeads === 0 && campaign.name) {
-        const nameKey = campaign.name.toLowerCase().trim()
-        matchedLeads = leadsByDevelopment[nameKey] || 0
-
-        // Also try extracting development name from campaign name
-        // e.g., "Chelsea Island - Facebook" -> "Chelsea Island"
-        if (matchedLeads === 0) {
-          const dashMatch = campaign.name.match(/^([^-–]+?)(?:\s*[-–])/)
-          if (dashMatch && dashMatch[1]) {
-            const extractedDev = dashMatch[1].toLowerCase().trim()
-            matchedLeads = leadsByDevelopment[extractedDev] || 0
-          }
-        }
-      }
-
       if (matchedLeads > 0) {
         counts[campaign.id] = matchedLeads
       }
     })
 
     return counts
-  }, [leads, campaigns])
+  }, [campaigns, leadsByDevelopment])
 
   // Get actual lead count for a campaign
   const getLeadCount = useCallback((campaign: Campaign): number => {
@@ -192,19 +198,33 @@ export default function CampaignsPage() {
         }
       }
 
-      // Count leads from buyers table instead of campaigns table
-      const campaignLeads = leadCountByCampaign[campaign.id] || 0
-
       groups[groupName].campaigns.push(campaign)
       groups[groupName].totalSpend += campaign.spend || 0
-      groups[groupName].totalLeads += campaignLeads
       if (statusIs(campaign.status, 'active')) {
         groups[groupName].activeCampaigns++
       }
     })
 
-    // Calculate avg CPL for each group
+    // Calculate leads for each development group by matching development name to leads
     Object.values(groups).forEach((group) => {
+      const groupNameLower = group.name.toLowerCase().trim()
+
+      // Count leads that match this development
+      let groupLeads = 0
+
+      // Exact match first
+      if (leadsByDevelopment[groupNameLower]) {
+        groupLeads = leadsByDevelopment[groupNameLower]
+      } else {
+        // Try partial matching
+        Object.entries(leadsByDevelopment).forEach(([devName, count]) => {
+          if (devName.includes(groupNameLower) || groupNameLower.includes(devName)) {
+            groupLeads += count
+          }
+        })
+      }
+
+      group.totalLeads = groupLeads
       group.avgCPL = group.totalLeads > 0
         ? Math.round(group.totalSpend / group.totalLeads)
         : 0
@@ -216,7 +236,7 @@ export default function CampaignsPage() {
       if (b.name === 'Uncategorized Campaigns') return -1
       return b.totalSpend - a.totalSpend
     })
-  }, [campaigns, leadCountByCampaign])
+  }, [campaigns, leadsByDevelopment])
 
   // Filter groups based on search
   const filteredGroups = useMemo(() => {
@@ -408,36 +428,36 @@ export default function CampaignsPage() {
               <Card key={group.name}>
                 {/* Group Header */}
                 <CardHeader
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
+                  className="cursor-pointer hover:bg-muted/50 transition-colors p-4"
                   onClick={() => toggleGroup(group.name)}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
                       {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground" />
+                        <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
                       )}
-                      <Building2 className="h-5 w-5 text-primary" />
-                      <div>
-                        <CardTitle className="text-base">{group.name}</CardTitle>
+                      <Building2 className="h-5 w-5 text-primary flex-shrink-0" />
+                      <div className="min-w-0">
+                        <CardTitle className="text-base truncate">{group.name}</CardTitle>
                         <p className="text-xs text-muted-foreground">
                           {group.campaigns.length} campaigns · {group.activeCampaigns} active
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center justify-end gap-4 sm:gap-6 ml-8 sm:ml-0">
                       <div className="text-right">
                         <p className="text-sm font-semibold">{formatCurrency(group.totalSpend)}</p>
                         <p className="text-xs text-muted-foreground">Spend</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-semibold">{group.totalLeads.toLocaleString()}</p>
+                        <p className="text-sm font-semibold text-primary">{group.totalLeads.toLocaleString()}</p>
                         <p className="text-xs text-muted-foreground">Leads</p>
                       </div>
                       <div className="text-right">
                         <p className={`text-sm font-semibold ${group.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
-                          £{group.avgCPL}
+                          {group.totalLeads > 0 ? `£${group.avgCPL}` : '£0'}
                         </p>
                         <p className="text-xs text-muted-foreground">Avg CPL</p>
                       </div>
@@ -447,22 +467,22 @@ export default function CampaignsPage() {
 
                 {/* Expanded Campaigns */}
                 {isExpanded && (
-                  <CardContent className="pt-0">
+                  <CardContent className="pt-0 px-3 sm:px-6">
                     <div className="space-y-2 border-t pt-4">
                       {group.campaigns.map((campaign) => (
                         <div
                           key={campaign.id}
-                          className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             router.push(`/admin/campaigns/${campaign.id}`)
                           }}
                         >
-                          <div className="flex items-center gap-3">
-                            <Megaphone className="h-4 w-4 text-muted-foreground" />
-                            <div>
-                              <p className="text-sm font-medium">{campaign.name}</p>
-                              <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-3 min-w-0">
+                            <Megaphone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <div className="min-w-0">
+                              <p className="text-sm font-medium truncate">{campaign.name}</p>
+                              <div className="flex items-center gap-2 flex-wrap">
                                 <Badge
                                   variant={statusIs(campaign.status, 'active') ? 'success' : 'secondary'}
                                   className="text-[10px]"
@@ -477,7 +497,7 @@ export default function CampaignsPage() {
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-6">
+                          <div className="flex items-center justify-end gap-4 sm:gap-6 ml-7 sm:ml-0">
                             <div className="text-right" onClick={(e) => e.stopPropagation()}>
                               {(() => {
                                 const spend = campaign.spend ?? campaign.amount_spent
@@ -502,7 +522,7 @@ export default function CampaignsPage() {
                               </p>
                               <p className="text-xs text-muted-foreground">Leads</p>
                             </div>
-                            <div className="text-right w-16">
+                            <div className="text-right w-14 sm:w-16">
                               {(() => {
                                 const actualLeads = getLeadCount(campaign)
                                 const spend = campaign.spend ?? campaign.amount_spent ?? 0

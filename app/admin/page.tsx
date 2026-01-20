@@ -207,15 +207,30 @@ export default function AdminDashboard() {
   // Calculate campaign lead counts based on actual buyer/lead data
   const campaignLeadCounts = useMemo(() => {
     const counts: Record<string, number> = {}
-    leads.forEach(lead => {
-      // Count by campaign name or development
-      const campaignKey = lead.campaign || lead.campaign_id
-      if (campaignKey) {
-        counts[campaignKey] = (counts[campaignKey] || 0) + 1
-      }
+
+    campaigns.forEach(campaign => {
+      const campaignName = (campaign.name || '').toLowerCase()
+      const developmentFromCampaign = campaignName.split(' - ')[0].trim()
+
+      const matchingLeads = leads.filter(lead => {
+        // Match by campaign_id
+        if (lead.campaign_id && lead.campaign_id === campaign.id) return true
+        // Match by development_id
+        if (lead.development_id && campaign.development_id && lead.development_id === campaign.development_id) return true
+        // Match by campaign name
+        const leadCampaign = (lead.campaign || lead.source_campaign || '').toLowerCase()
+        if (leadCampaign && campaignName && (leadCampaign.includes(campaignName) || campaignName.includes(leadCampaign))) return true
+        // Match by development name
+        const leadDevelopment = (lead.development_name || '').toLowerCase()
+        if (leadDevelopment && developmentFromCampaign && (leadDevelopment.includes(developmentFromCampaign) || developmentFromCampaign.includes(leadDevelopment))) return true
+        return false
+      })
+
+      counts[campaign.name] = matchingLeads.length
     })
+
     return counts
-  }, [leads])
+  }, [leads, campaigns])
 
   // Get campaign alerts (high CPL campaigns)
   const campaignAlerts = useMemo(() => {
@@ -553,13 +568,23 @@ export default function AdminDashboard() {
               .map((campaign) => {
                 // Calculate leads from buyers that enquired about this campaign/development
                 const campaignName = (campaign.name || '').toLowerCase()
+                // Extract development name from campaign name (e.g., "River Park Tower" from "River Park Tower - Regional Based Campaign")
+                const developmentFromCampaign = campaignName.split(' - ')[0].trim()
+
                 const campaignLeads = leads.filter(lead => {
                   // Match by campaign_id first
                   if (lead.campaign_id && lead.campaign_id === campaign.id) return true
-                  // Then match by campaign name
-                  const leadCampaign = (lead.campaign || '').toLowerCase()
+                  // Match by development_id
+                  if (lead.development_id && campaign.development_id && lead.development_id === campaign.development_id) return true
+                  // Match by campaign name
+                  const leadCampaign = (lead.campaign || lead.source_campaign || '').toLowerCase()
                   if (leadCampaign && campaignName) {
-                    return leadCampaign.includes(campaignName) || campaignName.includes(leadCampaign)
+                    if (leadCampaign.includes(campaignName) || campaignName.includes(leadCampaign)) return true
+                  }
+                  // Match by development name (most leads come from development campaigns)
+                  const leadDevelopment = (lead.development_name || '').toLowerCase()
+                  if (leadDevelopment && developmentFromCampaign) {
+                    if (leadDevelopment.includes(developmentFromCampaign) || developmentFromCampaign.includes(leadDevelopment)) return true
                   }
                   return false
                 }).length
