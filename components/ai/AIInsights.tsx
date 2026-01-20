@@ -21,10 +21,16 @@ import {
 
 // Status categories - matching leads page
 const STATUS_CATEGORIES = {
-  positive: ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'],
-  pending: ['Contact Pending', 'Follow Up'],
-  negative: ['Not Proceeding'],
-  disqualified: ['Disqualified'],
+  positive: [
+    'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed',
+    'Qualified', 'Interested', 'Offer Made', 'Under Offer'
+  ],
+  pending: [
+    'New', 'Contact Pending', 'Follow Up', 'Contacted', 'Callback Requested',
+    'Awaiting Response', 'In Progress', 'Pending', 'To Contact', 'Enquiry'
+  ],
+  negative: ['Not Proceeding', 'Lost', 'Unresponsive', 'Not Interested', 'Withdrawn'],
+  disqualified: ['Disqualified', 'Duplicate', 'Invalid', 'Fake', 'Agent'],
 }
 
 interface Insight {
@@ -61,7 +67,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
     // Calculate stats
     const totalLeads = activeLeads.length
-    const hotLeads = activeLeads.filter(b => (b.ai_quality_score ?? b.quality_score ?? 0) >= 70)
+    const hotLeads = activeLeads.filter(b => (b.ai_quality_score ?? b.quality_score ?? 0) >= 50)
     const warmLeads = activeLeads.filter(b => {
       const score = b.ai_quality_score ?? b.quality_score ?? 0
       return score >= 40 && score < 70
@@ -79,7 +85,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
     // Find hot leads without viewing booked
     const hotLeadsNoViewing = activeLeads.filter(b =>
-      (b.ai_quality_score ?? b.quality_score ?? 0) >= 70 &&
+      (b.ai_quality_score ?? b.quality_score ?? 0) >= 50 &&
       b.status !== 'Viewing Booked' &&
       b.status !== 'Completed' &&
       b.status !== 'Reserved' &&
@@ -158,7 +164,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
     // Add top hot lead to call
     const topHotLead = activeLeads
-      .filter(b => (b.ai_quality_score ?? b.quality_score ?? 0) >= 70)
+      .filter(b => (b.ai_quality_score ?? b.quality_score ?? 0) >= 50)
       .sort((a, b) => (b.ai_quality_score ?? b.quality_score ?? 0) - (a.ai_quality_score ?? a.quality_score ?? 0))[0]
 
     if (topHotLead) {

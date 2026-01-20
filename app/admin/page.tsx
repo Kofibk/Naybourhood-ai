@@ -33,15 +33,21 @@ const COLORS = {
 }
 
 // Status categories - matching leads page
-// Green (Positive) = Viewing Booked, Negotiating, Reserved, Exchanged, Completed
-// Amber (In Progress) = Contact Pending, Follow Up
-// Red (Negative) = Not Proceeding
+// Green (Positive) = Active engagement, viewings, offers, reservations
+// Amber (In Progress) = New leads, contacted, following up
+// Red (Negative) = Not proceeding, lost
 // Hidden = Disqualified (duplicate, fake, can't verify, agent)
 const STATUS_CATEGORIES = {
-  positive: ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'],
-  pending: ['Contact Pending', 'Follow Up'],
-  negative: ['Not Proceeding'],
-  disqualified: ['Disqualified'],
+  positive: [
+    'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed',
+    'Qualified', 'Interested', 'Offer Made', 'Under Offer'
+  ],
+  pending: [
+    'New', 'Contact Pending', 'Follow Up', 'Contacted', 'Callback Requested',
+    'Awaiting Response', 'In Progress', 'Pending', 'To Contact', 'Enquiry'
+  ],
+  negative: ['Not Proceeding', 'Lost', 'Unresponsive', 'Not Interested', 'Withdrawn'],
+  disqualified: ['Disqualified', 'Duplicate', 'Invalid', 'Fake', 'Agent'],
 }
 
 // Animated counter hook
@@ -108,10 +114,20 @@ export default function AdminDashboard() {
 
     const totalLeads = activeLeads.length
 
-    // Hot leads: score >= 70 (only count leads that have been scored)
+    // Hot leads: score >= 50 OR positive status (lowered threshold for better visibility)
     const hotLeads = activeLeads.filter(l => {
+      // Include leads with positive status (actively engaged)
+      if (STATUS_CATEGORIES.positive.includes(l.status || '')) return true
+      // Include leads with score >= 50
       const score = l.ai_quality_score ?? l.quality_score
-      return score !== null && score !== undefined && score >= 70
+      return score !== null && score !== undefined && score >= 50
+    }).length
+
+    // Warm leads: score 30-49 OR pending status with some engagement
+    const warmLeads = activeLeads.filter(l => {
+      const score = l.ai_quality_score ?? l.quality_score
+      if (score !== null && score !== undefined && score >= 30 && score < 50) return true
+      return false
     }).length
 
     // Average score: only average leads that have actual scores (not null/undefined)
@@ -132,17 +148,18 @@ export default function AdminDashboard() {
     const pendingLeads = activeLeads.filter(l => STATUS_CATEGORIES.pending.includes(l.status || '')).length
     const negativeLeads = activeLeads.filter(l => STATUS_CATEGORIES.negative.includes(l.status || '')).length
 
-    // Qualified = positive status OR high score (for scored leads only)
+    // Qualified = positive status OR score >= 50
     const qualifiedLeads = activeLeads.filter(l => {
       if (STATUS_CATEGORIES.positive.includes(l.status || '')) return true
       const score = l.ai_quality_score ?? l.quality_score
-      return score !== null && score !== undefined && score >= 70
+      return score !== null && score !== undefined && score >= 50
     }).length
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
     return {
       totalLeads,
       hotLeads,
+      warmLeads,
       avgScore,
       totalSpend,
       avgCPL,
