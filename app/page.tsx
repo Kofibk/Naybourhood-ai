@@ -106,27 +106,6 @@ const platformBenefits = [
   },
 ]
 
-// Case studies
-const caseStudies = [
-  {
-    development: 'Nine Elms Tower',
-    developer: 'Regal London',
-    result: '23% higher completion rate',
-    detail: 'Identified high-intent international buyers early in the sales cycle',
-  },
-  {
-    development: 'Battersea Exchange',
-    developer: 'Berkeley Group',
-    result: '40% faster sales cycle',
-    detail: 'AI scoring prioritised buyers with verified proof of funds',
-  },
-  {
-    development: 'Canary Wharf Residences',
-    developer: 'Mount Anvil',
-    result: '2x marketing ROI',
-    detail: 'Targeted campaigns to lookalike audiences of completed buyers',
-  },
-]
 
 export default function LandingPage() {
   const [showModal, setShowModal] = useState(false)
@@ -499,31 +478,6 @@ export default function LandingPage() {
             ))}
           </div>
 
-          {/* Case Studies */}
-          <div className="border-t border-[#E5E5E5] pt-16">
-            <h3 className="text-xl font-medium text-[#0A0A0A] text-center mb-12">
-              Trusted by leading UK developers
-            </h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              {caseStudies.map((study, i) => (
-                <div
-                  key={i}
-                  className="p-6 border border-[#E5E5E5] rounded-xl hover:border-[#34D399]/30 hover:shadow-lg transition-all duration-300"
-                >
-                  <p className="text-sm text-[#525252] mb-2">{study.developer}</p>
-                  <h4 className="text-lg font-medium text-[#0A0A0A] mb-3">
-                    {study.development}
-                  </h4>
-                  <p className="text-2xl font-normal text-[#34D399] mb-3">
-                    {study.result}
-                  </p>
-                  <p className="text-sm text-[#525252]">
-                    {study.detail}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
