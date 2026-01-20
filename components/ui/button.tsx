@@ -4,27 +4,28 @@ import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-lg text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#34D399] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0A0A0A] disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
         default:
-          'bg-primary text-primary-foreground shadow hover:bg-primary/90',
+          'bg-white text-[#0A0A0A] shadow hover:bg-white/90',
         destructive:
-          'bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90',
+          'bg-red-500/20 text-red-400 shadow-sm hover:bg-red-500/30',
         outline:
-          'border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground',
+          'border border-white/20 bg-transparent text-white shadow-sm hover:bg-white/5 hover:border-white/30',
         secondary:
-          'bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80',
-        ghost: 'hover:bg-accent hover:text-accent-foreground',
-        link: 'text-primary underline-offset-4 hover:underline',
-        success: 'bg-success text-success-foreground shadow-sm hover:bg-success/90',
-        warning: 'bg-warning text-warning-foreground shadow-sm hover:bg-warning/90',
+          'bg-[#171717] text-white shadow-sm hover:bg-[#171717]/80',
+        ghost: 'text-white/70 hover:bg-white/5 hover:text-white',
+        link: 'text-[#34D399] underline-offset-4 hover:underline',
+        success: 'bg-[#34D399] text-[#0A0A0A] shadow-sm hover:bg-[#34D399]/90',
+        warning: 'bg-amber-500/20 text-amber-400 shadow-sm hover:bg-amber-500/30',
+        emerald: 'bg-[#34D399]/15 text-[#34D399] hover:bg-[#34D399]/25',
       },
       size: {
         default: 'h-9 px-4 py-2',
-        sm: 'h-8 rounded-md px-3 text-xs',
-        lg: 'h-10 rounded-md px-8',
+        sm: 'h-8 rounded-lg px-3 text-xs',
+        lg: 'h-11 rounded-lg px-8',
         icon: 'h-9 w-9',
       },
     },
