@@ -128,16 +128,15 @@ export default function AdminDashboard() {
 
   const userName = user.name?.split(' ')[0] || 'there'
 
-  // Calculate real metrics from data - excluding disqualified
+  // Calculate real metrics from data - show FULL totals (no filtering)
   const metrics = useMemo(() => {
-    // Exclude only exact disqualified matches
-    const activeLeads = leads.filter(l => !isDisqualified(l.status))
+    // TOTAL leads = ALL leads (no filtering)
+    const totalLeads = leads.length
     const disqualifiedCount = leads.filter(l => isDisqualified(l.status)).length
+    const activeLeads = leads.filter(l => !isDisqualified(l.status))
 
-    const totalLeads = activeLeads.length
-
-    // Hot leads: score >= 50 OR positive status (lowered threshold for better visibility)
-    const hotLeads = activeLeads.filter(l => {
+    // Hot leads: score >= 50 OR positive status (from ALL leads)
+    const hotLeads = leads.filter(l => {
       // Include leads with positive status (actively engaged)
       if (statusMatches(l.status, STATUS_CATEGORIES.positive)) return true
       // Include leads with score >= 50
@@ -145,15 +144,15 @@ export default function AdminDashboard() {
       return score !== null && score !== undefined && score >= 50
     }).length
 
-    // Warm leads: score 30-49
-    const warmLeads = activeLeads.filter(l => {
+    // Warm leads: score 30-49 (from ALL leads)
+    const warmLeads = leads.filter(l => {
       const score = l.ai_quality_score ?? l.quality_score
       if (score !== null && score !== undefined && score >= 30 && score < 50) return true
       return false
     }).length
 
     // Average score: only average leads that have actual scores (not null/undefined)
-    const scoredLeads = activeLeads.filter(l => {
+    const scoredLeads = leads.filter(l => {
       const score = l.ai_quality_score ?? l.quality_score
       return score !== null && score !== undefined
     })
@@ -162,21 +161,21 @@ export default function AdminDashboard() {
       : 0
 
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
-    // Avg CPL = Total Spend / Total Leads (buyers count)
+    // Avg CPL = Total Spend / Total Leads (all leads)
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
 
-    // Status category counts (case-insensitive)
-    const positiveLeads = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.positive)).length
-    const pendingLeads = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.pending)).length
-    const negativeLeads = activeLeads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.negative)).length
+    // Status category counts (case-insensitive) - from ALL leads
+    const positiveLeads = leads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.positive)).length
+    const pendingLeads = leads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.pending)).length
+    const negativeLeads = leads.filter(l => statusMatches(l.status, STATUS_CATEGORIES.negative)).length
 
-    // Qualified = positive status OR score >= 50
+    // Qualified = positive status OR score >= 50 (from active leads for rate calculation)
     const qualifiedLeads = activeLeads.filter(l => {
       if (statusMatches(l.status, STATUS_CATEGORIES.positive)) return true
       const score = l.ai_quality_score ?? l.quality_score
       return score !== null && score !== undefined && score >= 50
     }).length
-    const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
+    const qualifiedRate = activeLeads.length > 0 ? Math.round((qualifiedLeads / activeLeads.length) * 100) : 0
 
     return {
       totalLeads,
@@ -193,23 +192,25 @@ export default function AdminDashboard() {
       pendingLeads,
       negativeLeads,
       disqualifiedCount,
+      activeLeadsCount: activeLeads.length,
       scoredLeadsCount: scoredLeads.length,
     }
   }, [leads, campaigns, companies])
 
   // Calculate lead classifications by status category - MUTUALLY EXCLUSIVE
-  // Each lead is only counted in ONE category (priority order: positive > negative > pending > other)
+  // Each lead is only counted in ONE category (priority order: disqualified > positive > negative > pending > other)
   const classificationData = useMemo(() => {
     let positive = 0
     let pending = 0
     let negative = 0
     let uncategorized = 0
-    const disqualified = leads.filter(l => isDisqualified(l.status)).length
+    let disqualified = 0
 
-    // Process each active lead and assign to exactly one category
-    const activeLeads = leads.filter(l => !isDisqualified(l.status))
-    activeLeads.forEach(l => {
-      if (statusMatches(l.status, STATUS_CATEGORIES.positive)) {
+    // Process ALL leads and assign to exactly one category
+    leads.forEach(l => {
+      if (isDisqualified(l.status)) {
+        disqualified++
+      } else if (statusMatches(l.status, STATUS_CATEGORIES.positive)) {
         positive++
       } else if (statusMatches(l.status, STATUS_CATEGORIES.negative)) {
         negative++
