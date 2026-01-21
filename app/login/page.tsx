@@ -170,12 +170,13 @@ function LoginPageInner() {
             // Check if email confirmation is required
             if (data.user.identities?.length === 0) {
               setError('An account with this email already exists. Please sign in instead.')
-            } else if (data.session) {
-              // User is signed in immediately (email confirmation disabled)
-              router.push('/onboarding')
             } else {
-              // Email confirmation required
-              setMagicLinkSent(true)
+              // Always proceed to onboarding - email confirmation happens later in dashboard
+              // Store that email needs confirmation for later prompting
+              if (!data.session) {
+                localStorage.setItem('naybourhood_email_pending', 'true')
+              }
+              router.push('/onboarding')
             }
           }
         } else {
