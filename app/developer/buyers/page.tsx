@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -12,7 +12,8 @@ import { EmailComposer } from '@/components/EmailComposer'
 import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import {
   Search, Phone, Mail, MessageCircle, Eye, Flame, Users,
-  ChevronRight, Target, TrendingUp, CheckCircle, Clock
+  ChevronRight, Target, TrendingUp, CheckCircle, Clock, ArrowUpDown, ArrowUp, ArrowDown,
+  MoreHorizontal, Archive, Copy, AlertTriangle, Settings2
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -61,6 +62,9 @@ export default function DeveloperBuyersPage() {
   const [emailLead, setEmailLead] = useState<any>(null)
   const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [showArchived, setShowArchived] = useState(false)
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
 
   // Filter leads by company_id - only show leads assigned to the user's company
   // Admin users can see all leads
@@ -76,7 +80,14 @@ export default function DeveloperBuyersPage() {
   }, [leads, user?.company_id, isAdmin])
 
   const filteredLeads = useMemo(() => {
-    return myLeads.filter((lead) => {
+    const filtered = myLeads.filter((lead) => {
+      // Hide archived/duplicate/fake leads unless showArchived is true
+      if (!showArchived) {
+        if (lead.is_archived || lead.is_duplicate || lead.is_fake) {
+          return false
+        }
+      }
+
       const matchesSearch = !search ||
         lead.full_name?.toLowerCase().includes(search.toLowerCase()) ||
         lead.email?.toLowerCase().includes(search.toLowerCase()) ||
@@ -88,7 +99,27 @@ export default function DeveloperBuyersPage() {
 
       return matchesSearch && matchesStatus && matchesClassification
     })
-  }, [myLeads, search, statusFilter, classificationFilter])
+
+    // Sort by date
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+    })
+  }, [myLeads, search, statusFilter, classificationFilter, sortOrder, showArchived])
+
+  const toggleSortOrder = useCallback(() => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')
+  }, [])
+
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
 
   // Conversion funnel stats
   const stats = useMemo(() => {
@@ -140,6 +171,54 @@ export default function DeveloperBuyersPage() {
       setWhatsappLead(lead)
     } else {
       toast.error('No phone number available')
+    }
+  }
+
+  const handleMarkAsArchived = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      await updateLead(leadId, { is_archived: true })
+      toast.success('Lead archived')
+    } catch (error) {
+      console.error('Error archiving lead:', error)
+      toast.error('Failed to archive lead')
+    }
+  }
+
+  const handleMarkAsDuplicate = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      await updateLead(leadId, { is_duplicate: true })
+      toast.success('Lead marked as duplicate')
+    } catch (error) {
+      console.error('Error marking lead as duplicate:', error)
+      toast.error('Failed to mark lead as duplicate')
+    }
+  }
+
+  const handleMarkAsFake = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      await updateLead(leadId, { is_fake: true })
+      toast.success('Lead marked as fake')
+    } catch (error) {
+      console.error('Error marking lead as fake:', error)
+      toast.error('Failed to mark lead as fake')
+    }
+  }
+
+  const handleRestoreLead = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      await updateLead(leadId, { is_archived: false, is_duplicate: false, is_fake: false })
+      toast.success('Lead restored')
+    } catch (error) {
+      console.error('Error restoring lead:', error)
+      toast.error('Failed to restore lead')
     }
   }
 
@@ -246,6 +325,15 @@ export default function DeveloperBuyersPage() {
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
+        <Button
+          variant={showArchived ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowArchived(!showArchived)}
+          className="whitespace-nowrap"
+        >
+          <Archive className="h-4 w-4 mr-2" />
+          {showArchived ? 'Hide Archived' : 'Show Archived'}
+        </Button>
       </div>
 
       {/* Leads Table */}
@@ -278,6 +366,19 @@ export default function DeveloperBuyersPage() {
                     <th className="pb-2 font-medium">Classification</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Budget</th>
+                    <th
+                      className="pb-2 font-medium cursor-pointer hover:text-foreground transition-colors"
+                      onClick={toggleSortOrder}
+                    >
+                      <div className="flex items-center gap-1">
+                        Date Added
+                        {sortOrder === 'newest' ? (
+                          <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUp className="h-3 w-3" />
+                        )}
+                      </div>
+                    </th>
                     <th className="pb-2 font-medium">AI Next Action</th>
                     <th className="pb-2 font-medium text-right">Actions</th>
                   </tr>
@@ -293,10 +394,18 @@ export default function DeveloperBuyersPage() {
                         <div className="font-medium flex items-center gap-2">
                           {lead.ai_classification === 'Hot' && <Flame className="h-4 w-4 text-red-500" />}
                           {lead.full_name || 'Unknown'}
+                          {lead.is_archived && (
+                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600">Archived</Badge>
+                          )}
+                          {lead.is_duplicate && (
+                            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-600">Duplicate</Badge>
+                          )}
+                          {lead.is_fake && (
+                            <Badge variant="outline" className="text-xs bg-red-100 text-red-600">Fake</Badge>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          Q{lead.ai_quality_score || lead.quality_score || 0}/I{lead.ai_intent_score || lead.intent_score || 0}
-                          {lead.email && ` • ${lead.email}`}
+                          {lead.email || ''}
                         </div>
                       </td>
                       <td className="py-3">
@@ -318,6 +427,11 @@ export default function DeveloperBuyersPage() {
                       </td>
                       <td className="py-3">
                         <span className="text-sm">{lead.budget || lead.budget_range || '-'}</span>
+                      </td>
+                      <td className="py-3">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(lead.created_at)}
+                        </span>
                       </td>
                       <td className="py-3">
                         <span className="text-xs text-muted-foreground line-clamp-2 max-w-[180px]">
@@ -359,6 +473,61 @@ export default function DeveloperBuyersPage() {
                               <Mail className="h-3.5 w-3.5 text-blue-600" />
                             </Button>
                           )}
+                          {/* Actions Dropdown */}
+                          <div className="relative">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setActionMenuOpen(actionMenuOpen === lead.id ? null : lead.id)
+                              }}
+                              title="More Actions"
+                            >
+                              <Settings2 className="h-3.5 w-3.5" />
+                            </Button>
+                            {actionMenuOpen === lead.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg z-50"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {(lead.is_archived || lead.is_duplicate || lead.is_fake) ? (
+                                  <button
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-lg"
+                                    onClick={(e) => handleRestoreLead(lead.id, e)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Restore Lead
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-t-lg"
+                                      onClick={(e) => handleMarkAsArchived(lead.id, e)}
+                                    >
+                                      <Archive className="h-4 w-4 text-gray-500" />
+                                      Archive
+                                    </button>
+                                    <button
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                                      onClick={(e) => handleMarkAsDuplicate(lead.id, e)}
+                                    >
+                                      <Copy className="h-4 w-4 text-blue-500" />
+                                      Mark as Duplicate
+                                    </button>
+                                    <button
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-b-lg text-red-600"
+                                      onClick={(e) => handleMarkAsFake(lead.id, e)}
+                                    >
+                                      <AlertTriangle className="h-4 w-4" />
+                                      Mark as Fake
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
