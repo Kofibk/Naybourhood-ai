@@ -17,7 +17,7 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 const MASTER_ADMIN_COMPANIES = [
   { id: 'd4a3e617-422e-4c7e-a933-4214d534b927', name: 'Million Pound Homes' },
   { id: 'mount-anvil-001', name: 'Mount Anvil' },
-  { id: 'tudor-financial-001', name: 'Tudor Financial' },
+  { id: 'ad165cde-0d30-4084-b798-063dabfa7e7b', name: 'Tudor Financial' },
 ]
 
 function LoginPageInner() {
