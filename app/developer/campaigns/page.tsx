@@ -68,27 +68,27 @@ export default function CampaignsPage() {
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Campaigns</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground mb-2">Total Campaigns</div>
+            <div className="text-3xl font-bold">{stats.total}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Active</div>
-            <div className="text-2xl font-bold text-success">{stats.active}</div>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground mb-2">Active</div>
+            <div className="text-3xl font-bold text-success">{stats.active}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Spend</div>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalSpend)}</div>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground mb-2">Total Spend</div>
+            <div className="text-3xl font-bold">{formatCurrency(stats.totalSpend)}</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Leads</div>
-            <div className="text-2xl font-bold">{stats.totalLeads}</div>
+          <CardContent className="p-5">
+            <div className="text-sm text-muted-foreground mb-2">Total Leads</div>
+            <div className="text-3xl font-bold">{stats.totalLeads}</div>
           </CardContent>
         </Card>
       </div>

@@ -131,39 +131,39 @@ export default function SettingsPage() {
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Total Leads</span>
             </div>
-            <p className="text-2xl font-bold">{systemStats.totalLeads}</p>
+            <p className="text-3xl font-bold">{systemStats.totalLeads}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <BarChart2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Campaigns</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <BarChart2 className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Campaigns</span>
             </div>
-            <p className="text-2xl font-bold">{systemStats.totalCampaigns}</p>
+            <p className="text-3xl font-bold">{systemStats.totalCampaigns}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Companies</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Companies</span>
             </div>
-            <p className="text-2xl font-bold">{systemStats.totalCompanies}</p>
+            <p className="text-3xl font-bold">{systemStats.totalCompanies}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Developments</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Globe className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Developments</span>
             </div>
-            <p className="text-2xl font-bold">{systemStats.totalDevelopments}</p>
+            <p className="text-3xl font-bold">{systemStats.totalDevelopments}</p>
           </CardContent>
         </Card>
       </div>

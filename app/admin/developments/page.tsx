@@ -181,43 +181,43 @@ export default function DevelopmentsPage() {
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Developments</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Developments</span>
             </div>
-            <p className="text-2xl font-bold">{totals.developments}</p>
+            <p className="text-3xl font-bold">{totals.developments}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Home className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Units</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Home className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Total Units</span>
             </div>
-            <p className="text-2xl font-bold">
+            <p className="text-3xl font-bold">
               {totals.hasUnitData ? totals.totalUnits.toLocaleString() : '-'}
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Home className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">Available</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Home className="h-5 w-5 text-success shrink-0" />
+              <span className="text-sm text-muted-foreground">Available</span>
             </div>
-            <p className="text-2xl font-bold text-success">
+            <p className="text-3xl font-bold text-success">
               {totals.hasAvailableData ? totals.availableUnits.toLocaleString() : '-'}
             </p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Home className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Sold</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Home className="h-5 w-5 text-blue-500 shrink-0" />
+              <span className="text-sm text-muted-foreground">Sold</span>
             </div>
-            <p className="text-2xl font-bold text-blue-500">
+            <p className="text-3xl font-bold text-blue-500">
               {totals.hasUnitData && totals.hasAvailableData ? totals.soldUnits.toLocaleString() : '-'}
             </p>
           </CardContent>

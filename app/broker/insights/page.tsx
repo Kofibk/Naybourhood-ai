@@ -89,30 +89,30 @@ export default function InsightsPage() {
 
       <div className="grid md:grid-cols-3 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Target className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
-            <div className="text-xs text-muted-foreground">Lead Quality</div>
+            <div className="text-3xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
+            <div className="text-sm text-muted-foreground mt-1">Lead Quality</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Users className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : leads.length}</div>
-            <div className="text-xs text-muted-foreground">Total Leads</div>
+            <div className="text-3xl font-bold">{isLoading ? '...' : leads.length}</div>
+            <div className="text-sm text-muted-foreground mt-1">Total Leads</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <TrendingUp className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
-            <div className="text-xs text-muted-foreground">Qualified Rate</div>
+            <div className="text-3xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
+            <div className="text-sm text-muted-foreground mt-1">Qualified Rate</div>
           </CardContent>
         </Card>
       </div>
@@ -134,7 +134,7 @@ export default function InsightsPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-1">
                     <h4 className="font-medium text-sm">{insight.title}</h4>
-                    <Badge variant={insight.priority === 'high' ? 'destructive' : insight.priority === 'medium' ? 'warning' : 'secondary'} className="text-[10px]">
+                    <Badge variant={insight.priority === 'high' ? 'destructive' : insight.priority === 'medium' ? 'warning' : 'secondary'} className="text-xs whitespace-nowrap">
                       {insight.priority}
                     </Badge>
                   </div>

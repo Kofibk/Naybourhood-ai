@@ -261,12 +261,12 @@ export default function AdminDashboard() {
             </p>
             <Badge
               variant={!error ? 'success' : 'destructive'}
-              className="text-[10px]"
+              className="text-xs whitespace-nowrap"
             >
               {!error ? 'Supabase Connected' : 'Connection Error'}
             </Badge>
             {error && (
-              <Badge variant="destructive" className="text-[10px]">
+              <Badge variant="destructive" className="text-xs whitespace-nowrap">
                 {error}
               </Badge>
             )}
@@ -295,75 +295,75 @@ export default function AdminDashboard() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Total Leads</span>
-              <Users className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Total Leads</span>
+              <Users className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
             <AnimatedNumber
               value={metrics.totalLeads}
-              className="text-2xl font-bold"
+              className="text-3xl font-bold"
             />
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Hot Leads</span>
-              <Flame className="h-4 w-4 text-orange-500" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Hot Leads</span>
+              <Flame className="h-5 w-5 text-orange-500 shrink-0" />
             </div>
             <AnimatedNumber
               value={metrics.hotLeads}
-              className="text-2xl font-bold text-orange-500"
+              className="text-3xl font-bold text-orange-500"
             />
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Avg Score</span>
-              <Target className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Avg Score</span>
+              <Target className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
             <AnimatedNumber
               value={metrics.avgScore}
-              className="text-2xl font-bold"
+              className="text-3xl font-bold"
             />
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Total Spend</span>
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Total Spend</span>
+              <PoundSterling className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">
+            <div className="text-3xl font-bold">
               {formatCurrency(metrics.totalSpend)}
             </div>
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Avg CPL</span>
-              <TrendingDown className="h-4 w-4 text-success" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Avg CPL</span>
+              <TrendingDown className="h-5 w-5 text-success shrink-0" />
             </div>
             <AnimatedNumber
               value={metrics.avgCPL}
               prefix="£"
-              className="text-2xl font-bold text-success"
+              className="text-3xl font-bold text-success"
             />
           </CardContent>
         </Card>
         <Card className="animate-fade-in" style={{ animationDelay: '500ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Qualified Rate</span>
-              <CheckCircle className="h-4 w-4 text-success" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Qualified Rate</span>
+              <CheckCircle className="h-5 w-5 text-success shrink-0" />
             </div>
             <AnimatedNumber
               value={metrics.qualifiedRate}
               suffix="%"
-              className="text-2xl font-bold text-success"
+              className="text-3xl font-bold text-success"
             />
           </CardContent>
         </Card>
@@ -618,7 +618,7 @@ export default function AdminDashboard() {
               >
                 <p className="font-medium text-sm truncate">{company.name}</p>
                 <p className="text-xs text-muted-foreground">{company.tier || company.type || 'Client'}</p>
-                <Badge variant={company.status === 'active' ? 'success' : 'secondary'} className="mt-2 text-[10px]">
+                <Badge variant={company.status === 'active' ? 'success' : 'secondary'} className="mt-2 text-xs whitespace-nowrap">
                   {company.status || 'Active'}
                 </Badge>
               </div>

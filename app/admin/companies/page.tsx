@@ -216,39 +216,39 @@ export default function CompaniesPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Companies</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Building2 className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Total Companies</span>
             </div>
-            <p className="text-2xl font-bold">{totals.total}</p>
+            <p className="text-3xl font-bold">{totals.total}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">Active</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="h-5 w-5 text-success shrink-0" />
+              <span className="text-sm text-muted-foreground">Active</span>
             </div>
-            <p className="text-2xl font-bold text-success">{totals.active}</p>
+            <p className="text-3xl font-bold text-success">{totals.active}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-orange-500" />
-              <span className="text-xs text-muted-foreground">Trial</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-5 w-5 text-orange-500 shrink-0" />
+              <span className="text-sm text-muted-foreground">Trial</span>
             </div>
-            <p className="text-2xl font-bold text-orange-500">{totals.trial}</p>
+            <p className="text-3xl font-bold text-orange-500">{totals.trial}</p>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
+          <CardContent className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <Users className="h-5 w-5 text-muted-foreground shrink-0" />
+              <span className="text-sm text-muted-foreground">Total Leads</span>
             </div>
-            <p className="text-2xl font-bold">{totals.totalLeads}</p>
+            <p className="text-3xl font-bold">{totals.totalLeads}</p>
           </CardContent>
         </Card>
       </div>

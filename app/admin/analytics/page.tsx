@@ -175,64 +175,64 @@ export default function AnalyticsPage() {
       {/* Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Users className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{analytics.leads.total.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Total Leads</div>
+            <div className="text-3xl font-bold">{analytics.leads.total.toLocaleString()}</div>
+            <div className="text-sm text-muted-foreground mt-1">Total Leads</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Flame className="h-5 w-5 text-orange-500" />
-              <Badge variant="success" className="text-[10px]">
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Flame className="h-5 w-5 text-orange-500 shrink-0" />
+              <Badge variant="success" className="text-xs whitespace-nowrap">
                 {analytics.leads.hotPercentage}%
               </Badge>
             </div>
-            <div className="text-2xl font-bold text-orange-500">{analytics.leads.hot}</div>
-            <div className="text-xs text-muted-foreground">Hot Leads (80+)</div>
+            <div className="text-3xl font-bold text-orange-500">{analytics.leads.hot}</div>
+            <div className="text-sm text-muted-foreground mt-1">Hot Leads (80+)</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Target className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className={`text-2xl font-bold ${getScoreColor(analytics.leads.avgQualityScore)}`}>
+            <div className={`text-3xl font-bold ${getScoreColor(analytics.leads.avgQualityScore)}`}>
               {analytics.leads.avgQualityScore}
             </div>
-            <div className="text-xs text-muted-foreground">Avg Quality Score</div>
+            <div className="text-sm text-muted-foreground mt-1">Avg Quality Score</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <PoundSterling className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <PoundSterling className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{formatCurrency(analytics.campaigns.totalSpend)}</div>
-            <div className="text-xs text-muted-foreground">Total Spend</div>
+            <div className="text-3xl font-bold">{formatCurrency(analytics.campaigns.totalSpend)}</div>
+            <div className="text-sm text-muted-foreground mt-1">Total Spend</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingDown className="h-5 w-5 text-success" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <TrendingDown className="h-5 w-5 text-success shrink-0" />
             </div>
-            <div className={`text-2xl font-bold ${analytics.campaigns.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
+            <div className={`text-3xl font-bold ${analytics.campaigns.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
               £{analytics.campaigns.avgCPL}
             </div>
-            <div className="text-xs text-muted-foreground">Avg CPL</div>
+            <div className="text-sm text-muted-foreground mt-1">Avg CPL</div>
           </CardContent>
         </Card>
         <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Megaphone className="h-5 w-5 text-muted-foreground" />
+          <CardContent className="p-5">
+            <div className="flex items-center justify-between mb-3">
+              <Megaphone className="h-5 w-5 text-muted-foreground shrink-0" />
             </div>
-            <div className="text-2xl font-bold">{analytics.campaigns.active}</div>
-            <div className="text-xs text-muted-foreground">Active Campaigns</div>
+            <div className="text-3xl font-bold">{analytics.campaigns.active}</div>
+            <div className="text-sm text-muted-foreground mt-1">Active Campaigns</div>
           </CardContent>
         </Card>
       </div>
@@ -362,11 +362,11 @@ export default function AnalyticsPage() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Source</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Leads</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Avg Score</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Quality</th>
+                <tr className="border-b border-border bg-muted/30">
+                  <th className="text-left p-3 text-sm font-medium text-muted-foreground min-w-[150px]">Source</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground min-w-[80px]">Leads</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground min-w-[100px]">Avg Score</th>
+                  <th className="text-right p-3 text-sm font-medium text-muted-foreground min-w-[100px]">Quality</th>
                 </tr>
               </thead>
               <tbody>
