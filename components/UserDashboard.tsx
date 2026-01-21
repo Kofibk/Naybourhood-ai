@@ -118,14 +118,37 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
   }
 
   // Filter leads by companyId for multi-tenant data isolation
+  // For brokers, use financeLeads (borrowers) instead of leads (buyers)
   const myLeads = useMemo(() => {
     if (!companyId) return []
+
+    // Brokers use financeLeads (borrowers)
+    if (userType === 'broker') {
+      // Get company name for text-based matching
+      let companyName: string | undefined
+      try {
+        const stored = localStorage.getItem('naybourhood_user')
+        if (stored) {
+          const user = JSON.parse(stored)
+          companyName = user.company
+        }
+      } catch { /* ignore */ }
+
+      return financeLeads.filter(lead => {
+        // Match by company_id (UUID match)
+        if (lead.company_id === companyId) return true
+        // Match by company name (text match)
+        if (companyName && lead.company?.toLowerCase() === companyName.toLowerCase()) return true
+        return false
+      })
+    }
+
     // Test company ID - show all leads for testing
     if (companyId === 'mph-company') {
       return leads
     }
     return leads.filter(lead => lead.company_id === companyId)
-  }, [leads, companyId])
+  }, [leads, financeLeads, companyId, userType])
 
   // Filter campaigns by companyId
   const myCampaigns = useMemo(() => {
@@ -137,17 +160,25 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
   }, [campaigns, companyId])
 
   // Get hot leads (score >= 70 or classification is 'Hot Lead')
-  const hotLeads = useMemo(() =>
-    myLeads.filter((l) => {
+  // For brokers, get leads with active/urgent status
+  const hotLeads = useMemo(() => {
+    if (userType === 'broker') {
+      // For brokers, prioritize by status
+      return myLeads.filter((l: any) => {
+        const status = l.status?.toLowerCase() || ''
+        return status.includes('active') || status.includes('urgent') || status.includes('qualified')
+      }).slice(0, 5)
+    }
+    return myLeads.filter((l: any) => {
       const score = l.ai_quality_score ?? l.quality_score
       const isHotClassification = l.ai_classification === 'Hot Lead'
       const isHighScore = score !== null && score !== undefined && score >= 70
       return isHotClassification || isHighScore
-    }).slice(0, 5),
-    [myLeads]
-  )
+    }).slice(0, 5)
+  }, [myLeads, userType])
 
   // Calculate classification counts for donut chart
+  // For brokers, use status-based classification
   const classificationCounts = useMemo(() => {
     const counts = {
       hotLead: 0,
@@ -157,23 +188,39 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       lowPriority: 0,
     }
 
-    myLeads.forEach(lead => {
-      const classification = lead.ai_classification?.toLowerCase() || ''
-      if (classification.includes('hot')) {
-        counts.hotLead++
-      } else if (classification.includes('qualified') && !classification.includes('needs')) {
-        counts.qualified++
-      } else if (classification.includes('needs') || classification.includes('qualification')) {
-        counts.needsQualification++
-      } else if (classification.includes('nurture')) {
-        counts.nurture++
+    myLeads.forEach((lead: any) => {
+      if (userType === 'broker') {
+        // For brokers, map status to classifications
+        const status = lead.status?.toLowerCase() || ''
+        if (status.includes('active') || status.includes('urgent')) {
+          counts.hotLead++
+        } else if (status.includes('qualified') || status.includes('approved')) {
+          counts.qualified++
+        } else if (status.includes('pending') || status.includes('contact')) {
+          counts.needsQualification++
+        } else if (status.includes('follow') || status.includes('nurture')) {
+          counts.nurture++
+        } else {
+          counts.lowPriority++
+        }
       } else {
-        counts.lowPriority++
+        const classification = lead.ai_classification?.toLowerCase() || ''
+        if (classification.includes('hot')) {
+          counts.hotLead++
+        } else if (classification.includes('qualified') && !classification.includes('needs')) {
+          counts.qualified++
+        } else if (classification.includes('needs') || classification.includes('qualification')) {
+          counts.needsQualification++
+        } else if (classification.includes('nurture')) {
+          counts.nurture++
+        } else {
+          counts.lowPriority++
+        }
       }
     })
 
     return counts
-  }, [myLeads])
+  }, [myLeads, userType])
 
   // Calculate metrics
   const metrics = useMemo(() => {
@@ -182,11 +229,14 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
     const qualifiedCount = classificationCounts.qualified + classificationCounts.hotLead
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedCount / totalLeads) * 100) : 0
 
-    // Calculate average AI score
-    const scoredLeads = myLeads.filter(l => l.ai_quality_score !== null && l.ai_quality_score !== undefined)
-    const avgScore = scoredLeads.length > 0
-      ? Math.round(scoredLeads.reduce((sum, l) => sum + (l.ai_quality_score || 0), 0) / scoredLeads.length)
-      : 0
+    // Calculate average AI score (for brokers, use 0 as they don't have AI scores)
+    let avgScore = 0
+    if (userType !== 'broker') {
+      const scoredLeads = myLeads.filter((l: any) => l.ai_quality_score !== null && l.ai_quality_score !== undefined)
+      avgScore = scoredLeads.length > 0
+        ? Math.round(scoredLeads.reduce((sum: number, l: any) => sum + (l.ai_quality_score || 0), 0) / scoredLeads.length)
+        : 0
+    }
 
     // Calculate total spend from campaigns
     const totalSpend = myCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
