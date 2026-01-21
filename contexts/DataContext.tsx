@@ -1,9 +1,23 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Buyer, Campaign, Company, Development, AppUser, FinanceLead } from '@/types'
+
+// Cache keys for localStorage
+const CACHE_KEYS = {
+  leads: 'naybourhood_cache_leads',
+  campaigns: 'naybourhood_cache_campaigns',
+  companies: 'naybourhood_cache_companies',
+  developments: 'naybourhood_cache_developments',
+  financeLeads: 'naybourhood_cache_financeLeads',
+  users: 'naybourhood_cache_users',
+  timestamp: 'naybourhood_cache_timestamp',
+}
+
+// Cache expiry time (30 minutes)
+const CACHE_EXPIRY_MS = 30 * 60 * 1000
 
 interface DataContextType {
   leads: Buyer[]
@@ -13,6 +27,7 @@ interface DataContextType {
   financeLeads: FinanceLead[]
   users: AppUser[]
   isLoading: boolean
+  isSyncing: boolean  // New: true when refreshing in background
   error: string | null
   refreshData: () => Promise<void>
   // Lead operations
@@ -38,6 +53,26 @@ interface DataContextType {
 
 const DataContext = createContext<DataContextType | undefined>(undefined)
 
+// Helper to safely parse JSON from localStorage
+function safeJsonParse<T>(key: string, fallback: T): T {
+  try {
+    const item = localStorage.getItem(key)
+    if (!item) return fallback
+    return JSON.parse(item) as T
+  } catch {
+    return fallback
+  }
+}
+
+// Helper to safely save to localStorage
+function safeJsonSave(key: string, data: unknown): void {
+  try {
+    localStorage.setItem(key, JSON.stringify(data))
+  } catch (e) {
+    console.warn('[DataContext] Failed to save to cache:', e)
+  }
+}
+
 export function DataProvider({ children }: { children: ReactNode }) {
   const [leads, setLeads] = useState<Buyer[]>([])
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
@@ -46,9 +81,66 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>([])
   const [users, setUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const cacheLoaded = useRef(false)
 
   const isConfigured = isSupabaseConfigured()
+
+  // Load data from cache instantly on mount
+  useEffect(() => {
+    if (cacheLoaded.current) return
+    cacheLoaded.current = true
+
+    const loadFromCache = () => {
+      const timestamp = safeJsonParse<number>(CACHE_KEYS.timestamp, 0)
+      const now = Date.now()
+
+      // Check if cache exists and is not expired
+      if (timestamp > 0 && (now - timestamp) < CACHE_EXPIRY_MS) {
+        console.log('[DataContext] Loading from cache (instant load)')
+
+        const cachedLeads = safeJsonParse<Buyer[]>(CACHE_KEYS.leads, [])
+        const cachedCampaigns = safeJsonParse<Campaign[]>(CACHE_KEYS.campaigns, [])
+        const cachedCompanies = safeJsonParse<Company[]>(CACHE_KEYS.companies, [])
+        const cachedDevelopments = safeJsonParse<Development[]>(CACHE_KEYS.developments, [])
+        const cachedFinanceLeads = safeJsonParse<FinanceLead[]>(CACHE_KEYS.financeLeads, [])
+        const cachedUsers = safeJsonParse<AppUser[]>(CACHE_KEYS.users, [])
+
+        // Set cached data instantly
+        if (cachedLeads.length > 0) setLeads(cachedLeads)
+        if (cachedCampaigns.length > 0) setCampaigns(cachedCampaigns)
+        if (cachedCompanies.length > 0) setCompanies(cachedCompanies)
+        if (cachedDevelopments.length > 0) setDevelopments(cachedDevelopments)
+        if (cachedFinanceLeads.length > 0) setFinanceLeads(cachedFinanceLeads)
+        if (cachedUsers.length > 0) setUsers(cachedUsers)
+
+        // If we have cached data, don't show loading spinner
+        if (cachedLeads.length > 0 || cachedCampaigns.length > 0) {
+          setIsLoading(false)
+          console.log(`[DataContext] Cache loaded: ${cachedLeads.length} leads, ${cachedCampaigns.length} campaigns`)
+        }
+
+        return true // Cache was loaded
+      }
+
+      return false // No valid cache
+    }
+
+    loadFromCache()
+  }, [])
+
+  // Save current data to cache
+  const saveToCache = useCallback(() => {
+    console.log('[DataContext] Saving to cache')
+    safeJsonSave(CACHE_KEYS.leads, leads)
+    safeJsonSave(CACHE_KEYS.campaigns, campaigns)
+    safeJsonSave(CACHE_KEYS.companies, companies)
+    safeJsonSave(CACHE_KEYS.developments, developments)
+    safeJsonSave(CACHE_KEYS.financeLeads, financeLeads)
+    safeJsonSave(CACHE_KEYS.users, users)
+    safeJsonSave(CACHE_KEYS.timestamp, Date.now())
+  }, [leads, campaigns, companies, developments, financeLeads, users])
 
   const refreshData = useCallback(async () => {
     if (!isConfigured) {
@@ -56,7 +148,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return
     }
 
-    setIsLoading(true)
+    // If we already have data (from cache), show syncing indicator instead of full loading
+    const hasData = leads.length > 0 || campaigns.length > 0
+    if (hasData) {
+      setIsSyncing(true)
+    } else {
+      setIsLoading(true)
+    }
     setError(null)
     const errors: string[] = []
 
@@ -519,8 +617,19 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
       setIsLoading(false)
+      setIsSyncing(false)
     }
+  // Note: We intentionally exclude leads/campaigns from deps to prevent infinite loops
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isConfigured])
+
+  // Save to cache whenever data changes (after initial load)
+  useEffect(() => {
+    // Only save to cache if we have data (not on initial empty state)
+    if (leads.length > 0 || campaigns.length > 0) {
+      saveToCache()
+    }
+  }, [leads, campaigns, companies, developments, financeLeads, users, saveToCache])
 
   useEffect(() => {
     refreshData()
@@ -1028,6 +1137,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         financeLeads,
         users,
         isLoading,
+        isSyncing,
         error,
         refreshData,
         // Lead operations
