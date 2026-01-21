@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -28,6 +28,12 @@ import {
   CheckCircle,
   TrendingUp,
   ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  Archive,
+  Copy,
+  AlertTriangle,
+  Settings2,
 } from 'lucide-react'
 
 const FINANCE_STATUS_OPTIONS = [
@@ -52,6 +58,9 @@ export default function BrokerFinanceLeadsPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [isReady, setIsReady] = useState(false)
+  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [showArchived, setShowArchived] = useState(false)
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
 
   // Fetch company_id from localStorage or user_profiles
   useEffect(() => {
@@ -117,9 +126,16 @@ export default function BrokerFinanceLeadsPage() {
     return []
   }, [financeLeads, companyId])
 
-  // Apply search and status filter
+  // Apply search, status filter, and sorting
   const filteredLeads = useMemo(() => {
-    return myFinanceLeads.filter(lead => {
+    const filtered = myFinanceLeads.filter(lead => {
+      // Hide archived/duplicate/fake leads unless showArchived is true
+      if (!showArchived) {
+        if (lead.is_archived || lead.is_duplicate || lead.is_fake) {
+          return false
+        }
+      }
+
       // Search filter
       if (search) {
         const searchLower = search.toLowerCase()
@@ -140,7 +156,18 @@ export default function BrokerFinanceLeadsPage() {
 
       return true
     })
-  }, [myFinanceLeads, search, statusFilter])
+
+    // Sort by date
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
+      return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
+    })
+  }, [myFinanceLeads, search, statusFilter, sortOrder, showArchived])
+
+  const toggleSortOrder = useCallback(() => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')
+  }, [])
 
   // Stats with conversion tracking
   const stats = useMemo(() => {
@@ -216,6 +243,62 @@ export default function BrokerFinanceLeadsPage() {
       setWhatsappLead(lead)
     } else {
       toast.error('No phone number available')
+    }
+  }
+
+  const handleMarkAsArchived = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      if (updateFinanceLead) {
+        await updateFinanceLead(leadId, { is_archived: true })
+        toast.success('Borrower archived')
+      }
+    } catch (error) {
+      console.error('Error archiving borrower:', error)
+      toast.error('Failed to archive borrower')
+    }
+  }
+
+  const handleMarkAsDuplicate = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      if (updateFinanceLead) {
+        await updateFinanceLead(leadId, { is_duplicate: true })
+        toast.success('Borrower marked as duplicate')
+      }
+    } catch (error) {
+      console.error('Error marking borrower as duplicate:', error)
+      toast.error('Failed to mark borrower as duplicate')
+    }
+  }
+
+  const handleMarkAsFake = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      if (updateFinanceLead) {
+        await updateFinanceLead(leadId, { is_fake: true })
+        toast.success('Borrower marked as fake')
+      }
+    } catch (error) {
+      console.error('Error marking borrower as fake:', error)
+      toast.error('Failed to mark borrower as fake')
+    }
+  }
+
+  const handleRestoreLead = async (leadId: string, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setActionMenuOpen(null)
+    try {
+      if (updateFinanceLead) {
+        await updateFinanceLead(leadId, { is_archived: false, is_duplicate: false, is_fake: false })
+        toast.success('Borrower restored')
+      }
+    } catch (error) {
+      console.error('Error restoring borrower:', error)
+      toast.error('Failed to restore borrower')
     }
   }
 
@@ -342,6 +425,15 @@ export default function BrokerFinanceLeadsPage() {
             <option key={s} value={s}>{s}</option>
           ))}
         </select>
+        <Button
+          variant={showArchived ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => setShowArchived(!showArchived)}
+          className="whitespace-nowrap"
+        >
+          <Archive className="h-4 w-4 mr-2" />
+          {showArchived ? 'Hide Archived' : 'Show Archived'}
+        </Button>
       </div>
 
       {/* Borrowers Table */}
@@ -372,6 +464,19 @@ export default function BrokerFinanceLeadsPage() {
                     <th className="pb-2 font-medium">Client</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Loan Amount</th>
+                    <th
+                      className="pb-2 font-medium cursor-pointer hover:text-foreground transition-colors"
+                      onClick={toggleSortOrder}
+                    >
+                      <div className="flex items-center gap-1">
+                        Date Added
+                        {sortOrder === 'newest' ? (
+                          <ArrowDown className="h-3 w-3" />
+                        ) : (
+                          <ArrowUp className="h-3 w-3" />
+                        )}
+                      </div>
+                    </th>
                     <th className="pb-2 font-medium">Required By</th>
                     <th className="pb-2 font-medium text-right">Actions</th>
                   </tr>
@@ -384,11 +489,20 @@ export default function BrokerFinanceLeadsPage() {
                       className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
                     >
                       <td className="py-3">
-                        <div className="font-medium">
+                        <div className="font-medium flex items-center gap-2">
                           {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+                          {lead.is_archived && (
+                            <Badge variant="outline" className="text-xs bg-gray-100 text-gray-600">Archived</Badge>
+                          )}
+                          {lead.is_duplicate && (
+                            <Badge variant="outline" className="text-xs bg-blue-100 text-blue-600">Duplicate</Badge>
+                          )}
+                          {lead.is_fake && (
+                            <Badge variant="outline" className="text-xs bg-red-100 text-red-600">Fake</Badge>
+                          )}
                         </div>
                         <div className="text-xs text-muted-foreground">
-                          {lead.email && lead.email}
+                          {lead.email || ''}
                           {lead.finance_type && ` • ${lead.finance_type}`}
                         </div>
                       </td>
@@ -409,6 +523,11 @@ export default function BrokerFinanceLeadsPage() {
                           <PoundSterling className="h-3 w-3" />
                           {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount).replace('£', '') : '-')}
                         </div>
+                      </td>
+                      <td className="py-3">
+                        <span className="text-xs text-muted-foreground">
+                          {formatDate(lead.created_at)}
+                        </span>
                       </td>
                       <td className="py-3">
                         <div className="flex items-center gap-1 text-xs text-muted-foreground">
@@ -451,6 +570,61 @@ export default function BrokerFinanceLeadsPage() {
                               <Mail className="h-3.5 w-3.5 text-blue-600" />
                             </Button>
                           )}
+                          {/* Actions Dropdown */}
+                          <div className="relative">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 w-7 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setActionMenuOpen(actionMenuOpen === lead.id ? null : lead.id)
+                              }}
+                              title="More Actions"
+                            >
+                              <Settings2 className="h-3.5 w-3.5" />
+                            </Button>
+                            {actionMenuOpen === lead.id && (
+                              <div
+                                className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg z-50"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                {(lead.is_archived || lead.is_duplicate || lead.is_fake) ? (
+                                  <button
+                                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-lg"
+                                    onClick={(e) => handleRestoreLead(lead.id, e)}
+                                  >
+                                    <CheckCircle className="h-4 w-4 text-green-500" />
+                                    Restore Borrower
+                                  </button>
+                                ) : (
+                                  <>
+                                    <button
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-t-lg"
+                                      onClick={(e) => handleMarkAsArchived(lead.id, e)}
+                                    >
+                                      <Archive className="h-4 w-4 text-gray-500" />
+                                      Archive
+                                    </button>
+                                    <button
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                                      onClick={(e) => handleMarkAsDuplicate(lead.id, e)}
+                                    >
+                                      <Copy className="h-4 w-4 text-blue-500" />
+                                      Mark as Duplicate
+                                    </button>
+                                    <button
+                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-b-lg text-red-600"
+                                      onClick={(e) => handleMarkAsFake(lead.id, e)}
+                                    >
+                                      <AlertTriangle className="h-4 w-4" />
+                                      Mark as Fake
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"

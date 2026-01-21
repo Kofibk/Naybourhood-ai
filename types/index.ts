@@ -130,6 +130,10 @@ export interface Buyer {
   created_at?: string
   updated_at?: string
   last_contact?: string
+  // Archive/Duplicate/Fake flags
+  is_archived?: boolean
+  is_duplicate?: boolean
+  is_fake?: boolean
 }
 
 export interface AppUser {
@@ -374,6 +378,10 @@ export interface FinanceLead {
   date_added?: string
   created_at?: string
   updated_at?: string
+  // Archive/Duplicate/Fake flags
+  is_archived?: boolean
+  is_duplicate?: boolean
+  is_fake?: boolean
 }
 
 // AI Types
