@@ -162,7 +162,7 @@ export default function MountAnvilLoginPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-white font-medium">Rowena Chen</p>
+                      <p className="text-white font-medium">Rowena McCullough</p>
                       <p className="text-white/50 text-sm">Sales Director</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-emerald-400 transition-colors" />
@@ -175,7 +175,7 @@ export default function MountAnvilLoginPage() {
                 >
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-white font-medium">Jay Patel</p>
+                      <p className="text-white font-medium">Jay Weston</p>
                       <p className="text-white/50 text-sm">Head of Marketing</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-white/30 group-hover:text-emerald-400 transition-colors" />

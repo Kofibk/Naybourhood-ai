@@ -22,7 +22,7 @@ export const DEMO_USERS: DemoUser[] = [
     email: 'rowena@mountanvil.com',
     password: 'demo2026',
     firstName: 'Rowena',
-    lastName: 'Chen',
+    lastName: 'McCullough',
     role: 'Sales Director',
   },
   {
@@ -30,7 +30,7 @@ export const DEMO_USERS: DemoUser[] = [
     email: 'jay@mountanvil.com',
     password: 'demo2026',
     firstName: 'Jay',
-    lastName: 'Patel',
+    lastName: 'Weston',
     role: 'Head of Marketing',
   },
 ]
