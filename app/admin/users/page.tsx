@@ -355,7 +355,7 @@ export default function UsersPage() {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[140px]"
         >
           <option value="all">All Roles</option>
           <optgroup label="Internal Team">
@@ -371,7 +371,7 @@ export default function UsersPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[150px]"
         >
           <option value="all">All Status ({users.length})</option>
           <option value="pending">Pending ({statusCounts.pending})</option>
@@ -407,26 +407,26 @@ export default function UsersPage() {
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Loading...</div>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-4 sm:-mx-5 px-4 sm:px-5">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-border">
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[200px]">
                       User
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[120px]">
                       Role
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[150px]">
                       {userTypeFilter === 'internal' ? 'Department' : 'Company'}
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[100px]">
                       Status
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[110px]">
                       Last Active
                     </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground">
+                    <th className="text-right p-4 text-sm font-medium text-muted-foreground min-w-[100px]">
                       Actions
                     </th>
                   </tr>

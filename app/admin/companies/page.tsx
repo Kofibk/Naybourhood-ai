@@ -267,7 +267,7 @@ export default function CompaniesPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[130px]"
         >
           <option value="all">All Status</option>
           <option value="Active">Active</option>

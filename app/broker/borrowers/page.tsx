@@ -416,7 +416,7 @@ export default function BrokerFinanceLeadsPage() {
           />
         </div>
         <select
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[170px]"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -457,15 +457,15 @@ export default function BrokerFinanceLeadsPage() {
                 : 'No borrowers match your filters'}
             </p>
           ) : (
-            <div className="overflow-x-auto">
+            <div className="overflow-x-auto -mx-4 sm:-mx-5 px-4 sm:px-5">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="text-left text-xs text-muted-foreground border-b">
-                    <th className="pb-2 font-medium">Client</th>
-                    <th className="pb-2 font-medium">Status</th>
-                    <th className="pb-2 font-medium">Loan Amount</th>
+                    <th className="pb-3 font-medium min-w-[180px]">Client</th>
+                    <th className="pb-3 font-medium min-w-[170px]">Status</th>
+                    <th className="pb-3 font-medium min-w-[120px]">Loan Amount</th>
                     <th
-                      className="pb-2 font-medium cursor-pointer hover:text-foreground transition-colors"
+                      className="pb-3 font-medium cursor-pointer hover:text-foreground transition-colors min-w-[110px]"
                       onClick={toggleSortOrder}
                     >
                       <div className="flex items-center gap-1">
@@ -477,8 +477,8 @@ export default function BrokerFinanceLeadsPage() {
                         )}
                       </div>
                     </th>
-                    <th className="pb-2 font-medium">Required By</th>
-                    <th className="pb-2 font-medium text-right">Actions</th>
+                    <th className="pb-3 font-medium min-w-[110px]">Required By</th>
+                    <th className="pb-3 font-medium text-right min-w-[120px]">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -511,7 +511,7 @@ export default function BrokerFinanceLeadsPage() {
                           value={lead.status || 'Contact Pending'}
                           onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
                           disabled={updatingStatus === lead.id}
-                          className={`text-xs px-2 py-1 rounded border cursor-pointer transition-colors ${getStatusColor(lead.status)}`}
+                          className={`text-xs px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors min-w-[150px] font-medium ${getStatusColor(lead.status)}`}
                         >
                           {FINANCE_STATUS_OPTIONS.map(s => (
                             <option key={s} value={s}>{s}</option>

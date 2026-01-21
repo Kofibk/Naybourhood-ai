@@ -129,7 +129,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-3 overflow-y-auto">
+      <nav className="flex-1 px-3 py-4 overflow-y-auto">
         <ul className="space-y-1">
           {navItems.map((item) => (
             <li key={item.name}>
@@ -138,19 +138,19 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
                 onClick={() => setMobileOpen(false)}
                 aria-current={isActive(item.href) ? 'page' : undefined}
                 className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200',
+                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
                   isActive(item.href)
-                    ? 'bg-[#34D399]/15 text-[#34D399] font-medium'
-                    : 'text-white/60 hover:bg-white/5 hover:text-white'
+                    ? 'bg-[#34D399]/15 text-[#34D399] shadow-sm'
+                    : 'text-white/70 hover:bg-white/5 hover:text-white'
                 )}
               >
                 <item.icon className={cn(
-                  'h-5 w-5',
-                  isActive(item.href) ? 'text-[#34D399]' : ''
+                  'h-5 w-5 flex-shrink-0',
+                  isActive(item.href) ? 'text-[#34D399]' : 'text-white/50'
                 )} aria-hidden="true" />
-                <span>{item.name}</span>
+                <span className="truncate">{item.name}</span>
                 {item.badge && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] bg-[#34D399]/20 text-[#34D399] border-0">
+                  <Badge variant="secondary" className="ml-auto text-[10px] bg-[#34D399]/20 text-[#34D399] border-0 shrink-0">
                     {item.badge.toLocaleString()}
                   </Badge>
                 )}
@@ -162,26 +162,26 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
       {/* Quick Access - Admin Only */}
       {userType === 'admin' && (
-        <div className="p-3 border-t border-white/10">
-          <div className="flex items-center gap-2 px-2 mb-2 text-xs font-medium text-white/40 uppercase tracking-wider">
-            <ArrowRightLeft className="h-3 w-3" />
-            Quick Access
+        <div className="px-3 py-3 border-t border-white/10">
+          <div className="flex items-center gap-2 px-2 mb-2.5 text-[10px] font-semibold text-white/40 uppercase tracking-wider">
+            <ArrowRightLeft className="h-3 w-3 flex-shrink-0" />
+            <span>Quick Access</span>
           </div>
-          <div className="grid grid-cols-2 gap-1">
+          <div className="grid grid-cols-2 gap-1.5">
             {quickAccessDashboards.map((dashboard) => (
               <Link
                 key={dashboard.type}
                 href={dashboard.href}
                 onClick={() => setMobileOpen(false)}
                 className={cn(
-                  'flex items-center gap-2 px-2 py-1.5 rounded-md text-xs transition-all duration-200',
+                  'flex items-center gap-2 px-2.5 py-2 rounded-md text-xs font-medium transition-all duration-200',
                   userType === dashboard.type
-                    ? 'bg-[#34D399]/15 text-[#34D399] font-medium'
+                    ? 'bg-[#34D399]/15 text-[#34D399]'
                     : 'text-white/50 hover:bg-white/5 hover:text-white'
                 )}
               >
-                <dashboard.icon className="h-3.5 w-3.5" />
-                <span>{dashboard.name}</span>
+                <dashboard.icon className="h-3.5 w-3.5 flex-shrink-0" />
+                <span className="truncate">{dashboard.name}</span>
               </Link>
             ))}
           </div>
@@ -189,10 +189,10 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       )}
 
       {/* User Profile */}
-      <div className="p-3 border-t border-white/10 space-y-3">
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-[#171717]">
-          <div className="h-9 w-9 rounded-full bg-[#34D399]/20 flex items-center justify-center">
-            <span className="text-sm font-medium text-[#34D399]">
+      <div className="px-3 py-4 border-t border-white/10 space-y-3">
+        <div className="flex items-center gap-3 px-3 py-3 rounded-lg bg-[#171717]">
+          <div className="h-10 w-10 rounded-full bg-[#34D399]/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-sm font-semibold text-[#34D399]">
               {userName?.charAt(0).toUpperCase() || 'U'}
             </span>
           </div>
@@ -203,11 +203,11 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         </div>
         <Button
           variant="ghost"
-          className="w-full justify-start text-white/50 hover:text-red-400 hover:bg-red-400/10"
+          className="w-full justify-start text-white/60 hover:text-red-400 hover:bg-red-400/10 px-3"
           onClick={onLogout}
         >
-          <LogOut className="h-5 w-5 mr-3" />
-          Logout
+          <LogOut className="h-4 w-4 mr-3 flex-shrink-0" />
+          <span>Logout</span>
         </Button>
       </div>
     </div>

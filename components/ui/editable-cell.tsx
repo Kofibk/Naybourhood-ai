@@ -114,7 +114,7 @@ export function EditableCell({
             onKeyDown={handleKeyDown}
             onBlur={handleBlur}
             disabled={isSaving}
-            className="h-7 px-2 text-xs border rounded bg-background w-full min-w-[100px]"
+            className="h-8 px-2.5 text-xs font-medium border rounded-md bg-background w-full min-w-[140px]"
           >
             {options.map((opt) => {
               const optValue = typeof opt === 'string' ? opt : opt.value
@@ -182,7 +182,7 @@ export function EditableCell({
       onDoubleClick={handleDoubleClick}
       title={editable ? 'Double-click to edit' : undefined}
     >
-      <span className={cn('truncate', !value && 'text-muted-foreground')}>
+      <span className={cn('whitespace-nowrap', !value && 'text-muted-foreground')}>
         {display}
       </span>
       {editable && (
