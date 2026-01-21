@@ -169,6 +169,7 @@ export default function SettingsPage() {
           company_id: companyId,
           is_internal: false,
           inviter_role: user?.role,
+          inviter_company_id: companyId,
         }),
       })
 
