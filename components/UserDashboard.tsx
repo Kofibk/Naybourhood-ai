@@ -55,7 +55,7 @@ const config = {
 
 export function UserDashboard({ userType, userName, companyId }: UserDashboardProps) {
   const router = useRouter()
-  const { leads, campaigns, isLoading, isSyncing } = useData()
+  const { leads, campaigns, financeLeads, isLoading, isSyncing } = useData()
   const typeConfig = config[userType]
   const [showEmailBanner, setShowEmailBanner] = useState(false)
   const [emailConfirmed, setEmailConfirmed] = useState(true)
@@ -262,7 +262,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
 
   // Only show loading skeletons if we have NO data and are loading
   // If we have cached data, show it while syncing in background
-  const hasData = leads.length > 0 || campaigns.length > 0
+  // For brokers, check financeLeads instead of leads
+  const hasData = userType === 'broker'
+    ? financeLeads.length > 0 || campaigns.length > 0
+    : leads.length > 0 || campaigns.length > 0
   if (isLoading && !hasData) {
     return (
       <div className="space-y-6">
