@@ -88,7 +88,7 @@ function AnimatedNumber({
 }
 
 export default function AdminDashboard() {
-  const { leads, campaigns, companies, isLoading, error, refreshData } = useData()
+  const { leads, campaigns, companies, isLoading, isSyncing, error, refreshData } = useData()
   const [user, setUser] = useState<{ name?: string }>({})
 
   useEffect(() => {
@@ -293,12 +293,12 @@ export default function AdminDashboard() {
             size="sm"
             className="text-xs"
             onClick={() => refreshData()}
-            disabled={isLoading}
+            disabled={isLoading || isSyncing}
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`}
+              className={`h-3.5 w-3.5 mr-1.5 ${isLoading || isSyncing ? 'animate-spin' : ''}`}
             />
-            {isLoading ? 'Loading...' : 'Sync'}
+            {isLoading ? 'Loading...' : isSyncing ? 'Syncing...' : 'Sync'}
           </Button>
           <Button variant="outline" size="sm" className="text-xs">
             <Upload className="h-3.5 w-3.5 mr-1.5" />

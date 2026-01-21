@@ -84,6 +84,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const cacheLoaded = useRef(false)
+  const hasDataRef = useRef(false)  // Track if we have data (for closure safety)
 
   const isConfigured = isSupabaseConfigured()
 
@@ -118,6 +119,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // If we have cached data, don't show loading spinner
         if (cachedLeads.length > 0 || cachedCampaigns.length > 0) {
           setIsLoading(false)
+          hasDataRef.current = true  // Mark that we have data loaded
           console.log(`[DataContext] Cache loaded: ${cachedLeads.length} leads, ${cachedCampaigns.length} campaigns`)
         }
 
@@ -149,8 +151,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
 
     // If we already have data (from cache), show syncing indicator instead of full loading
-    const hasData = leads.length > 0 || campaigns.length > 0
-    if (hasData) {
+    // Use ref to avoid stale closure values
+    if (hasDataRef.current) {
       setIsSyncing(true)
     } else {
       setIsLoading(true)
@@ -618,6 +620,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     } finally {
       setIsLoading(false)
       setIsSyncing(false)
+      hasDataRef.current = true  // Mark that we have data after first successful fetch
     }
   // Note: We intentionally exclude leads/campaigns from deps to prevent infinite loops
   // eslint-disable-next-line react-hooks/exhaustive-deps
