@@ -55,7 +55,7 @@ const config = {
 
 export function UserDashboard({ userType, userName, companyId }: UserDashboardProps) {
   const router = useRouter()
-  const { leads, campaigns, isLoading } = useData()
+  const { leads, campaigns, isLoading, isSyncing } = useData()
   const typeConfig = config[userType]
   const [showEmailBanner, setShowEmailBanner] = useState(false)
   const [emailConfirmed, setEmailConfirmed] = useState(true)
@@ -260,8 +260,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
     return paths
   }
 
-  // Show loading state while data is being fetched
-  if (isLoading) {
+  // Only show loading skeletons if we have NO data and are loading
+  // If we have cached data, show it while syncing in background
+  const hasData = leads.length > 0 || campaigns.length > 0
+  if (isLoading && !hasData) {
     return (
       <div className="space-y-6">
         <div>
@@ -396,34 +398,32 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-5 lg:grid-cols-2 gap-6">
         {/* Lead Classification Donut */}
-        <div className="bg-[#111111] border border-white/10 rounded-2xl p-6">
+        <div className="xl:col-span-2 bg-[#111111] border border-white/10 rounded-2xl p-6">
           <h3 className="text-white font-semibold mb-6">Lead Classification</h3>
           {total > 0 ? (
-            <div className="flex items-center gap-6">
-              <div className="relative">
-                <svg width="200" height="200" viewBox="0 0 200 200">
+            <div className="flex flex-col xl:flex-row items-center gap-6">
+              <div className="relative flex-shrink-0">
+                <svg width="180" height="180" viewBox="0 0 200 200">
                   {generateDonutPaths()}
                 </svg>
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="text-center">
-                    <p className="text-white text-3xl font-bold">{total}</p>
-                    <p className="text-white/40 text-sm">Total</p>
+                    <p className="text-white text-2xl font-bold">{total}</p>
+                    <p className="text-white/40 text-xs">Total</p>
                   </div>
                 </div>
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2 w-full xl:w-auto">
                 {segments.map((segment) => (
-                  <div key={segment.name} className="flex items-center gap-3">
+                  <div key={segment.name} className="flex items-center gap-2">
                     <div
-                      className="w-3 h-3 rounded-full"
+                      className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                       style={{ backgroundColor: segment.color }}
                     />
-                    <div className="flex-1">
-                      <p className="text-white/70 text-sm">{segment.name}</p>
-                    </div>
-                    <p className="text-white font-medium">{segment.value}</p>
+                    <p className="text-white/70 text-sm flex-1 truncate">{segment.name}</p>
+                    <p className="text-white font-medium text-sm">{segment.value}</p>
                   </div>
                 ))}
               </div>
@@ -436,7 +436,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
         </div>
 
         {/* Hot Leads List */}
-        <div className="lg:col-span-2 bg-[#111111] border border-white/10 rounded-2xl p-6">
+        <div className="xl:col-span-3 bg-[#111111] border border-white/10 rounded-2xl p-6">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-white font-semibold flex items-center gap-2">
               <Flame className="w-5 h-5 text-red-400" />
@@ -455,36 +455,34 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                 <Link
                   key={lead.id}
                   href={`/${userType}/buyers`}
-                  className="flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-xl transition-colors group"
+                  className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors group"
                 >
-                  <div className="w-12 h-12 bg-gradient-to-br from-red-500/20 to-red-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-semibold">
+                  <div className="w-10 h-10 bg-gradient-to-br from-red-500/20 to-red-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <span className="text-white font-semibold text-sm">
                       {(lead.first_name || lead.full_name || 'U').charAt(0)}
                     </span>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-white font-medium truncate">{lead.full_name}</p>
-                    </div>
-                    <p className="text-white/50 text-sm truncate">
+                  <div className="flex-1 min-w-0 overflow-hidden">
+                    <p className="text-white font-medium truncate text-sm">{lead.full_name}</p>
+                    <p className="text-white/50 text-xs truncate max-w-[200px] xl:max-w-[300px]">
                       {lead.ai_summary || `${lead.budget || 'No budget'} • ${lead.timeline || 'No timeline'}`}
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="flex items-center gap-2">
-                      <span className="text-emerald-400 font-semibold">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-emerald-400 font-semibold text-sm">
                         {lead.ai_quality_score ?? lead.quality_score ?? '-'}
                       </span>
-                      <div className="w-16 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                      <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-emerald-400 rounded-full"
                           style={{ width: `${lead.ai_quality_score ?? lead.quality_score ?? 0}%` }}
                         />
                       </div>
                     </div>
-                    <p className="text-white/40 text-xs mt-1">{lead.development_name || lead.source || '-'}</p>
+                    <p className="text-white/40 text-[10px] mt-0.5 truncate max-w-[80px]">{lead.development_name || lead.source || '-'}</p>
                   </div>
-                  <ChevronRight className="w-5 h-5 text-white/30 group-hover:text-white/60 transition-colors" />
+                  <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
                 </Link>
               ))
             ) : (

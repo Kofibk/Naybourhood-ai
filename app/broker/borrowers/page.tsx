@@ -49,7 +49,7 @@ const FINANCE_STATUS_OPTIONS = [
 export default function BrokerFinanceLeadsPage() {
   const router = useRouter()
   const { user } = useAuth()
-  const { financeLeads, isLoading, refreshData, updateFinanceLead } = useData()
+  const { financeLeads, isLoading, isSyncing, refreshData, updateFinanceLead } = useData()
 
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -359,10 +359,10 @@ export default function BrokerFinanceLeadsPage() {
           variant="outline"
           size="sm"
           onClick={() => refreshData()}
-          disabled={isLoading}
+          disabled={isLoading || isSyncing}
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading || isSyncing ? 'animate-spin' : ''}`} />
+          {isSyncing ? 'Syncing...' : 'Refresh'}
         </Button>
       </div>
 
@@ -444,7 +444,7 @@ export default function BrokerFinanceLeadsPage() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading && financeLeads.length === 0 ? (
             <div className="animate-pulse space-y-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="h-16 bg-muted rounded" />
