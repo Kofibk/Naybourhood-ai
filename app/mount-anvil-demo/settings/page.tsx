@@ -29,6 +29,7 @@ import {
   RefreshCw,
   Edit,
   Home,
+  Calendar,
 } from 'lucide-react'
 
 // Integration card component

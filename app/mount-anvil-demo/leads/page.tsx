@@ -25,6 +25,7 @@ import {
   ArrowUpDown,
   Eye,
   Settings,
+  MessageSquare,
 } from 'lucide-react'
 import { Buyer } from '@/types'
 
