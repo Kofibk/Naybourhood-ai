@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo, Suspense } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMountAnvilDemo } from '@/contexts/MountAnvilDemoContext'
 import {
@@ -86,6 +86,7 @@ function StatusBadge({ status }: { status?: string }) {
 }
 
 function LeadsPageInner() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const { user, isLoading } = useMountAnvilDemo()
 
