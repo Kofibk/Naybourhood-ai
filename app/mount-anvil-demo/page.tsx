@@ -40,6 +40,7 @@ import {
   Sparkles,
   Eye,
   X,
+  Settings,
 } from 'lucide-react'
 
 // Classification colors
@@ -193,6 +194,20 @@ export default function MountAnvilDashboard() {
           >
             <Megaphone className="w-5 h-5" />
             Campaigns
+          </Link>
+          <Link
+            href="/mount-anvil-demo/developments"
+            className="flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+          >
+            <Building2 className="w-5 h-5" />
+            Developments
+          </Link>
+          <Link
+            href="/mount-anvil-demo/settings"
+            className="flex items-center gap-3 px-4 py-3 text-white/60 hover:text-white hover:bg-white/5 rounded-xl transition-colors"
+          >
+            <Settings className="w-5 h-5" />
+            Settings
           </Link>
         </nav>
 
