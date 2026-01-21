@@ -172,10 +172,10 @@ export default function BrokerFinanceLeadsPage() {
       return true
     })
 
-    // Sort by date
+    // Sort by date_added (fall back to created_at)
     return filtered.sort((a, b) => {
-      const dateA = new Date(a.created_at || 0).getTime()
-      const dateB = new Date(b.created_at || 0).getTime()
+      const dateA = new Date(a.date_added || a.created_at || 0).getTime()
+      const dateB = new Date(b.date_added || b.created_at || 0).getTime()
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
     })
   }, [myFinanceLeads, search, statusFilter, sortOrder, showArchived])
@@ -541,7 +541,7 @@ export default function BrokerFinanceLeadsPage() {
                       </td>
                       <td className="py-3">
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(lead.created_at)}
+                          {formatDate(lead.date_added || lead.created_at)}
                         </span>
                       </td>
                       <td className="py-3">
