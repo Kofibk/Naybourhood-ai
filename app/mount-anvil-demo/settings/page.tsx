@@ -30,6 +30,8 @@ import {
   Key,
   Webhook,
   RefreshCw,
+  Edit,
+  Home,
 } from 'lucide-react'
 
 // Integration card component
