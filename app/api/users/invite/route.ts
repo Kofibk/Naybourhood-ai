@@ -8,6 +8,9 @@ function isServiceRoleConfigured(): boolean {
   return !!(key && key !== 'your-supabase-service-role-key' && key.length > 20)
 }
 
+// Master admin email - has full access to all companies
+const MASTER_ADMIN_EMAIL = 'kofi@naybourhood.ai'
+
 export async function POST(request: NextRequest) {
   try {
     // Get invitation details from request body
@@ -74,8 +77,15 @@ export async function POST(request: NextRequest) {
     // Quick Access / Demo mode: Allow invites when not using Supabase auth
     // Check localStorage-based authentication via inviter_role and inviter_company_id
     if (!canInvite && !isAuthConfigured) {
+      // Check for master admin (kofi@naybourhood.ai) - full access to everything
+      const inviterEmail = body.inviter_email
+      if (inviterEmail === MASTER_ADMIN_EMAIL || body.is_master_admin === true) {
+        console.log('[Invite API] Using Master Admin access')
+        isAdmin = true
+        canInvite = true
+      }
       // Trust the inviter_role from the client (Quick Access mode)
-      if (inviter_role === 'admin') {
+      else if (inviter_role === 'admin') {
         console.log('[Invite API] Using Quick Access admin mode')
         isAdmin = true
         canInvite = true

@@ -169,6 +169,8 @@ export default function SettingsPage() {
           is_internal: false,
           inviter_role: user?.role,
           inviter_company_id: companyId,
+          inviter_email: user?.email,
+          is_master_admin: user?.is_master_admin,
         }),
       })
 

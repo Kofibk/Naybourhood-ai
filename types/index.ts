@@ -17,6 +17,7 @@ export interface User {
   company_id?: string   // Company UUID for data filtering
   avatarUrl?: string
   is_internal?: boolean // True for Naybourhood team members
+  is_master_admin?: boolean // True for kofi@naybourhood.ai - full access to all companies
 }
 
 export interface Buyer {
