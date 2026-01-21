@@ -504,10 +504,10 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
           </div>
           <div className="space-y-3">
             {hotLeads.length > 0 ? (
-              hotLeads.map((lead) => (
+              hotLeads.map((lead: any) => (
                 <Link
                   key={lead.id}
-                  href={`/${userType}/buyers`}
+                  href={userType === 'broker' ? `/${userType}/borrowers` : `/${userType}/buyers`}
                   className="flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors group"
                 >
                   <div className="w-10 h-10 bg-gradient-to-br from-red-500/20 to-red-500/10 rounded-xl flex items-center justify-center flex-shrink-0">
@@ -518,22 +518,37 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                   <div className="flex-1 min-w-0 overflow-hidden">
                     <p className="text-white font-medium truncate text-sm">{lead.full_name}</p>
                     <p className="text-white/50 text-xs truncate max-w-[200px] xl:max-w-[300px]">
-                      {lead.ai_summary || `${lead.budget || 'No budget'} • ${lead.timeline || 'No timeline'}`}
+                      {userType === 'broker'
+                        ? `${lead.finance_type || 'Finance'} • ${lead.loan_amount ? `£${lead.loan_amount.toLocaleString()}` : 'No amount'}`
+                        : (lead.ai_summary || `${lead.budget || 'No budget'} • ${lead.timeline || 'No timeline'}`)
+                      }
                     </p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="flex items-center gap-1.5">
-                      <span className="text-emerald-400 font-semibold text-sm">
-                        {lead.ai_quality_score ?? lead.quality_score ?? '-'}
+                    {userType === 'broker' ? (
+                      <span className={`text-xs px-2 py-1 rounded-full ${
+                        lead.status?.toLowerCase().includes('active') ? 'bg-emerald-500/20 text-emerald-400' :
+                        lead.status?.toLowerCase().includes('pending') ? 'bg-amber-500/20 text-amber-400' :
+                        'bg-white/10 text-white/60'
+                      }`}>
+                        {lead.status || 'Pending'}
                       </span>
-                      <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-emerald-400 rounded-full"
-                          style={{ width: `${lead.ai_quality_score ?? lead.quality_score ?? 0}%` }}
-                        />
-                      </div>
-                    </div>
-                    <p className="text-white/40 text-[10px] mt-0.5 truncate max-w-[80px]">{lead.development_name || lead.source || '-'}</p>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-emerald-400 font-semibold text-sm">
+                            {lead.ai_quality_score ?? lead.quality_score ?? '-'}
+                          </span>
+                          <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-400 rounded-full"
+                              style={{ width: `${lead.ai_quality_score ?? lead.quality_score ?? 0}%` }}
+                            />
+                          </div>
+                        </div>
+                        <p className="text-white/40 text-[10px] mt-0.5 truncate max-w-[80px]">{lead.development_name || lead.source || '-'}</p>
+                      </>
+                    )}
                   </div>
                   <ChevronRight className="w-4 h-4 text-white/30 group-hover:text-white/60 transition-colors flex-shrink-0" />
                 </Link>
