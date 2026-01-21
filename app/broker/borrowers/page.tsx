@@ -57,6 +57,7 @@ export default function BrokerFinanceLeadsPage() {
   const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [companyName, setCompanyName] = useState<string | undefined>(undefined)
   const [isReady, setIsReady] = useState(false)
   const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
   const [showArchived, setShowArchived] = useState(false)
@@ -82,6 +83,10 @@ export default function BrokerFinanceLeadsPage() {
 
       if (currentUser.company_id) {
         setCompanyId(currentUser.company_id)
+        // Also set company name if available (from Quick Access login)
+        if (currentUser.company) {
+          setCompanyName(currentUser.company)
+        }
         setIsReady(true)
         return
       }
@@ -105,26 +110,36 @@ export default function BrokerFinanceLeadsPage() {
     initializeCompany()
   }, [user])
 
-  // Filter borrowers by broker's company_id
+  // Filter borrowers by broker's company_id or company name
   const myFinanceLeads = useMemo(() => {
     console.log('[BrokerBorrowers] Total borrowers from DB:', financeLeads.length)
-    console.log('[BrokerBorrowers] Company ID:', companyId)
+    console.log('[BrokerBorrowers] Company ID:', companyId, 'Company Name:', companyName)
 
     // If no borrowers at all, return empty
     if (financeLeads.length === 0) {
       return []
     }
 
-    // If user has a company_id, filter by it
-    if (companyId) {
-      const filtered = financeLeads.filter(lead => lead.company_id === companyId)
+    // If user has a company_id or company name, filter by either
+    if (companyId || companyName) {
+      const filtered = financeLeads.filter(lead => {
+        // Match by company_id (UUID match)
+        if (companyId && lead.company_id === companyId) {
+          return true
+        }
+        // Match by company name (text match - for leads assigned by name)
+        if (companyName && lead.company?.toLowerCase() === companyName.toLowerCase()) {
+          return true
+        }
+        return false
+      })
       console.log('[BrokerBorrowers] Filtered by company:', filtered.length)
       return filtered
     }
 
-    // No company_id - return empty (require company assignment)
+    // No company_id or name - return empty (require company assignment)
     return []
-  }, [financeLeads, companyId])
+  }, [financeLeads, companyId, companyName])
 
   // Apply search, status filter, and sorting
   const filteredLeads = useMemo(() => {
