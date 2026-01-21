@@ -302,6 +302,15 @@ export default function BrokerFinanceLeadsPage() {
     }
   }
 
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '-'
+    return new Date(dateString).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    })
+  }
+
   // Show loading state
   if (!isReady) {
     return (
