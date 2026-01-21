@@ -1,14 +1,12 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import { useMountAnvilDemo } from '@/contexts/MountAnvilDemoContext'
 import {
   DEMO_DEVELOPMENTS,
   DEMO_CAMPAIGNS,
   DEMO_BUYERS,
-  getDemoMetrics,
 } from '@/lib/mount-anvil-demo-data'
 import { formatCurrency, formatNumber } from '@/lib/utils'
 import {
@@ -16,22 +14,18 @@ import {
   Users,
   Megaphone,
   Building2,
-  LogOut,
   TrendingUp,
   TrendingDown,
   Flame,
-  Target,
   Wallet,
   BarChart3,
   ChevronRight,
   AlertCircle,
   CheckCircle,
   Sparkles,
-  PieChart,
   ArrowUpRight,
   Eye,
   MousePointer,
-  DollarSign,
   Settings,
 } from 'lucide-react'
 
@@ -73,16 +67,8 @@ function PlatformIcon({ platform }: { platform: string }) {
 }
 
 export default function CampaignsPage() {
-  const router = useRouter()
-  const { user, isAuthenticated, isLoading, logout } = useMountAnvilDemo()
+  const { user, isLoading } = useMountAnvilDemo()
   const [selectedDevelopment, setSelectedDevelopment] = useState<string>('all')
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/mount-anvil-demo/login')
-    }
-  }, [isLoading, isAuthenticated, router])
 
   // Filter campaigns
   const filteredCampaigns = useMemo(() => {
@@ -134,21 +120,12 @@ export default function CampaignsPage() {
     }))
   }, [filteredCampaigns])
 
-  const handleLogout = () => {
-    logout()
-    router.push('/mount-anvil-demo/login')
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
-  }
-
-  if (!isAuthenticated || !user) {
-    return null
   }
 
   return (
@@ -206,22 +183,14 @@ export default function CampaignsPage() {
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
-                {user.firstName.charAt(0)}
-              </div>
-              <div>
-                <p className="text-white font-medium text-sm">{user.firstName}</p>
-                <p className="text-white/40 text-xs">{user.role}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
+              {user.firstName.charAt(0)}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div>
+              <p className="text-white font-medium text-sm">{user.firstName}</p>
+              <p className="text-white/40 text-xs">{user.role}</p>
+            </div>
           </div>
         </div>
       </aside>

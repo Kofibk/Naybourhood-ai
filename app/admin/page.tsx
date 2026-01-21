@@ -295,7 +295,7 @@ export default function AdminDashboard() {
             size="sm"
             className="text-xs bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white border-0"
           >
-            <Link href="/mount-anvil-demo/login">
+            <Link href="/mount-anvil-demo">
               <Play className="h-3.5 w-3.5 mr-1.5" />
               Demo Mode
             </Link>

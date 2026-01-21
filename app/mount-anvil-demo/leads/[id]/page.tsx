@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter, useParams } from 'next/navigation'
+import { useState } from 'react'
+import { useParams } from 'next/navigation'
 import Link from 'next/link'
 import { useMountAnvilDemo } from '@/contexts/MountAnvilDemoContext'
 import {
@@ -15,7 +15,6 @@ import {
   Users,
   Megaphone,
   Building2,
-  LogOut,
   ArrowLeft,
   Phone,
   Mail,
@@ -130,9 +129,8 @@ function RiskFlagBadge({ flag }: { flag: string }) {
 }
 
 export default function LeadDetailPage() {
-  const router = useRouter()
   const params = useParams()
-  const { user, isAuthenticated, isLoading, logout } = useMountAnvilDemo()
+  const { user, isLoading } = useMountAnvilDemo()
   const [showCallModal, setShowCallModal] = useState(false)
   const [showEmailModal, setShowEmailModal] = useState(false)
 
@@ -141,28 +139,12 @@ export default function LeadDetailPage() {
   const development = lead ? DEMO_DEVELOPMENTS.find(d => d.id === lead.development_id) : null
   const behavioural = lead ? getBehaviouralAnalytics(lead.id) : null
 
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/mount-anvil-demo/login')
-    }
-  }, [isLoading, isAuthenticated, router])
-
-  const handleLogout = () => {
-    logout()
-    router.push('/mount-anvil-demo/login')
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
-  }
-
-  if (!isAuthenticated || !user) {
-    return null
   }
 
   if (!lead) {
@@ -234,22 +216,14 @@ export default function LeadDetailPage() {
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
-                {user.firstName.charAt(0)}
-              </div>
-              <div>
-                <p className="text-white font-medium text-sm">{user.firstName}</p>
-                <p className="text-white/40 text-xs">{user.role}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
+              {user.firstName.charAt(0)}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div>
+              <p className="text-white font-medium text-sm">{user.firstName}</p>
+              <p className="text-white/40 text-xs">{user.role}</p>
+            </div>
           </div>
         </div>
       </aside>

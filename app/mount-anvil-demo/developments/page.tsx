@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useMountAnvilDemo } from '@/contexts/MountAnvilDemoContext'
 import {
@@ -15,7 +13,6 @@ import {
   Users,
   Megaphone,
   Building2,
-  LogOut,
   MapPin,
   Home,
   Calendar,
@@ -30,19 +27,7 @@ import {
 } from 'lucide-react'
 
 export default function DevelopmentsPage() {
-  const router = useRouter()
-  const { user, isAuthenticated, isLoading, logout } = useMountAnvilDemo()
-
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/mount-anvil-demo/login')
-    }
-  }, [isLoading, isAuthenticated, router])
-
-  const handleLogout = () => {
-    logout()
-    router.push('/mount-anvil-demo/login')
-  }
+  const { user, isLoading } = useMountAnvilDemo()
 
   if (isLoading) {
     return (
@@ -50,10 +35,6 @@ export default function DevelopmentsPage() {
         <div className="w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
       </div>
     )
-  }
-
-  if (!isAuthenticated || !user) {
-    return null
   }
 
   // Calculate stats for each development
@@ -131,22 +112,14 @@ export default function DevelopmentsPage() {
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
-                {user.firstName.charAt(0)}
-              </div>
-              <div>
-                <p className="text-white font-medium text-sm">{user.firstName}</p>
-                <p className="text-white/40 text-xs">{user.role}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
+              {user.firstName.charAt(0)}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div>
+              <p className="text-white font-medium text-sm">{user.firstName}</p>
+              <p className="text-white/40 text-xs">{user.role}</p>
+            </div>
           </div>
         </div>
       </aside>

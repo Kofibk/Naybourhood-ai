@@ -4,10 +4,10 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { DEMO_USERS, DemoUser } from '@/lib/mount-anvil-demo-data'
 
 interface MountAnvilDemoContextType {
-  user: DemoUser | null
+  user: DemoUser
   isAuthenticated: boolean
   isLoading: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  switchUser: (userId: string) => void
   logout: () => void
 }
 
@@ -15,11 +15,14 @@ const MountAnvilDemoContext = createContext<MountAnvilDemoContextType | undefine
 
 const DEMO_AUTH_KEY = 'mount_anvil_demo_user'
 
+// Default user for demo (Rowena)
+const DEFAULT_USER = DEMO_USERS[0]
+
 export function MountAnvilDemoProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<DemoUser | null>(null)
+  const [user, setUser] = useState<DemoUser>(DEFAULT_USER)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check for existing session on mount
+  // Check for existing session on mount, default to Rowena
   useEffect(() => {
     const stored = localStorage.getItem(DEMO_AUTH_KEY)
     if (stored) {
@@ -36,40 +39,26 @@ export function MountAnvilDemoProvider({ children }: { children: ReactNode }) {
     setIsLoading(false)
   }, [])
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // Simulate network delay for realistic feel
-    await new Promise(resolve => setTimeout(resolve, 800))
-
-    const normalizedEmail = email.toLowerCase().trim()
-    const demoUser = DEMO_USERS.find(u => u.email.toLowerCase() === normalizedEmail)
-
-    if (!demoUser) {
-      return { success: false, error: 'No account found with this email' }
+  const switchUser = (userId: string) => {
+    const demoUser = DEMO_USERS.find(u => u.id === userId)
+    if (demoUser) {
+      localStorage.setItem(DEMO_AUTH_KEY, JSON.stringify({ id: demoUser.id }))
+      setUser(demoUser)
     }
-
-    if (demoUser.password !== password) {
-      return { success: false, error: 'Incorrect password' }
-    }
-
-    // Store session
-    localStorage.setItem(DEMO_AUTH_KEY, JSON.stringify({ id: demoUser.id }))
-    setUser(demoUser)
-
-    return { success: true }
   }
 
   const logout = () => {
     localStorage.removeItem(DEMO_AUTH_KEY)
-    setUser(null)
+    setUser(DEFAULT_USER)
   }
 
   return (
     <MountAnvilDemoContext.Provider
       value={{
         user,
-        isAuthenticated: !!user,
+        isAuthenticated: true, // Always authenticated in demo mode
         isLoading,
-        login,
+        switchUser,
         logout,
       }}
     >

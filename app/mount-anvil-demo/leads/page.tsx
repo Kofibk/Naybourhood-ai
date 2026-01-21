@@ -1,21 +1,18 @@
 'use client'
 
-import { useState, useEffect, useMemo, Suspense } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useState, useMemo, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useMountAnvilDemo } from '@/contexts/MountAnvilDemoContext'
 import {
   DEMO_DEVELOPMENTS,
   DEMO_BUYERS,
-  getDemoMetrics,
 } from '@/lib/mount-anvil-demo-data'
-import { getGreeting, formatCurrency } from '@/lib/utils'
 import {
   LayoutDashboard,
   Users,
   Megaphone,
   Building2,
-  LogOut,
   Search,
   Filter,
   ChevronDown,
@@ -23,11 +20,7 @@ import {
   Flame,
   Phone,
   Mail,
-  MessageSquare,
-  Calendar,
   Clock,
-  AlertCircle,
-  CheckCircle,
   X,
   ArrowUpDown,
   Eye,
@@ -92,9 +85,8 @@ function StatusBadge({ status }: { status?: string }) {
 }
 
 function LeadsPageInner() {
-  const router = useRouter()
   const searchParams = useSearchParams()
-  const { user, isAuthenticated, isLoading, logout } = useMountAnvilDemo()
+  const { user, isLoading } = useMountAnvilDemo()
 
   // Filter states
   const [searchQuery, setSearchQuery] = useState('')
@@ -106,13 +98,6 @@ function LeadsPageInner() {
   const [showFilters, setShowFilters] = useState(false)
   const [sortBy, setSortBy] = useState<'score' | 'date' | 'name'>('score')
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
-
-  // Redirect if not authenticated
-  useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push('/mount-anvil-demo/login')
-    }
-  }, [isLoading, isAuthenticated, router])
 
   // Filter and sort leads
   const filteredLeads = useMemo(() => {
@@ -163,11 +148,6 @@ function LeadsPageInner() {
     return leads
   }, [searchQuery, selectedDevelopment, selectedClassification, selectedStatus, sortBy, sortOrder])
 
-  const handleLogout = () => {
-    logout()
-    router.push('/mount-anvil-demo/login')
-  }
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
@@ -175,12 +155,6 @@ function LeadsPageInner() {
       </div>
     )
   }
-
-  if (!isAuthenticated || !user) {
-    return null
-  }
-
-  const metrics = getDemoMetrics()
   const classifications = ['Hot Lead', 'Qualified', 'Needs Qualification', 'Nurture', 'Low Priority']
   const statuses = ['Contact Pending', 'Follow Up', 'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed', 'Not Proceeding', 'Disqualified']
 
@@ -239,22 +213,14 @@ function LeadsPageInner() {
         </nav>
 
         <div className="p-4 border-t border-white/5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
-                {user.firstName.charAt(0)}
-              </div>
-              <div>
-                <p className="text-white font-medium text-sm">{user.firstName}</p>
-                <p className="text-white/40 text-xs">{user.role}</p>
-              </div>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-slate-600 to-slate-700 rounded-full flex items-center justify-center text-white font-medium">
+              {user.firstName.charAt(0)}
             </div>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-white/40 hover:text-white hover:bg-white/5 rounded-lg transition-colors"
-            >
-              <LogOut className="w-4 h-4" />
-            </button>
+            <div>
+              <p className="text-white font-medium text-sm">{user.firstName}</p>
+              <p className="text-white/40 text-xs">{user.role}</p>
+            </div>
           </div>
         </div>
       </aside>
