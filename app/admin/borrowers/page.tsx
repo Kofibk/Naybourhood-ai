@@ -136,19 +136,19 @@ const OPERATORS_BY_TYPE: Record<FilterFieldType, { value: FilterOperator; label:
 }
 
 const DEFAULT_COLUMNS: ColumnConfig[] = [
-  { key: 'full_name', label: 'Name', visible: true, width: 'min-w-[130px] w-[12%]' },
-  { key: 'email', label: 'Email', visible: true, width: 'min-w-[160px] w-[15%]' },
-  { key: 'phone', label: 'Phone', visible: true, width: 'min-w-[120px] w-[11%]' },
-  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'min-w-[110px] w-[10%]' },
-  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'min-w-[90px] w-[8%]' },
-  { key: 'date_added', label: 'Date Added', visible: true, width: 'min-w-[85px] w-[8%]' },
-  { key: 'company_id', label: 'Broker', visible: true, width: 'min-w-[140px] w-[12%]' },
-  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'min-w-[110px] w-[10%]' },
-  { key: 'required_by_date', label: 'Required By', visible: false, width: 'min-w-[90px] w-[9%]' },
-  { key: 'message', label: 'Message', visible: false, width: 'min-w-[200px] w-[18%]' },
-  { key: 'status', label: 'Status', visible: true, width: 'min-w-[120px] w-[10%]' },
-  { key: 'notes', label: 'Notes', visible: false, width: 'min-w-[150px] w-[14%]' },
-  { key: 'created_at', label: 'Created', visible: false, width: 'min-w-[90px] w-[9%]' },
+  { key: 'full_name', label: 'Name', visible: true, width: 'min-w-[160px]' },
+  { key: 'email', label: 'Email', visible: true, width: 'min-w-[200px]' },
+  { key: 'phone', label: 'Phone', visible: true, width: 'min-w-[130px]' },
+  { key: 'finance_type', label: 'Finance Type', visible: true, width: 'min-w-[160px]' },
+  { key: 'loan_amount', label: 'Loan Amount', visible: true, width: 'min-w-[120px]' },
+  { key: 'date_added', label: 'Date Added', visible: true, width: 'min-w-[110px]' },
+  { key: 'company_id', label: 'Broker', visible: true, width: 'min-w-[160px]' },
+  { key: 'assigned_agent', label: 'Assigned Agent', visible: true, width: 'min-w-[140px]' },
+  { key: 'required_by_date', label: 'Required By', visible: false, width: 'min-w-[110px]' },
+  { key: 'message', label: 'Message', visible: false, width: 'min-w-[220px]' },
+  { key: 'status', label: 'Status', visible: true, width: 'min-w-[160px]' },
+  { key: 'notes', label: 'Notes', visible: false, width: 'min-w-[180px]' },
+  { key: 'created_at', label: 'Created', visible: false, width: 'min-w-[110px]' },
 ]
 
 // Helper to generate unique IDs
@@ -919,35 +919,35 @@ export default function FinanceLeadsPage() {
                         {visibleColumns.map((col) => (
                           <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
                             {col.key === 'full_name' && (
-                              <span className="font-medium">
+                              <span className="font-medium whitespace-nowrap">
                                 {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
                               </span>
                             )}
                             {col.key === 'email' && (
-                              <span className="truncate text-muted-foreground">{lead.email || '-'}</span>
+                              <span className="text-muted-foreground whitespace-nowrap">{lead.email || '-'}</span>
                             )}
                             {col.key === 'phone' && (
-                              <span className="truncate">{lead.phone || '-'}</span>
+                              <span className="whitespace-nowrap">{lead.phone || '-'}</span>
                             )}
                             {col.key === 'finance_type' && (
                               <Badge
                                 variant="secondary"
-                                className="text-xs px-2 py-0.5 font-medium whitespace-nowrap"
+                                className="text-xs font-medium"
                               >
                                 {lead.finance_type || '-'}
                               </Badge>
                             )}
                             {col.key === 'loan_amount' && (
-                              <span className="font-medium">
+                              <span className="font-medium whitespace-nowrap">
                                 {lead.loan_amount ? formatPriceShort(lead.loan_amount) : '-'}
                               </span>
                             )}
                             {col.key === 'date_added' && (
-                              <span className="text-muted-foreground">{formatDate(lead.date_added)}</span>
+                              <span className="text-muted-foreground whitespace-nowrap">{formatDate(lead.date_added)}</span>
                             )}
                             {col.key === 'company_id' && (
                               <select
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs min-w-[130px]"
+                                className="px-2.5 py-1.5 rounded-md border border-input bg-background text-xs font-medium min-w-[150px] cursor-pointer hover:border-primary/50"
                                 value={lead.company_id || ''}
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => handleAssignBroker(lead.id, e.target.value, e as any)}
@@ -969,10 +969,10 @@ export default function FinanceLeadsPage() {
                               </select>
                             )}
                             {col.key === 'assigned_agent' && (
-                              <span className="truncate">{lead.assigned_agent || '-'}</span>
+                              <span className="whitespace-nowrap">{lead.assigned_agent || '-'}</span>
                             )}
                             {col.key === 'required_by_date' && (
-                              <span className="text-muted-foreground">{formatDate(lead.required_by_date)}</span>
+                              <span className="text-muted-foreground whitespace-nowrap">{formatDate(lead.required_by_date)}</span>
                             )}
                             {col.key === 'message' && (
                               <span className="text-muted-foreground" title={lead.message}>
@@ -982,7 +982,7 @@ export default function FinanceLeadsPage() {
                             {col.key === 'status' && (
                               <Badge
                                 variant={getStatusColor(lead.status) as any}
-                                className="text-xs px-2 py-0.5 font-medium whitespace-nowrap"
+                                className="text-xs font-medium"
                               >
                                 {lead.status || 'Unknown'}
                               </Badge>
@@ -993,7 +993,7 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'created_at' && (
-                              <span className="text-muted-foreground">
+                              <span className="text-muted-foreground whitespace-nowrap">
                                 {formatDate(lead.created_at)}
                               </span>
                             )}

@@ -85,7 +85,7 @@ export default function AgentBuyersPage() {
           />
         </div>
         <select
-          className="h-9 px-3 rounded-md border border-input bg-background text-sm"
+          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[150px]"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >

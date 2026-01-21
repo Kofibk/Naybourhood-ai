@@ -222,3 +222,187 @@
 .stagger-2 { animation-delay: 0.2s; }
 .stagger-3 { animation-delay: 0.3s; }
 .stagger-4 { animation-delay: 0.4s; }
+
+/* ========================================
+   GLOBAL TABLE STYLES
+   ======================================== */
+
+/* Base table styles - ensure proper column widths and no truncation */
+table {
+  table-layout: auto;
+  width: 100%;
+}
+
+/* Ensure table cells don't clip content */
+th, td {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* Allow text wrap for specific content columns */
+td .wrap-text,
+td.wrap-text {
+  white-space: normal;
+  word-break: break-word;
+}
+
+/* Table container with horizontal scroll */
+.table-container {
+  @apply overflow-x-auto -mx-4 px-4;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Minimum column widths for common content types */
+.col-name { min-width: 160px; }
+.col-email { min-width: 200px; }
+.col-phone { min-width: 130px; }
+.col-status { min-width: 140px; }
+.col-date { min-width: 100px; }
+.col-amount { min-width: 110px; }
+.col-actions { min-width: 120px; }
+
+/* ========================================
+   GLOBAL SELECT/DROPDOWN STYLES
+   ======================================== */
+
+/* Ensure dropdowns show full content */
+select {
+  @apply appearance-none cursor-pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  padding-right: 1.75rem !important;
+  min-width: max-content;
+}
+
+/* Table inline selects - ensure full text visibility */
+table select,
+.table-select {
+  @apply text-xs font-medium rounded-md border border-input bg-background;
+  min-width: 130px;
+  max-width: 180px;
+  padding: 0.375rem 1.75rem 0.375rem 0.5rem;
+}
+
+/* Status dropdown - enough width for longest status */
+.status-select {
+  min-width: 150px;
+}
+
+/* ========================================
+   GLOBAL BADGE STYLES
+   ======================================== */
+
+/* Ensure badges never truncate */
+.badge,
+[class*="badge"],
+[class*="Badge"] {
+  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+}
+
+/* ========================================
+   GLOBAL CARD STYLES
+   ======================================== */
+
+/* Stats cards - ensure content fits */
+.stat-card {
+  @apply p-4;
+  min-width: 120px;
+}
+
+.stat-card .stat-value {
+  @apply text-2xl font-bold truncate;
+}
+
+.stat-card .stat-label {
+  @apply text-xs text-muted-foreground whitespace-nowrap;
+}
+
+/* ========================================
+   MOBILE RESPONSIVENESS
+   ======================================== */
+
+@media (max-width: 640px) {
+  /* Ensure tables scroll horizontally */
+  .overflow-x-auto {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  /* Stack filters on mobile */
+  .filter-row {
+    @apply flex-col gap-2;
+  }
+
+  /* Smaller padding on mobile cards */
+  .card-responsive {
+    @apply p-3;
+  }
+
+  /* Ensure buttons don't overflow */
+  button {
+    @apply shrink-0;
+  }
+
+  /* Stats grid on mobile */
+  .stats-grid {
+    @apply grid-cols-2 gap-2;
+  }
+}
+
+/* ========================================
+   SIDEBAR IMPROVEMENTS
+   ======================================== */
+
+/* Ensure sidebar items have proper spacing */
+.sidebar-item {
+  @apply flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all duration-200;
+}
+
+.sidebar-item-active {
+  @apply bg-[#34D399]/15 text-[#34D399] font-medium;
+}
+
+.sidebar-item-inactive {
+  @apply text-white/60 hover:bg-white/5 hover:text-white;
+}
+
+/* ========================================
+   BUTTON IMPROVEMENTS
+   ======================================== */
+
+/* Ensure button text never truncates */
+button,
+.btn {
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* Button groups - consistent spacing */
+.button-group {
+  @apply flex items-center gap-2 flex-wrap;
+}
+
+/* ========================================
+   FORM IMPROVEMENTS
+   ======================================== */
+
+/* Labels always visible */
+label {
+  @apply block text-sm font-medium mb-1.5;
+}
+
+/* Input minimum width */
+input:not([type="checkbox"]):not([type="radio"]) {
+  min-width: 0;
+  @apply w-full;
+}
+
+/* Textarea minimum height */
+textarea {
+  min-height: 80px;
+}
