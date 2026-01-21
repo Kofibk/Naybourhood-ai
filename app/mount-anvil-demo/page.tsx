@@ -352,7 +352,7 @@ export default function MountAnvilDashboard() {
               <div className="flex-1">
                 <h3 className="text-white font-semibold">Priority Action Required</h3>
                 <p className="text-white/60 text-sm">
-                  Victoria Huang needs a decision by Jan 25 - visa timeline dependent. Call today to finalize offer.
+                  Victoria Huang needs a decision by Jan 25 - visa timeline dependent. Call today to finalise offer.
                 </p>
               </div>
               <Link
@@ -614,7 +614,7 @@ export default function MountAnvilDashboard() {
                   <span className="text-white font-medium text-sm">High Conversion Potential</span>
                 </div>
                 <p className="text-white/60 text-sm">
-                  3 hot leads have viewing booked this week. Prepare personalized viewing packs.
+                  3 hot leads have viewing booked this week. Prepare personalised viewing packs.
                 </p>
               </div>
               <div className="bg-white/5 rounded-xl p-4">
@@ -629,7 +629,7 @@ export default function MountAnvilDashboard() {
               <div className="bg-white/5 rounded-xl p-4">
                 <div className="flex items-center gap-2 mb-2">
                   <TrendingUp className="w-4 h-4 text-blue-400" />
-                  <span className="text-white font-medium text-sm">Campaign Optimization</span>
+                  <span className="text-white font-medium text-sm">Campaign Optimisation</span>
                 </div>
                 <p className="text-white/60 text-sm">
                   Nine Elms Launch outperforming by 23%. Consider reallocating budget from TikTok.

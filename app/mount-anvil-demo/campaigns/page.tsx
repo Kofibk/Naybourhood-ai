@@ -373,7 +373,7 @@ export default function CampaignsPage() {
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-400 mt-0.5" />
                   <div>
-                    <p className="text-white font-medium text-sm">Optimize TikTok</p>
+                    <p className="text-white font-medium text-sm">Optimise TikTok</p>
                     <p className="text-white/60 text-xs mt-0.5">High CPL - add pre-qualification</p>
                   </div>
                 </div>

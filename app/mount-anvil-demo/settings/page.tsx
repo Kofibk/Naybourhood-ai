@@ -444,7 +444,7 @@ export default function SettingsPage() {
                     <div className="space-y-4">
                       <IntegrationCard
                         name="Salesforce"
-                        description="CRM synchronization"
+                        description="CRM synchronisation"
                         icon={Database}
                         connected={false}
                         color="bg-blue-500"
