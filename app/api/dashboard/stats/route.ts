@@ -33,24 +33,25 @@ export async function GET(request: NextRequest) {
     const isBroker = userType === 'broker'
 
     if (isBroker) {
-      // Broker: fetch borrower stats and recent borrowers
-      const [statsResult, recentResult] = await Promise.all([
-        supabase.rpc('get_borrower_dashboard_stats', {
-          p_company_id: companyId || null,
-          p_company_name: companyName || null
-        }),
-        supabase.rpc('get_recent_borrowers', {
-          p_company_id: companyId || null,
-          p_company_name: companyName || null,
-          p_limit: 50
-        })
-      ])
+      // Broker: fetch borrower stats only (recent borrowers function may not exist)
+      const statsResult = await supabase.rpc('get_borrower_dashboard_stats', {
+        p_company_id: companyId || null,
+        p_company_name: companyName || null
+      })
+
+      // Also fetch recent borrowers directly (simpler query)
+      const { data: recentBorrowers } = await supabase
+        .from('borrowers')
+        .select('id, full_name, first_name, last_name, email, phone, status, finance_type, loan_amount, company_id, date_added, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
 
       const loadTime = Date.now() - startTime
 
       return NextResponse.json({
         stats: statsResult.data || {},
-        recentLeads: recentResult.data || [],
+        recentLeads: recentBorrowers || [],
+        topCampaigns: [],
         userType: 'broker',
         loadTimeMs: loadTime,
         cached: false
@@ -61,23 +62,29 @@ export async function GET(request: NextRequest) {
         }
       })
     } else {
-      // Developer/Agent/Admin: fetch buyer stats, campaign stats, and recent buyers
-      const [buyerStatsResult, campaignStatsResult, recentBuyersResult, topCampaignsResult] = await Promise.all([
+      // Developer/Agent/Admin: fetch buyer stats and campaign stats
+      const [buyerStatsResult, campaignStatsResult] = await Promise.all([
         supabase.rpc('get_buyer_dashboard_stats', {
           p_company_id: companyId || null
         }),
         supabase.rpc('get_campaign_stats', {
           p_company_id: companyId || null
-        }),
-        supabase.rpc('get_recent_buyers', {
-          p_company_id: companyId || null,
-          p_limit: 50
-        }),
-        supabase.rpc('get_top_campaigns', {
-          p_company_id: companyId || null,
-          p_limit: 10
         })
       ])
+
+      // Fetch recent buyers directly (simpler query)
+      const { data: recentBuyers } = await supabase
+        .from('buyers')
+        .select('id, full_name, first_name, last_name, email, phone, status, ai_quality_score, ai_classification, ai_summary, budget_range, development_name, source_platform, company_id, created_at')
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      // Fetch top campaigns directly
+      const { data: topCampaigns } = await supabase
+        .from('campaigns')
+        .select('campaign_name, development_name, total_spent, number_of_leads, impressions, clicks, ctr, company_id')
+        .order('number_of_leads', { ascending: false })
+        .limit(10)
 
       const loadTime = Date.now() - startTime
 
@@ -86,8 +93,18 @@ export async function GET(request: NextRequest) {
           buyers: buyerStatsResult.data || {},
           campaigns: campaignStatsResult.data || {}
         },
-        recentLeads: recentBuyersResult.data || [],
-        topCampaigns: topCampaignsResult.data || [],
+        recentLeads: recentBuyers || [],
+        topCampaigns: (topCampaigns || []).map(c => ({
+          campaign_name: c.campaign_name,
+          development_name: c.development_name,
+          spend: c.total_spent || 0,
+          leads: c.number_of_leads || 0,
+          cpl: c.number_of_leads > 0 ? (c.total_spent || 0) / c.number_of_leads : 0,
+          impressions: c.impressions || 0,
+          clicks: c.clicks || 0,
+          ctr: c.ctr || 0,
+          company_id: c.company_id
+        })),
         userType,
         loadTimeMs: loadTime,
         cached: false
