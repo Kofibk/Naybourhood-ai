@@ -117,10 +117,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
         if (cachedUsers.length > 0) setUsers(cachedUsers)
 
         // If we have cached data, don't show loading spinner
-        if (cachedLeads.length > 0 || cachedCampaigns.length > 0) {
+        // Include financeLeads for broker dashboards
+        if (cachedLeads.length > 0 || cachedCampaigns.length > 0 || cachedFinanceLeads.length > 0) {
           setIsLoading(false)
           hasDataRef.current = true  // Mark that we have data loaded
-          console.log(`[DataContext] Cache loaded: ${cachedLeads.length} leads, ${cachedCampaigns.length} campaigns`)
+          console.log(`[DataContext] Cache loaded: ${cachedLeads.length} leads, ${cachedCampaigns.length} campaigns, ${cachedFinanceLeads.length} borrowers`)
         }
 
         return true // Cache was loaded
