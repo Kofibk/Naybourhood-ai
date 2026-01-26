@@ -28,13 +28,17 @@ import {
   Briefcase,
   HardHat,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { usePermissions } from '@/hooks/useCanAccess'
+import { hasBillingAccess } from '@/lib/auth'
+import type { Feature } from '@/types'
 
 interface NavItem {
   name: string
   icon: React.ElementType
   href: string
   badge?: number
+  feature?: Feature  // Feature required for this nav item
 }
 
 export type UserType = 'admin' | 'developer' | 'agent' | 'broker'
@@ -46,40 +50,54 @@ interface SidebarProps {
   onLogout?: () => void
 }
 
-// Admins with billing access - add emails here
-const BILLING_ACCESS_EMAILS = [
-  'kofi@naybourhood.ai',
-]
-
 export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const basePath = `/${userType}`
 
-  // Check if user has billing access
-  const hasBillingAccess = userEmail && BILLING_ACCESS_EMAILS.includes(userEmail.toLowerCase())
+  // Get user permissions for feature-based nav filtering
+  const { permissions, isLoading: permissionsLoading } = usePermissions()
+
+  // Check if user has billing access (using centralized auth config)
+  const userHasBillingAccess = useMemo(() => {
+    return hasBillingAccess(userEmail, permissions ? {
+      isInternalTeam: permissions.isInternalTeam,
+      isMasterAdmin: permissions.isMasterAdmin,
+      permissions: permissions.permissions,
+    } : undefined)
+  }, [userEmail, permissions])
+
+  // Check if a feature is accessible
+  const canAccessFeature = (feature: Feature | undefined): boolean => {
+    if (!feature) return true // No feature requirement = always show
+    if (permissionsLoading) return true // Show while loading
+    if (!permissions) return false
+    if (permissions.isInternalTeam || permissions.isMasterAdmin) return true
+    if (!permissions.enabledFeatures.includes(feature)) return false
+    return permissions.permissions[feature]?.canRead ?? false
+  }
 
   const getNavItems = (): NavItem[] => {
     if (userType === 'admin') {
       const adminItems: NavItem[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
-        { name: 'Developments', icon: Home, href: '/admin/developments' },
-        { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns' },
-        { name: 'Leads', icon: Users, href: '/admin/leads' },
-        { name: 'Borrowers', icon: Landmark, href: '/admin/borrowers' },
-        { name: 'Conversations', icon: MessageSquare, href: '/admin/conversations' },
-        { name: 'Companies', icon: Building2, href: '/admin/companies' },
-        { name: 'Users', icon: UserCog, href: '/admin/users' },
+        { name: 'Developments', icon: Home, href: '/admin/developments', feature: 'developments' },
+        { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns', feature: 'campaigns' },
+        { name: 'Leads', icon: Users, href: '/admin/leads', feature: 'leads' },
+        { name: 'Borrowers', icon: Landmark, href: '/admin/borrowers', feature: 'borrowers' },
+        { name: 'Conversations', icon: MessageSquare, href: '/admin/conversations', feature: 'conversations' },
+        { name: 'Companies', icon: Building2, href: '/admin/companies', feature: 'team_management' },
+        { name: 'Users', icon: UserCog, href: '/admin/users', feature: 'team_management' },
       ]
 
       // Only show billing for authorized admins
-      if (hasBillingAccess) {
-        adminItems.push({ name: 'Billing', icon: CreditCard, href: '/admin/billing' })
+      if (userHasBillingAccess) {
+        adminItems.push({ name: 'Billing', icon: CreditCard, href: '/admin/billing', feature: 'billing' })
       }
 
       adminItems.push(
-        { name: 'Analytics', icon: BarChart3, href: '/admin/analytics' },
-        { name: 'Settings', icon: Settings, href: '/admin/settings' }
+        { name: 'Analytics', icon: BarChart3, href: '/admin/analytics', feature: 'analytics' },
+        { name: 'Settings', icon: Settings, href: '/admin/settings', feature: 'settings' }
       )
 
       return adminItems
@@ -88,28 +106,32 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
     if (userType === 'broker') {
       return [
         { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-        { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers` },
-        { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
-        { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
-        { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns` },
-        { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights` },
-        { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
+        { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers`, feature: 'borrowers' },
+        { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
+        { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
+        { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
+        { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
+        { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
       ]
     }
     // Developer and Agent - include Developments
     return [
       { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-      { name: 'Developments', icon: Home, href: `${basePath}/developments` },
-      { name: 'Buyers', icon: Users, href: `${basePath}/buyers` },
-      { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
-      { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },
-      { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns` },
-      { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights` },
-      { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
+      { name: 'Developments', icon: Home, href: `${basePath}/developments`, feature: 'developments' },
+      { name: 'Buyers', icon: Users, href: `${basePath}/buyers`, feature: 'leads' },
+      { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
+      { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
+      { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
+      { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
+      { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
     ]
   }
 
-  const navItems = getNavItems()
+  // Filter nav items based on feature access
+  const navItems = useMemo(() => {
+    return getNavItems().filter(item => canAccessFeature(item.feature))
+  }, [userType, basePath, userHasBillingAccess, permissions, permissionsLoading])
+
   const isActive = (href: string) => pathname === href
 
   // Quick Access dashboards for admins

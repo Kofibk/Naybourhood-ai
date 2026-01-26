@@ -12,6 +12,7 @@ import { AuthHandler } from '@/components/AuthHandler'
 import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle, Shield, HardHat, Users, Briefcase } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { isMasterAdmin, MASTER_ADMIN_EMAILS, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
 
 // Master admin companies for quick access
 const MASTER_ADMIN_COMPANIES = [
@@ -80,8 +81,8 @@ function LoginPageInner() {
             // Save user to localStorage before redirecting
             let role = profile.user_type || 'developer'
 
-            // Master admin email override
-            if (user.email === 'kofi@naybourhood.ai') {
+            // Master admin email override (using centralized auth config)
+            if (isMasterAdmin(user.email)) {
               role = 'admin'
             }
 
@@ -232,8 +233,8 @@ function LoginPageInner() {
               // Save user to localStorage before redirecting
               let role = profile.user_type || 'developer'
 
-              // Master admin email override
-              if (data.user.email === 'kofi@naybourhood.ai') {
+              // Master admin email override (using centralized auth config)
+              if (isMasterAdmin(data.user.email)) {
                 role = 'admin'
               }
 
