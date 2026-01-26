@@ -180,7 +180,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'status', label: 'Status', visible: true, width: 'min-w-[160px]', editable: true, type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', visible: true, width: 'min-w-[110px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
   { key: 'created_at', label: 'Date Added', visible: true, width: 'min-w-[110px]', editable: false },
-  { key: 'assigned_user_name', label: 'Assigned', visible: false, width: 'min-w-[140px]', editable: true, type: 'text' },
+  { key: 'assigned_user_name', label: 'Assigned', visible: true, width: 'min-w-[140px]', editable: true, type: 'text' },
   { key: 'source', label: 'Source', visible: false, width: 'min-w-[120px]', editable: true, type: 'text' },
   { key: 'campaign', label: 'Campaign', visible: false, width: 'min-w-[160px]', editable: true, type: 'text' },
 ]
@@ -1067,17 +1067,13 @@ export default function LeadsPage() {
 
                         if (col.key === 'full_name') {
                           return (
-                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <div className="flex items-center gap-2">
-                                <EditableCell
-                                  value={cellValue}
-                                  field={col.key}
-                                  rowId={lead.id}
-                                  onSave={handleCellSave}
-                                  className="font-medium"
-                                  editable={col.editable}
-                                />
-                              </div>
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`} onClick={(e) => e.stopPropagation()}>
+                              <button
+                                onClick={() => router.push(`/admin/leads/${lead.id}`)}
+                                className="font-medium text-left hover:text-primary hover:underline active:text-primary/80 touch-manipulation"
+                              >
+                                {cellValue || 'Unknown'}
+                              </button>
                             </td>
                           )
                         }
@@ -1206,11 +1202,11 @@ export default function LeadsPage() {
                           </td>
                         )
                       })}
-                      <td className="p-3">
+                      <td className="p-3" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-1">
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Phone className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7"><Mail className="h-3.5 w-3.5" /></Button>
-                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => router.push(`/admin/leads/${lead.id}`)}><Eye className="h-3.5 w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation"><Phone className="h-4 w-4 sm:h-3.5 sm:w-3.5" /></Button>
+                          <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation"><Mail className="h-4 w-4 sm:h-3.5 sm:w-3.5" /></Button>
+                          <Button variant="default" size="icon" className="h-8 w-8 sm:h-7 sm:w-7 touch-manipulation" onClick={() => router.push(`/admin/leads/${lead.id}`)}><Eye className="h-4 w-4 sm:h-3.5 sm:w-3.5" /></Button>
                         </div>
                       </td>
                     </tr>
