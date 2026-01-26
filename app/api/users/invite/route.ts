@@ -59,24 +59,31 @@ export async function POST(request: NextRequest) {
           .eq('id', currentUser.id)
           .single()
 
-        // Global admin access: user_type = 'admin' OR is_internal_team = true
-        isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
-        isCompanyAdmin = profile?.is_company_admin === true
-        inviterCompanyId = profile?.company_id || null
-
-        // Determine if user can invite
-        if (isAdmin) {
-          // Global admins can invite to any company
+        // Check for master admin email first (bypass all other checks)
+        if (currentUser.email === MASTER_ADMIN_EMAIL || currentUser.email === 'kofi@millionpound.homes') {
+          console.log('[Invite API] Master admin detected:', currentUser.email)
+          isAdmin = true
           canInvite = true
-        } else if (isCompanyAdmin && inviterCompanyId) {
-          // Company admins can only invite to their own company
-          if (company_id === inviterCompanyId) {
+        } else {
+          // Global admin access: user_type = 'admin' OR is_internal_team = true
+          isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+          isCompanyAdmin = profile?.is_company_admin === true
+          inviterCompanyId = profile?.company_id || null
+
+          // Determine if user can invite
+          if (isAdmin) {
+            // Global admins can invite to any company
             canInvite = true
-          }
-        } else if (profile?.user_type && inviterCompanyId) {
-          // Non-admin can only invite to their own company
-          if (company_id === inviterCompanyId) {
-            canInvite = true
+          } else if (isCompanyAdmin && inviterCompanyId) {
+            // Company admins can only invite to their own company
+            if (company_id === inviterCompanyId) {
+              canInvite = true
+            }
+          } else if (profile?.user_type && inviterCompanyId) {
+            // Non-admin can only invite to their own company
+            if (company_id === inviterCompanyId) {
+              canInvite = true
+            }
           }
         }
       }
