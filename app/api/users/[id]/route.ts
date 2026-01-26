@@ -28,15 +28,15 @@ export async function DELETE(
       if (currentUser) {
         currentUserId = currentUser.id
 
-        // Check if current user is admin or super admin
+        // Check if current user is admin, super admin, or internal team
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('user_type')
+          .select('user_type, is_internal_team')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.user_type === 'admin' || profile?.user_type === 'super_admin'
-        isSuperAdmin = profile?.user_type === 'super_admin'
+        isAdmin = profile?.user_type === 'admin' || profile?.user_type === 'super_admin' || profile?.is_internal_team === true
+        isSuperAdmin = profile?.user_type === 'super_admin' || profile?.is_internal_team === true
       }
     }
 
@@ -183,20 +183,21 @@ export async function PATCH(
       // Get current user's role
       const { data: profile } = await supabase
         .from('user_profiles')
-        .select('user_type')
+        .select('user_type, is_internal_team')
         .eq('id', currentUser.id)
         .single()
 
-      isSuperAdmin = profile?.user_type === 'super_admin'
+      isSuperAdmin = profile?.user_type === 'super_admin' || profile?.is_internal_team === true
+      const isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
 
       // Users can update their own profile
       if (currentUser.id === userId) {
         canUpdate = true
       } else {
-        // Super admins can update anyone, regular admins can update non-admins
+        // Super admins and internal team can update anyone, regular admins can update non-admins
         if (isSuperAdmin) {
           canUpdate = true
-        } else if (profile?.user_type === 'admin') {
+        } else if (isAdmin) {
           // Check target user's role - admins can't edit super_admins
           const { data: targetProfile } = await supabase
             .from('user_profiles')

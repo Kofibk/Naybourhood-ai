@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
 
     // Check authentication - support both Supabase auth and demo/quick-access mode
     let isAdmin = false
+    let isCompanyAdmin = false
     let canInvite = false
     let inviterCompanyId: string | null = null
     let isAuthConfigured = false
@@ -51,20 +52,27 @@ export async function POST(request: NextRequest) {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       if (currentUser) {
-        // Check current user's role and company
+        // Check if current user is admin, internal team member, or company admin
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('user_type, company_id')
+          .select('user_type, is_internal_team, is_company_admin, company_id')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.user_type === 'admin'
+        // Global admin access: user_type = 'admin' OR is_internal_team = true
+        isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+        isCompanyAdmin = profile?.is_company_admin === true
         inviterCompanyId = profile?.company_id || null
 
-        // Admins can invite to any company
-        // Other users can invite to their own company only
+        // Determine if user can invite
         if (isAdmin) {
+          // Global admins can invite to any company
           canInvite = true
+        } else if (isCompanyAdmin && inviterCompanyId) {
+          // Company admins can only invite to their own company
+          if (company_id === inviterCompanyId) {
+            canInvite = true
+          }
         } else if (profile?.user_type && inviterCompanyId) {
           // Non-admin can only invite to their own company
           if (company_id === inviterCompanyId) {
@@ -105,6 +113,12 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Authentication required. Please log in to invite team members.' },
           { status: 401 }
+        )
+      }
+      if (isCompanyAdmin && company_id !== inviterCompanyId) {
+        return NextResponse.json(
+          { error: 'You can only invite users to your own company.' },
+          { status: 403 }
         )
       }
       if (inviterCompanyId && company_id !== inviterCompanyId) {
@@ -330,14 +344,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if current user is admin
+    // Check if current user is admin or internal team member
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('user_type')
+      .select('user_type, is_internal_team')
       .eq('id', currentUser.id)
       .single()
 
-    if (profile?.user_type !== 'admin') {
+    const isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+    if (!isAdmin) {
       return NextResponse.json(
         { error: 'Only admins can view all users' },
         { status: 403 }

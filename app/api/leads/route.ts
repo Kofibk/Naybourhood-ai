@@ -21,11 +21,11 @@ export async function GET(request: NextRequest) {
     // Get user profile to check role and company_id
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('user_type, company_id')
+      .select('user_type, company_id, is_internal_team')
       .eq('id', user.id)
       .single()
 
-    const isAdmin = userProfile?.user_type === 'admin'
+    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
 
     // Parse query parameters
     const { searchParams } = new URL(request.url)
