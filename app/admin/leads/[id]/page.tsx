@@ -57,6 +57,69 @@ const STATUS_OPTIONS = [
   'Disqualified',
 ]
 
+// Parse budget range string to extract min/max values
+// Handles formats like: "£1 - £2 Million", "£1M - £2M", "£500K - £1M", "£12000K"
+function parseBudgetRange(budgetString: string | null | undefined): { min: number | null; max: number | null } {
+  if (!budgetString) return { min: null, max: null }
+
+  const str = budgetString.toString().toLowerCase()
+
+  // Helper to convert value with suffix to number
+  const parseValue = (val: string): number | null => {
+    if (!val) return null
+    // Remove £ and whitespace
+    val = val.replace(/[£,\s]/g, '')
+
+    // Handle different formats
+    if (val.includes('million') || val.endsWith('m')) {
+      const num = parseFloat(val.replace(/million|m/gi, ''))
+      return isNaN(num) ? null : num * 1000000
+    }
+    if (val.endsWith('k')) {
+      const num = parseFloat(val.replace(/k/gi, ''))
+      return isNaN(num) ? null : num * 1000
+    }
+    // Plain number
+    const num = parseFloat(val)
+    return isNaN(num) ? null : num
+  }
+
+  // Try to find range pattern (e.g., "1 - 2 million", "1m - 2m")
+  const rangeMatch = str.match(/([£\d.,]+[km]?)\s*[-–to]+\s*([£\d.,]+)\s*(million|m|k)?/i)
+  if (rangeMatch) {
+    const suffix = rangeMatch[3] || ''
+    let minStr = rangeMatch[1] + (rangeMatch[1].match(/[km]$/i) ? '' : suffix)
+    let maxStr = rangeMatch[2] + suffix
+    return {
+      min: parseValue(minStr),
+      max: parseValue(maxStr)
+    }
+  }
+
+  // Single value (e.g., "£2M", "£500K")
+  const singleValue = parseValue(str)
+  if (singleValue) {
+    return { min: singleValue, max: singleValue }
+  }
+
+  return { min: null, max: null }
+}
+
+// Format budget value for display (e.g., 12000000 -> "£12M", 500000 -> "£500K")
+function formatBudgetValue(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-'
+
+  if (value >= 1000000) {
+    const millions = value / 1000000
+    return `£${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`
+  }
+  if (value >= 1000) {
+    const thousands = value / 1000
+    return `£${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(0)}K`
+  }
+  return `£${value.toLocaleString()}`
+}
+
 // Editable Text Field Component
 function EditableTextField({
   label,
@@ -1060,9 +1123,20 @@ export default function LeadDetailPage() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-0">
-              <EditableTextField label="Budget" value={lead.budget_range || lead.budget} field="budget_range" onSave={handleFieldSave} icon={DollarSign} />
-              <EditableTextField label="Min Budget" value={lead.budget_min} field="budget_min" onSave={(f, v) => handleFieldSave(f, v ? Number(v) : null)} type="number" />
-              <EditableTextField label="Max Budget" value={lead.budget_max} field="budget_max" onSave={(f, v) => handleFieldSave(f, v ? Number(v) : null)} type="number" />
+              {(() => {
+                // Parse budget range to auto-populate min/max if not set
+                const parsedBudget = parseBudgetRange(lead.budget_range || lead.budget)
+                const minBudget = lead.budget_min || parsedBudget.min
+                const maxBudget = lead.budget_max || parsedBudget.max
+
+                return (
+                  <>
+                    <EditableTextField label="Budget" value={lead.budget_range || lead.budget} field="budget_range" onSave={handleFieldSave} icon={DollarSign} />
+                    <DataRow label="Min Budget" value={formatBudgetValue(minBudget)} />
+                    <DataRow label="Max Budget" value={formatBudgetValue(maxBudget)} />
+                  </>
+                )
+              })()}
               <EditableSelectField
                 label="Bedrooms"
                 value={String(lead.preferred_bedrooms || lead.bedrooms || '')}

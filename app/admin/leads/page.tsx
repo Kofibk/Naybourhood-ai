@@ -244,6 +244,71 @@ function savePreferences(prefs: Partial<LeadsPreferences>) {
   }
 }
 
+// Format budget string to use proper M/K notation
+// Converts "£12000K" to "£12M", "£1500K" to "£1.5M", etc.
+function formatBudgetDisplay(budget: string | null | undefined): string {
+  if (!budget) return ''
+
+  // If it contains a range indicator, process both parts
+  if (budget.includes(' - ') || budget.includes(' to ')) {
+    const parts = budget.split(/\s*[-–to]+\s*/)
+    if (parts.length === 2) {
+      return `${formatBudgetPart(parts[0])} - ${formatBudgetPart(parts[1])}`
+    }
+  }
+
+  return formatBudgetPart(budget)
+}
+
+function formatBudgetPart(part: string): string {
+  if (!part) return ''
+
+  // Check for values like "£12000K" or "12000K" which should be "£12M"
+  const kMatch = part.match(/[£]?\s*(\d+(?:,\d{3})*(?:\.\d+)?)\s*[Kk]/)
+  if (kMatch) {
+    const numStr = kMatch[1].replace(/,/g, '')
+    const num = parseFloat(numStr)
+    if (!isNaN(num)) {
+      if (num >= 1000) {
+        // Convert to millions (e.g., 12000K = 12M)
+        const millions = num / 1000
+        if (millions % 1 === 0) {
+          return `£${millions.toFixed(0)}M`
+        }
+        return `£${millions.toFixed(1)}M`
+      }
+      // Keep as K but format nicely
+      return `£${num.toFixed(0)}K`
+    }
+  }
+
+  // Check for plain numbers that might need formatting
+  const plainMatch = part.match(/[£]?\s*(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s*(Million|million|M|m)?/)
+  if (plainMatch) {
+    const numStr = plainMatch[1].replace(/,/g, '')
+    const num = parseFloat(numStr)
+    const suffix = plainMatch[2]
+
+    if (!isNaN(num)) {
+      if (suffix && suffix.toLowerCase().startsWith('m')) {
+        return `£${num % 1 === 0 ? num.toFixed(0) : num.toFixed(1)}M`
+      }
+      // Large numbers without suffix - assume they're in pounds
+      if (num >= 1000000) {
+        const millions = num / 1000000
+        return `£${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`
+      }
+      if (num >= 1000) {
+        const thousands = num / 1000
+        return `£${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(0)}K`
+      }
+    }
+  }
+
+  // Return original if no pattern matched
+  return part
+}
+
 // Score Indicator Component - Traffic light color system with score number
 // Green = Hot (70+), Amber = Warm (45-69), Red = Cold (<45)
 function ScoreIndicator({ score }: { score: number | undefined | null }) {
@@ -657,14 +722,23 @@ export default function LeadsPage() {
     if (pending && field in pending) return pending[field]
     if (field === 'full_name') return lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
     // Handle budget - check budget_range first (Supabase field name), then budget
+    // Format to use proper M/K notation (e.g., £12M not £12000K)
     if (field === 'budget') {
-      if (lead.budget_range) return lead.budget_range
-      if (lead.budget) return lead.budget
+      if (lead.budget_range) return formatBudgetDisplay(lead.budget_range)
+      if (lead.budget) return formatBudgetDisplay(lead.budget)
       if (lead.budget_min && lead.budget_max) {
-        return `£${(lead.budget_min / 1000000).toFixed(1)}M - £${(lead.budget_max / 1000000).toFixed(1)}M`
+        const minM = lead.budget_min / 1000000
+        const maxM = lead.budget_max / 1000000
+        return `£${minM % 1 === 0 ? minM.toFixed(0) : minM.toFixed(1)}M - £${maxM % 1 === 0 ? maxM.toFixed(0) : maxM.toFixed(1)}M`
       }
-      if (lead.budget_min) return `£${lead.budget_min.toLocaleString()}+`
-      if (lead.budget_max) return `Up to £${lead.budget_max.toLocaleString()}`
+      if (lead.budget_min) {
+        const minM = lead.budget_min / 1000000
+        return `£${minM % 1 === 0 ? minM.toFixed(0) : minM.toFixed(1)}M+`
+      }
+      if (lead.budget_max) {
+        const maxM = lead.budget_max / 1000000
+        return `Up to £${maxM % 1 === 0 ? maxM.toFixed(0) : maxM.toFixed(1)}M`
+      }
       return ''
     }
     // Handle Lead Score - check local scores first (fresh from API), then database values
