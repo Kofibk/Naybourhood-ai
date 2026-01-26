@@ -6,6 +6,71 @@ export type UserType = 'super_admin' | 'admin' | 'developer' | 'agent' | 'broker
 // Job roles: What function the user performs in their organization
 export type JobRole = 'operations' | 'marketing' | 'sales'
 
+// Permission roles: What level of access the user has within their company
+export type PermissionRole = 'owner' | 'admin' | 'sales' | 'marketing' | 'viewer'
+
+// Available features that can be enabled per tenant
+export type Feature =
+  | 'leads'
+  | 'campaigns'
+  | 'developments'
+  | 'conversations'
+  | 'analytics'
+  | 'reports'
+  | 'borrowers'
+  | 'ai_insights'
+  | 'billing'
+  | 'team_management'
+  | 'settings'
+
+// All available features
+export const ALL_FEATURES: Feature[] = [
+  'leads',
+  'campaigns',
+  'developments',
+  'conversations',
+  'analytics',
+  'reports',
+  'borrowers',
+  'ai_insights',
+  'billing',
+  'team_management',
+  'settings',
+]
+
+// Feature to route mapping
+export const FEATURE_ROUTES: Record<Feature, string[]> = {
+  leads: ['/admin/leads', '/developer/buyers', '/agent/buyers'],
+  campaigns: ['/admin/campaigns', '/developer/campaigns', '/agent/campaigns'],
+  developments: ['/admin/developments', '/developer/developments'],
+  conversations: ['/admin/conversations', '/developer/conversations', '/agent/conversations', '/broker/conversations'],
+  analytics: ['/admin/analytics', '/developer/analytics'],
+  reports: ['/admin/reports'],
+  borrowers: ['/admin/borrowers', '/broker/borrowers'],
+  ai_insights: ['/admin/ai-insights', '/developer/ai-insights'],
+  billing: ['/admin/billing'],
+  team_management: ['/admin/users', '/admin/team'],
+  settings: ['/admin/settings', '/developer/settings', '/agent/settings', '/broker/settings'],
+}
+
+// Permission object for a feature
+export interface FeaturePermission {
+  canRead: boolean
+  canCreate: boolean
+  canUpdate: boolean
+  canDelete: boolean
+}
+
+// Full permissions for a user
+export interface UserPermissions {
+  role: PermissionRole
+  companyId: string | null
+  enabledFeatures: Feature[]
+  permissions: Record<Feature, FeaturePermission>
+  isInternalTeam: boolean
+  isMasterAdmin: boolean
+}
+
 // Legacy alias for backwards compatibility
 export type UserRole = UserType
 
@@ -18,6 +83,9 @@ export const CLIENT_ROLES: UserType[] = ['developer', 'agent', 'broker']
 // Available job roles
 export const JOB_ROLES: JobRole[] = ['operations', 'marketing', 'sales']
 
+// Available permission roles
+export const PERMISSION_ROLES: PermissionRole[] = ['owner', 'admin', 'sales', 'marketing', 'viewer']
+
 export interface User {
   id: string
   name: string
@@ -25,6 +93,7 @@ export interface User {
   role: UserRole          // Legacy: maps to user_type
   user_type?: UserType    // Business type: agent, developer, broker
   job_role?: JobRole      // Job function: operations, marketing, sales
+  permission_role?: PermissionRole  // Access level: owner, admin, sales, marketing, viewer
   company?: string        // Company name (display)
   company_id?: string     // Company UUID for data filtering
   avatarUrl?: string
