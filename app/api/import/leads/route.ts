@@ -35,14 +35,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Verify user is admin
+    // Verify user is admin or internal team
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('user_type')
+      .select('user_type, is_internal_team')
       .eq('id', user.id)
       .single()
 
-    if (userProfile?.user_type !== 'admin') {
+    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+    if (!isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 

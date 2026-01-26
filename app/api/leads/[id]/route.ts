@@ -161,14 +161,14 @@ export async function DELETE(
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Check if user is admin
+    // Check if user is admin or internal team
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('user_type')
+      .select('user_type, is_internal_team')
       .eq('id', user.id)
       .single()
 
-    const isAdmin = userProfile?.user_type === 'admin'
+    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
 
     // Check for hard delete parameter (admin only)
     const { searchParams } = new URL(request.url)
