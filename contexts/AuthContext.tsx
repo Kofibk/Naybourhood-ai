@@ -51,11 +51,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const companyData = userProfile?.company
       const companyName = companyData?.name || userProfile?.company_name
 
+      // Determine role with master admin override
+      let role = (userProfile?.user_type || 'developer') as UserRole
+      if (email.toLowerCase() === 'kofi@naybourhood.ai') {
+        role = 'admin'
+      }
+
       const appUser: User = {
         id: authUserId,
         email: email,
         name: fullName,
-        role: (userProfile?.user_type || 'developer') as UserRole,
+        role: role,
         company_id: userProfile?.company_id,
         company: companyName,
         avatarUrl: userProfile?.avatar_url,
