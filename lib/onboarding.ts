@@ -329,6 +329,7 @@ export function getDashboardPath(role: string): string {
 export function profileToFormData(profile: UserProfile): OnboardingFormData {
   return {
     userType: profile.user_type || '',
+    jobRole: profile.job_role || '',
     firstName: profile.first_name || '',
     lastName: profile.last_name || '',
     phone: profile.phone || '',
