@@ -38,6 +38,9 @@ export async function POST(request: NextRequest) {
 
     // Check authentication - support both Supabase auth and demo mode
     let isAdmin = false
+    let isCompanyAdmin = false
+    let canInvite = false
+    let inviterCompanyId: string | null = null
     let isAuthConfigured = false
 
     if (isSupabaseConfigured()) {
@@ -46,28 +49,47 @@ export async function POST(request: NextRequest) {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       if (currentUser) {
-        // Check if current user is admin or internal team member
+        // Check if current user is admin, internal team member, or company admin
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('user_type, is_internal_team')
+          .select('user_type, is_internal_team, is_company_admin, company_id')
           .eq('id', currentUser.id)
           .single()
 
-        // Admin access: user_type = 'admin' OR is_internal_team = true
+        // Global admin access: user_type = 'admin' OR is_internal_team = true
         isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+        isCompanyAdmin = profile?.is_company_admin === true
+        inviterCompanyId = profile?.company_id || null
+
+        // Determine if user can invite
+        if (isAdmin) {
+          // Global admins can invite to any company
+          canInvite = true
+        } else if (isCompanyAdmin && inviterCompanyId) {
+          // Company admins can only invite to their own company
+          if (company_id === inviterCompanyId) {
+            canInvite = true
+          }
+        }
       }
     }
 
     // Demo mode: Only allow admin bypass when Supabase auth is NOT fully configured
     // This allows testing without real authentication, but once auth is set up, it's enforced
-    if (!isAdmin && !isAuthConfigured && inviter_role === 'admin') {
+    if (!canInvite && !isAuthConfigured && inviter_role === 'admin') {
       console.log('[Invite API] Using demo mode admin access (Supabase auth not configured)')
-      isAdmin = true
+      canInvite = true
     }
 
-    if (!isAdmin) {
+    if (!canInvite) {
+      if (isCompanyAdmin && company_id !== inviterCompanyId) {
+        return NextResponse.json(
+          { error: 'You can only invite users to your own company' },
+          { status: 403 }
+        )
+      }
       return NextResponse.json(
-        { error: 'Only admins can invite users' },
+        { error: 'Only admins or company admins can invite users' },
         { status: 403 }
       )
     }
