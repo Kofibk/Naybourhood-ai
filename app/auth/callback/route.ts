@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     // This changes the status from 'pending' (set during invite) to 'active'
     await supabase
       .from('user_profiles')
-      .update({ status: 'active' })
+      .update({ membership_status: 'active' })
       .eq('id', authResult.user.id)
 
     // Check user_profiles table for onboarding status and role
@@ -78,12 +78,17 @@ export async function GET(request: Request) {
     }
 
     // Get role from user_profiles (set during onboarding)
-    const role = userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
+    let role = userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
 
     // Build full name from user_profiles
     const fullName = userProfile?.first_name
       ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
       : authResult.user.user_metadata?.full_name || email.split('@')[0]
+
+    // Master admin email override - kofi@naybourhood.ai always goes to admin
+    if (email === 'kofi@naybourhood.ai') {
+      role = 'admin'
+    }
 
     // Determine redirect path based on role
     let redirectPath = '/developer'

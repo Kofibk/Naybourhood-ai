@@ -61,6 +61,12 @@ function LoginPageInner() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
+          // Update user status to 'active' since they're logged in
+          await supabase
+            .from('user_profiles')
+            .update({ membership_status: 'active' })
+            .eq('id', user.id)
+
           // Check onboarding status
           const { data: profile } = await supabase
             .from('user_profiles')
@@ -201,6 +207,12 @@ function LoginPageInner() {
               setError(error.message)
             }
           } else if (data.user) {
+            // Update user status to 'active' on successful login
+            await supabase
+              .from('user_profiles')
+              .update({ membership_status: 'active' })
+              .eq('id', data.user.id)
+
             // Check onboarding status
             const { data: profile } = await supabase
               .from('user_profiles')
