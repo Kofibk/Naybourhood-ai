@@ -46,14 +46,15 @@ export async function POST(request: NextRequest) {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       if (currentUser) {
-        // Check if current user is admin
+        // Check if current user is admin or internal team member
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('user_type')
+          .select('user_type, is_internal_team')
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = profile?.user_type === 'admin'
+        // Admin access: user_type = 'admin' OR is_internal_team = true
+        isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
       }
     }
 
@@ -278,14 +279,15 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Check if current user is admin
+    // Check if current user is admin or internal team member
     const { data: profile } = await supabase
       .from('user_profiles')
-      .select('user_type')
+      .select('user_type, is_internal_team')
       .eq('id', currentUser.id)
       .single()
 
-    if (profile?.user_type !== 'admin') {
+    const isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+    if (!isAdmin) {
       return NextResponse.json(
         { error: 'Only admins can view all users' },
         { status: 403 }
