@@ -54,7 +54,7 @@ const getStatusColor = (status: string | undefined) => {
 
 export default function DeveloperBuyersPage() {
   const router = useRouter()
-  const { leads, isLoading, updateLead } = useData()
+  const { leads, isLoading, isSyncing, updateLead } = useData()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -347,7 +347,7 @@ export default function DeveloperBuyersPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
+          {isLoading && leads.length === 0 ? (
             <div className="animate-pulse space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
                 <div key={i} className="h-14 bg-muted rounded" />
