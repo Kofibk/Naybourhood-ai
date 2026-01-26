@@ -88,6 +88,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       setIsLoading(true)
 
+      // Safety timeout - ensure isLoading becomes false even if something hangs
+      const timeout = setTimeout(() => {
+        console.warn('[AuthContext] Init timeout - forcing isLoading to false')
+        setIsLoading(false)
+      }, 5000)
+
       if (isSupabaseConfigured()) {
         try {
           const supabase = createClient()
@@ -165,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
 
+      clearTimeout(timeout)
       setIsLoading(false)
     }
 
