@@ -53,6 +53,13 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${origin}/reset-password`)
     }
 
+    // Update user status to 'active' when they accept invitation/complete auth
+    // This changes the status from 'pending' (set during invite) to 'active'
+    await supabase
+      .from('user_profiles')
+      .update({ status: 'active' })
+      .eq('id', authResult.user.id)
+
     // Check user_profiles table for onboarding status and role
     const { data: userProfile } = await supabase
       .from('user_profiles')

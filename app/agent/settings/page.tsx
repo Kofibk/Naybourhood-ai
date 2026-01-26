@@ -29,6 +29,7 @@ import {
   Send,
   RefreshCw,
 } from 'lucide-react'
+import { toast } from 'sonner'
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth()
@@ -181,6 +182,12 @@ export default function SettingsPage() {
         throw new Error(data.error || 'Failed to send invitation')
       }
 
+      // Show prominent toast notification
+      toast.success('Invitation Sent!', {
+        description: `An invitation email has been sent to ${inviteData.email}. They will appear as "Pending" until they accept.`,
+        duration: 5000,
+      })
+
       setMessage({
         type: 'success',
         text: `Invitation sent to ${inviteData.email}!`
@@ -189,6 +196,12 @@ export default function SettingsPage() {
       setInviteData({ name: '', email: '', role: 'agent' })
       refreshUsers()
     } catch (e) {
+      // Show error toast
+      toast.error('Failed to Send Invitation', {
+        description: e instanceof Error ? e.message : 'An error occurred while sending the invitation',
+        duration: 5000,
+      })
+
       setMessage({
         type: 'error',
         text: e instanceof Error ? e.message : 'Failed to send invitation'

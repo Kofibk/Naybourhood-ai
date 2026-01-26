@@ -182,6 +182,7 @@ export async function POST(request: NextRequest) {
             role: role || 'developer',
             company_id: company_id || null,
             is_internal: is_internal || false,
+            status: 'pending',
           })
 
         if (profileError) {
@@ -200,7 +201,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create profile entry for the invited user
+      // Create profile entry for the invited user with 'pending' status
       if (data.user) {
         const { error: profileError } = await adminClient
           .from('user_profiles')
@@ -211,6 +212,7 @@ export async function POST(request: NextRequest) {
             role: role || 'developer',
             company_id: company_id || null,
             is_internal: is_internal || false,
+            status: 'pending',
           })
 
         if (profileError) {
