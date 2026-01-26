@@ -1,22 +1,35 @@
-// User roles: super_admin and admin are internal Naybourhood team
+// User types: What kind of business/company the user represents
+// super_admin and admin are internal Naybourhood team
 // developer, agent, broker are client users from partner companies
-export type UserRole = 'super_admin' | 'admin' | 'developer' | 'agent' | 'broker'
+export type UserType = 'super_admin' | 'admin' | 'developer' | 'agent' | 'broker'
+
+// Job roles: What function the user performs in their organization
+export type JobRole = 'operations' | 'marketing' | 'sales'
+
+// Legacy alias for backwards compatibility
+export type UserRole = UserType
 
 // Internal team roles (Naybourhood staff)
-export const INTERNAL_ROLES: UserRole[] = ['super_admin', 'admin']
+export const INTERNAL_ROLES: UserType[] = ['super_admin', 'admin']
 
 // Client roles (partner companies)
-export const CLIENT_ROLES: UserRole[] = ['developer', 'agent', 'broker']
+export const CLIENT_ROLES: UserType[] = ['developer', 'agent', 'broker']
+
+// Available job roles
+export const JOB_ROLES: JobRole[] = ['operations', 'marketing', 'sales']
 
 export interface User {
   id: string
   name: string
   email: string
-  role: UserRole
-  company?: string      // Company name (display)
-  company_id?: string   // Company UUID for data filtering
+  role: UserRole          // Legacy: maps to user_type
+  user_type?: UserType    // Business type: agent, developer, broker
+  job_role?: JobRole      // Job function: operations, marketing, sales
+  company?: string        // Company name (display)
+  company_id?: string     // Company UUID for data filtering
   avatarUrl?: string
-  is_internal?: boolean // True for Naybourhood team members
+  is_internal?: boolean   // True for Naybourhood team members
+  is_master_admin?: boolean // True for kofi@naybourhood.ai - full access to all companies
 }
 
 export interface Buyer {
@@ -140,7 +153,9 @@ export interface AppUser {
   id: string
   name: string
   email: string
-  role: UserRole
+  role: UserRole           // Legacy: maps to user_type
+  user_type?: UserType     // Business type: agent, developer, broker
+  job_role?: JobRole       // Job function: operations, marketing, sales
   company?: string
   company_id?: string
   avatar_url?: string
@@ -149,7 +164,7 @@ export interface AppUser {
   last_active?: string
   created_at?: string
   invited_at?: string
-  is_internal?: boolean  // True for Naybourhood team members
+  is_internal?: boolean    // True for Naybourhood team members
   phone?: string
   job_title?: string
   bio?: string

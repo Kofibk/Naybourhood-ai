@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { OnboardingFormData } from '@/lib/onboarding'
-import { Building2, Home, Landmark, Loader2 } from 'lucide-react'
+import { Building2, Home, Landmark, Loader2, Settings, Megaphone, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface WelcomeStepProps {
@@ -35,8 +35,27 @@ const userTypes = [
   },
 ]
 
+const jobRoles = [
+  {
+    id: 'operations' as const,
+    title: 'Operations',
+    icon: Settings,
+  },
+  {
+    id: 'marketing' as const,
+    title: 'Marketing',
+    icon: Megaphone,
+  },
+  {
+    id: 'sales' as const,
+    title: 'Sales',
+    icon: TrendingUp,
+  },
+]
+
 export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps) {
   const [selectedType, setSelectedType] = useState<'developer' | 'agent' | 'broker' | ''>(data.userType)
+  const [selectedRole, setSelectedRole] = useState<'operations' | 'marketing' | 'sales' | ''>(data.jobRole)
   const [firstName, setFirstName] = useState(data.firstName)
   const [lastName, setLastName] = useState(data.lastName)
   const [phone, setPhone] = useState(data.phone)
@@ -64,7 +83,8 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
   const validate = () => {
     const newErrors: Record<string, string> = {}
 
-    if (!selectedType) newErrors.userType = 'Please select a role'
+    if (!selectedType) newErrors.userType = 'Please select your business type'
+    if (!selectedRole) newErrors.jobRole = 'Please select your role'
     if (!firstName.trim() || firstName.trim().length < 2) newErrors.firstName = 'First name is required (min 2 characters)'
     if (!lastName.trim() || lastName.trim().length < 2) newErrors.lastName = 'Last name is required (min 2 characters)'
 
@@ -84,6 +104,7 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
     if (validate()) {
       onNext({
         userType: selectedType,
+        jobRole: selectedRole,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         phone: phone.trim(),
@@ -104,7 +125,7 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
         </p>
       </div>
 
-      {/* Role Selection */}
+      {/* User Type Selection */}
       <div className="space-y-3">
         <Label>I am a...</Label>
         <div className="grid grid-cols-3 gap-3">
@@ -140,6 +161,45 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
         </div>
         {errors.userType && (
           <p className="text-sm text-destructive">{errors.userType}</p>
+        )}
+      </div>
+
+      {/* Job Role Selection */}
+      <div className="space-y-3">
+        <Label>My role is...</Label>
+        <div className="grid grid-cols-3 gap-3">
+          {jobRoles.map((role) => {
+            const Icon = role.icon
+            const isSelected = selectedRole === role.id
+
+            return (
+              <button
+                key={role.id}
+                type="button"
+                onClick={() => setSelectedRole(role.id)}
+                className={cn(
+                  'flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200',
+                  'hover:border-primary/50 hover:bg-primary/5',
+                  isSelected
+                    ? 'border-primary bg-primary/10'
+                    : 'border-border bg-card'
+                )}
+              >
+                <div
+                  className={cn(
+                    'w-12 h-12 rounded-full flex items-center justify-center mb-2 transition-colors',
+                    isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'
+                  )}
+                >
+                  <Icon className="w-6 h-6" />
+                </div>
+                <h3 className="font-medium text-sm">{role.title}</h3>
+              </button>
+            )
+          })}
+        </div>
+        {errors.jobRole && (
+          <p className="text-sm text-destructive">{errors.jobRole}</p>
         )}
       </div>
 

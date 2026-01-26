@@ -96,9 +96,10 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
       ]
     }
-    // Developer and Agent
+    // Developer and Agent - include Developments
     return [
       { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
+      { name: 'Developments', icon: Home, href: `${basePath}/developments` },
       { name: 'Buyers', icon: Users, href: `${basePath}/buyers` },
       { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations` },
       { name: 'My Matches', icon: Heart, href: `${basePath}/matches` },

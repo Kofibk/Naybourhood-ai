@@ -8,11 +8,14 @@ function isServiceRoleConfigured(): boolean {
   return !!(key && key !== 'your-supabase-service-role-key' && key.length > 20)
 }
 
+// Master admin email - has full access to all companies
+const MASTER_ADMIN_EMAIL = 'kofi@naybourhood.ai'
+
 export async function POST(request: NextRequest) {
   try {
     // Get invitation details from request body
     const body = await request.json()
-    const { email, name, role, company_id, is_internal, inviter_role } = body
+    const { email, name, role, job_role, company_id, is_internal, inviter_role } = body
 
     if (!email) {
       return NextResponse.json(
@@ -36,8 +39,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check authentication - support both Supabase auth and demo mode
+    // Check authentication - support both Supabase auth and demo/quick-access mode
     let isAdmin = false
+    let canInvite = false
+    let inviterCompanyId: string | null = null
     let isAuthConfigured = false
 
     if (isSupabaseConfigured()) {
@@ -46,27 +51,70 @@ export async function POST(request: NextRequest) {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
 
       if (currentUser) {
-        // Check if current user is admin
+        // Check current user's role and company
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('user_type')
+          .select('user_type, company_id')
           .eq('id', currentUser.id)
           .single()
 
         isAdmin = profile?.user_type === 'admin'
+        inviterCompanyId = profile?.company_id || null
+
+        // Admins can invite to any company
+        // Other users can invite to their own company only
+        if (isAdmin) {
+          canInvite = true
+        } else if (profile?.user_type && inviterCompanyId) {
+          // Non-admin can only invite to their own company
+          if (company_id === inviterCompanyId) {
+            canInvite = true
+          }
+        }
       }
     }
 
-    // Demo mode: Only allow admin bypass when Supabase auth is NOT fully configured
-    // This allows testing without real authentication, but once auth is set up, it's enforced
-    if (!isAdmin && !isAuthConfigured && inviter_role === 'admin') {
-      console.log('[Invite API] Using demo mode admin access (Supabase auth not configured)')
-      isAdmin = true
+    // Quick Access / Demo mode: Allow invites when not using Supabase auth
+    // Check localStorage-based authentication via inviter_role and inviter_company_id
+    if (!canInvite && !isAuthConfigured) {
+      // Check for master admin (kofi@naybourhood.ai) - full access to everything
+      const inviterEmail = body.inviter_email
+      if (inviterEmail === MASTER_ADMIN_EMAIL || body.is_master_admin === true) {
+        console.log('[Invite API] Using Master Admin access')
+        isAdmin = true
+        canInvite = true
+      }
+      // Trust the inviter_role from the client (Quick Access mode)
+      else if (inviter_role === 'admin') {
+        console.log('[Invite API] Using Quick Access admin mode')
+        isAdmin = true
+        canInvite = true
+      } else if (inviter_role && body.inviter_company_id) {
+        // Non-admin Quick Access users can invite to their own company
+        if (company_id === body.inviter_company_id) {
+          console.log('[Invite API] Using Quick Access team invite mode')
+          canInvite = true
+          inviterCompanyId = body.inviter_company_id
+        }
+      }
     }
 
-    if (!isAdmin) {
+    if (!canInvite) {
+      // Provide helpful error message
+      if (!isAuthConfigured && !inviter_role) {
+        return NextResponse.json(
+          { error: 'Authentication required. Please log in to invite team members.' },
+          { status: 401 }
+        )
+      }
+      if (inviterCompanyId && company_id !== inviterCompanyId) {
+        return NextResponse.json(
+          { error: 'You can only invite users to your own company.' },
+          { status: 403 }
+        )
+      }
       return NextResponse.json(
-        { error: 'Only admins can invite users' },
+        { error: 'You do not have permission to invite users. Please contact an admin.' },
         { status: 403 }
       )
     }
@@ -132,8 +180,10 @@ export async function POST(request: NextRequest) {
             email: email,
             full_name: name,
             role: role || 'developer',
+            job_role: job_role || null,
             company_id: company_id || null,
             is_internal: is_internal || false,
+            status: 'pending',
           })
 
         if (profileError) {
@@ -152,7 +202,7 @@ export async function POST(request: NextRequest) {
         })
       }
 
-      // Create profile entry for the invited user
+      // Create profile entry for the invited user with 'pending' status
       if (data.user) {
         const { error: profileError } = await adminClient
           .from('user_profiles')
@@ -161,8 +211,10 @@ export async function POST(request: NextRequest) {
             email: email,
             full_name: name,
             role: role || 'developer',
+            job_role: job_role || null,
             company_id: company_id || null,
             is_internal: is_internal || false,
+            status: 'pending',
           })
 
         if (profileError) {

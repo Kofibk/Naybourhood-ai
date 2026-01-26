@@ -13,6 +13,13 @@ import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle, Shield, Har
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
+// Master admin companies for quick access
+const MASTER_ADMIN_COMPANIES = [
+  { id: 'd4a3e617-422e-4c7e-a933-4214d534b927', name: 'Million Pound Homes' },
+  { id: 'mount-anvil-001', name: 'Mount Anvil' },
+  { id: 'ad165cde-0d30-4084-b798-063dabfa7e7b', name: 'Tudor Financial' },
+]
+
 function LoginPageInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -23,6 +30,7 @@ function LoginPageInner() {
   const [isSignUp, setIsSignUp] = useState(false)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [resetEmailSent, setResetEmailSent] = useState(false)
+  const [masterAdminCompany, setMasterAdminCompany] = useState(MASTER_ADMIN_COMPANIES[0])
   const router = useRouter()
   const searchParams = useSearchParams()
   const supabaseConfigured = isSupabaseConfigured()
@@ -531,36 +539,60 @@ function LoginPageInner() {
           )}
         </p>
 
-        {/* Quick Access - Development/Testing */}
+        {/* Quick Access - Master Admin */}
         <Card className="border-dashed border-white/20">
           <CardContent className="pt-4 pb-4">
             <p className="text-xs text-center text-white/50 mb-3 uppercase tracking-wider font-medium">
-              Quick Access
+              Master Admin Access
             </p>
             <div className="flex items-center gap-3 mb-3 p-2 rounded-lg bg-[#0A0A0A]">
-              <div className="w-8 h-8 rounded-full bg-[#34D399]/20 flex items-center justify-center">
-                <Shield className="h-4 w-4 text-[#34D399]" />
+              <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center">
+                <Shield className="h-4 w-4 text-amber-400" />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-medium text-white">Kofi</p>
-                <p className="text-xs text-white/50">kofi@millionpound.homes</p>
+                <p className="text-sm font-medium text-white">Kofi Bartels-Kodwo</p>
+                <p className="text-xs text-amber-400">kofi@naybourhood.ai</p>
               </div>
+              <span className="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-full font-medium">
+                SUPER ADMIN
+              </span>
             </div>
+
+            {/* Company Selector */}
+            <div className="mb-3">
+              <p className="text-xs text-white/50 mb-1.5">Select company:</p>
+              <select
+                value={masterAdminCompany.id}
+                onChange={(e) => {
+                  const company = MASTER_ADMIN_COMPANIES.find(c => c.id === e.target.value)
+                  if (company) setMasterAdminCompany(company)
+                }}
+                className="w-full px-3 py-2 rounded-lg bg-[#0A0A0A] border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+              >
+                {MASTER_ADMIN_COMPANIES.map(company => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <p className="text-xs text-white/50 mb-2 text-center">Select dashboard:</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'master-admin-kofi',
+                    email: 'kofi@naybourhood.ai',
+                    name: 'Kofi Bartels-Kodwo',
                     role: 'admin',
-                    company: 'Million Pound Homes',
-                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
+                    company: masterAdminCompany.name,
+                    company_id: masterAdminCompany.id,
+                    is_master_admin: true,
                   }))
                   router.push('/admin')
                 }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#34D399] text-[#0A0A0A] font-medium hover:bg-[#34D399]/90 transition-colors"
+                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors"
               >
                 <Shield className="h-4 w-4" />
                 Admin
@@ -568,12 +600,13 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'master-admin-kofi',
+                    email: 'kofi@naybourhood.ai',
+                    name: 'Kofi Bartels-Kodwo',
                     role: 'developer',
-                    company: 'Million Pound Homes',
-                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
+                    company: masterAdminCompany.name,
+                    company_id: masterAdminCompany.id,
+                    is_master_admin: true,
                   }))
                   router.push('/developer')
                 }}
@@ -585,12 +618,13 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'master-admin-kofi',
+                    email: 'kofi@naybourhood.ai',
+                    name: 'Kofi Bartels-Kodwo',
                     role: 'agent',
-                    company: 'Million Pound Homes',
-                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
+                    company: masterAdminCompany.name,
+                    company_id: masterAdminCompany.id,
+                    is_master_admin: true,
                   }))
                   router.push('/agent')
                 }}
@@ -602,12 +636,13 @@ function LoginPageInner() {
               <button
                 onClick={() => {
                   localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: '7ebc589b-1631-4dcd-9a15-a315b891e9ab',
-                    email: 'kofi@millionpound.homes',
-                    name: 'Kofi',
+                    id: 'master-admin-kofi',
+                    email: 'kofi@naybourhood.ai',
+                    name: 'Kofi Bartels-Kodwo',
                     role: 'broker',
-                    company: 'Million Pound Homes',
-                    company_id: 'd4a3e617-422e-4c7e-a933-4214d534b927',
+                    company: masterAdminCompany.name,
+                    company_id: masterAdminCompany.id,
+                    is_master_admin: true,
                   }))
                   router.push('/broker')
                 }}
