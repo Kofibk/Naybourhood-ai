@@ -64,7 +64,7 @@ function LoginPageInner() {
           // Update user status to 'active' since they're logged in
           await supabase
             .from('user_profiles')
-            .update({ status: 'active' })
+            .update({ membership_status: 'active' })
             .eq('id', user.id)
 
           // Check onboarding status
@@ -210,7 +210,7 @@ function LoginPageInner() {
             // Update user status to 'active' on successful login
             await supabase
               .from('user_profiles')
-              .update({ status: 'active' })
+              .update({ membership_status: 'active' })
               .eq('id', data.user.id)
 
             // Check onboarding status

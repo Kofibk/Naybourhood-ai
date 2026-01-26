@@ -57,7 +57,7 @@ export async function GET(request: Request) {
     // This changes the status from 'pending' (set during invite) to 'active'
     await supabase
       .from('user_profiles')
-      .update({ status: 'active' })
+      .update({ membership_status: 'active' })
       .eq('id', authResult.user.id)
 
     // Check user_profiles table for onboarding status and role
