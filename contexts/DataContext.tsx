@@ -74,64 +74,25 @@ function safeJsonSave(key: string, data: unknown): void {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  const [leads, setLeads] = useState<Buyer[]>([])
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [companies, setCompanies] = useState<Company[]>([])
-  const [developments, setDevelopments] = useState<Development[]>([])
-  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>([])
-  const [users, setUsers] = useState<AppUser[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  // Initialize from cache SYNCHRONOUSLY to avoid flash of loading state
+  const getInitialState = <T,>(key: string, fallback: T): T => {
+    if (typeof window === 'undefined') return fallback
+    return safeJsonParse<T>(key, fallback)
+  }
+
+  const [leads, setLeads] = useState<Buyer[]>(() => getInitialState(CACHE_KEYS.leads, []))
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => getInitialState(CACHE_KEYS.campaigns, []))
+  const [companies, setCompanies] = useState<Company[]>(() => getInitialState(CACHE_KEYS.companies, []))
+  const [developments, setDevelopments] = useState<Development[]>(() => getInitialState(CACHE_KEYS.developments, []))
+  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>(() => getInitialState(CACHE_KEYS.financeLeads, []))
+  const [users, setUsers] = useState<AppUser[]>(() => getInitialState(CACHE_KEYS.users, []))
+  // Start with isLoading=false - we have cached data or empty state ready
+  const [isLoading, setIsLoading] = useState(false)
   const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const cacheLoaded = useRef(false)
-  const hasDataRef = useRef(false)  // Track if we have data (for closure safety)
+  const initialFetchDone = useRef(false)
 
   const isConfigured = isSupabaseConfigured()
-
-  // Load data from cache instantly on mount
-  useEffect(() => {
-    if (cacheLoaded.current) return
-    cacheLoaded.current = true
-
-    const loadFromCache = () => {
-      const timestamp = safeJsonParse<number>(CACHE_KEYS.timestamp, 0)
-      const now = Date.now()
-
-      // Check if cache exists and is not expired
-      if (timestamp > 0 && (now - timestamp) < CACHE_EXPIRY_MS) {
-        console.log('[DataContext] Loading from cache (instant load)')
-
-        const cachedLeads = safeJsonParse<Buyer[]>(CACHE_KEYS.leads, [])
-        const cachedCampaigns = safeJsonParse<Campaign[]>(CACHE_KEYS.campaigns, [])
-        const cachedCompanies = safeJsonParse<Company[]>(CACHE_KEYS.companies, [])
-        const cachedDevelopments = safeJsonParse<Development[]>(CACHE_KEYS.developments, [])
-        const cachedFinanceLeads = safeJsonParse<FinanceLead[]>(CACHE_KEYS.financeLeads, [])
-        const cachedUsers = safeJsonParse<AppUser[]>(CACHE_KEYS.users, [])
-
-        // Set cached data instantly
-        if (cachedLeads.length > 0) setLeads(cachedLeads)
-        if (cachedCampaigns.length > 0) setCampaigns(cachedCampaigns)
-        if (cachedCompanies.length > 0) setCompanies(cachedCompanies)
-        if (cachedDevelopments.length > 0) setDevelopments(cachedDevelopments)
-        if (cachedFinanceLeads.length > 0) setFinanceLeads(cachedFinanceLeads)
-        if (cachedUsers.length > 0) setUsers(cachedUsers)
-
-        // If we have cached data, don't show loading spinner
-        // Include financeLeads for broker dashboards
-        if (cachedLeads.length > 0 || cachedCampaigns.length > 0 || cachedFinanceLeads.length > 0) {
-          setIsLoading(false)
-          hasDataRef.current = true  // Mark that we have data loaded
-          console.log(`[DataContext] Cache loaded: ${cachedLeads.length} leads, ${cachedCampaigns.length} campaigns, ${cachedFinanceLeads.length} borrowers`)
-        }
-
-        return true // Cache was loaded
-      }
-
-      return false // No valid cache
-    }
-
-    loadFromCache()
-  }, [])
 
   // Save current data to cache
   const saveToCache = useCallback(() => {
@@ -147,17 +108,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const refreshData = useCallback(async () => {
     if (!isConfigured) {
-      setIsLoading(false)
       return
     }
 
-    // If we already have data (from cache), show syncing indicator instead of full loading
-    // Use ref to avoid stale closure values
-    if (hasDataRef.current) {
-      setIsSyncing(true)
-    } else {
-      setIsLoading(true)
-    }
+    // Always use syncing indicator (not loading) - we show cached data immediately
+    setIsSyncing(true)
     setError(null)
     const errors: string[] = []
 
@@ -619,9 +574,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('[DataContext] Error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
-      setIsLoading(false)
       setIsSyncing(false)
-      hasDataRef.current = true  // Mark that we have data after first successful fetch
     }
   // Note: We intentionally exclude leads/campaigns from deps to prevent infinite loops
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -635,7 +588,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [leads, campaigns, companies, developments, financeLeads, users, saveToCache])
 
+  // Fetch fresh data on mount (in background - cached data is shown instantly)
   useEffect(() => {
+    if (initialFetchDone.current) return
+    initialFetchDone.current = true
     refreshData()
   }, [refreshData])
 
