@@ -11,6 +11,7 @@ export interface Company {
 export interface UserProfile {
   id: string
   user_type: 'developer' | 'agent' | 'broker' | null
+  job_role: 'operations' | 'marketing' | 'sales' | null
   first_name: string | null
   last_name: string | null
   phone: string | null
@@ -32,6 +33,7 @@ export interface UserProfile {
 export interface OnboardingFormData {
   // Step 1: You
   userType: 'developer' | 'agent' | 'broker' | ''
+  jobRole: 'operations' | 'marketing' | 'sales' | ''
   firstName: string
   lastName: string
   phone: string
@@ -43,6 +45,7 @@ export interface OnboardingFormData {
 
 export const defaultFormData: OnboardingFormData = {
   userType: '',
+  jobRole: '',
   firstName: '',
   lastName: '',
   phone: '',
@@ -205,6 +208,7 @@ export async function completeOnboardingWithExistingCompany(
       phone: formData.phone,
       job_title: formData.jobTitle || null,
       user_type: formData.userType,
+      job_role: formData.jobRole || null,
       company_id: companyId,
       is_company_admin: false,
       membership_status: 'pending_approval',
@@ -278,6 +282,7 @@ export async function completeOnboardingWithNewCompany(
       phone: formData.phone,
       job_title: formData.jobTitle || null,
       user_type: formData.userType,
+      job_role: formData.jobRole || null,
       company_id: newCompany.id,
       is_company_admin: true,
       membership_status: 'active',

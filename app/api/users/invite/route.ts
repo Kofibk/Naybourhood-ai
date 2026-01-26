@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
   try {
     // Get invitation details from request body
     const body = await request.json()
-    const { email, name, role, company_id, is_internal, inviter_role } = body
+    const { email, name, role, job_role, company_id, is_internal, inviter_role } = body
 
     if (!email) {
       return NextResponse.json(
@@ -180,6 +180,7 @@ export async function POST(request: NextRequest) {
             email: email,
             full_name: name,
             role: role || 'developer',
+            job_role: job_role || null,
             company_id: company_id || null,
             is_internal: is_internal || false,
             status: 'pending',
@@ -210,6 +211,7 @@ export async function POST(request: NextRequest) {
             email: email,
             full_name: name,
             role: role || 'developer',
+            job_role: job_role || null,
             company_id: company_id || null,
             is_internal: is_internal || false,
             status: 'pending',

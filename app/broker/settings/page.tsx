@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import { useData } from '@/contexts/DataContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import type { UserRole } from '@/types'
+import type { UserRole, JobRole } from '@/types'
 import {
   Bell,
   User,
@@ -27,6 +27,7 @@ import {
   UserCircle,
   Shield,
   Send,
+  Briefcase,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -50,6 +51,7 @@ export default function SettingsPage() {
     name: '',
     email: '',
     role: 'broker' as UserRole,
+    job_role: 'sales' as JobRole,
   })
   const [isSendingInvite, setIsSendingInvite] = useState(false)
 
@@ -166,6 +168,7 @@ export default function SettingsPage() {
           email: inviteData.email,
           name: inviteData.name,
           role: inviteData.role,
+          job_role: inviteData.job_role,
           company_id: companyId,
           is_internal: false,
           inviter_role: user?.role,
@@ -192,7 +195,7 @@ export default function SettingsPage() {
         text: `Invitation sent to ${inviteData.email}!`
       })
       setIsInviteModalOpen(false)
-      setInviteData({ name: '', email: '', role: 'broker' })
+      setInviteData({ name: '', email: '', role: 'broker', job_role: 'sales' })
       refreshUsers()
     } catch (e) {
       // Show error toast
@@ -540,20 +543,37 @@ export default function SettingsPage() {
                   placeholder="John Smith"
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Role
-                </label>
-                <select
-                  value={inviteData.role}
-                  onChange={(e) => setInviteData({ ...inviteData, role: e.target.value as UserRole })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="broker">Broker</option>
-                  <option value="agent">Agent</option>
-                  <option value="developer">Developer</option>
-                </select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    User Type
+                  </label>
+                  <select
+                    value={inviteData.role}
+                    onChange={(e) => setInviteData({ ...inviteData, role: e.target.value as UserRole })}
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="broker">Broker</option>
+                    <option value="agent">Agent</option>
+                    <option value="developer">Developer</option>
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Briefcase className="h-4 w-4" />
+                    Role
+                  </label>
+                  <select
+                    value={inviteData.job_role}
+                    onChange={(e) => setInviteData({ ...inviteData, job_role: e.target.value as JobRole })}
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    <option value="operations">Operations</option>
+                    <option value="marketing">Marketing</option>
+                    <option value="sales">Sales</option>
+                  </select>
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
