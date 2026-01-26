@@ -1,12 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 import { createServerClient } from '@supabase/ssr'
-
-// Protected route prefixes that require authentication
-const PROTECTED_ROUTES = ['/admin', '/developer', '/agent', '/broker']
-
-// Public routes that don't require authentication
-const PUBLIC_ROUTES = ['/', '/login', '/auth', '/onboarding', '/api']
+import {
+  PROTECTED_ROUTES,
+  PUBLIC_ROUTES,
+  MASTER_ADMIN_EMAILS,
+  INTERNAL_TEAM_DOMAIN,
+} from '@/lib/auth/config'
 
 // Feature to route mapping for access control
 const FEATURE_ROUTE_MAP: Record<string, string[]> = {
@@ -113,10 +113,11 @@ export async function middleware(request: NextRequest) {
       .eq('id', session.user.id)
       .single()
 
-    // Internal team has full access
+    // Internal team has full access (using centralized auth config)
+    const userEmail = session.user.email?.toLowerCase() || ''
     const isInternalTeam = profile?.is_internal_team ||
-      session.user.email?.toLowerCase().endsWith('@naybourhood.ai') ||
-      session.user.email?.toLowerCase() === 'kofi@naybourhood.ai'
+      userEmail.endsWith(INTERNAL_TEAM_DOMAIN) ||
+      MASTER_ADMIN_EMAILS.includes(userEmail as typeof MASTER_ADMIN_EMAILS[number])
 
     if (isInternalTeam) {
       return response

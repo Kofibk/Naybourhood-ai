@@ -30,6 +30,7 @@ import {
 } from 'lucide-react'
 import { useState, useMemo } from 'react'
 import { usePermissions } from '@/hooks/useCanAccess'
+import { hasBillingAccess } from '@/lib/auth'
 import type { Feature } from '@/types'
 
 interface NavItem {
@@ -49,11 +50,6 @@ interface SidebarProps {
   onLogout?: () => void
 }
 
-// Admins with billing access - add emails here
-const BILLING_ACCESS_EMAILS = [
-  'kofi@naybourhood.ai',
-]
-
 export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
@@ -62,12 +58,13 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   // Get user permissions for feature-based nav filtering
   const { permissions, isLoading: permissionsLoading } = usePermissions()
 
-  // Check if user has billing access (legacy check + new RBAC)
-  const hasBillingAccess = useMemo(() => {
-    if (userEmail && BILLING_ACCESS_EMAILS.includes(userEmail.toLowerCase())) return true
-    if (permissions?.isInternalTeam || permissions?.isMasterAdmin) return true
-    if (permissions?.permissions?.billing?.canRead) return true
-    return false
+  // Check if user has billing access (using centralized auth config)
+  const userHasBillingAccess = useMemo(() => {
+    return hasBillingAccess(userEmail, permissions ? {
+      isInternalTeam: permissions.isInternalTeam,
+      isMasterAdmin: permissions.isMasterAdmin,
+      permissions: permissions.permissions,
+    } : undefined)
   }, [userEmail, permissions])
 
   // Check if a feature is accessible
@@ -94,7 +91,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       ]
 
       // Only show billing for authorized admins
-      if (hasBillingAccess) {
+      if (userHasBillingAccess) {
         adminItems.push({ name: 'Billing', icon: CreditCard, href: '/admin/billing', feature: 'billing' })
       }
 
@@ -133,7 +130,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   // Filter nav items based on feature access
   const navItems = useMemo(() => {
     return getNavItems().filter(item => canAccessFeature(item.feature))
-  }, [userType, basePath, hasBillingAccess, permissions, permissionsLoading])
+  }, [userType, basePath, userHasBillingAccess, permissions, permissionsLoading])
 
   const isActive = (href: string) => pathname === href
 

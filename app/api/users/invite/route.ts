@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { sendInviteEmail, isEmailConfigured } from '@/lib/email'
+import {
+  isMasterAdmin,
+  hasElevatedPermissions,
+  getAppUrl,
+  getAuthCallbackUrl,
+  parseFullName,
+  buildDisplayName,
+} from '@/lib/auth'
 
 // Check if service role key is configured (required for invites)
 function isServiceRoleConfigured(): boolean {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
   return !!(key && key !== 'your-supabase-service-role-key' && key.length > 20)
 }
-
-// Master admin email - has full access to all companies
-const MASTER_ADMIN_EMAIL = 'kofi@naybourhood.ai'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,8 +65,8 @@ export async function POST(request: NextRequest) {
           .single()
 
         // Check for master admin email first (bypass all other checks)
-        if (currentUser.email === MASTER_ADMIN_EMAIL || currentUser.email === 'kofi@millionpound.homes') {
-          console.log('[Invite API] Master admin detected:', currentUser.email)
+        if (hasElevatedPermissions(currentUser.email)) {
+          console.log('[Invite API] Elevated admin detected:', currentUser.email)
           isAdmin = true
           canInvite = true
         } else {
@@ -92,9 +97,9 @@ export async function POST(request: NextRequest) {
     // Quick Access / Demo mode: Allow invites when not using Supabase auth
     // Check localStorage-based authentication via inviter_role and inviter_company_id
     if (!canInvite && !isAuthConfigured) {
-      // Check for master admin (kofi@naybourhood.ai) - full access to everything
+      // Check for master admin - full access to everything
       const inviterEmail = body.inviter_email
-      if (inviterEmail === MASTER_ADMIN_EMAIL || body.is_master_admin === true) {
+      if (isMasterAdmin(inviterEmail) || body.is_master_admin === true) {
         console.log('[Invite API] Using Master Admin access')
         isAdmin = true
         canInvite = true
@@ -161,13 +166,12 @@ export async function POST(request: NextRequest) {
       // Create admin client for invitation
       const adminClient = createAdminClient()
 
-      // Determine the app URL for redirects
-      // Priority: 1) NEXT_PUBLIC_APP_URL env var, 2) request origin, 3) localhost fallback
+      // Determine the app URL for redirects (using centralized auth config)
       const requestOrigin = new URL(request.url).origin
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || (requestOrigin.includes('localhost') ? 'http://localhost:3000' : requestOrigin)
+      const appUrl = getAppUrl(requestOrigin)
 
       // Send invitation email via Supabase Auth
-      const redirectUrl = `${appUrl}/auth/callback`
+      const redirectUrl = getAuthCallbackUrl(requestOrigin)
       console.log('[Invite API] Sending invite to:', email, 'with redirect:', redirectUrl, '(origin:', requestOrigin, ')')
 
       const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
@@ -199,17 +203,19 @@ export async function POST(request: NextRequest) {
         }
 
         // If invite fails, try to just create the profile as fallback
+        const { firstName, lastName } = parseFullName(name)
         const { error: profileError } = await adminClient
           .from('user_profiles')
           .insert({
             id: crypto.randomUUID(),
             email: email,
-            full_name: name,
-            role: role || 'developer',
+            first_name: firstName,
+            last_name: lastName,
+            user_type: role || 'developer',
             job_role: job_role || null,
             company_id: company_id || null,
-            is_internal: is_internal || false,
-            status: 'pending',
+            is_internal_team: is_internal || false,
+            membership_status: 'pending',
           })
 
         if (profileError) {
@@ -230,17 +236,21 @@ export async function POST(request: NextRequest) {
 
       // Create profile entry for the invited user with 'pending' status
       if (data.user) {
+        // Parse full name into first_name and last_name
+        const { firstName, lastName } = parseFullName(name)
+
         const { error: profileError } = await adminClient
           .from('user_profiles')
           .upsert({
             id: data.user.id,
             email: email,
-            full_name: name,
-            role: role || 'developer',
+            first_name: firstName,
+            last_name: lastName,
+            user_type: role || 'developer',
             job_role: job_role || null,
             company_id: company_id || null,
-            is_internal: is_internal || false,
-            status: 'pending',
+            is_internal_team: is_internal || false,
+            membership_status: 'pending',
           })
 
         if (profileError) {
@@ -252,7 +262,7 @@ export async function POST(request: NextRequest) {
       if (isEmailConfigured()) {
         // Use the same appUrl logic as above for consistency
 
-        // Get inviter's name
+        // Get inviter's name (using centralized helper)
         let inviterName: string | undefined
         const supabase = createClient()
         const { data: { user: currentUser } } = await supabase.auth.getUser()
@@ -262,8 +272,12 @@ export async function POST(request: NextRequest) {
             .select('first_name, last_name')
             .eq('id', currentUser.id)
             .single()
-          const fullName = inviterProfile ? `${inviterProfile.first_name || ''} ${inviterProfile.last_name || ''}`.trim() : ''
-          inviterName = fullName || undefined
+          const fullName = buildDisplayName(
+            inviterProfile?.first_name,
+            inviterProfile?.last_name,
+            currentUser.email
+          )
+          inviterName = fullName !== 'User' ? fullName : undefined
         }
 
         // Get company name if applicable

@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { isMasterAdmin, isInternalTeamEmail, hasFullAccess } from '@/lib/auth'
 import type { Feature, FeaturePermission, PermissionRole, UserPermissions } from '@/types'
 
 // Default permissions for each role (matches database seed)
@@ -119,19 +120,19 @@ export function usePermissions(): UsePermissionsResult {
       return
     }
 
-    // Check if user is internal team or master admin
-    const isInternalTeam = user.is_internal || user.email?.toLowerCase().endsWith('@naybourhood.ai') || false
-    const isMasterAdmin = user.is_master_admin || user.email?.toLowerCase() === 'kofi@naybourhood.ai'
+    // Check if user is internal team or master admin (using centralized auth config)
+    const userIsInternalTeam = user.is_internal || isInternalTeamEmail(user.email)
+    const userIsMasterAdmin = user.is_master_admin || isMasterAdmin(user.email)
 
     // Internal team gets full access to everything
-    if (isInternalTeam || isMasterAdmin) {
+    if (userIsInternalTeam || userIsMasterAdmin) {
       const fullPermissions: UserPermissions = {
         role: 'owner',
         companyId: user.company_id || null,
         enabledFeatures: Object.keys(DEFAULT_ROLE_PERMISSIONS.owner) as Feature[],
         permissions: DEFAULT_ROLE_PERMISSIONS.owner,
         isInternalTeam: true,
-        isMasterAdmin,
+        isMasterAdmin: userIsMasterAdmin,
       }
       setPermissions(fullPermissions)
       setIsLoading(false)

@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { isMasterAdmin, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -80,33 +81,20 @@ export async function GET(request: Request) {
     // Get role from user_profiles (set during onboarding)
     let role = userProfile?.user_type || authResult.user.user_metadata?.role || 'developer'
 
-    // Build full name from user_profiles
-    const fullName = userProfile?.first_name
-      ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
-      : authResult.user.user_metadata?.full_name || email.split('@')[0]
+    // Build full name from user_profiles (using centralized helper)
+    const fullName = buildDisplayName(
+      userProfile?.first_name,
+      userProfile?.last_name,
+      authResult.user.user_metadata?.full_name || email
+    )
 
-    // Master admin email override - kofi@naybourhood.ai always goes to admin
-    if (email === 'kofi@naybourhood.ai') {
+    // Master admin email override (using centralized auth config)
+    if (isMasterAdmin(email)) {
       role = 'admin'
     }
 
-    // Determine redirect path based on role
-    let redirectPath = '/developer'
-    switch (role) {
-      case 'admin':
-        redirectPath = '/admin'
-        break
-      case 'agent':
-        redirectPath = '/agent'
-        break
-      case 'broker':
-        redirectPath = '/broker'
-        break
-      case 'developer':
-      default:
-        redirectPath = '/developer'
-        break
-    }
+    // Determine redirect path based on role (using centralized helper)
+    const redirectPath = getDashboardPathForRole(role)
 
     // Redirect with role info in URL so client can store in localStorage
     const redirectUrl = new URL(`${origin}${redirectPath}`)
