@@ -80,11 +80,12 @@ export async function createUserProfile(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  // First upsert the profile
+  // First upsert the profile - include email for proper sync
   const { error } = await supabase
     .from('user_profiles')
     .upsert({
       id: user.id,
+      email: user.email,  // Ensure email is always synced
       onboarding_step: 1,
       onboarding_completed: false,
     })
@@ -203,6 +204,7 @@ export async function completeOnboardingWithExistingCompany(
   const { error: profileError } = await supabase
     .from('user_profiles')
     .update({
+      email: user.email,  // Ensure email is always synced
       first_name: formData.firstName,
       last_name: formData.lastName,
       phone: formData.phone,
@@ -277,6 +279,7 @@ export async function completeOnboardingWithNewCompany(
   const { error: profileError } = await supabase
     .from('user_profiles')
     .update({
+      email: user.email,  // Ensure email is always synced
       first_name: formData.firstName,
       last_name: formData.lastName,
       phone: formData.phone,

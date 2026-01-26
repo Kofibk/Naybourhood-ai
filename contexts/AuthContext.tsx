@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { isMasterAdmin, isInternalTeamEmail, buildDisplayName } from '@/lib/auth'
 import type { User, UserRole } from '@/types'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 
@@ -43,22 +44,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       // Build user object from user_profiles
-      const fullName = userProfile?.first_name
-        ? `${userProfile.first_name} ${userProfile.last_name || ''}`.trim()
-        : email.split('@')[0]
+      const fullName = buildDisplayName(
+        userProfile?.first_name,
+        userProfile?.last_name,
+        email
+      )
 
       // Get company data from joined query, fall back to company_name text field
       const companyData = userProfile?.company
       const companyName = companyData?.name || userProfile?.company_name
 
+      // Determine role with master admin override (uses centralized auth config)
+      let role = (userProfile?.user_type || 'developer') as UserRole
+      if (isMasterAdmin(email)) {
+        role = 'admin'
+      }
+
+      // Check if internal team member
+      const isInternal = userProfile?.is_internal_team || isInternalTeamEmail(email)
+
       const appUser: User = {
         id: authUserId,
         email: email,
         name: fullName,
-        role: (userProfile?.user_type || 'developer') as UserRole,
+        role: role,
         company_id: userProfile?.company_id,
         company: companyName,
         avatarUrl: userProfile?.avatar_url,
+        is_internal: isInternal,
+        is_master_admin: isMasterAdmin(email),
+        permission_role: userProfile?.permission_role,
       }
 
       return appUser
