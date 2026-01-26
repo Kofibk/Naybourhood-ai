@@ -161,9 +161,14 @@ export async function POST(request: NextRequest) {
       // Create admin client for invitation
       const adminClient = createAdminClient()
 
+      // Determine the app URL for redirects
+      // Priority: 1) NEXT_PUBLIC_APP_URL env var, 2) request origin, 3) localhost fallback
+      const requestOrigin = new URL(request.url).origin
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || (requestOrigin.includes('localhost') ? 'http://localhost:3000' : requestOrigin)
+
       // Send invitation email via Supabase Auth
-      const redirectUrl = `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/auth/callback`
-      console.log('[Invite API] Sending invite to:', email, 'with redirect:', redirectUrl)
+      const redirectUrl = `${appUrl}/auth/callback`
+      console.log('[Invite API] Sending invite to:', email, 'with redirect:', redirectUrl, '(origin:', requestOrigin, ')')
 
       const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
         data: {
@@ -245,7 +250,7 @@ export async function POST(request: NextRequest) {
 
       // Send branded invite email via Resend (in addition to Supabase's email)
       if (isEmailConfigured()) {
-        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        // Use the same appUrl logic as above for consistency
 
         // Get inviter's name
         let inviterName: string | undefined
