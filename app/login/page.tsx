@@ -78,7 +78,13 @@ function LoginPageInner() {
             router.push('/onboarding')
           } else {
             // Save user to localStorage before redirecting
-            const role = profile.user_type || 'developer'
+            let role = profile.user_type || 'developer'
+
+            // Master admin email override
+            if (user.email === 'kofi@naybourhood.ai') {
+              role = 'admin'
+            }
+
             const fullName = profile.first_name
               ? `${profile.first_name} ${profile.last_name || ''}`.trim()
               : user.email?.split('@')[0] || 'User'
@@ -224,7 +230,13 @@ function LoginPageInner() {
               router.push('/onboarding')
             } else {
               // Save user to localStorage before redirecting
-              const role = profile.user_type || 'developer'
+              let role = profile.user_type || 'developer'
+
+              // Master admin email override
+              if (data.user.email === 'kofi@naybourhood.ai') {
+                role = 'admin'
+              }
+
               const fullName = profile.first_name
                 ? `${profile.first_name} ${profile.last_name || ''}`.trim()
                 : data.user.email?.split('@')[0] || 'User'
