@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useAuth } from '@/contexts/AuthContext'
-import { INTERNAL_ROLES, CLIENT_ROLES, type UserRole } from '@/types'
+import { INTERNAL_ROLES, CLIENT_ROLES, JOB_ROLES, type UserRole, type JobRole } from '@/types'
 import {
   Plus,
   Search,
@@ -35,6 +35,7 @@ interface InviteUser {
   name: string
   email: string
   role: UserRole
+  job_role?: JobRole
   company_id?: string
   is_internal?: boolean
 }
@@ -50,7 +51,8 @@ export default function UsersPage() {
   const [inviteData, setInviteData] = useState<InviteUser>({
     name: '',
     email: '',
-    role: 'agent',
+    role: 'developer',
+    job_role: undefined,
     company_id: '',
     is_internal: false,
   })
@@ -114,7 +116,8 @@ export default function UsersPage() {
     setInviteData({
       name: '',
       email: '',
-      role: isInternal ? 'admin' : 'agent',
+      role: isInternal ? 'admin' : 'developer',
+      job_role: undefined,
       company_id: '',
       is_internal: isInternal,
     })
@@ -149,7 +152,8 @@ export default function UsersPage() {
         body: JSON.stringify({
           email: inviteData.email,
           name: inviteData.name,
-          role: inviteData.role,
+          role: inviteData.is_internal ? 'admin' : inviteData.role,
+          job_role: inviteData.job_role || null,
           company_id: inviteData.is_internal ? null : (inviteData.company_id || null),
           is_internal: inviteData.is_internal,
           inviter_role: currentUser?.role,
@@ -167,7 +171,7 @@ export default function UsersPage() {
         text: `Invitation sent to ${inviteData.email}! They will receive an email to set up their account.`
       })
       setIsModalOpen(false)
-      setInviteData({ name: '', email: '', role: 'agent', company_id: '', is_internal: false })
+      setInviteData({ name: '', email: '', role: 'developer', job_role: undefined, company_id: '', is_internal: false })
 
       refreshData()
     } catch (e) {
@@ -571,7 +575,7 @@ export default function UsersPage() {
               {/* User Type Toggle */}
               <div className="flex gap-2 p-1 bg-muted rounded-lg">
                 <button
-                  onClick={() => setInviteData({ ...inviteData, is_internal: false, role: 'agent', company_id: '' })}
+                  onClick={() => setInviteData({ ...inviteData, is_internal: false, role: 'developer', job_role: undefined, company_id: '' })}
                   className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
                     !inviteData.is_internal
                       ? 'bg-background shadow text-foreground'
@@ -582,7 +586,7 @@ export default function UsersPage() {
                   Client User
                 </button>
                 <button
-                  onClick={() => setInviteData({ ...inviteData, is_internal: true, role: 'admin', company_id: '' })}
+                  onClick={() => setInviteData({ ...inviteData, is_internal: true, role: 'admin', job_role: undefined, company_id: '' })}
                   className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
                     inviteData.is_internal
                       ? 'bg-purple-600 text-white shadow'
@@ -618,22 +622,46 @@ export default function UsersPage() {
                   required
                 />
               </div>
+              {/* User Type (Role) - only show for client users */}
+              {!inviteData.is_internal && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium flex items-center gap-2">
+                    <Shield className="h-4 w-4" />
+                    User Type
+                  </label>
+                  <select
+                    value={inviteData.role}
+                    onChange={(e) => setInviteData({
+                      ...inviteData,
+                      role: e.target.value as UserRole
+                    })}
+                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  >
+                    {getRoleOptions().map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Job Role - show for both internal and client users */}
               <div className="space-y-2">
                 <label className="text-sm font-medium flex items-center gap-2">
-                  <Shield className="h-4 w-4" />
-                  Role
+                  <Briefcase className="h-4 w-4" />
+                  Job Role
                 </label>
                 <select
-                  value={inviteData.role}
+                  value={inviteData.job_role || ''}
                   onChange={(e) => setInviteData({
                     ...inviteData,
-                    role: e.target.value as UserRole
+                    job_role: e.target.value as JobRole || undefined
                   })}
                   className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
                 >
-                  {getRoleOptions().map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  <option value="">Select job role</option>
+                  <option value="sales">Sales</option>
+                  <option value="operations">Operations</option>
+                  <option value="marketing">Marketing</option>
                 </select>
               </div>
 
