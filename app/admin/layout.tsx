@@ -1,16 +1,28 @@
 'use client'
 
-import { Suspense, useEffect } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DataProvider } from '@/contexts/DataContext'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { Toaster } from 'sonner'
 
+// Get user from localStorage synchronously (for instant render)
+function getStoredUser() {
+  if (typeof window === 'undefined') return null
+  try {
+    const stored = localStorage.getItem('naybourhood_user')
+    return stored ? JSON.parse(stored) : null
+  } catch {
+    return null
+  }
+}
+
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
-  const { user, isLoading, logout } = useAuth()
+  const { user, logout } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
+  const [localUser, setLocalUser] = useState(getStoredUser)
 
   // Handle auth callback URL params (from fresh login)
   useEffect(() => {
@@ -22,7 +34,6 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
       const companyId = searchParams.get('companyId')
 
       if (userId && email) {
-        // Store user in localStorage immediately
         const userData = {
           id: userId,
           email,
@@ -31,38 +42,34 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           company_id: companyId || undefined,
         }
         localStorage.setItem('naybourhood_user', JSON.stringify(userData))
-        // Clear URL params
+        setLocalUser(userData)
         window.history.replaceState({}, '', '/admin')
       }
     }
   }, [searchParams])
 
-  // Show loading while AuthContext initializes
-  if (isLoading) {
+  // Use AuthContext user if available, otherwise localStorage user
+  const currentUser = user || localUser
+
+  // No user anywhere - redirect to login
+  useEffect(() => {
+    if (!currentUser && typeof window !== 'undefined') {
+      // Double-check localStorage one more time
+      const stored = getStoredUser()
+      if (stored) {
+        setLocalUser(stored)
+      } else {
+        router.push('/login')
+      }
+    }
+  }, [currentUser, router])
+
+  // Always render the dashboard shell - never block on loading
+  // If no user yet, show minimal shell while checking
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
-      </div>
-    )
-  }
-
-  // Get user from AuthContext or localStorage
-  const currentUser = user || (() => {
-    if (typeof window === 'undefined') return null
-    try {
-      const stored = localStorage.getItem('naybourhood_user')
-      return stored ? JSON.parse(stored) : null
-    } catch {
-      return null
-    }
-  })()
-
-  // No user - redirect to login
-  if (!currentUser) {
-    router.push('/login')
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-muted-foreground">Redirecting...</div>
       </div>
     )
   }
