@@ -74,25 +74,49 @@ function safeJsonSave(key: string, data: unknown): void {
 }
 
 export function DataProvider({ children }: { children: ReactNode }) {
-  // Initialize from cache SYNCHRONOUSLY to avoid flash of loading state
-  const getInitialState = <T,>(key: string, fallback: T): T => {
-    if (typeof window === 'undefined') return fallback
-    return safeJsonParse<T>(key, fallback)
-  }
-
-  const [leads, setLeads] = useState<Buyer[]>(() => getInitialState(CACHE_KEYS.leads, []))
-  const [campaigns, setCampaigns] = useState<Campaign[]>(() => getInitialState(CACHE_KEYS.campaigns, []))
-  const [companies, setCompanies] = useState<Company[]>(() => getInitialState(CACHE_KEYS.companies, []))
-  const [developments, setDevelopments] = useState<Development[]>(() => getInitialState(CACHE_KEYS.developments, []))
-  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>(() => getInitialState(CACHE_KEYS.financeLeads, []))
-  const [users, setUsers] = useState<AppUser[]>(() => getInitialState(CACHE_KEYS.users, []))
-  // Start with isLoading=false - we have cached data or empty state ready
-  const [isLoading, setIsLoading] = useState(false)
+  // Start with empty state - load from cache in useEffect to avoid hydration mismatch
+  const [leads, setLeads] = useState<Buyer[]>([])
+  const [campaigns, setCampaigns] = useState<Campaign[]>([])
+  const [companies, setCompanies] = useState<Company[]>([])
+  const [developments, setDevelopments] = useState<Development[]>([])
+  const [financeLeads, setFinanceLeads] = useState<FinanceLead[]>([])
+  const [users, setUsers] = useState<AppUser[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [isSyncing, setIsSyncing] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const initialFetchDone = useRef(false)
+  const initialLoadDone = useRef(false)
 
   const isConfigured = isSupabaseConfigured()
+
+  // Load from cache immediately on mount (client-side only)
+  useEffect(() => {
+    if (initialLoadDone.current) return
+    initialLoadDone.current = true
+
+    // Load cached data instantly
+    const cachedLeads = safeJsonParse<Buyer[]>(CACHE_KEYS.leads, [])
+    const cachedCampaigns = safeJsonParse<Campaign[]>(CACHE_KEYS.campaigns, [])
+    const cachedCompanies = safeJsonParse<Company[]>(CACHE_KEYS.companies, [])
+    const cachedDevelopments = safeJsonParse<Development[]>(CACHE_KEYS.developments, [])
+    const cachedFinanceLeads = safeJsonParse<FinanceLead[]>(CACHE_KEYS.financeLeads, [])
+    const cachedUsers = safeJsonParse<AppUser[]>(CACHE_KEYS.users, [])
+
+    // Set cached data
+    if (cachedLeads.length > 0) setLeads(cachedLeads)
+    if (cachedCampaigns.length > 0) setCampaigns(cachedCampaigns)
+    if (cachedCompanies.length > 0) setCompanies(cachedCompanies)
+    if (cachedDevelopments.length > 0) setDevelopments(cachedDevelopments)
+    if (cachedFinanceLeads.length > 0) setFinanceLeads(cachedFinanceLeads)
+    if (cachedUsers.length > 0) setUsers(cachedUsers)
+
+    // Stop loading immediately - show cached data or empty state
+    setIsLoading(false)
+
+    // Fetch fresh data in background
+    if (isConfigured) {
+      setIsSyncing(true)
+    }
+  }, [isConfigured])
 
   // Save current data to cache
   const saveToCache = useCallback(() => {
@@ -108,11 +132,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const refreshData = useCallback(async () => {
     if (!isConfigured) {
+      setIsSyncing(false)
       return
     }
 
-    // Always use syncing indicator (not loading) - we show cached data immediately
-    setIsSyncing(true)
     setError(null)
     const errors: string[] = []
 
@@ -588,12 +611,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [leads, campaigns, companies, developments, financeLeads, users, saveToCache])
 
-  // Fetch fresh data on mount (in background - cached data is shown instantly)
+  // Fetch fresh data after cache is loaded
   useEffect(() => {
-    if (initialFetchDone.current) return
-    initialFetchDone.current = true
-    refreshData()
-  }, [refreshData])
+    if (isSyncing && isConfigured) {
+      refreshData()
+    }
+  }, [isSyncing, isConfigured, refreshData])
 
   // Update a lead
   const updateLead = useCallback(async (id: string, data: Partial<Buyer>): Promise<Buyer | null> => {
