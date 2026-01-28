@@ -27,7 +27,22 @@ let isNavigating = false
 function navigateTo(path: string) {
   if (isNavigating) return
   isNavigating = true
-  window.location.replace(path)
+
+  // Build full URL for maximum mobile compatibility
+  const fullUrl = window.location.origin + path
+
+  // Use setTimeout to ensure navigation happens outside React's render cycle
+  setTimeout(() => {
+    // Use assign() which is more reliable on mobile browsers
+    window.location.assign(fullUrl)
+  }, 50)
+
+  // Backup: if still on login page after 1.5 seconds, force navigation
+  setTimeout(() => {
+    if (window.location.pathname === '/login' || window.location.pathname === '/') {
+      window.location.href = fullUrl
+    }
+  }, 1500)
 }
 
 function LoginPageInner() {
