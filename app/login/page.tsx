@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,9 +21,13 @@ const MASTER_ADMIN_COMPANIES = [
   { id: 'ad165cde-0d30-4084-b798-063dabfa7e7b', name: 'Tudor Financial' },
 ]
 
-// Quick navigation - bypasses React router for instant page load
-function quickNavigate(path: string) {
-  window.location.href = path
+// Navigation lock to prevent multiple redirects
+let isNavigating = false
+
+function navigateTo(path: string) {
+  if (isNavigating) return
+  isNavigating = true
+  window.location.replace(path)
 }
 
 function LoginPageInner() {
@@ -31,15 +35,16 @@ function LoginPageInner() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRedirecting, setIsRedirecting] = useState(false)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [resetEmailSent, setResetEmailSent] = useState(false)
   const [masterAdminCompany, setMasterAdminCompany] = useState(MASTER_ADMIN_COMPANIES[0])
-  const router = useRouter()
   const searchParams = useSearchParams()
   const supabaseConfigured = isSupabaseConfigured()
+  const hasCheckedAuth = useRef(false)
 
   // Check for error in URL params
   useEffect(() => {
@@ -58,56 +63,68 @@ function LoginPageInner() {
     }
   }, [searchParams])
 
-  // Check if user is already logged in - NON-BLOCKING
+  // Check if user is already logged in - ONLY ONCE
   useEffect(() => {
-    // First check localStorage - instant
+    if (hasCheckedAuth.current || isNavigating) return
+    hasCheckedAuth.current = true
+
+    // Check localStorage first - instant
     const stored = localStorage.getItem('naybourhood_user')
     if (stored) {
       try {
         const user = JSON.parse(stored)
         if (user.role) {
-          quickNavigate(`/${user.role === 'admin' ? 'admin' : user.role}`)
+          setIsRedirecting(true)
+          navigateTo(`/${user.role === 'admin' ? 'admin' : user.role}`)
           return
         }
-      } catch {}
+      } catch {
+        localStorage.removeItem('naybourhood_user')
+      }
     }
 
-    // Then check Supabase in background
+    // Check Supabase session in background
     if (supabaseConfigured) {
       const checkSupabaseAuth = async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        try {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
 
-        if (user) {
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('user_type, first_name, last_name, company_id, onboarding_completed')
-            .eq('id', user.id)
-            .single()
+          if (user && !isNavigating) {
+            const { data: profile } = await supabase
+              .from('user_profiles')
+              .select('user_type, first_name, last_name, company_id, onboarding_completed')
+              .eq('id', user.id)
+              .single()
 
-          if (!profile?.onboarding_completed) {
-            quickNavigate('/onboarding')
-            return
+            if (!profile?.onboarding_completed) {
+              setIsRedirecting(true)
+              navigateTo('/onboarding')
+              return
+            }
+
+            let role = profile?.user_type || 'developer'
+            if (isMasterAdmin(user.email)) {
+              role = 'admin'
+            }
+
+            const fullName = profile?.first_name
+              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              : user.email?.split('@')[0] || 'User'
+
+            localStorage.setItem('naybourhood_user', JSON.stringify({
+              id: user.id,
+              email: user.email,
+              name: fullName,
+              role: role,
+              company_id: profile?.company_id,
+            }))
+
+            setIsRedirecting(true)
+            navigateTo(`/${role === 'admin' ? 'admin' : role}`)
           }
-
-          let role = profile?.user_type || 'developer'
-          if (isMasterAdmin(user.email)) {
-            role = 'admin'
-          }
-
-          const fullName = profile?.first_name
-            ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-            : user.email?.split('@')[0] || 'User'
-
-          localStorage.setItem('naybourhood_user', JSON.stringify({
-            id: user.id,
-            email: user.email,
-            name: fullName,
-            role: role,
-            company_id: profile?.company_id,
-          }))
-
-          quickNavigate(`/${role === 'admin' ? 'admin' : role}`)
+        } catch (err) {
+          console.error('[Login] Auth check error:', err)
         }
       }
       checkSupabaseAuth()
@@ -144,6 +161,7 @@ function LoginPageInner() {
 
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isNavigating) return
     setError('')
     setIsLoading(true)
 
@@ -163,7 +181,8 @@ function LoginPageInner() {
               if (!data.session) {
                 localStorage.setItem('naybourhood_email_pending', 'true')
               }
-              quickNavigate('/onboarding')
+              setIsRedirecting(true)
+              navigateTo('/onboarding')
             }
           }
         } else {
@@ -183,7 +202,8 @@ function LoginPageInner() {
               .single()
 
             if (!profile?.onboarding_completed) {
-              quickNavigate('/onboarding')
+              setIsRedirecting(true)
+              navigateTo('/onboarding')
               return
             }
 
@@ -205,10 +225,11 @@ function LoginPageInner() {
               company_id: profile?.company_id,
             }))
 
-            // Navigate immediately - don't wait for profile update
-            quickNavigate(`/${role === 'admin' ? 'admin' : role}`)
+            // Navigate immediately
+            setIsRedirecting(true)
+            navigateTo(`/${role === 'admin' ? 'admin' : role}`)
 
-            // Update profile status in background (don't await)
+            // Update profile status in background (fire and forget)
             supabase
               .from('user_profiles')
               .update({ membership_status: 'active' })
@@ -220,7 +241,9 @@ function LoginPageInner() {
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
-      setIsLoading(false)
+      if (!isNavigating) {
+        setIsLoading(false)
+      }
     }
   }
 
@@ -251,6 +274,8 @@ function LoginPageInner() {
 
   // Quick Access handler - INSTANT navigation
   const handleQuickAccess = (role: string) => {
+    if (isNavigating) return
+
     localStorage.setItem('naybourhood_user', JSON.stringify({
       id: 'master-admin-kofi',
       email: 'kofi@naybourhood.ai',
@@ -260,8 +285,21 @@ function LoginPageInner() {
       company_id: masterAdminCompany.id,
       is_master_admin: true,
     }))
-    // Use direct navigation for instant load
-    quickNavigate(`/${role}`)
+
+    setIsRedirecting(true)
+    navigateTo(`/${role}`)
+  }
+
+  // Show loading spinner while redirecting
+  if (isRedirecting) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-4">
+          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+          <p className="text-sm text-muted-foreground">Redirecting...</p>
+        </div>
+      </div>
+    )
   }
 
   if (resetEmailSent) {
@@ -459,16 +497,16 @@ function LoginPageInner() {
 
             <p className="text-xs text-white/50 mb-2 text-center">Select dashboard:</p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => handleQuickAccess('admin')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors">
+              <button onClick={() => handleQuickAccess('admin')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors disabled:opacity-50">
                 <Shield className="h-4 w-4" />Admin
               </button>
-              <button onClick={() => handleQuickAccess('developer')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
+              <button onClick={() => handleQuickAccess('developer')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors disabled:opacity-50">
                 <HardHat className="h-4 w-4" />Developer
               </button>
-              <button onClick={() => handleQuickAccess('agent')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
+              <button onClick={() => handleQuickAccess('agent')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors disabled:opacity-50">
                 <Users className="h-4 w-4" />Agent
               </button>
-              <button onClick={() => handleQuickAccess('broker')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
+              <button onClick={() => handleQuickAccess('broker')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors disabled:opacity-50">
                 <Briefcase className="h-4 w-4" />Broker
               </button>
             </div>
