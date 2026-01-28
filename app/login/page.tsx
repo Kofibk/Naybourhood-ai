@@ -12,7 +12,7 @@ import { AuthHandler } from '@/components/AuthHandler'
 import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle, Shield, HardHat, Users, Briefcase } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { isMasterAdmin, MASTER_ADMIN_EMAILS, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
+import { isMasterAdmin } from '@/lib/auth'
 
 // Master admin companies for quick access
 const MASTER_ADMIN_COMPANIES = [
@@ -20,6 +20,11 @@ const MASTER_ADMIN_COMPANIES = [
   { id: 'mount-anvil-001', name: 'Mount Anvil' },
   { id: 'ad165cde-0d30-4084-b798-063dabfa7e7b', name: 'Tudor Financial' },
 ]
+
+// Quick navigation - bypasses React router for instant page load
+function quickNavigate(path: string) {
+  window.location.href = path
+}
 
 function LoginPageInner() {
   const [email, setEmail] = useState('')
@@ -44,9 +49,7 @@ function LoginPageInner() {
     if (errorParam) {
       setError(errorParam)
 
-      // If it's a PKCE error, auto-switch to password tab
       if (errorType === 'pkce') {
-        // Clear the error params from URL without refresh
         const url = new URL(window.location.href)
         url.searchParams.delete('error')
         url.searchParams.delete('error_type')
@@ -55,72 +58,61 @@ function LoginPageInner() {
     }
   }, [searchParams])
 
-  // Check if user is already logged in
+  // Check if user is already logged in - NON-BLOCKING
   useEffect(() => {
-    const checkAuth = async () => {
-      if (supabaseConfigured) {
+    // First check localStorage - instant
+    const stored = localStorage.getItem('naybourhood_user')
+    if (stored) {
+      try {
+        const user = JSON.parse(stored)
+        if (user.role) {
+          quickNavigate(`/${user.role === 'admin' ? 'admin' : user.role}`)
+          return
+        }
+      } catch {}
+    }
+
+    // Then check Supabase in background
+    if (supabaseConfigured) {
+      const checkSupabaseAuth = async () => {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          // Update user status to 'active' since they're logged in
-          await supabase
-            .from('user_profiles')
-            .update({ membership_status: 'active' })
-            .eq('id', user.id)
 
-          // Check onboarding status
+        if (user) {
           const { data: profile } = await supabase
             .from('user_profiles')
-            .select('*')
+            .select('user_type, first_name, last_name, company_id, onboarding_completed')
             .eq('id', user.id)
             .single()
 
           if (!profile?.onboarding_completed) {
-            router.push('/onboarding')
-          } else {
-            // Save user to localStorage before redirecting
-            let role = profile.user_type || 'developer'
-
-            // Master admin email override (using centralized auth config)
-            if (isMasterAdmin(user.email)) {
-              role = 'admin'
-            }
-
-            const fullName = profile.first_name
-              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-              : user.email?.split('@')[0] || 'User'
-
-            localStorage.setItem('naybourhood_user', JSON.stringify({
-              id: user.id,
-              email: user.email,
-              name: fullName,
-              role: role,
-              company_id: profile.company_id,
-            }))
-
-            redirectBasedOnRole(role)
+            quickNavigate('/onboarding')
+            return
           }
+
+          let role = profile?.user_type || 'developer'
+          if (isMasterAdmin(user.email)) {
+            role = 'admin'
+          }
+
+          const fullName = profile?.first_name
+            ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+            : user.email?.split('@')[0] || 'User'
+
+          localStorage.setItem('naybourhood_user', JSON.stringify({
+            id: user.id,
+            email: user.email,
+            name: fullName,
+            role: role,
+            company_id: profile?.company_id,
+          }))
+
+          quickNavigate(`/${role === 'admin' ? 'admin' : role}`)
         }
       }
+      checkSupabaseAuth()
     }
-    checkAuth()
-  }, [router, supabaseConfigured])
-
-  const redirectBasedOnRole = (role: string) => {
-    switch (role) {
-      case 'admin':
-        router.push('/admin')
-        break
-      case 'agent':
-        router.push('/agent')
-        break
-      case 'broker':
-        router.push('/broker')
-        break
-      default:
-        router.push('/developer')
-    }
-  }
+  }, [supabaseConfigured])
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -130,16 +122,9 @@ function LoginPageInner() {
     try {
       if (supabaseConfigured) {
         const supabase = createClient()
-
-        if (!supabase) {
-          setError('Authentication service not available. Please try again later.')
-          return
-        }
-
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            // Redirect to login page - AuthHandler will catch the hash fragment tokens
             emailRedirectTo: `${window.location.origin}/login`,
           },
         })
@@ -151,12 +136,7 @@ function LoginPageInner() {
         }
       }
     } catch (err: unknown) {
-      console.error('[Auth] Magic link error:', err)
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError('Something went wrong. Please try again.')
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
       setIsLoading(false)
     }
@@ -171,97 +151,74 @@ function LoginPageInner() {
       if (supabaseConfigured) {
         const supabase = createClient()
 
-        if (!supabase) {
-          setError('Authentication service not available. Please try again later.')
-          return
-        }
-
         if (isSignUp) {
-          // Sign up with password
-          // Don't use emailRedirectTo - let Supabase use default token-based confirmation
-          // which works across browsers (PKCE requires same browser)
-          const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-          })
+          const { data, error } = await supabase.auth.signUp({ email, password })
 
           if (error) {
             setError(error.message)
           } else if (data.user) {
-            // Check if email confirmation is required
             if (data.user.identities?.length === 0) {
               setError('An account with this email already exists. Please sign in instead.')
             } else {
-              // Always proceed to onboarding - email confirmation happens later in dashboard
-              // Store that email needs confirmation for later prompting
               if (!data.session) {
                 localStorage.setItem('naybourhood_email_pending', 'true')
               }
-              router.push('/onboarding')
+              quickNavigate('/onboarding')
             }
           }
         } else {
           // Sign in with password
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email,
-            password,
-          })
+          const { data, error } = await supabase.auth.signInWithPassword({ email, password })
 
           if (error) {
-            if (error.message === 'Invalid login credentials') {
-              setError('Invalid email or password. Please try again.')
-            } else {
-              setError(error.message)
-            }
+            setError(error.message === 'Invalid login credentials'
+              ? 'Invalid email or password. Please try again.'
+              : error.message)
           } else if (data.user) {
-            // Update user status to 'active' on successful login
-            await supabase
-              .from('user_profiles')
-              .update({ membership_status: 'active' })
-              .eq('id', data.user.id)
-
-            // Check onboarding status
+            // Get profile for role - single query
             const { data: profile } = await supabase
               .from('user_profiles')
-              .select('*')
+              .select('user_type, first_name, last_name, company_id, onboarding_completed')
               .eq('id', data.user.id)
               .single()
 
             if (!profile?.onboarding_completed) {
-              router.push('/onboarding')
-            } else {
-              // Save user to localStorage before redirecting
-              let role = profile.user_type || 'developer'
-
-              // Master admin email override (using centralized auth config)
-              if (isMasterAdmin(data.user.email)) {
-                role = 'admin'
-              }
-
-              const fullName = profile.first_name
-                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-                : data.user.email?.split('@')[0] || 'User'
-
-              localStorage.setItem('naybourhood_user', JSON.stringify({
-                id: data.user.id,
-                email: data.user.email,
-                name: fullName,
-                role: role,
-                company_id: profile.company_id,
-              }))
-
-              redirectBasedOnRole(role)
+              quickNavigate('/onboarding')
+              return
             }
+
+            let role = profile?.user_type || 'developer'
+            if (isMasterAdmin(data.user.email)) {
+              role = 'admin'
+            }
+
+            const fullName = profile?.first_name
+              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+              : data.user.email?.split('@')[0] || 'User'
+
+            // Save to localStorage FIRST
+            localStorage.setItem('naybourhood_user', JSON.stringify({
+              id: data.user.id,
+              email: data.user.email,
+              name: fullName,
+              role: role,
+              company_id: profile?.company_id,
+            }))
+
+            // Navigate immediately - don't wait for profile update
+            quickNavigate(`/${role === 'admin' ? 'admin' : role}`)
+
+            // Update profile status in background (don't await)
+            supabase
+              .from('user_profiles')
+              .update({ membership_status: 'active' })
+              .eq('id', data.user.id)
+              .then(() => {})
           }
         }
       }
     } catch (err: unknown) {
-      console.error('[Auth] Password auth error:', err)
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError('Something went wrong. Please try again.')
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
       setIsLoading(false)
     }
@@ -275,12 +232,6 @@ function LoginPageInner() {
     try {
       if (supabaseConfigured) {
         const supabase = createClient()
-
-        if (!supabase) {
-          setError('Authentication service not available. Please try again later.')
-          return
-        }
-
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
           redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
         })
@@ -292,18 +243,27 @@ function LoginPageInner() {
         }
       }
     } catch (err: unknown) {
-      console.error('[Auth] Forgot password error:', err)
-      if (err instanceof Error) {
-        setError(err.message)
-      } else {
-        setError('Something went wrong. Please try again.')
-      }
+      setError(err instanceof Error ? err.message : 'Something went wrong.')
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Reset email sent confirmation
+  // Quick Access handler - INSTANT navigation
+  const handleQuickAccess = (role: string) => {
+    localStorage.setItem('naybourhood_user', JSON.stringify({
+      id: 'master-admin-kofi',
+      email: 'kofi@naybourhood.ai',
+      name: 'Kofi Bartels-Kodwo',
+      role: role,
+      company: masterAdminCompany.name,
+      company_id: masterAdminCompany.id,
+      is_master_admin: true,
+    }))
+    // Use direct navigation for instant load
+    quickNavigate(`/${role}`)
+  }
+
   if (resetEmailSent) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -317,18 +277,8 @@ function LoginPageInner() {
             <p className="text-muted-foreground">
               We&apos;ve sent a password reset link to <strong>{email}</strong>
             </p>
-            <p className="text-sm text-muted-foreground">
-              Click the link in your email to reset your password.
-            </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setResetEmailSent(false)
-              setIsForgotPassword(false)
-              setEmail('')
-            }}
-          >
+          <Button variant="outline" onClick={() => { setResetEmailSent(false); setIsForgotPassword(false); setEmail(''); }}>
             Back to login
           </Button>
         </div>
@@ -347,20 +297,10 @@ function LoginPageInner() {
             </div>
             <h1 className="font-display text-2xl font-medium">Check your email</h1>
             <p className="text-muted-foreground">
-              We&apos;ve sent {isSignUp ? 'a confirmation link' : 'a magic link'} to <strong>{email}</strong>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Click the link in your email to {isSignUp ? 'verify your account' : 'sign in'}.
+              We&apos;ve sent a magic link to <strong>{email}</strong>
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setMagicLinkSent(false)
-              setEmail('')
-              setPassword('')
-            }}
-          >
+          <Button variant="outline" onClick={() => { setMagicLinkSent(false); setEmail(''); setPassword(''); }}>
             Use a different email
           </Button>
         </div>
@@ -385,7 +325,6 @@ function LoginPageInner() {
           </p>
         </div>
 
-        {/* Global Error Alert */}
         {error && (
           <Alert variant="destructive">
             <AlertCircle className="h-4 w-4" />
@@ -398,47 +337,22 @@ function LoginPageInner() {
           <CardContent className="pt-6">
             <Tabs defaultValue="password" className="w-full">
               <TabsList className="grid w-full grid-cols-2 mb-4">
-                <TabsTrigger value="password">
-                  <Lock className="w-4 h-4 mr-2" />
-                  Password
-                </TabsTrigger>
-                <TabsTrigger value="magic">
-                  <Mail className="w-4 h-4 mr-2" />
-                  Magic Link
-                </TabsTrigger>
+                <TabsTrigger value="password"><Lock className="w-4 h-4 mr-2" />Password</TabsTrigger>
+                <TabsTrigger value="magic"><Mail className="w-4 h-4 mr-2" />Magic Link</TabsTrigger>
               </TabsList>
 
-              {/* Password Login/Signup */}
               <TabsContent value="password">
                 {isForgotPassword ? (
                   <form onSubmit={handleForgotPassword} className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Email address</label>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
+                      <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                     </div>
-                    {error && <p className="text-sm text-destructive">{error}</p>}
                     <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Mail className="h-4 w-4" />
-                      )}
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                       Send Reset Link
                     </Button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setIsForgotPassword(false)
-                        setError('')
-                      }}
-                      className="w-full text-sm text-muted-foreground hover:text-foreground"
-                    >
+                    <button type="button" onClick={() => { setIsForgotPassword(false); setError(''); }} className="w-full text-sm text-muted-foreground hover:text-foreground">
                       Back to login
                     </button>
                   </form>
@@ -446,26 +360,13 @@ function LoginPageInner() {
                   <form onSubmit={handlePasswordAuth} className="space-y-4">
                     <div className="space-y-2">
                       <label className="text-sm font-medium">Email address</label>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        required
-                      />
+                      <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                     </div>
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <label className="text-sm font-medium">Password</label>
                         {!isSignUp && (
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setIsForgotPassword(true)
-                              setError('')
-                            }}
-                            className="text-xs text-primary hover:underline"
-                          >
+                          <button type="button" onClick={() => { setIsForgotPassword(true); setError(''); }} className="text-xs text-primary hover:underline">
                             Forgot password?
                           </button>
                         )}
@@ -480,48 +381,27 @@ function LoginPageInner() {
                           minLength={6}
                           className="pr-10"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                        >
+                        <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
                           {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                         </button>
                       </div>
                     </div>
-                    {error && <p className="text-sm text-destructive">{error}</p>}
                     <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                      {isLoading ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Lock className="h-4 w-4" />
-                      )}
+                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Lock className="h-4 w-4" />}
                       {isSignUp ? 'Create Account' : 'Sign In'}
                     </Button>
                   </form>
                 )}
               </TabsContent>
 
-              {/* Magic Link */}
               <TabsContent value="magic">
                 <form onSubmit={handleMagicLink} className="space-y-4">
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Email address</label>
-                    <Input
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
+                    <Input type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
                   </div>
-                  {error && <p className="text-sm text-destructive">{error}</p>}
                   <Button type="submit" className="w-full gap-2" disabled={isLoading}>
-                    {isLoading ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Mail className="h-4 w-4" />
-                    )}
+                    {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
                     Send Magic Link
                   </Button>
                   <p className="text-xs text-center text-muted-foreground">
@@ -536,31 +416,9 @@ function LoginPageInner() {
         {/* Toggle Sign Up / Sign In */}
         <p className="text-center text-sm text-muted-foreground">
           {isSignUp ? (
-            <>
-              Already have an account?{' '}
-              <button
-                onClick={() => {
-                  setIsSignUp(false)
-                  setError('')
-                }}
-                className="text-primary hover:underline"
-              >
-                Sign in
-              </button>
-            </>
+            <>Already have an account?{' '}<button onClick={() => { setIsSignUp(false); setError(''); }} className="text-primary hover:underline">Sign in</button></>
           ) : (
-            <>
-              Don&apos;t have an account?{' '}
-              <button
-                onClick={() => {
-                  setIsSignUp(true)
-                  setError('')
-                }}
-                className="text-primary hover:underline"
-              >
-                Sign up
-              </button>
-            </>
+            <>Don&apos;t have an account?{' '}<button onClick={() => { setIsSignUp(true); setError(''); }} className="text-primary hover:underline">Sign up</button></>
           )}
         </p>
 
@@ -583,7 +441,6 @@ function LoginPageInner() {
               </span>
             </div>
 
-            {/* Company Selector */}
             <div className="mb-3">
               <p className="text-xs text-white/50 mb-1.5">Select company:</p>
               <select
@@ -595,86 +452,24 @@ function LoginPageInner() {
                 className="w-full px-3 py-2 rounded-lg bg-[#0A0A0A] border border-white/10 text-white text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50"
               >
                 {MASTER_ADMIN_COMPANIES.map(company => (
-                  <option key={company.id} value={company.id}>
-                    {company.name}
-                  </option>
+                  <option key={company.id} value={company.id}>{company.name}</option>
                 ))}
               </select>
             </div>
 
             <p className="text-xs text-white/50 mb-2 text-center">Select dashboard:</p>
             <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => {
-                  localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'master-admin-kofi',
-                    email: 'kofi@naybourhood.ai',
-                    name: 'Kofi Bartels-Kodwo',
-                    role: 'admin',
-                    company: masterAdminCompany.name,
-                    company_id: masterAdminCompany.id,
-                    is_master_admin: true,
-                  }))
-                  router.push('/admin')
-                }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors"
-              >
-                <Shield className="h-4 w-4" />
-                Admin
+              <button onClick={() => handleQuickAccess('admin')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors">
+                <Shield className="h-4 w-4" />Admin
               </button>
-              <button
-                onClick={() => {
-                  localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'master-admin-kofi',
-                    email: 'kofi@naybourhood.ai',
-                    name: 'Kofi Bartels-Kodwo',
-                    role: 'developer',
-                    company: masterAdminCompany.name,
-                    company_id: masterAdminCompany.id,
-                    is_master_admin: true,
-                  }))
-                  router.push('/developer')
-                }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors"
-              >
-                <HardHat className="h-4 w-4" />
-                Developer
+              <button onClick={() => handleQuickAccess('developer')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
+                <HardHat className="h-4 w-4" />Developer
               </button>
-              <button
-                onClick={() => {
-                  localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'master-admin-kofi',
-                    email: 'kofi@naybourhood.ai',
-                    name: 'Kofi Bartels-Kodwo',
-                    role: 'agent',
-                    company: masterAdminCompany.name,
-                    company_id: masterAdminCompany.id,
-                    is_master_admin: true,
-                  }))
-                  router.push('/agent')
-                }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors"
-              >
-                <Users className="h-4 w-4" />
-                Agent
+              <button onClick={() => handleQuickAccess('agent')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
+                <Users className="h-4 w-4" />Agent
               </button>
-              <button
-                onClick={() => {
-                  localStorage.setItem('naybourhood_user', JSON.stringify({
-                    id: 'master-admin-kofi',
-                    email: 'kofi@naybourhood.ai',
-                    name: 'Kofi Bartels-Kodwo',
-                    role: 'broker',
-                    company: masterAdminCompany.name,
-                    company_id: masterAdminCompany.id,
-                    is_master_admin: true,
-                  }))
-                  router.push('/broker')
-                }}
-                className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors"
-              >
-                <Briefcase className="h-4 w-4" />
-                Broker
+              <button onClick={() => handleQuickAccess('broker')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
+                <Briefcase className="h-4 w-4" />Broker
               </button>
             </div>
           </CardContent>
