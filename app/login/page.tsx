@@ -31,18 +31,22 @@ function navigateTo(path: string) {
   // Build full URL for maximum mobile compatibility
   const fullUrl = window.location.origin + path
 
-  // Use setTimeout to ensure navigation happens outside React's render cycle
-  setTimeout(() => {
-    // Use assign() which is more reliable on mobile browsers
-    window.location.assign(fullUrl)
-  }, 50)
+  // Method 1: Create and click a hidden link (most reliable on mobile)
+  const link = document.createElement('a')
+  link.href = fullUrl
+  link.style.display = 'none'
+  document.body.appendChild(link)
+  link.click()
 
-  // Backup: if still on login page after 1.5 seconds, force navigation
+  // Method 2: Direct location change after short delay
   setTimeout(() => {
-    if (window.location.pathname === '/login' || window.location.pathname === '/') {
-      window.location.href = fullUrl
-    }
-  }, 1500)
+    window.location.href = fullUrl
+  }, 100)
+
+  // Method 3: Use replace as backup
+  setTimeout(() => {
+    window.location.replace(fullUrl)
+  }, 300)
 }
 
 function LoginPageInner() {
