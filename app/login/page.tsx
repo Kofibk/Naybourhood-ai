@@ -21,32 +21,10 @@ const MASTER_ADMIN_COMPANIES = [
   { id: 'ad165cde-0d30-4084-b798-063dabfa7e7b', name: 'Tudor Financial' },
 ]
 
-// Navigation lock to prevent multiple redirects
-let isNavigating = false
-
+// Simple direct navigation - just go there
 function navigateTo(path: string) {
-  if (isNavigating) return
-  isNavigating = true
-
-  // Build full URL for maximum mobile compatibility
-  const fullUrl = window.location.origin + path
-
-  // Method 1: Create and click a hidden link (most reliable on mobile)
-  const link = document.createElement('a')
-  link.href = fullUrl
-  link.style.display = 'none'
-  document.body.appendChild(link)
-  link.click()
-
-  // Method 2: Direct location change after short delay
-  setTimeout(() => {
-    window.location.href = fullUrl
-  }, 100)
-
-  // Method 3: Use replace as backup
-  setTimeout(() => {
-    window.location.replace(fullUrl)
-  }, 300)
+  // Build full URL and navigate immediately
+  window.location.href = window.location.origin + path
 }
 
 function LoginPageInner() {
@@ -54,7 +32,6 @@ function LoginPageInner() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  const [isRedirecting, setIsRedirecting] = useState(false)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -84,16 +61,15 @@ function LoginPageInner() {
 
   // Check if user is already logged in - ONLY ONCE
   useEffect(() => {
-    if (hasCheckedAuth.current || isNavigating) return
+    if (hasCheckedAuth.current) return
     hasCheckedAuth.current = true
 
-    // Check localStorage first - instant
+    // Check localStorage first - instant redirect
     const stored = localStorage.getItem('naybourhood_user')
     if (stored) {
       try {
         const user = JSON.parse(stored)
         if (user.role) {
-          setIsRedirecting(true)
           navigateTo(`/${user.role === 'admin' ? 'admin' : user.role}`)
           return
         }
@@ -109,7 +85,7 @@ function LoginPageInner() {
           const supabase = createClient()
           const { data: { user } } = await supabase.auth.getUser()
 
-          if (user && !isNavigating) {
+          if (user) {
             const { data: profile } = await supabase
               .from('user_profiles')
               .select('user_type, first_name, last_name, company_id, onboarding_completed')
@@ -117,7 +93,6 @@ function LoginPageInner() {
               .single()
 
             if (!profile?.onboarding_completed) {
-              setIsRedirecting(true)
               navigateTo('/onboarding')
               return
             }
@@ -139,7 +114,6 @@ function LoginPageInner() {
               company_id: profile?.company_id,
             }))
 
-            setIsRedirecting(true)
             navigateTo(`/${role === 'admin' ? 'admin' : role}`)
           }
         } catch (err) {
@@ -180,7 +154,6 @@ function LoginPageInner() {
 
   const handlePasswordAuth = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (isNavigating) return
     setError('')
     setIsLoading(true)
 
@@ -193,14 +166,15 @@ function LoginPageInner() {
 
           if (error) {
             setError(error.message)
+            setIsLoading(false)
           } else if (data.user) {
             if (data.user.identities?.length === 0) {
               setError('An account with this email already exists. Please sign in instead.')
+              setIsLoading(false)
             } else {
               if (!data.session) {
                 localStorage.setItem('naybourhood_email_pending', 'true')
               }
-              setIsRedirecting(true)
               navigateTo('/onboarding')
             }
           }
@@ -212,6 +186,7 @@ function LoginPageInner() {
             setError(error.message === 'Invalid login credentials'
               ? 'Invalid email or password. Please try again.'
               : error.message)
+            setIsLoading(false)
           } else if (data.user) {
             // Get profile for role - single query
             const { data: profile } = await supabase
@@ -221,7 +196,6 @@ function LoginPageInner() {
               .single()
 
             if (!profile?.onboarding_completed) {
-              setIsRedirecting(true)
               navigateTo('/onboarding')
               return
             }
@@ -245,7 +219,6 @@ function LoginPageInner() {
             }))
 
             // Navigate immediately
-            setIsRedirecting(true)
             navigateTo(`/${role === 'admin' ? 'admin' : role}`)
 
             // Update profile status in background (fire and forget)
@@ -259,10 +232,7 @@ function LoginPageInner() {
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Something went wrong.')
-    } finally {
-      if (!isNavigating) {
-        setIsLoading(false)
-      }
+      setIsLoading(false)
     }
   }
 
@@ -293,8 +263,6 @@ function LoginPageInner() {
 
   // Quick Access handler - INSTANT navigation
   const handleQuickAccess = (role: string) => {
-    if (isNavigating) return
-
     localStorage.setItem('naybourhood_user', JSON.stringify({
       id: 'master-admin-kofi',
       email: 'kofi@naybourhood.ai',
@@ -305,20 +273,7 @@ function LoginPageInner() {
       is_master_admin: true,
     }))
 
-    setIsRedirecting(true)
     navigateTo(`/${role}`)
-  }
-
-  // Show loading spinner while redirecting
-  if (isRedirecting) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
-          <p className="text-sm text-muted-foreground">Redirecting...</p>
-        </div>
-      </div>
-    )
   }
 
   if (resetEmailSent) {
@@ -516,16 +471,16 @@ function LoginPageInner() {
 
             <p className="text-xs text-white/50 mb-2 text-center">Select dashboard:</p>
             <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => handleQuickAccess('admin')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors disabled:opacity-50">
+              <button onClick={() => handleQuickAccess('admin')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-amber-500 text-[#0A0A0A] font-medium hover:bg-amber-400 transition-colors">
                 <Shield className="h-4 w-4" />Admin
               </button>
-              <button onClick={() => handleQuickAccess('developer')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors disabled:opacity-50">
+              <button onClick={() => handleQuickAccess('developer')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
                 <HardHat className="h-4 w-4" />Developer
               </button>
-              <button onClick={() => handleQuickAccess('agent')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors disabled:opacity-50">
+              <button onClick={() => handleQuickAccess('agent')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
                 <Users className="h-4 w-4" />Agent
               </button>
-              <button onClick={() => handleQuickAccess('broker')} disabled={isNavigating} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors disabled:opacity-50">
+              <button onClick={() => handleQuickAccess('broker')} className="flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm bg-[#0A0A0A] text-white hover:bg-white/10 transition-colors">
                 <Briefcase className="h-4 w-4" />Broker
               </button>
             </div>
