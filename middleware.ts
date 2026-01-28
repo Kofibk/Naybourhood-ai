@@ -106,20 +106,25 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Get user profile for permission checks
+    // Fast path: check if internal team by email BEFORE any DB query
+    const userEmail = session.user.email?.toLowerCase() || ''
+    const isInternalByEmail =
+      userEmail.endsWith(INTERNAL_TEAM_DOMAIN) ||
+      MASTER_ADMIN_EMAILS.includes(userEmail as typeof MASTER_ADMIN_EMAILS[number])
+
+    if (isInternalByEmail) {
+      return response
+    }
+
+    // External users: query profile for feature-based access control
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('permission_role, company_id, is_internal_team, company:companies(enabled_features)')
       .eq('id', session.user.id)
       .single()
 
-    // Internal team has full access (using centralized auth config)
-    const userEmail = session.user.email?.toLowerCase() || ''
-    const isInternalTeam = profile?.is_internal_team ||
-      userEmail.endsWith(INTERNAL_TEAM_DOMAIN) ||
-      MASTER_ADMIN_EMAILS.includes(userEmail as typeof MASTER_ADMIN_EMAILS[number])
-
-    if (isInternalTeam) {
+    // Check if marked as internal in DB
+    if (profile?.is_internal_team) {
       return response
     }
 

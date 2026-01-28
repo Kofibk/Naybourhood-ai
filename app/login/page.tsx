@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
@@ -21,12 +21,6 @@ const MASTER_ADMIN_COMPANIES = [
   { id: 'ad165cde-0d30-4084-b798-063dabfa7e7b', name: 'Tudor Financial' },
 ]
 
-// Simple direct navigation - just go there
-function navigateTo(path: string) {
-  // Build full URL and navigate immediately
-  window.location.href = window.location.origin + path
-}
-
 function LoginPageInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -38,6 +32,7 @@ function LoginPageInner() {
   const [isForgotPassword, setIsForgotPassword] = useState(false)
   const [resetEmailSent, setResetEmailSent] = useState(false)
   const [masterAdminCompany, setMasterAdminCompany] = useState(MASTER_ADMIN_COMPANIES[0])
+  const router = useRouter()
   const searchParams = useSearchParams()
   const supabaseConfigured = isSupabaseConfigured()
   const hasCheckedAuth = useRef(false)
@@ -70,7 +65,7 @@ function LoginPageInner() {
       try {
         const user = JSON.parse(stored)
         if (user.role) {
-          navigateTo(`/${user.role === 'admin' ? 'admin' : user.role}`)
+          router.push(`/${user.role === 'admin' ? 'admin' : user.role}`)
           return
         }
       } catch {
@@ -78,14 +73,15 @@ function LoginPageInner() {
       }
     }
 
-    // Check Supabase session in background
+    // Check Supabase session in background (getSession is fast - reads cookies, no network call)
     if (supabaseConfigured) {
       const checkSupabaseAuth = async () => {
         try {
           const supabase = createClient()
-          const { data: { user } } = await supabase.auth.getUser()
+          const { data: { session } } = await supabase.auth.getSession()
 
-          if (user) {
+          if (session?.user) {
+            const user = session.user
             const { data: profile } = await supabase
               .from('user_profiles')
               .select('user_type, first_name, last_name, company_id, onboarding_completed')
@@ -93,7 +89,7 @@ function LoginPageInner() {
               .single()
 
             if (!profile?.onboarding_completed) {
-              navigateTo('/onboarding')
+              router.push('/onboarding')
               return
             }
 
@@ -114,7 +110,7 @@ function LoginPageInner() {
               company_id: profile?.company_id,
             }))
 
-            navigateTo(`/${role === 'admin' ? 'admin' : role}`)
+            router.push(`/${role === 'admin' ? 'admin' : role}`)
           }
         } catch (err) {
           console.error('[Login] Auth check error:', err)
@@ -122,7 +118,7 @@ function LoginPageInner() {
       }
       checkSupabaseAuth()
     }
-  }, [supabaseConfigured])
+  }, [supabaseConfigured, router])
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -175,7 +171,7 @@ function LoginPageInner() {
               if (!data.session) {
                 localStorage.setItem('naybourhood_email_pending', 'true')
               }
-              navigateTo('/onboarding')
+              router.push('/onboarding')
             }
           }
         } else {
@@ -196,7 +192,7 @@ function LoginPageInner() {
               .single()
 
             if (!profile?.onboarding_completed) {
-              navigateTo('/onboarding')
+              router.push('/onboarding')
               return
             }
 
@@ -219,7 +215,7 @@ function LoginPageInner() {
             }))
 
             // Navigate immediately
-            navigateTo(`/${role === 'admin' ? 'admin' : role}`)
+            router.push(`/${role === 'admin' ? 'admin' : role}`)
 
             // Update profile status in background (fire and forget)
             supabase
@@ -273,7 +269,7 @@ function LoginPageInner() {
       is_master_admin: true,
     }))
 
-    navigateTo(`/${role}`)
+    router.push(`/${role}`)
   }
 
   if (resetEmailSent) {
