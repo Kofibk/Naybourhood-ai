@@ -124,7 +124,7 @@ export async function middleware(request: NextRequest) {
     }
 
     // Check feature-based access for the current route
-    const company = profile?.company as { enabled_features: string[] } | null
+    const company = profile?.company as unknown as { enabled_features: string[] } | null
     const enabledFeatures = company?.enabled_features || ['leads', 'campaigns', 'developments', 'conversations']
 
     // Find which feature this route belongs to

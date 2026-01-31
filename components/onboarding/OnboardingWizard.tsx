@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import {
@@ -27,11 +27,7 @@ export default function OnboardingWizard() {
   const [isSaving, setIsSaving] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    loadProgress()
-  }, [])
-
-  const loadProgress = async () => {
+  const loadProgress = useCallback(async () => {
     setIsLoading(true)
 
     const supabase = createClient()
@@ -64,7 +60,11 @@ export default function OnboardingWizard() {
     }
 
     setIsLoading(false)
-  }
+  }, [router])
+
+  useEffect(() => {
+    loadProgress()
+  }, [loadProgress])
 
   const handleNext = async (stepData: Partial<OnboardingFormData>) => {
     setIsSaving(true)
