@@ -154,6 +154,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             }
           }
 
+          // Set loading to false after initial session check
+          console.log('[AuthContext] ✅ isLoading = false')
+          setIsLoading(false)
+
           // Listen for auth state changes
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event: AuthChangeEvent, session: Session | null) => {
@@ -182,6 +186,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         } catch (error) {
           console.error('[AuthContext] ❌ Init error:', error)
           localStorage.removeItem('naybourhood_user')
+          setIsLoading(false)
         }
       } else {
         console.log('[AuthContext] Supabase not configured, using localStorage only')
@@ -197,10 +202,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             localStorage.removeItem('naybourhood_user')
           }
         }
+        console.log('[AuthContext] ✅ isLoading = false (no Supabase)')
+        setIsLoading(false)
       }
-
-      console.log('[AuthContext] ✅ isLoading = false')
-      setIsLoading(false)
     }
 
     initializeAuth()
