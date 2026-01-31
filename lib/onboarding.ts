@@ -192,13 +192,27 @@ export async function completeOnboardingWithExistingCompany(
   formData: OnboardingFormData,
   companyId: string
 ): Promise<string | null> {
+  console.log('[Onboarding] 🔄 Completing onboarding with existing company:', { 
+    userType: formData.userType, 
+    companyId 
+  })
+  
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('[Onboarding] Not authenticated')
+    console.error('[Onboarding] ❌ Not authenticated')
     return null
   }
+
+  console.log('[Onboarding] 💾 Updating user profile:', {
+    userId: user.id,
+    email: user.email,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    userType: formData.userType,
+    companyId
+  })
 
   // Update user profile - pending approval
   const { error: profileError } = await supabase
@@ -221,22 +235,28 @@ export async function completeOnboardingWithExistingCompany(
     .eq('id', user.id)
 
   if (profileError) {
-    console.error('[Onboarding] Error updating profile:', profileError)
+    console.error('[Onboarding] ❌ Error updating profile:', profileError)
     return null
   }
 
+  console.log('[Onboarding] ✅ Profile updated successfully')
+
   // Send verification email (non-blocking)
   try {
+    console.log('[Onboarding] 📧 Sending verification email')
     await supabase.auth.resend({
       type: 'signup',
       email: user.email!,
     })
+    console.log('[Onboarding] ✅ Verification email sent')
   } catch (e) {
-    console.warn('[Onboarding] Could not resend verification email:', e)
+    console.warn('[Onboarding] ⚠️ Could not resend verification email:', e)
   }
 
   // Return dashboard path based on role
-  return getDashboardPath(formData.userType)
+  const dashboardPath = getDashboardPath(formData.userType)
+  console.log('[Onboarding] ✅ Onboarding complete, returning path:', dashboardPath)
+  return dashboardPath
 }
 
 /**
@@ -246,13 +266,20 @@ export async function completeOnboardingWithExistingCompany(
 export async function completeOnboardingWithNewCompany(
   formData: OnboardingFormData
 ): Promise<string | null> {
+  console.log('[Onboarding] 🆕 Completing onboarding with new company:', { 
+    userType: formData.userType,
+    companyName: formData.companyName 
+  })
+  
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) {
-    console.error('[Onboarding] Not authenticated')
+    console.error('[Onboarding] ❌ Not authenticated')
     return null
   }
+
+  console.log('[Onboarding] 🏢 Creating new company:', formData.companyName)
 
   // Create new company
   const { data: newCompany, error: companyError } = await supabase
@@ -270,9 +297,12 @@ export async function completeOnboardingWithNewCompany(
     .single()
 
   if (companyError) {
-    console.error('[Onboarding] Error creating company:', companyError)
+    console.error('[Onboarding] ❌ Error creating company:', companyError)
     return null
   }
+
+  console.log('[Onboarding] ✅ Company created:', { companyId: newCompany.id })
+  console.log('[Onboarding] 💾 Updating user profile as company admin')
 
   // Update user profile - active immediately as company admin
   const { error: profileError } = await supabase
@@ -295,22 +325,28 @@ export async function completeOnboardingWithNewCompany(
     .eq('id', user.id)
 
   if (profileError) {
-    console.error('[Onboarding] Error updating profile:', profileError)
+    console.error('[Onboarding] ❌ Error updating profile:', profileError)
     return null
   }
 
+  console.log('[Onboarding] ✅ Profile updated successfully')
+
   // Send verification email (non-blocking)
   try {
+    console.log('[Onboarding] 📧 Sending verification email')
     await supabase.auth.resend({
       type: 'signup',
       email: user.email!,
     })
+    console.log('[Onboarding] ✅ Verification email sent')
   } catch (e) {
-    console.warn('[Onboarding] Could not resend verification email:', e)
+    console.warn('[Onboarding] ⚠️ Could not resend verification email:', e)
   }
 
   // Return dashboard path based on role
-  return getDashboardPath(formData.userType)
+  const dashboardPath = getDashboardPath(formData.userType)
+  console.log('[Onboarding] ✅ Onboarding complete, returning path:', dashboardPath)
+  return dashboardPath
 }
 
 /**

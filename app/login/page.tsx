@@ -177,6 +177,7 @@ function LoginPageInner() {
         }
 
         if (isSignUp) {
+          console.log('[Signup] 🆕 Starting signup process for:', email)
           // Sign up with password
           // Don't use emailRedirectTo - let Supabase use default token-based confirmation
           // which works across browsers (PKCE requires same browser)
@@ -185,18 +186,33 @@ function LoginPageInner() {
             password,
           })
 
+          console.log('[Signup] Supabase signUp response:', { 
+            hasUser: !!data.user, 
+            hasSession: !!data.session,
+            userId: data.user?.id,
+            identitiesLength: data.user?.identities?.length,
+            error: error?.message 
+          })
+
           if (error) {
+            console.error('[Signup] ❌ Signup error:', error)
             setError(error.message)
           } else if (data.user) {
             // Check if email confirmation is required
             if (data.user.identities?.length === 0) {
+              console.warn('[Signup] ⚠️ Email already exists')
               setError('An account with this email already exists. Please sign in instead.')
             } else {
+              console.log('[Signup] ✅ User created successfully')
               // Always proceed to onboarding - email confirmation happens later in dashboard
               // Store that email needs confirmation for later prompting
               if (!data.session) {
+                console.log('[Signup] ⚠️ No session returned - email confirmation required')
                 localStorage.setItem('naybourhood_email_pending', 'true')
+              } else {
+                console.log('[Signup] ✅ Session created immediately')
               }
+              console.log('[Signup] → Redirecting to onboarding')
               router.push('/onboarding')
             }
           }

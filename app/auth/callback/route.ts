@@ -10,8 +10,16 @@ export async function GET(request: Request) {
   const error_code = searchParams.get('error_code')
   const error_description = searchParams.get('error_description')
 
+  console.log('[Auth Callback] 🔄 Processing auth callback:', { 
+    hasCode: !!code, 
+    hasTokenHash: !!token_hash, 
+    type, 
+    hasError: !!error_code 
+  })
+
   // Handle Supabase error redirects (e.g., expired links)
   if (error_code || error_description) {
+    console.error('[Auth Callback] ❌ Error from Supabase:', { error_code, error_description })
     const errorMessage = error_description || 'Authentication link has expired or is invalid'
     return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMessage)}&error_type=link_expired`)
   }
@@ -22,9 +30,17 @@ export async function GET(request: Request) {
 
   // Handle PKCE code exchange (magic link from signInWithOtp)
   if (code) {
+    console.log('[Auth Callback] 📧 Exchanging PKCE code for session')
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
     authResult = data
     authError = error
+
+    console.log('[Auth Callback] PKCE exchange result:', { 
+      hasUser: !!data?.user, 
+      hasSession: !!data?.session,
+      userId: data?.user?.id,
+      error: error?.message 
+    })
 
     // Check for PKCE-specific errors
     if (error && (
@@ -32,49 +48,73 @@ export async function GET(request: Request) {
       error.message?.includes('code verifier') ||
       error.code === 'pkce_verification_failed'
     )) {
+      console.error('[Auth Callback] ❌ PKCE verification failed')
       const pkceError = 'This login link was opened in a different browser. Please request a new link using the same browser, or use password login instead.'
       return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(pkceError)}&error_type=pkce`)
     }
   }
   // Handle token_hash (invite emails, password recovery, etc.)
   else if (token_hash && type) {
+    console.log('[Auth Callback] 🔑 Verifying OTP token, type:', type)
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash,
       type: type as 'invite' | 'email' | 'recovery' | 'magiclink',
     })
     authResult = data
     authError = error
+
+    console.log('[Auth Callback] OTP verification result:', { 
+      hasUser: !!data?.user, 
+      hasSession: !!data?.session,
+      userId: data?.user?.id,
+      type,
+      error: error?.message 
+    })
   }
 
   if (!authError && authResult?.user) {
     const email = authResult.user.email?.toLowerCase() || ''
+    console.log('[Auth Callback] ✅ Auth successful for user:', { userId: authResult.user.id, email })
 
     // Handle password recovery - redirect to reset password page
     if (type === 'recovery') {
+      console.log('[Auth Callback] 🔒 Password recovery flow')
       return NextResponse.redirect(`${origin}/reset-password`)
     }
 
     // Update user status to 'active' when they accept invitation/complete auth
     // This changes the status from 'pending' (set during invite) to 'active'
+    console.log('[Auth Callback] 💾 Updating membership_status to active')
     await supabase
       .from('user_profiles')
       .update({ membership_status: 'active' })
       .eq('id', authResult.user.id)
 
     // Check user_profiles table for onboarding status and role
-    const { data: userProfile } = await supabase
+    console.log('[Auth Callback] 📋 Fetching user profile from database')
+    const { data: userProfile, error: profileError } = await supabase
       .from('user_profiles')
       .select('onboarding_completed, user_type, first_name, last_name, company_id')
       .eq('id', authResult.user.id)
       .single()
 
+    console.log('[Auth Callback] Profile fetch result:', { 
+      hasProfile: !!userProfile,
+      onboarding_completed: userProfile?.onboarding_completed,
+      user_type: userProfile?.user_type,
+      company_id: userProfile?.company_id,
+      error: profileError?.message 
+    })
+
     // If user hasn't completed onboarding, redirect to onboarding flow
     if (!userProfile?.onboarding_completed) {
+      console.log('[Auth Callback] ⏭️ Onboarding not complete, redirecting to onboarding')
       // Store basic auth info in URL params for client-side
       const onboardingUrl = new URL(`${origin}/onboarding`)
       onboardingUrl.searchParams.set('auth', 'success')
       onboardingUrl.searchParams.set('userId', authResult.user.id)
       onboardingUrl.searchParams.set('email', email)
+      console.log('[Auth Callback] → Redirect URL:', onboardingUrl.toString())
       return NextResponse.redirect(onboardingUrl.toString())
     }
 
@@ -90,11 +130,13 @@ export async function GET(request: Request) {
 
     // Master admin email override (using centralized auth config)
     if (isMasterAdmin(email)) {
+      console.log('[Auth Callback] 👑 Master admin detected')
       role = 'admin'
     }
 
     // Determine redirect path based on role (using centralized helper)
     const redirectPath = getDashboardPathForRole(role)
+    console.log('[Auth Callback] ✅ Onboarding complete, redirecting to dashboard:', { role, path: redirectPath })
 
     // Redirect with role info in URL so client can store in localStorage
     const redirectUrl = new URL(`${origin}${redirectPath}`)
@@ -107,10 +149,12 @@ export async function GET(request: Request) {
       redirectUrl.searchParams.set('companyId', userProfile.company_id)
     }
 
+    console.log('[Auth Callback] → Final redirect:', redirectUrl.toString())
     return NextResponse.redirect(redirectUrl.toString())
   }
 
   // Return the user to an error page with instructions
+  console.error('[Auth Callback] ❌ Authentication failed:', authError?.message || 'Unknown error')
   const errorMessage = authError?.message || 'Could not authenticate user'
   return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMessage)}`)
 }
