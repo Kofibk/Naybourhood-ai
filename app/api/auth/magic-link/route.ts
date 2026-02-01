@@ -116,9 +116,24 @@ export async function POST(request: Request) {
       console.log('[Magic Link API] 🔗 Magic Link:', magicLink)
     }
 
+    // Include debug info in response (remove in production later)
+    // Extract redirect URL from the final magic link for verification
+    let debugRedirectTo = ''
+    try {
+      const debugUrl = new URL(magicLink)
+      debugRedirectTo = debugUrl.searchParams.get('redirect_to') || ''
+    } catch {}
+
     return NextResponse.json({ 
       success: true,
       message: 'Magic link sent! Check your email.',
+      // Debug info - shows what URL the magic link will redirect to
+      debug: {
+        redirectTo: debugRedirectTo,
+        expectedRedirectTo: correctRedirectUrl,
+        isCorrect: debugRedirectTo === correctRedirectUrl,
+        linkContainsProtectedUrl: magicLink.includes('-naybourhood.vercel.app'),
+      }
     })
 
   } catch (error) {
