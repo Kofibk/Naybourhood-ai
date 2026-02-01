@@ -43,7 +43,16 @@ interface EditingCompany {
 
 export default function CompaniesPage() {
   const router = useRouter()
-  const { companies, isLoading, createCompany, updateCompany, deleteCompany } = useData()
+  const { companies, leads, campaigns, isLoading, createCompany, updateCompany, deleteCompany } = useData()
+
+  // Compute leads and campaigns per company
+  const companiesWithCounts = useMemo(() => {
+    return companies.map(company => ({
+      ...company,
+      total_leads: leads.filter(l => l.company_id === company.id).length,
+      campaign_count: campaigns.filter(c => c.company_id === company.id).length,
+    }))
+  }, [companies, leads, campaigns])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -53,26 +62,27 @@ export default function CompaniesPage() {
 
   // Filter companies
   const filteredCompanies = useMemo(() => {
-    return companies.filter((company) => {
+    return companiesWithCounts.filter((company) => {
       const matchesSearch = !searchQuery ||
         company.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const matchesStatus = statusFilter === 'all' || company.status === statusFilter
+      const matchesStatus = statusFilter === 'all' || 
+        company.status?.toLowerCase() === statusFilter.toLowerCase()
 
       return matchesSearch && matchesStatus
     })
-  }, [companies, searchQuery, statusFilter])
+  }, [companiesWithCounts, searchQuery, statusFilter])
 
   // Calculate totals
   const totals = useMemo(() => {
     return {
-      total: companies.length,
-      active: companies.filter(c => c.status === 'Active').length,
-      trial: companies.filter(c => c.status === 'Trial').length,
-      totalLeads: companies.reduce((sum, c) => sum + (c.total_leads || 0), 0),
+      total: companiesWithCounts.length,
+      active: companiesWithCounts.filter(c => c.status?.toLowerCase() === 'active').length,
+      trial: companiesWithCounts.filter(c => c.status?.toLowerCase() === 'trial').length,
+      totalLeads: companiesWithCounts.reduce((sum, c) => sum + (c.total_leads || 0), 0),
     }
-  }, [companies])
+  }, [companiesWithCounts])
 
   const handleCreateCompany = () => {
     setEditingCompany({
@@ -270,9 +280,9 @@ export default function CompaniesPage() {
           className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[130px]"
         >
           <option value="all">All Status</option>
-          <option value="Active">Active</option>
-          <option value="Trial">Trial</option>
-          <option value="Inactive">Inactive</option>
+          <option value="active">Active</option>
+          <option value="trial">Trial</option>
+          <option value="inactive">Inactive</option>
         </select>
       </div>
 
