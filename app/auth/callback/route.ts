@@ -95,12 +95,15 @@ export async function GET(request: Request) {
       }
     }
   }
-  // Handle token_hash (invite emails, password recovery, etc.)
-  else if (token_hash && type) {
-    console.log('[Auth Callback] 🔑 Verifying OTP token, type:', type)
+  // Handle token_hash (invite emails, password recovery, magic links from admin API)
+  else if (token_hash) {
+    // Default to 'magiclink' if no type specified (admin-generated links)
+    const otpType = (type || 'magiclink') as 'invite' | 'email' | 'recovery' | 'magiclink'
+    console.log('[Auth Callback] 🔑 Verifying OTP token:', { type: otpType, hasType: !!type })
+    
     const { data, error } = await supabase.auth.verifyOtp({
       token_hash,
-      type: type as 'invite' | 'email' | 'recovery' | 'magiclink',
+      type: otpType,
     })
     authResult = data
     authError = error
@@ -109,8 +112,10 @@ export async function GET(request: Request) {
       hasUser: !!data?.user, 
       hasSession: !!data?.session,
       userId: data?.user?.id,
-      type,
-      error: error?.message 
+      userEmail: data?.user?.email,
+      type: otpType,
+      errorMessage: error?.message,
+      errorCode: error?.code,
     })
   }
 

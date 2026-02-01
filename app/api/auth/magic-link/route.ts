@@ -1,78 +1,81 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
+import { NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/server'
 import { sendMagicLinkEmail, isEmailConfigured } from '@/lib/email'
-import { getAppUrl, getAuthCallbackUrl } from '@/lib/auth'
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const body = await request.json()
-    const { email } = body
+    const { email } = await request.json()
 
     if (!email) {
-      return NextResponse.json(
-        { error: 'Email is required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    if (!isSupabaseConfigured()) {
-      return NextResponse.json({
-        success: false,
-        error: 'Supabase is not configured',
-      }, { status: 500 })
-    }
+    console.log('[Magic Link API] 📧 Generating cross-browser magic link for:', email)
 
-    const supabase = createClient()
-    const requestOrigin = new URL(request.url).origin
-    const appUrl = getAppUrl(requestOrigin)
+    const supabaseAdmin = createAdminClient()
 
-    // Get user's name for personalized email
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('first_name, last_name')
-      .eq('email', email)
-      .single()
-
-    const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''
-    const recipientName = fullName || email.split('@')[0]
-
-    // Send magic link via Supabase (generates the auth token but we'll send via Resend)
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
+    // Generate a magic link using the admin API
+    // This creates a token_hash based link that works cross-browser (no PKCE)
+    const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'magiclink',
+      email: email,
       options: {
-        emailRedirectTo: `${appUrl}/auth/callback`,
-        shouldCreateUser: false, // Don't auto-create users
+        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'https://naybourhood-ai.vercel.app'}/auth/callback`,
       },
     })
 
     if (error) {
-      console.error('[Magic Link API] Supabase error:', error)
-      return NextResponse.json({
-        success: false,
-        error: error.message,
-      }, { status: 400 })
+      console.error('[Magic Link API] ❌ Error generating link:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
-    // Send branded email via Resend ONLY (Resend will be configured to send)
-    if (isEmailConfigured()) {
-      await sendMagicLinkEmail(email, {
-        recipientName,
-        magicLink: `${appUrl}/login?email=${encodeURIComponent(email)}&magic=true`,
-      })
-    } else {
-      console.warn('[Magic Link API] Email not configured - no email will be sent')
-    }
+    // The action_link contains the full magic link URL with token_hash
+    const magicLink = data.properties?.action_link
 
-    return NextResponse.json({
-      success: true,
-      message: 'Magic link sent! Check your email to sign in.',
+    console.log('[Magic Link API] ✅ Link generated:', {
+      hasActionLink: !!magicLink,
+      linkPreview: magicLink ? magicLink.substring(0, 80) + '...' : 'missing',
+      // The link should contain token_hash parameter, not code
+      containsTokenHash: magicLink?.includes('token_hash'),
+      containsCode: magicLink?.includes('code='),
     })
 
-  } catch (error: any) {
-    console.error('[Magic Link API] Server error:', error)
-    return NextResponse.json({
-      success: false,
-      error: 'An error occurred. Please try again.',
-    }, { status: 500 })
+    if (!magicLink) {
+      console.error('[Magic Link API] ❌ No action_link in response')
+      return NextResponse.json({ error: 'Failed to generate magic link' }, { status: 500 })
+    }
+
+    // Extract name from email for personalization
+    const recipientName = email.split('@')[0].replace(/[._-]/g, ' ')
+
+    // Send the magic link via our email service
+    if (isEmailConfigured()) {
+      console.log('[Magic Link API] 📤 Sending email via Resend...')
+      const emailResult = await sendMagicLinkEmail(email, {
+        recipientName,
+        magicLink,
+      })
+
+      if (!emailResult.success) {
+        console.error('[Magic Link API] ❌ Email sending failed:', emailResult.error)
+        return NextResponse.json({ 
+          error: 'Failed to send email. Please try again.' 
+        }, { status: 500 })
+      }
+
+      console.log('[Magic Link API] ✅ Email sent:', emailResult.messageId)
+    } else {
+      console.log('[Magic Link API] ⚠️ Email not configured, logging link instead')
+      console.log('[Magic Link API] 🔗 Magic Link:', magicLink)
+    }
+
+    return NextResponse.json({ 
+      success: true,
+      message: 'Magic link sent! Check your email.',
+    })
+
+  } catch (error) {
+    console.error('[Magic Link API] ❌ Unexpected error:', error)
+    return NextResponse.json({ error: 'Failed to send magic link' }, { status: 500 })
   }
 }

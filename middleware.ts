@@ -58,24 +58,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Handle Supabase auth at root - redirect to /auth/callback
-  // This catches both PKCE codes and token_hash from invite emails
-  if (pathname === '/') {
-    // Handle PKCE code
-    if (searchParams.has('code')) {
-      console.log('[Middleware] 📧 PKCE code detected at root, redirecting to /auth/callback')
-      const url = request.nextUrl.clone()
-      url.pathname = '/auth/callback'
-      return NextResponse.redirect(url)
-    }
+  // Handle Supabase auth tokens - redirect to /auth/callback
+  // This catches both PKCE codes and token_hash from magic links/invites
+  // Handle at ANY path, not just root (links may point to /login, /, etc.)
+  
+  // Handle PKCE code
+  if (searchParams.has('code') && !pathname.startsWith('/auth/callback')) {
+    console.log('[Middleware] 📧 PKCE code detected, redirecting to /auth/callback:', { pathname })
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
+  }
 
-    // Handle token_hash (from invite emails)
-    if (searchParams.has('token_hash') && searchParams.has('type')) {
-      console.log('[Middleware] 🔑 Token hash detected at root, redirecting to /auth/callback')
-      const url = request.nextUrl.clone()
-      url.pathname = '/auth/callback'
-      return NextResponse.redirect(url)
-    }
+  // Handle token_hash (from admin-generated magic links, invites, etc.)
+  // Note: type parameter is optional for magic links
+  if (searchParams.has('token_hash') && !pathname.startsWith('/auth/callback')) {
+    console.log('[Middleware] 🔑 Token hash detected, redirecting to /auth/callback:', { 
+      pathname,
+      hasType: searchParams.has('type'),
+      type: searchParams.get('type'),
+    })
+    const url = request.nextUrl.clone()
+    url.pathname = '/auth/callback'
+    return NextResponse.redirect(url)
   }
 
   // Check if route is public

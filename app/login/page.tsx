@@ -120,46 +120,32 @@ function LoginPageInner() {
     setIsLoading(true)
 
     try {
-      if (supabaseConfigured) {
-        const supabase = createClient()
+      console.log('[Login] 📧 Requesting magic link via API (cross-browser compatible):', {
+        email,
+        origin: window.location.origin,
+      })
 
-        if (!supabase) {
-          setError('Authentication service not available. Please try again later.')
-          return
-        }
+      // Use our custom API endpoint that generates token_hash based links
+      // These work cross-browser (no PKCE required)
+      const response = await fetch('/api/auth/magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
 
-        const redirectUrl = `${window.location.origin}/login`
-        console.log('[Login] 📧 Requesting magic link:', {
-          email,
-          redirectUrl,
-          origin: window.location.origin,
-          currentUrl: window.location.href,
-          userAgent: navigator.userAgent.substring(0, 50),
-        })
+      const data = await response.json()
 
-        const { error, data } = await supabase.auth.signInWithOtp({
-          email,
-          options: {
-            // Redirect to login page - AuthHandler will catch the hash fragment tokens
-            emailRedirectTo: redirectUrl,
-          },
-        })
+      console.log('[Login] 📧 Magic link API response:', {
+        success: response.ok,
+        status: response.status,
+        data,
+      })
 
-        console.log('[Login] 📧 Magic link request result:', {
-          success: !error,
-          errorMessage: error?.message,
-          errorCode: error?.code,
-          // Note: Supabase stores PKCE code_verifier in cookies after this call
-          // This verifier MUST be present when the magic link is opened
-        })
-
-        if (error) {
-          setError(error.message)
-        } else {
-          console.log('[Login] ✅ Magic link sent! Important: Link must be opened in THIS browser')
-          console.log('[Login] 💡 PKCE code verifier has been stored in this browser\'s cookies')
-          setMagicLinkSent(true)
-        }
+      if (!response.ok) {
+        setError(data.error || 'Failed to send magic link')
+      } else {
+        console.log('[Login] ✅ Magic link sent via admin API (works in ANY browser)')
+        setMagicLinkSent(true)
       }
     } catch (err: unknown) {
       console.error('[Auth] Magic link error:', err)
