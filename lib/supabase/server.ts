@@ -23,12 +23,17 @@ export function createClient() {
     supabaseCookieNames: supabaseCookies.map(c => c.name),
     hasCodeVerifier: supabaseCookies.some(c => c.name.includes('code-verifier') || c.name.includes('code_verifier')),
     hasAuthToken: supabaseCookies.some(c => c.name.includes('auth-token')),
+    flowType: 'implicit',
   })
 
   return createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
+      auth: {
+        flowType: 'implicit',
+        detectSessionInUrl: true,
+      },
       cookies: {
         get(name: string) {
           const value = cookieStore.get(name)?.value

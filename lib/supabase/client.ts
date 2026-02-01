@@ -28,10 +28,17 @@ export function createClient() {
       supabaseCookieNames: supabaseCookies.map(c => c.split('=')[0]),
       hasCodeVerifier: supabaseCookies.some(c => c.includes('code-verifier') || c.includes('code_verifier')),
       currentPath: window.location.pathname,
+      flowType: 'implicit',
     })
   }
 
-  // Create browser client with default settings
-  // The @supabase/ssr package handles cookies automatically
-  return createBrowserClient(url, key)
+  // Create browser client with IMPLICIT flow to allow cross-browser magic links
+  // PKCE flow (default) requires the magic link to be opened in the SAME browser
+  // Implicit flow uses #access_token in URL which works cross-browser
+  return createBrowserClient(url, key, {
+    auth: {
+      flowType: 'implicit',
+      detectSessionInUrl: true,
+    }
+  })
 }
