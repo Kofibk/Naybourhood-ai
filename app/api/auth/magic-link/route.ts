@@ -36,11 +36,12 @@ export async function POST(request: NextRequest) {
     const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''
     const recipientName = fullName || email.split('@')[0]
 
-    // Send magic link via Supabase
+    // Send magic link via Supabase (generates the auth token but we'll send via Resend)
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
         emailRedirectTo: `${appUrl}/auth/callback`,
+        shouldCreateUser: false, // Don't auto-create users
       },
     })
 
@@ -52,12 +53,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Send branded email via Resend (in addition to Supabase's email)
+    // Send branded email via Resend ONLY (Resend will be configured to send)
     if (isEmailConfigured()) {
       await sendMagicLinkEmail(email, {
         recipientName,
         magicLink: `${appUrl}/login?email=${encodeURIComponent(email)}&magic=true`,
       })
+    } else {
+      console.warn('[Magic Link API] Email not configured - no email will be sent')
     }
 
     return NextResponse.json({

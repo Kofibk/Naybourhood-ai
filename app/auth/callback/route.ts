@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { cookies } from 'next/headers'
 import { isMasterAdmin, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
 
 export async function GET(request: Request) {
@@ -10,11 +11,28 @@ export async function GET(request: Request) {
   const error_code = searchParams.get('error_code')
   const error_description = searchParams.get('error_description')
 
+  // Get all cookies for debugging
+  const cookieStore = cookies()
+  const allCookies = cookieStore.getAll()
+  const supabaseCookies = allCookies.filter(c => c.name.includes('supabase') || c.name.includes('sb-'))
+  
   console.log('[Auth Callback] 🔄 Processing auth callback:', { 
     hasCode: !!code, 
+    codePreview: code ? `${code.substring(0, 10)}...` : null,
     hasTokenHash: !!token_hash, 
+    tokenHashPreview: token_hash ? `${token_hash.substring(0, 10)}...` : null,
     type, 
-    hasError: !!error_code 
+    hasError: !!error_code,
+    origin,
+    fullUrl: request.url,
+  })
+  
+  console.log('[Auth Callback] 🍪 Cookies present:', {
+    totalCookies: allCookies.length,
+    supabaseCookieNames: supabaseCookies.map(c => c.name),
+    supabaseCookieCount: supabaseCookies.length,
+    // Log if code verifier cookie exists (critical for PKCE)
+    hasCodeVerifier: supabaseCookies.some(c => c.name.includes('code-verifier') || c.name.includes('code_verifier')),
   })
 
   // Handle Supabase error redirects (e.g., expired links)
@@ -30,8 +48,13 @@ export async function GET(request: Request) {
 
   // Handle PKCE code exchange (magic link from signInWithOtp)
   if (code) {
-    console.log('[Auth Callback] 📧 Exchanging PKCE code for session')
+    console.log('[Auth Callback] 📧 Attempting PKCE code exchange for session')
+    console.log('[Auth Callback] 📧 Code length:', code.length)
+    
+    const startTime = Date.now()
     const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+    const duration = Date.now() - startTime
+    
     authResult = data
     authError = error
 
@@ -39,18 +62,37 @@ export async function GET(request: Request) {
       hasUser: !!data?.user, 
       hasSession: !!data?.session,
       userId: data?.user?.id,
-      error: error?.message 
+      userEmail: data?.user?.email,
+      sessionExpiresAt: data?.session?.expires_at,
+      durationMs: duration,
+      errorMessage: error?.message,
+      errorCode: error?.code,
+      errorStatus: error?.status,
+      errorName: error?.name,
     })
 
     // Check for PKCE-specific errors
-    if (error && (
-      error.message?.includes('PKCE') ||
-      error.message?.includes('code verifier') ||
-      error.code === 'pkce_verification_failed'
-    )) {
-      console.error('[Auth Callback] ❌ PKCE verification failed')
-      const pkceError = 'This login link was opened in a different browser. Please request a new link using the same browser, or use password login instead.'
-      return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(pkceError)}&error_type=pkce`)
+    if (error) {
+      const isPkceError = (
+        error.message?.includes('PKCE') ||
+        error.message?.includes('code verifier') ||
+        error.message?.toLowerCase().includes('code_verifier') ||
+        error.code === 'pkce_verification_failed' ||
+        error.message?.includes('invalid flow state') ||
+        error.message?.includes('flow state')
+      )
+      
+      console.error('[Auth Callback] ❌ Code exchange failed:', {
+        isPkceError,
+        fullError: JSON.stringify(error, null, 2),
+      })
+      
+      if (isPkceError) {
+        console.error('[Auth Callback] ❌ PKCE verification failed - likely opened in different browser')
+        console.error('[Auth Callback] 💡 PKCE requires the magic link to be opened in the SAME browser where it was requested')
+        const pkceError = 'This login link was opened in a different browser. Please request a new link using the same browser, or use password login instead.'
+        return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(pkceError)}&error_type=pkce`)
+      }
     }
   }
   // Handle token_hash (invite emails, password recovery, etc.)

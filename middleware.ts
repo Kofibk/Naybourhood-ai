@@ -25,9 +25,34 @@ const FEATURE_ROUTE_MAP: Record<string, string[]> = {
 
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
+  
+  // Log all auth-related requests for debugging
+  const hasAuthParams = searchParams.has('code') || searchParams.has('token_hash') || 
+                        searchParams.has('error_code') || searchParams.has('error_description') ||
+                        searchParams.has('access_token')
+  
+  if (hasAuthParams || pathname.includes('/auth/') || pathname === '/login') {
+    const allCookies = request.cookies.getAll()
+    const supabaseCookies = allCookies.filter(c => c.name.includes('supabase') || c.name.includes('sb-'))
+    
+    console.log('[Middleware] 🔐 Auth-related request:', {
+      pathname,
+      hasCode: searchParams.has('code'),
+      codePreview: searchParams.get('code')?.substring(0, 10),
+      hasTokenHash: searchParams.has('token_hash'),
+      hasErrorCode: searchParams.has('error_code'),
+      errorDescription: searchParams.get('error_description'),
+      type: searchParams.get('type'),
+      supabaseCookieCount: supabaseCookies.length,
+      supabaseCookieNames: supabaseCookies.map(c => c.name),
+      hasCodeVerifier: supabaseCookies.some(c => c.name.includes('code-verifier') || c.name.includes('code_verifier')),
+      userAgent: request.headers.get('user-agent')?.substring(0, 50),
+    })
+  }
 
   // Handle Supabase auth errors at any path - redirect to login with error
   if (searchParams.has('error_code') || searchParams.has('error_description')) {
+    console.log('[Middleware] ⚠️ Auth error detected, redirecting to /auth/callback')
     const url = request.nextUrl.clone()
     url.pathname = '/auth/callback'
     return NextResponse.redirect(url)
@@ -38,6 +63,7 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     // Handle PKCE code
     if (searchParams.has('code')) {
+      console.log('[Middleware] 📧 PKCE code detected at root, redirecting to /auth/callback')
       const url = request.nextUrl.clone()
       url.pathname = '/auth/callback'
       return NextResponse.redirect(url)
@@ -45,6 +71,7 @@ export async function middleware(request: NextRequest) {
 
     // Handle token_hash (from invite emails)
     if (searchParams.has('token_hash') && searchParams.has('type')) {
+      console.log('[Middleware] 🔑 Token hash detected at root, redirecting to /auth/callback')
       const url = request.nextUrl.clone()
       url.pathname = '/auth/callback'
       return NextResponse.redirect(url)
@@ -98,7 +125,20 @@ export async function middleware(request: NextRequest) {
     // Get session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
+    console.log('[Middleware] 🔒 Session check for protected route:', {
+      pathname,
+      hasSession: !!session,
+      sessionError: sessionError?.message,
+      userId: session?.user?.id,
+      userEmail: session?.user?.email,
+      sessionExpiresAt: session?.expires_at,
+    })
+
     if (sessionError || !session) {
+      console.log('[Middleware] ❌ No valid session, redirecting to login:', {
+        pathname,
+        error: sessionError?.message,
+      })
       // No session - redirect to login
       const url = request.nextUrl.clone()
       url.pathname = '/login'

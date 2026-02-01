@@ -15,31 +15,76 @@ export function AuthHandler() {
 
   useEffect(() => {
     const handleAuth = async () => {
+      // Log full URL for debugging
+      console.log('[AuthHandler] 🔍 Checking URL for auth tokens:', {
+        fullUrl: window.location.href,
+        pathname: window.location.pathname,
+        search: window.location.search,
+        hash: window.location.hash ? `${window.location.hash.substring(0, 50)}...` : '(none)',
+        hasHash: !!window.location.hash && window.location.hash.length > 1,
+      })
+      
       // Check for hash fragment (e.g., #access_token=...)
       const hash = window.location.hash
-      if (!hash || hash.length < 2) return
+      if (!hash || hash.length < 2) {
+        console.log('[AuthHandler] No hash fragment found, skipping')
+        return
+      }
 
       // Parse hash params
       const hashParams = new URLSearchParams(hash.substring(1))
       const accessToken = hashParams.get('access_token')
       const refreshToken = hashParams.get('refresh_token')
       const type = hashParams.get('type')
+      const errorCode = hashParams.get('error_code')
+      const errorDescription = hashParams.get('error_description')
+      
+      console.log('[AuthHandler] 🔑 Hash params parsed:', {
+        hasAccessToken: !!accessToken,
+        accessTokenPreview: accessToken?.substring(0, 20),
+        hasRefreshToken: !!refreshToken,
+        type,
+        errorCode,
+        errorDescription,
+      })
+      
+      // Handle errors in hash
+      if (errorCode || errorDescription) {
+        console.error('[AuthHandler] ❌ Error in hash fragment:', { errorCode, errorDescription })
+        router.push(`/login?error=${encodeURIComponent(errorDescription || 'Authentication failed')}&error_type=${errorCode}`)
+        return
+      }
 
       if (accessToken) {
         setIsProcessing(true)
-        console.log('[AuthHandler] Found access token in hash, type:', type)
+        console.log('[AuthHandler] ✅ Found access token in hash, type:', type)
 
         try {
           const supabase = createClient()
 
+          console.log('[AuthHandler] 🔄 Setting session from tokens...')
+          
           // Set the session from the tokens
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           })
 
+          console.log('[AuthHandler] Session set result:', {
+            hasUser: !!data?.user,
+            hasSession: !!data?.session,
+            userId: data?.user?.id,
+            userEmail: data?.user?.email,
+            errorMessage: error?.message,
+            errorCode: error?.code,
+          })
+
           if (error) {
-            console.error('[AuthHandler] Session error:', error)
+            console.error('[AuthHandler] ❌ Session error:', {
+              message: error.message,
+              code: error.code,
+              status: error.status,
+            })
             router.push('/login?error=' + encodeURIComponent(error.message))
             return
           }

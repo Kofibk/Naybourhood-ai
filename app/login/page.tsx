@@ -128,17 +128,36 @@ function LoginPageInner() {
           return
         }
 
-        const { error } = await supabase.auth.signInWithOtp({
+        const redirectUrl = `${window.location.origin}/login`
+        console.log('[Login] 📧 Requesting magic link:', {
+          email,
+          redirectUrl,
+          origin: window.location.origin,
+          currentUrl: window.location.href,
+          userAgent: navigator.userAgent.substring(0, 50),
+        })
+
+        const { error, data } = await supabase.auth.signInWithOtp({
           email,
           options: {
             // Redirect to login page - AuthHandler will catch the hash fragment tokens
-            emailRedirectTo: `${window.location.origin}/login`,
+            emailRedirectTo: redirectUrl,
           },
+        })
+
+        console.log('[Login] 📧 Magic link request result:', {
+          success: !error,
+          errorMessage: error?.message,
+          errorCode: error?.code,
+          // Note: Supabase stores PKCE code_verifier in cookies after this call
+          // This verifier MUST be present when the magic link is opened
         })
 
         if (error) {
           setError(error.message)
         } else {
+          console.log('[Login] ✅ Magic link sent! Important: Link must be opened in THIS browser')
+          console.log('[Login] 💡 PKCE code verifier has been stored in this browser\'s cookies')
           setMagicLinkSent(true)
         }
       }

@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     const fullName = profile ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim() : ''
     const recipientName = fullName || email.split('@')[0]
 
-    // Request password reset via Supabase
+    // Request password reset via Supabase (generates the token but we'll send via Resend)
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${appUrl}/reset-password`,
     })
@@ -50,12 +50,14 @@ export async function POST(request: NextRequest) {
       })
     }
 
-    // Send branded email via Resend (in addition to Supabase's email)
+    // Send branded email via Resend ONLY (Resend will be configured to send)
     if (isEmailConfigured()) {
       await sendPasswordResetEmail(email, {
         recipientName,
         resetLink: `${appUrl}/reset-password?email=${encodeURIComponent(email)}`,
       })
+    } else {
+      console.warn('[Reset Password API] Email not configured - no email will be sent')
     }
 
     return NextResponse.json({
