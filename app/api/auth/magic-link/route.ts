@@ -10,18 +10,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
 
-    // Get the correct app URL from multiple sources (in order of preference):
-    // 1. NEXT_PUBLIC_APP_URL environment variable
-    // 2. Request origin header
-    // 3. Fallback to production URL
-    const requestOrigin = request.headers.get('origin') || request.headers.get('referer')?.split('/').slice(0, 3).join('/')
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || requestOrigin || 'https://naybourhood-ai.vercel.app'
-    const correctRedirectUrl = `${appUrl}/auth/callback`
+    // IMPORTANT: Always use the PUBLIC production URL for magic links
+    // Do NOT use request origin because the user might be on a team-protected Vercel URL
+    // (e.g., naybourhood-ai-naybourhood.vercel.app) which requires Vercel authentication
+    // 
+    // The redirect happens on Supabase's servers, so if we use a protected URL,
+    // users opening the link in a different browser will see Vercel's login page
+    // instead of being authenticated to our app.
+    const PRODUCTION_URL = 'https://naybourhood-ai.vercel.app'
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL
     
-    console.log('[Magic Link API] 🌐 URL detection:', {
-      envVar: process.env.NEXT_PUBLIC_APP_URL,
-      requestOrigin,
-      finalAppUrl: appUrl,
+    // Ensure we're not using a team-protected Vercel URL
+    const safeAppUrl = appUrl.includes('-naybourhood.vercel.app') ? PRODUCTION_URL : appUrl
+    const correctRedirectUrl = `${safeAppUrl}/auth/callback`
+    
+    const requestOrigin = request.headers.get('origin')
+    console.log('[Magic Link API] 🌐 URL configuration:', {
+      envVar: process.env.NEXT_PUBLIC_APP_URL || '(not set)',
+      requestOrigin: requestOrigin || '(none)',
+      usingUrl: safeAppUrl,
+      redirectUrl: correctRedirectUrl,
+      // Warning if request is from protected URL
+      isFromProtectedUrl: requestOrigin?.includes('-naybourhood.vercel.app'),
     })
 
     console.log('[Magic Link API] 📧 Generating cross-browser magic link for:', email)
