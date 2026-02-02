@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Buyer, Campaign, Company, Development, AppUser, FinanceLead } from '@/types'
+import { perf } from '@/lib/performance'
 
 // Cache keys for localStorage
 const CACHE_KEYS = {
@@ -161,6 +162,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setError(null)
     const errors: string[] = []
 
+    // Start performance tracking
+    perf.clear()
+    perf.setContext('DataContext')
+    perf.start('total_refresh')
+
     try {
       const supabase = createClient()
 
@@ -170,14 +176,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      perf.start('parallel_fetches')
       // Fetch all data in PARALLEL
       const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
         // BUYERS - fetch all with pagination
         (async () => {
+          const fetchStart = performance.now()
           let allBuyers: any[] = []
           let from = 0
           const batchSize = 1000
           let hasMore = true
+          let batchCount = 0
 
           while (hasMore) {
             const { data, error } = await supabase
@@ -195,19 +204,23 @@ export function DataProvider({ children }: { children: ReactNode }) {
               allBuyers = [...allBuyers, ...data]
               from += batchSize
               hasMore = data.length === batchSize
+              batchCount++
             } else {
               hasMore = false
             }
           }
+          console.log(`[PERF] [DataContext] 🟢 buyers: ${(performance.now() - fetchStart).toFixed(0)}ms (${allBuyers.length} items, ${batchCount} batches)`)
           return allBuyers
         })(),
 
         // CAMPAIGNS - fetch all with pagination (data is at ad-level, will aggregate by campaign)
         (async () => {
+          const fetchStart = performance.now()
           let allCampaigns: any[] = []
           let from = 0
           const batchSize = 1000
           let hasMore = true
+          let batchCount = 0
 
           while (hasMore) {
             // Simple query without joins - joins may fail if FK not set up
@@ -225,28 +238,59 @@ export function DataProvider({ children }: { children: ReactNode }) {
               allCampaigns = [...allCampaigns, ...data]
               from += batchSize
               hasMore = data.length === batchSize
+              batchCount++
             } else {
               hasMore = false
             }
           }
-          console.log(`[DataContext] Fetched ${allCampaigns.length} campaign records`)
+          console.log(`[PERF] [DataContext] 🟢 campaigns: ${(performance.now() - fetchStart).toFixed(0)}ms (${allCampaigns.length} items, ${batchCount} batches)`)
           return { error: null, data: allCampaigns }
         })(),
 
         // COMPANIES
-        supabase.from('companies').select('*').order('name', { ascending: true }),
+        (async () => {
+          const fetchStart = performance.now()
+          const result = await supabase.from('companies').select('*').order('name', { ascending: true })
+          console.log(`[PERF] [DataContext] 🟢 companies: ${(performance.now() - fetchStart).toFixed(0)}ms (${result.data?.length || 0} items)`)
+          return result
+        })(),
 
         // DEVELOPMENTS - join company data
-        supabase.from('developments').select('*, company:companies(*)'),
+        (async () => {
+          const fetchStart = performance.now()
+          const result = await supabase.from('developments').select('*, company:companies(*)')
+          console.log(`[PERF] [DataContext] 🟢 developments: ${(performance.now() - fetchStart).toFixed(0)}ms (${result.data?.length || 0} items)`)
+          return result
+        })(),
 
         // BORROWERS (finance/mortgage leads)
-        supabase.from('borrowers').select('*').order('created_at', { ascending: false }),
+        (async () => {
+          const fetchStart = performance.now()
+          const result = await supabase.from('borrowers').select('*').order('created_at', { ascending: false })
+          console.log(`[PERF] [DataContext] 🟢 borrowers: ${(performance.now() - fetchStart).toFixed(0)}ms (${result.data?.length || 0} items)`)
+          return result
+        })(),
 
         // USER PROFILES
-        supabase.from('user_profiles').select('*').order('first_name', { ascending: true }),
+        (async () => {
+          const fetchStart = performance.now()
+          const result = await supabase.from('user_profiles').select('*').order('first_name', { ascending: true })
+          console.log(`[PERF] [DataContext] 🟢 user_profiles: ${(performance.now() - fetchStart).toFixed(0)}ms (${result.data?.length || 0} items)`)
+          return result
+        })(),
       ])
+      
+      perf.end('parallel_fetches', { 
+        buyers: Array.isArray(buyersResult) ? buyersResult.length : 0,
+        campaigns: campaignsResult.data?.length || 0,
+        companies: companiesResult.data?.length || 0,
+        developments: developmentsResult.data?.length || 0,
+        borrowers: financeLeadsResult.data?.length || 0,
+        users: usersResult.data?.length || 0,
+      })
 
       // Process BUYERS
+      perf.start('process_buyers')
       if (Array.isArray(buyersResult) && buyersResult.length > 0) {
         // Map column names - combine first_name + last_name into full_name
         const mappedBuyers = buyersResult.map((b: any) => {
@@ -323,8 +367,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         }})
         setLeads(mappedBuyers)
       }
+      perf.end('process_buyers', { count: leads.length })
 
       // Process CAMPAIGNS - aggregate ad-level data into campaign-level insights
+      perf.start('process_campaigns')
       if (!campaignsResult.error && campaignsResult.data) {
         // Parse values as numbers in case they're stored as strings
         const parseNumber = (val: any): number => {
@@ -468,6 +514,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         setCampaigns(aggregatedCampaigns)
         console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
       }
+      perf.end('process_campaigns')
 
       // Process COMPANIES
       if (!companiesResult.error && companiesResult.data) {
@@ -619,6 +666,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
       console.error('[DataContext] Error:', err)
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
+      perf.end('total_refresh')
+      perf.report()
       setIsLoading(false)
       setIsSyncing(false)
       hasDataRef.current = true  // Mark that we have data after first successful fetch

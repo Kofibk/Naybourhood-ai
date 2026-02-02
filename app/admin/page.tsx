@@ -1,11 +1,12 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
+import { useRenderTiming } from '@/lib/performance'
 import {
   Users,
   Flame,
@@ -90,6 +91,17 @@ function AnimatedNumber({
 export default function AdminDashboard() {
   const { leads, campaigns, companies, isLoading, isSyncing, error, refreshData } = useData()
   const [user, setUser] = useState<{ name?: string }>({})
+  const { markInteractive } = useRenderTiming('AdminDashboard')
+  const hasMarkedInteractive = useRef(false)
+
+  // Track time to interactive - when data is loaded and rendered
+  useEffect(() => {
+    if (!isLoading && !hasMarkedInteractive.current && (leads.length > 0 || campaigns.length > 0)) {
+      hasMarkedInteractive.current = true
+      markInteractive()
+      console.log(`[PERF] [AdminDashboard] 📊 Dashboard ready with ${leads.length} leads, ${campaigns.length} campaigns, ${companies.length} companies`)
+    }
+  }, [isLoading, leads.length, campaigns.length, companies.length, markInteractive])
 
   useEffect(() => {
     const stored = localStorage.getItem('naybourhood_user')

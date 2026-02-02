@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
+import { perf } from '@/lib/performance'
 import type { Company, Campaign, Buyer, AppUser, FinanceLead } from '@/types'
 import {
   ArrowLeft,
@@ -40,14 +41,21 @@ export default function CompanyDetailPage() {
     async function fetchData() {
       if (!params.id) return
 
+      // Start performance tracking
+      perf.clear()
+      perf.setContext('CompanyDetail')
+      perf.start('total_load')
+
       const supabase = createClient()
 
       // Fetch company
+      perf.start('fetch_company')
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
         .select('*')
         .eq('id', params.id)
         .single()
+      perf.end('fetch_company')
 
       if (companyError) {
         console.error('Error fetching company:', companyError)
@@ -55,11 +63,13 @@ export default function CompanyDetailPage() {
         setCompany(companyData)
 
         // Fetch related campaigns
+        perf.start('fetch_campaigns')
         const { data: campaignsData } = await supabase
           .from('campaigns')
           .select('*')
           .eq('company_id', params.id)
           .order('created_at', { ascending: false })
+        perf.end('fetch_campaigns', { count: campaignsData?.length || 0 })
 
         if (campaignsData) {
           setCampaigns(campaignsData)
@@ -69,11 +79,13 @@ export default function CompanyDetailPage() {
         let allLeads: Buyer[] = []
 
         // Method 1: Direct company_id link
+        perf.start('fetch_leads_direct')
         const { data: directLeads } = await supabase
           .from('buyers')
           .select('*')
           .eq('company_id', params.id)
           .order('created_at', { ascending: false })
+        perf.end('fetch_leads_direct', { count: directLeads?.length || 0 })
 
         if (directLeads && directLeads.length > 0) {
           allLeads = [...directLeads]
@@ -81,12 +93,14 @@ export default function CompanyDetailPage() {
 
         // Method 2: Through campaigns (if company has campaigns)
         if (campaignsData && campaignsData.length > 0) {
+          perf.start('fetch_leads_via_campaigns')
           const campaignIds = campaignsData.map((c: { id: string }) => c.id)
           const { data: campaignLeads } = await supabase
             .from('buyers')
             .select('*')
             .in('campaign_id', campaignIds)
             .order('created_at', { ascending: false })
+          perf.end('fetch_leads_via_campaigns', { count: campaignLeads?.length || 0 })
 
           if (campaignLeads && campaignLeads.length > 0) {
             // Merge and dedupe by id
@@ -107,31 +121,37 @@ export default function CompanyDetailPage() {
 
         // Fetch borrowers (finance leads) linked to this company
         // First get count for stats
+        perf.start('fetch_borrower_count')
         const { count: borrowerCount } = await supabase
           .from('borrowers')
           .select('*', { count: 'exact', head: true })
           .eq('company_id', params.id)
+        perf.end('fetch_borrower_count', { count: borrowerCount || 0 })
 
         setTotalBorrowerCount(borrowerCount || 0)
 
         // Then fetch recent 10 for display
+        perf.start('fetch_borrowers')
         const { data: borrowersData } = await supabase
           .from('borrowers')
           .select('*')
           .eq('company_id', params.id)
           .order('created_at', { ascending: false })
           .limit(10)
+        perf.end('fetch_borrowers', { count: borrowersData?.length || 0 })
 
         if (borrowersData) {
           setBorrowers(borrowersData)
         }
 
         // Fetch users belonging to this company
+        perf.start('fetch_users')
         const { data: usersData } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('company_id', params.id)
           .order('first_name', { ascending: true })
+        perf.end('fetch_users', { count: usersData?.length || 0 })
 
         if (usersData) {
           const mappedUsers: AppUser[] = usersData.map((u: any) => ({
@@ -151,6 +171,8 @@ export default function CompanyDetailPage() {
         }
       }
 
+      perf.end('total_load')
+      perf.report()
       setIsLoading(false)
     }
 

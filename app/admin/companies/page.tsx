@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { formatCurrency } from '@/lib/utils'
+import { useRenderTiming } from '@/lib/performance'
 import { Company } from '@/types'
 import {
   Plus,
@@ -44,14 +45,30 @@ interface EditingCompany {
 export default function CompaniesPage() {
   const router = useRouter()
   const { companies, leads, campaigns, isLoading, createCompany, updateCompany, deleteCompany } = useData()
+  const { markInteractive } = useRenderTiming('CompaniesPage')
+  const hasMarkedInteractive = useRef(false)
+
+  // Track time to interactive - when data is loaded and rendered
+  useEffect(() => {
+    if (!isLoading && !hasMarkedInteractive.current && companies.length > 0) {
+      hasMarkedInteractive.current = true
+      markInteractive()
+      console.log(`[PERF] [CompaniesPage] 📊 Page ready with ${companies.length} companies`)
+    }
+  }, [isLoading, companies.length, markInteractive])
 
   // Compute leads and campaigns per company
+  const computeStart = typeof performance !== 'undefined' ? performance.now() : 0
   const companiesWithCounts = useMemo(() => {
-    return companies.map(company => ({
+    const result = companies.map(company => ({
       ...company,
       total_leads: leads.filter(l => l.company_id === company.id).length,
       campaign_count: campaigns.filter(c => c.company_id === company.id).length,
     }))
+    if (typeof performance !== 'undefined' && companies.length > 0) {
+      console.log(`[PERF] [CompaniesPage] 🟢 companiesWithCounts computed: ${(performance.now() - computeStart).toFixed(0)}ms for ${companies.length} companies`)
+    }
+    return result
   }, [companies, leads, campaigns])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
