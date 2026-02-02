@@ -226,7 +226,7 @@ export function ConversationsView({
   // Navigate to detail page
   const handleViewDetail = useCallback((conv: ConversationItem) => {
     const detailPath = conv.type === 'lead'
-      ? `${basePath}/buyers/${conv.id}`
+      ? `${basePath}/leads/${conv.id}`
       : `${basePath}/borrowers/${conv.id}`
     router.push(detailPath)
   }, [router, basePath])

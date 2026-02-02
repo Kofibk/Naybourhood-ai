@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { useData } from '@/contexts/DataContext'
 import { EmailComposer } from '@/components/EmailComposer'
+import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import {
@@ -1268,22 +1269,25 @@ export default function LeadDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Transcript / Call Summary */}
-          {((lead as any).transcript || (lead as any).call_summary || (lead as any).last_wa_message) && (
+          {/* WhatsApp Conversation Thread */}
+          <ConversationThread
+            buyerId={lead.id}
+            buyerName={lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Lead'}
+            buyerPhone={lead.phone}
+            channel="whatsapp"
+            maxHeight="400px"
+          />
+
+          {/* Call Summary & Transcript */}
+          {((lead as any).transcript || (lead as any).call_summary) && (
             <Card>
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  Communication History
+                  Call History
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
-                {(lead as any).last_wa_message && (
-                  <div>
-                    <div className="text-sm text-muted-foreground mb-1">Last WhatsApp Message</div>
-                    <div className="bg-muted rounded-lg p-3 text-sm">{(lead as any).last_wa_message}</div>
-                  </div>
-                )}
                 {(lead as any).call_summary && (
                   <div>
                     <div className="text-sm text-muted-foreground mb-1">Call Summary</div>
