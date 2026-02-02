@@ -184,7 +184,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       </nav>
 
       {/* Quick Access - Admin Only */}
-      {userType === 'admin' && (
+      {/* {userType === 'admin' && (
         <div className="px-3 py-3 border-t border-white/10">
           <div className="flex items-center gap-2 px-2 mb-2.5 text-[10px] font-semibold text-white/40 uppercase tracking-wider">
             <ArrowRightLeft className="h-3 w-3 flex-shrink-0" />
@@ -209,7 +209,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
             ))}
           </div>
         </div>
-      )}
+      )} */}
 
       {/* User Profile */}
       <div className="px-3 py-4 border-t border-white/10 space-y-3">
