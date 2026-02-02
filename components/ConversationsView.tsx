@@ -6,6 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
+import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer, FinanceLead } from '@/types'
 import {
   Search,
@@ -24,6 +32,7 @@ import {
   Building,
   Calendar,
   MessageCircle,
+  ExternalLink,
 } from 'lucide-react'
 
 // WhatsApp icon component
@@ -105,6 +114,7 @@ export function ConversationsView({
   const [channelFilter, setChannelFilter] = useState<'all' | 'call' | 'whatsapp' | 'email'>('all')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [selectedConversation, setSelectedConversation] = useState<ConversationItem | null>(null)
 
   // Convert data to unified conversation format
   const conversations = useMemo((): ConversationItem[] => {
@@ -223,8 +233,13 @@ export function ConversationsView({
     }
   }, [])
 
-  // Navigate to detail page
+  // Open conversation in slide panel
   const handleViewDetail = useCallback((conv: ConversationItem) => {
+    setSelectedConversation(conv)
+  }, [])
+
+  // Navigate to full lead/borrower detail page
+  const handleViewFullProfile = useCallback((conv: ConversationItem) => {
     const detailPath = conv.type === 'lead'
       ? `${basePath}/leads/${conv.id}`
       : `${basePath}/borrowers/${conv.id}`
@@ -500,6 +515,94 @@ export function ConversationsView({
           {search && ` matching "${search}"`}
         </p>
       )}
+
+      {/* Conversation Slide Panel */}
+      <Sheet open={!!selectedConversation} onOpenChange={(open) => !open && setSelectedConversation(null)}>
+        <SheetContent side="right" className="w-full sm:max-w-md md:max-w-lg overflow-y-auto">
+          {selectedConversation && (
+            <>
+              <SheetHeader className="pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <SheetTitle className="text-xl">{selectedConversation.name}</SheetTitle>
+                    <SheetDescription>
+                      {selectedConversation.phone && (
+                        <span className="flex items-center gap-1 mt-1">
+                          <Phone className="h-3 w-3" />
+                          {selectedConversation.phone}
+                        </span>
+                      )}
+                    </SheetDescription>
+                  </div>
+                  {selectedConversation.status && (
+                    <Badge variant={getStatusVariant(selectedConversation.status)}>
+                      {selectedConversation.status}
+                    </Badge>
+                  )}
+                </div>
+                
+                {/* Quick Actions in Header */}
+                <div className="flex gap-2 mt-4">
+                  {selectedConversation.phone && (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleCall(selectedConversation.phone)}
+                      >
+                        <Phone className="h-4 w-4 mr-2" />
+                        Call
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleWhatsApp(selectedConversation.phone)}
+                      >
+                        <WhatsAppIcon className="h-4 w-4 mr-2" />
+                        WhatsApp
+                      </Button>
+                    </>
+                  )}
+                  {selectedConversation.email && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEmail(selectedConversation.email)}
+                    >
+                      <Mail className="h-4 w-4 mr-2" />
+                      Email
+                    </Button>
+                  )}
+                </div>
+              </SheetHeader>
+
+              {/* Conversation Thread */}
+              <div className="mt-4">
+                <ConversationThread
+                  buyerId={selectedConversation.id}
+                  buyerName={selectedConversation.name}
+                  buyerPhone={selectedConversation.phone}
+                  channel="whatsapp"
+                  maxHeight="calc(100vh - 320px)"
+                  showHeader={true}
+                />
+              </div>
+
+              {/* View Full Profile Link */}
+              <div className="mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleViewFullProfile(selectedConversation)}
+                >
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  View Full {selectedConversation.type === 'lead' ? 'Lead' : 'Borrower'} Profile
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }
