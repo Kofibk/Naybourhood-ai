@@ -621,8 +621,8 @@ export function ConversationsView({
                   </CardHeader>
                   <CardContent>
                     {selectedConversation.lastMessage ? (
-                      <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-900">
-                        <p className="text-sm whitespace-pre-wrap">{selectedConversation.lastMessage}</p>
+                      <div className="bg-green-100 dark:bg-green-900/50 rounded-lg p-4 border border-green-300 dark:border-green-700">
+                        <p className="text-sm whitespace-pre-wrap text-green-900 dark:text-green-100">{selectedConversation.lastMessage}</p>
                       </div>
                     ) : (
                       <div className="text-center py-6">
