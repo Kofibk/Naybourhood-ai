@@ -300,7 +300,7 @@ export default function AdminDashboard() {
           </div>
         </div>
         <div className="flex gap-2 flex-wrap">
-          {/* <Button
+          <Button
             variant="outline"
             size="sm"
             className="text-xs"
@@ -311,7 +311,7 @@ export default function AdminDashboard() {
               className={`h-3.5 w-3.5 mr-1.5 ${isLoading || isSyncing ? 'animate-spin' : ''}`}
             />
             {isLoading ? 'Loading...' : isSyncing ? 'Syncing...' : 'Sync'}
-          </Button> */}
+          </Button>
           <Button variant="outline" size="sm" className="text-xs">
             <Upload className="h-3.5 w-3.5 mr-1.5" />
             Upload

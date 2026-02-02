@@ -134,30 +134,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
     loadFromCache()
   }, [])
 
-  // Save current data to cache (with size limits to avoid quota errors)
+  // Save current data to cache
   const saveToCache = useCallback(() => {
     console.log('[DataContext] Saving to cache')
-    
-    // Leads: limit to most recent 500 for cache (full data in memory)
-    const leadsToCache = leads.slice(0, 500)
-    safeJsonSave(CACHE_KEYS.leads, leadsToCache)
-    
-    // Campaigns: only cache aggregated campaign-level data, not ad-level
-    // This prevents the QuotaExceededError from 24k+ records
-    const campaignsToCache = campaigns.slice(0, 100) // Already aggregated, just limit count
-    safeJsonSave(CACHE_KEYS.campaigns, campaignsToCache)
-    
+    safeJsonSave(CACHE_KEYS.leads, leads)
+    safeJsonSave(CACHE_KEYS.campaigns, campaigns)
     safeJsonSave(CACHE_KEYS.companies, companies)
     safeJsonSave(CACHE_KEYS.developments, developments)
-    
-    // Finance leads: limit to recent 100
-    const financeLeadsToCache = financeLeads.slice(0, 100)
-    safeJsonSave(CACHE_KEYS.financeLeads, financeLeadsToCache)
-    
+    safeJsonSave(CACHE_KEYS.financeLeads, financeLeads)
     safeJsonSave(CACHE_KEYS.users, users)
     safeJsonSave(CACHE_KEYS.timestamp, Date.now())
-    
-    console.log(`[DataContext] Cache saved: ${leadsToCache.length}/${leads.length} leads, ${campaignsToCache.length}/${campaigns.length} campaigns`)
   }, [leads, campaigns, companies, developments, financeLeads, users])
 
   const refreshData = useCallback(async () => {
@@ -193,7 +179,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       perf.start('parallel_fetches')
       // Fetch all data in PARALLEL
       const [buyersResult, campaignsResult, companiesResult, developmentsResult, financeLeadsResult, usersResult] = await Promise.all([
-        // BUYERS - fetch with optimized column selection
+        // BUYERS - fetch all with pagination
         (async () => {
           const fetchStart = performance.now()
           let allBuyers: any[] = []
@@ -201,27 +187,11 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const batchSize = 1000
           let hasMore = true
           let batchCount = 0
-          
-          // Only select columns we actually use in the UI (reduces payload size significantly)
-          const selectColumns = `
-            id, full_name, first_name, last_name, email, phone,
-            budget, budget_range, budget_min, budget_max,
-            bedrooms, preferred_bedrooms, location, area, country,
-            timeline, source, campaign, campaign_id, source_campaign,
-            development_id, development_name, company_id,
-            status, quality_score, intent_score,
-            ai_quality_score, ai_intent_score, ai_confidence, ai_classification,
-            ai_summary, ai_next_action, ai_priority, ai_scored_at,
-            payment_method, mortgage_status, proof_of_funds,
-            date_added, created_at, updated_at,
-            assigned_to, assigned_user_name, notes,
-            purpose, ready_in_28_days, viewing_intent_confirmed, viewing_booked
-          `.replace(/\s+/g, ' ').trim()
 
           while (hasMore) {
             const { data, error } = await supabase
               .from('buyers')
-              .select(selectColumns)
+              .select('*')
               .order('created_at', { ascending: false })
               .range(from, from + batchSize - 1)
 
@@ -243,43 +213,38 @@ export function DataProvider({ children }: { children: ReactNode }) {
           return allBuyers
         })(),
 
-        // CAMPAIGNS - fetch aggregated campaign data (not ad-level)
-        // Use RPC for pre-aggregated data if available, otherwise fetch limited recent data
+        // CAMPAIGNS - fetch all with pagination (data is at ad-level, will aggregate by campaign)
         (async () => {
           const fetchStart = performance.now()
-          
-          // First try: Use aggregated campaign stats RPC (fast)
-          const { data: aggregatedData, error: rpcError } = await supabase
-            .rpc('get_aggregated_campaigns')
-          
-          if (!rpcError && aggregatedData && aggregatedData.length > 0) {
-            console.log(`[PERF] [DataContext] 🟢 campaigns (via RPC): ${(performance.now() - fetchStart).toFixed(0)}ms (${aggregatedData.length} campaigns)`)
-            return { error: null, data: aggregatedData, isAggregated: true }
+          let allCampaigns: any[] = []
+          let from = 0
+          const batchSize = 1000
+          let hasMore = true
+          let batchCount = 0
+
+          while (hasMore) {
+            // Simple query without joins - joins may fail if FK not set up
+            const { data, error } = await supabase
+              .from('campaigns')
+              .select('*')
+              .range(from, from + batchSize - 1)
+
+            if (error) {
+              console.error('[DataContext] Campaigns batch error:', error.message)
+              // Don't fail completely - return empty array so other data still loads
+              return { error: null, data: [] }
+            }
+            if (data && data.length > 0) {
+              allCampaigns = [...allCampaigns, ...data]
+              from += batchSize
+              hasMore = data.length === batchSize
+              batchCount++
+            } else {
+              hasMore = false
+            }
           }
-          
-          // Fallback: Fetch only unique campaigns with aggregated metrics
-          // Instead of fetching 24k+ ad rows, fetch distinct campaign names and sum metrics
-          console.log('[DataContext] RPC not available, using optimized fallback query')
-          
-          // Fetch limited data - only most recent 90 days of ad data
-          const ninetyDaysAgo = new Date()
-          ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90)
-          const dateLimit = ninetyDaysAgo.toISOString().split('T')[0]
-          
-          const { data, error } = await supabase
-            .from('campaigns')
-            .select('*')
-            .gte('date', dateLimit)
-            .order('date', { ascending: false })
-            .limit(5000) // Hard limit to prevent huge fetches
-          
-          if (error) {
-            console.error('[DataContext] Campaigns error:', error.message)
-            return { error: null, data: [] }
-          }
-          
-          console.log(`[PERF] [DataContext] 🟢 campaigns (90-day limit): ${(performance.now() - fetchStart).toFixed(0)}ms (${data?.length || 0} items)`)
-          return { error: null, data: data || [] }
+          console.log(`[PERF] [DataContext] 🟢 campaigns: ${(performance.now() - fetchStart).toFixed(0)}ms (${allCampaigns.length} items, ${batchCount} batches)`)
+          return { error: null, data: allCampaigns }
         })(),
 
         // COMPANIES
@@ -407,34 +372,6 @@ export function DataProvider({ children }: { children: ReactNode }) {
       // Process CAMPAIGNS - aggregate ad-level data into campaign-level insights
       perf.start('process_campaigns')
       if (!campaignsResult.error && campaignsResult.data) {
-        // Check if data is already aggregated (from RPC)
-        const isPreAggregated = (campaignsResult as any).isAggregated === true
-        
-        if (isPreAggregated) {
-          // Data is already campaign-level, just map it
-          const mappedCampaigns = campaignsResult.data.map((c: any) => ({
-            id: c.id || c.campaign_name,
-            name: c.campaign_name || c.name,
-            campaign_name: c.campaign_name || c.name,
-            company_id: c.company_id,
-            development_id: c.development_id,
-            platform: c.platform || 'Meta',
-            status: c.status || 'active',
-            spend: c.total_spend || c.spend || 0,
-            leads: c.total_leads || c.leads || 0,
-            cpl: c.cpl || (c.total_leads > 0 ? (c.total_spend || 0) / c.total_leads : 0),
-            impressions: c.total_impressions || c.impressions || 0,
-            clicks: c.total_clicks || c.clicks || 0,
-            ctr: c.ctr || 0,
-            reach: c.total_reach || c.reach || 0,
-            ad_count: c.ad_count || 1,
-            created_at: c.start_date || c.created_at,
-          }))
-          setCampaigns(mappedCampaigns)
-          console.log(`[DataContext] Using pre-aggregated campaigns: ${mappedCampaigns.length} campaigns`)
-          perf.end('process_campaigns', { count: mappedCampaigns.length, aggregated: true })
-        } else {
-          // Need to aggregate ad-level data
         // Parse values as numbers in case they're stored as strings
         const parseNumber = (val: any): number => {
           if (val === null || val === undefined) return 0
@@ -574,11 +511,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
         // Sort by spend (highest first) for insights
         aggregatedCampaigns.sort((a, b) => b.spend - a.spend)
 
-          setCampaigns(aggregatedCampaigns)
-          console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
-          perf.end('process_campaigns', { count: aggregatedCampaigns.length, aggregated: false })
-        }
+        setCampaigns(aggregatedCampaigns)
+        console.log(`[DataContext] Campaigns aggregated: ${campaignsResult.data.length} ads → ${aggregatedCampaigns.length} campaigns`)
       }
+      perf.end('process_campaigns')
 
       // Process COMPANIES
       if (!companiesResult.error && companiesResult.data) {
