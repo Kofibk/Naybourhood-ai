@@ -559,7 +559,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
           const thirtyDaysAgo = new Date()
           thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
           status = lastActiveDate > thirtyDaysAgo ? 'active' : 'inactive'
-        } else if (p.status === 'active') {
+        } else if (p.membership_status === 'active') {
           status = 'active'
         }
 
