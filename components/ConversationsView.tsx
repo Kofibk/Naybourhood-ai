@@ -13,7 +13,6 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
-import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer, FinanceLead } from '@/types'
 import {
   Search,
@@ -576,16 +575,84 @@ export function ConversationsView({
                 </div>
               </SheetHeader>
 
-              {/* Conversation Thread */}
-              <div className="mt-4">
-                <ConversationThread
-                  buyerId={selectedConversation.id}
-                  buyerName={selectedConversation.name}
-                  buyerPhone={selectedConversation.phone}
-                  channel="whatsapp"
-                  maxHeight="calc(100vh - 320px)"
-                  showHeader={true}
-                />
+              {/* Last Message Preview */}
+              <div className="mt-4 space-y-4">
+                {/* Contact Details Card */}
+                <Card>
+                  <CardContent className="p-4 space-y-3">
+                    <h4 className="text-sm font-medium flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Contact Details
+                    </h4>
+                    {selectedConversation.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-4 w-4 text-muted-foreground" />
+                        <span>{selectedConversation.email}</span>
+                      </div>
+                    )}
+                    {selectedConversation.budget && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span>Budget: {selectedConversation.budget}</span>
+                      </div>
+                    )}
+                    {selectedConversation.location && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Building className="h-4 w-4 text-muted-foreground" />
+                        <span>Location: {selectedConversation.location}</span>
+                      </div>
+                    )}
+                    {selectedConversation.lastContact && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span>Last Contact: {getTimeAgo(selectedConversation.lastContact)}</span>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Last WhatsApp Message */}
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <WhatsAppIcon className="h-4 w-4 text-green-600" />
+                      Last WhatsApp Message
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {selectedConversation.lastMessage ? (
+                      <div className="bg-green-50 dark:bg-green-950/30 rounded-lg p-4 border border-green-200 dark:border-green-900">
+                        <p className="text-sm whitespace-pre-wrap">{selectedConversation.lastMessage}</p>
+                      </div>
+                    ) : (
+                      <div className="text-center py-6">
+                        <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">No WhatsApp messages yet</p>
+                        {selectedConversation.phone && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => handleWhatsApp(selectedConversation.phone)}
+                          >
+                            <WhatsAppIcon className="h-4 w-4 mr-2 text-green-600" />
+                            Start Conversation
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Info Note */}
+                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
+                  <p className="flex items-start gap-2">
+                    <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
+                    <span>
+                      This shows the last recorded message. Full conversation history requires WhatsApp Business API integration.
+                    </span>
+                  </p>
+                </div>
               </div>
 
               {/* View Full Profile Link */}
