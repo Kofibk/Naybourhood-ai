@@ -224,14 +224,16 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
           while (hasMore) {
             // Simple query without joins - joins may fail if FK not set up
-            const { data, error } = await supabase
+            const { data, error, count } = await supabase
               .from('campaigns')
-              .select('*')
+              .select('*', { count: 'exact' })
               .range(from, from + batchSize - 1)
 
             if (error) {
-              console.error('[DataContext] Campaigns batch error:', error.message)
+              console.error('[DataContext] Campaigns batch error:', error.message, error)
               // Don't fail completely - return empty array so other data still loads
+              // But log a warning for debugging RLS issues
+              console.warn('[DataContext] ⚠️ Campaigns query failed - this may be an RLS policy issue. Check if user has proper permissions.')
               return { error: null, data: [] }
             }
             if (data && data.length > 0) {
@@ -242,6 +244,10 @@ export function DataProvider({ children }: { children: ReactNode }) {
             } else {
               hasMore = false
             }
+          }
+          // Log warning if no campaigns returned - might indicate RLS issue
+          if (allCampaigns.length === 0) {
+            console.warn('[DataContext] ⚠️ No campaigns returned - if campaigns exist in DB, this may be an RLS policy issue')
           }
           console.log(`[PERF] [DataContext] 🟢 campaigns: ${(performance.now() - fetchStart).toFixed(0)}ms (${allCampaigns.length} items, ${batchCount} batches)`)
           return { error: null, data: allCampaigns }
