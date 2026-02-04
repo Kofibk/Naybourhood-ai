@@ -633,9 +633,28 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       let usersLoaded = false
       if (!usersResult.error && usersResult.data && usersResult.data.length > 0) {
+        // DEBUG: Log raw user profiles from database
+        console.log('[DataContext] 📋 Raw user_profiles from DB:', usersResult.data.map((p: any) => ({
+          id: p.id,
+          email: p.email,
+          membership_status: p.membership_status,
+          onboarding_completed: p.onboarding_completed,
+          last_active: p.last_active,
+        })))
+        
         const mappedUsers = usersResult.data.map(mapProfileToUser)
+        
+        // DEBUG: Log mapped users with computed status
+        console.log('[DataContext] 👥 Mapped users with computed status:', mappedUsers.map((u: AppUser) => ({
+          id: u.id,
+          email: u.email,
+          computedStatus: u.status,
+        })))
+        
         setUsers(mappedUsers)
         usersLoaded = true
+      } else if (usersResult.error) {
+        console.error('[DataContext] ❌ Error fetching user_profiles:', usersResult.error)
       }
 
       // If direct query failed or returned empty, try API fallback (for Quick Access users)

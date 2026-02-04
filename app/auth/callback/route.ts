@@ -131,11 +131,28 @@ export async function GET(request: Request) {
 
     // Update user status to 'active' when they accept invitation/complete auth
     // This changes the status from 'pending' (set during invite) to 'active'
-    console.log('[Auth Callback] 💾 Updating membership_status to active')
-    await supabase
+    console.log('[Auth Callback] 💾 Updating membership_status to active for user:', authResult.user.id)
+    
+    // First, get current status
+    const { data: currentProfile } = await supabase
       .from('user_profiles')
-      .update({ membership_status: 'active' })
+      .select('membership_status, onboarding_completed')
       .eq('id', authResult.user.id)
+      .single()
+    
+    console.log('[Auth Callback] 📋 Current profile before update:', currentProfile)
+    
+    const { data: updateResult, error: updateError } = await supabase
+      .from('user_profiles')
+      .update({ membership_status: 'active', last_active: new Date().toISOString() })
+      .eq('id', authResult.user.id)
+      .select()
+    
+    if (updateError) {
+      console.error('[Auth Callback] ❌ Failed to update membership_status:', updateError)
+    } else {
+      console.log('[Auth Callback] ✅ membership_status updated:', updateResult)
+    }
 
     // Check user_profiles table for onboarding status and role
     console.log('[Auth Callback] 📋 Fetching user profile from database')

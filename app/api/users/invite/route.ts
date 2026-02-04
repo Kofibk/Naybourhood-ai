@@ -239,7 +239,17 @@ export async function POST(request: NextRequest) {
         // Parse full name into first_name and last_name
         const { firstName, lastName } = parseFullName(name)
 
-        const { error: profileError } = await adminClient
+        console.log('[Invite API] 📝 Creating user profile with pending status:', {
+          userId: data.user.id,
+          email,
+          firstName,
+          lastName,
+          role: role || 'developer',
+          company_id: company_id || null,
+          membership_status: 'pending',
+        })
+
+        const { data: profileData, error: profileError } = await adminClient
           .from('user_profiles')
           .upsert({
             id: data.user.id,
@@ -252,9 +262,12 @@ export async function POST(request: NextRequest) {
             is_internal_team: is_internal || false,
             membership_status: 'pending',
           })
+          .select()
 
         if (profileError) {
-          console.error('[Invite API] Profile creation error:', profileError)
+          console.error('[Invite API] ❌ Profile creation error:', profileError)
+        } else {
+          console.log('[Invite API] ✅ Profile created successfully:', profileData)
         }
       }
 

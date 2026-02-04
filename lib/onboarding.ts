@@ -241,6 +241,14 @@ export async function completeOnboardingWithExistingCompany(
 
   console.log('[Onboarding] ✅ Profile updated successfully')
 
+  // Verify the update worked
+  const { data: verifyProfile } = await supabase
+    .from('user_profiles')
+    .select('membership_status, onboarding_completed')
+    .eq('id', user.id)
+    .single()
+  console.log('[Onboarding] 📋 Profile after update (existing company):', verifyProfile)
+
   // Send verification email (non-blocking)
   try {
     console.log('[Onboarding] 📧 Sending verification email')
@@ -330,6 +338,14 @@ export async function completeOnboardingWithNewCompany(
   }
 
   console.log('[Onboarding] ✅ Profile updated successfully')
+
+  // Verify the update worked
+  const { data: verifyProfile } = await supabase
+    .from('user_profiles')
+    .select('membership_status, onboarding_completed')
+    .eq('id', user.id)
+    .single()
+  console.log('[Onboarding] 📋 Profile after update (new company):', verifyProfile)
 
   // Send verification email (non-blocking)
   try {
