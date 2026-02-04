@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import { perf } from '@/lib/performance'
-import type { Company, Campaign, Buyer, AppUser, FinanceLead } from '@/types'
+import { useData } from '@/contexts/DataContext'
+import type { AppUser } from '@/types'
 import {
   ArrowLeft,
   Building2,
@@ -28,177 +28,95 @@ import {
 export default function CompanyDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const [company, setCompany] = useState<Company | null>(null)
-  const [campaigns, setCampaigns] = useState<Campaign[]>([])
-  const [leads, setLeads] = useState<Buyer[]>([])
-  const [totalLeadCount, setTotalLeadCount] = useState(0)
-  const [borrowers, setBorrowers] = useState<FinanceLead[]>([])
-  const [totalBorrowerCount, setTotalBorrowerCount] = useState(0)
+  
+  // Use DataContext for companies, campaigns, and leads (already loaded)
+  const { companies, campaigns: allCampaigns, leads: allLeads, financeLeads: allBorrowers, isLoading: dataLoading } = useData()
+  
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
 
   console.log('[DEBUG] CompanyDetailPage rendered, params:', params)
+  console.log('[DEBUG] DataContext state:', { 
+    companiesCount: companies.length, 
+    campaignsCount: allCampaigns.length, 
+    leadsCount: allLeads.length,
+    dataLoading 
+  })
 
-  useEffect(() => {
-    console.log('[DEBUG] useEffect triggered, params.id:', params.id)
+  // Get company from DataContext (already loaded)
+  const company = useMemo(() => {
+    const found = companies.find(c => c.id === params.id)
+    console.log('[DEBUG] Finding company in DataContext:', { 
+      searchId: params.id, 
+      found: !!found, 
+      companyName: found?.name 
+    })
+    return found || null
+  }, [companies, params.id])
+
+  // Get campaigns for this company from DataContext
+  const campaigns = useMemo(() => {
+    return allCampaigns.filter(c => c.company_id === params.id)
+  }, [allCampaigns, params.id])
+
+  // Get leads for this company from DataContext
+  const companyLeads = useMemo(() => {
+    // Direct company_id match
+    let leads = allLeads.filter(l => l.company_id === params.id)
     
-    async function fetchData() {
-      console.log('[DEBUG] fetchData called, params.id:', params.id)
+    // Also get leads through campaigns
+    if (campaigns.length > 0) {
+      const campaignIds = campaigns.map(c => c.id)
+      const campaignLeads = allLeads.filter(l => l.campaign_id && campaignIds.includes(l.campaign_id))
+      // Merge and dedupe
+      const existingIds = new Set(leads.map(l => l.id))
+      const newLeads = campaignLeads.filter(l => !existingIds.has(l.id))
+      leads = [...leads, ...newLeads]
+    }
+    
+    // Sort by created_at
+    leads.sort((a, b) => {
+      const dateA = new Date(a.created_at || 0).getTime()
+      const dateB = new Date(b.created_at || 0).getTime()
+      return dateB - dateA
+    })
+    
+    return leads
+  }, [allLeads, params.id, campaigns])
+
+  const leads = companyLeads.slice(0, 10)
+  const totalLeadCount = companyLeads.length
+
+  // Get borrowers for this company from DataContext
+  const companyBorrowers = useMemo(() => {
+    return allBorrowers.filter(b => b.company_id === params.id)
+  }, [allBorrowers, params.id])
+
+  const borrowers = companyBorrowers.slice(0, 10)
+  const totalBorrowerCount = companyBorrowers.length
+
+  // Only fetch company users (not available in DataContext)
+  useEffect(() => {
+    console.log('[DEBUG] useEffect for users triggered, params.id:', params.id)
+    
+    async function fetchUsers() {
       if (!params.id) {
-        console.log('[DEBUG] No params.id, returning early')
+        console.log('[DEBUG] No params.id, skipping user fetch')
+        setIsLoadingUsers(false)
         return
       }
 
-      console.log('[DEBUG] Starting data fetch for company ID:', params.id)
-
-      // Start performance tracking
-      perf.clear()
-      perf.setContext('CompanyDetail')
-      perf.start('total_load')
-
+      console.log('[DEBUG] Fetching company users...')
       const supabase = createClient()
-      console.log('[DEBUG] Supabase client created')
-
-      // Check auth state
-      const { data: authData, error: authError } = await supabase.auth.getSession()
-      console.log('[DEBUG] Auth state:', {
-        hasSession: !!authData?.session,
-        userId: authData?.session?.user?.id,
-        authError: authError?.message,
-      })
-
-      // Fetch company with timeout
-      console.log('[DEBUG] Fetching company from Supabase...')
-      perf.start('fetch_company')
       
-      // Create a timeout promise
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout after 10s')), 10000)
-      })
-      
-      // Race between the query and timeout
-      let companyData, companyError
       try {
-        const result = await Promise.race([
-          supabase
-            .from('companies')
-            .select('*')
-            .eq('id', params.id)
-            .single(),
-          timeoutPromise
-        ]) as any
-        companyData = result.data
-        companyError = result.error
-      } catch (timeoutErr) {
-        console.error('[DEBUG] Query timed out:', timeoutErr)
-        companyError = { message: 'Query timed out after 10 seconds' }
-      }
-      perf.end('fetch_company')
-
-      console.log('[DEBUG] Company fetch result:', {
-        data: companyData,
-        error: companyError,
-        hasData: !!companyData
-      })
-
-      if (companyError) {
-        console.error('[DEBUG] Error fetching company:', companyError)
-        setIsLoading(false)
-        return
-      } else {
-        console.log('[DEBUG] Setting company data:', companyData?.name)
-        setCompany(companyData)
-
-        // Fetch related campaigns
-        perf.start('fetch_campaigns')
-        const { data: campaignsData } = await supabase
-          .from('campaigns')
-          .select('*')
-          .eq('company_id', params.id)
-          .order('created_at', { ascending: false })
-        perf.end('fetch_campaigns', { count: campaignsData?.length || 0 })
-
-        if (campaignsData) {
-          setCampaigns(campaignsData)
-        }
-
-        // Fetch leads - try multiple methods to find all related leads
-        let allLeads: Buyer[] = []
-
-        // Method 1: Direct company_id link
-        perf.start('fetch_leads_direct')
-        const { data: directLeads } = await supabase
-          .from('buyers')
-          .select('*')
-          .eq('company_id', params.id)
-          .order('created_at', { ascending: false })
-        perf.end('fetch_leads_direct', { count: directLeads?.length || 0 })
-
-        if (directLeads && directLeads.length > 0) {
-          allLeads = [...directLeads]
-        }
-
-        // Method 2: Through campaigns (if company has campaigns)
-        if (campaignsData && campaignsData.length > 0) {
-          perf.start('fetch_leads_via_campaigns')
-          const campaignIds = campaignsData.map((c: { id: string }) => c.id)
-          const { data: campaignLeads } = await supabase
-            .from('buyers')
-            .select('*')
-            .in('campaign_id', campaignIds)
-            .order('created_at', { ascending: false })
-          perf.end('fetch_leads_via_campaigns', { count: campaignLeads?.length || 0 })
-
-          if (campaignLeads && campaignLeads.length > 0) {
-            // Merge and dedupe by id
-            const existingIds = new Set(allLeads.map((l: Buyer) => l.id))
-            const newLeads = campaignLeads.filter((l: Buyer) => !existingIds.has(l.id))
-            allLeads = [...allLeads, ...newLeads]
-          }
-        }
-
-        // Sort by created_at and take recent 10 for display
-        allLeads.sort((a, b) => {
-          const dateA = new Date(a.created_at || 0).getTime()
-          const dateB = new Date(b.created_at || 0).getTime()
-          return dateB - dateA
-        })
-        setTotalLeadCount(allLeads.length)  // Store full count for stats
-        setLeads(allLeads.slice(0, 10))
-
-        // Fetch borrowers (finance leads) linked to this company
-        // First get count for stats
-        perf.start('fetch_borrower_count')
-        const { count: borrowerCount } = await supabase
-          .from('borrowers')
-          .select('*', { count: 'exact', head: true })
-          .eq('company_id', params.id)
-        perf.end('fetch_borrower_count', { count: borrowerCount || 0 })
-
-        setTotalBorrowerCount(borrowerCount || 0)
-
-        // Then fetch recent 10 for display
-        perf.start('fetch_borrowers')
-        const { data: borrowersData } = await supabase
-          .from('borrowers')
-          .select('*')
-          .eq('company_id', params.id)
-          .order('created_at', { ascending: false })
-          .limit(10)
-        perf.end('fetch_borrowers', { count: borrowersData?.length || 0 })
-
-        if (borrowersData) {
-          setBorrowers(borrowersData)
-        }
-
-        // Fetch users belonging to this company
-        perf.start('fetch_users')
-        const { data: usersData } = await supabase
+        const { data: usersData, error } = await supabase
           .from('user_profiles')
           .select('*')
           .eq('company_id', params.id)
           .order('first_name', { ascending: true })
-        perf.end('fetch_users', { count: usersData?.length || 0 })
+
+        console.log('[DEBUG] Users fetch result:', { count: usersData?.length, error: error?.message })
 
         if (usersData) {
           const mappedUsers: AppUser[] = usersData.map((u: any) => ({
@@ -216,23 +134,21 @@ export default function CompanyDetailPage() {
           }))
           setCompanyUsers(mappedUsers)
         }
+      } catch (err) {
+        console.error('[DEBUG] Error fetching users:', err)
       }
-
-      perf.end('total_load')
-      perf.report()
-      console.log('[DEBUG] All data fetched, setting isLoading to false')
-      setIsLoading(false)
+      
+      setIsLoadingUsers(false)
     }
 
-    console.log('[DEBUG] Calling fetchData()')
-    fetchData().catch((err) => {
-      console.error('[DEBUG] fetchData() threw an error:', err)
-      setIsLoading(false)
-    })
+    fetchUsers()
   }, [params.id])
 
+  // Combined loading state - wait for DataContext to load
+  const isLoading = dataLoading
+
   if (isLoading) {
-    console.log('[DEBUG] Rendering loading state, isLoading:', isLoading, 'company:', company)
+    console.log('[DEBUG] Rendering loading state - waiting for DataContext, dataLoading:', dataLoading)
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Loading...</p>
@@ -240,7 +156,7 @@ export default function CompanyDetailPage() {
     )
   }
 
-  console.log('[DEBUG] Past loading state, isLoading:', isLoading, 'company:', company?.name)
+  console.log('[DEBUG] Past loading state, company:', company?.name, 'campaigns:', campaigns.length, 'leads:', totalLeadCount)
 
   if (!company) {
     return (
