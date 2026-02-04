@@ -59,14 +59,40 @@ export default function CompanyDetailPage() {
       const supabase = createClient()
       console.log('[DEBUG] Supabase client created')
 
-      // Fetch company
+      // Check auth state
+      const { data: authData, error: authError } = await supabase.auth.getSession()
+      console.log('[DEBUG] Auth state:', {
+        hasSession: !!authData?.session,
+        userId: authData?.session?.user?.id,
+        authError: authError?.message,
+      })
+
+      // Fetch company with timeout
       console.log('[DEBUG] Fetching company from Supabase...')
       perf.start('fetch_company')
-      const { data: companyData, error: companyError } = await supabase
-        .from('companies')
-        .select('*')
-        .eq('id', params.id)
-        .single()
+      
+      // Create a timeout promise
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Query timeout after 10s')), 10000)
+      })
+      
+      // Race between the query and timeout
+      let companyData, companyError
+      try {
+        const result = await Promise.race([
+          supabase
+            .from('companies')
+            .select('*')
+            .eq('id', params.id)
+            .single(),
+          timeoutPromise
+        ]) as any
+        companyData = result.data
+        companyError = result.error
+      } catch (timeoutErr) {
+        console.error('[DEBUG] Query timed out:', timeoutErr)
+        companyError = { message: 'Query timed out after 10 seconds' }
+      }
       perf.end('fetch_company')
 
       console.log('[DEBUG] Company fetch result:', {
