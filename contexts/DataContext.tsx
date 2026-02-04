@@ -530,24 +530,52 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Process DEVELOPMENTS
       if (!developmentsResult.error && developmentsResult.data) {
+        // DEBUG: Log raw development data to understand missing units issue
+        console.log('[DEBUG] [Developments] Raw data from Supabase:', developmentsResult.data.length, 'developments')
+        console.log('[DEBUG] [Developments] Sample raw data (first 3):', developmentsResult.data.slice(0, 3).map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          total_units: d.total_units,
+          units: d.units,
+          available_units: d.available_units,
+          'Total Units (alt)': d['Total Units'],
+          'Units (alt)': d['Units'],
+          'Available Units (alt)': d['Available Units'],
+        })))
+        
+        // Check how many have unit data
+        const withTotalUnits = developmentsResult.data.filter((d: any) => d.total_units !== null && d.total_units !== undefined).length
+        const withUnits = developmentsResult.data.filter((d: any) => d.units !== null && d.units !== undefined).length
+        const withAvailable = developmentsResult.data.filter((d: any) => d.available_units !== null && d.available_units !== undefined).length
+        console.log('[DEBUG] [Developments] Unit data counts:', {
+          total: developmentsResult.data.length,
+          withTotalUnits,
+          withUnits,
+          withAvailable,
+          missingAll: developmentsResult.data.filter((d: any) => !d.total_units && !d.units).length
+        })
+        
         // Map column names (supports both Supabase schema names and imported CSV names)
+        // NOTE: Spread ...d FIRST so mapped values take precedence over null database values
         const mappedDevelopments = developmentsResult.data.map((d: any) => ({
+          ...d, // Spread original data FIRST so explicit mappings override null values
           id: d.id,
           name: d.name || d['Development Name'] || d['development_name'] || 'Unnamed',
           location: d.location || d['Location'] || d['area'],
           address: d.address || d['Address'],
           developer: d.developer || d['Developer'] || d['developer_name'],
           status: d.status || d['Status'] || 'Active',
-          units: d.units || d['Units'] || d['total_units'] || 0,
-          total_units: d.total_units || d['Total Units'] || d['units'] || 0,
-          available_units: d.available_units || d['Available Units'] || 0,
+          // Use nullish coalescing (??) instead of || to preserve 0 values
+          units: d.units ?? d['Units'] ?? d['total_units'] ?? null,
+          total_units: d.total_units ?? d['Total Units'] ?? d['units'] ?? null,
+          available_units: d.available_units ?? d['Available Units'] ?? null,
           price_from: d.price_from || d['Price From'] || d['min_price'],
           price_to: d.price_to || d['Price To'] || d['max_price'],
           completion_date: d.completion_date || d['Completion Date'],
           description: d.description || d['Description'],
           image_url: d.image_url || d['Image URL'] || d['image'],
-          total_leads: d.total_leads || d['Total Leads'] || 0,
-          ad_spend: d.ad_spend || d['Ad Spend'] || d['total_spend'] || d['Total Spend'] || 0,
+          total_leads: d.total_leads ?? d['Total Leads'] ?? 0,
+          ad_spend: d.ad_spend ?? d['Ad Spend'] ?? d['total_spend'] ?? d['Total Spend'] ?? 0,
           // PDF and document attachments
           brochure_url: d.brochure_url || d['Brochure URL'] || d['brochure'],
           floor_plan_url: d.floor_plan_url || d['Floor Plan URL'] || d['floor_plan'],
@@ -555,8 +583,17 @@ export function DataProvider({ children }: { children: ReactNode }) {
           attachments: d.attachments || d['Attachments'] || [],
           created_at: d.created_at,
           updated_at: d.updated_at,
-          ...d,
         }))
+        
+        // DEBUG: Log mapped data to verify transformations
+        console.log('[DEBUG] [Developments] Mapped data (first 3):', mappedDevelopments.slice(0, 3).map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          total_units: d.total_units,
+          units: d.units,
+          available_units: d.available_units,
+        })))
+        
         setDevelopments(mappedDevelopments)
       }
       // If developments table doesn't exist yet, silently continue
