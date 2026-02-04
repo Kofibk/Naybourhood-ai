@@ -282,44 +282,56 @@ export async function POST(request: NextRequest) {
       }
 
       // Send branded invite email via Resend
-      if (isEmailConfigured()) {
-        // Get inviter's name (using centralized helper)
-        let inviterName: string | undefined
-        const supabase = createClient()
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
-        if (currentUser) {
-          const { data: inviterProfile } = await supabase
-            .from('user_profiles')
-            .select('first_name, last_name')
-            .eq('id', currentUser.id)
-            .single()
-          const fullName = buildDisplayName(
-            inviterProfile?.first_name,
-            inviterProfile?.last_name,
-            currentUser.email
-          )
-          inviterName = fullName !== 'User' ? fullName : undefined
-        }
+      if (!isEmailConfigured()) {
+        return NextResponse.json({
+          success: false,
+          error: 'RESEND_API_KEY is not configured. Invite email not sent.',
+        }, { status: 500 })
+      }
 
-        // Get company name if applicable
-        let companyName: string | undefined
-        if (company_id) {
-          const { data: company } = await supabase
-            .from('companies')
-            .select('name')
-            .eq('id', company_id)
-            .single()
-          companyName = company?.name || undefined
-        }
+      // Get inviter's name (using centralized helper)
+      let inviterName: string | undefined
+      const supabase = createClient()
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      if (currentUser) {
+        const { data: inviterProfile } = await supabase
+          .from('user_profiles')
+          .select('first_name, last_name')
+          .eq('id', currentUser.id)
+          .single()
+        const fullName = buildDisplayName(
+          inviterProfile?.first_name,
+          inviterProfile?.last_name,
+          currentUser.email
+        )
+        inviterName = fullName !== 'User' ? fullName : undefined
+      }
 
-        await sendInviteEmail({
-          recipientName: name,
-          recipientEmail: email,
-          inviterName,
-          role: role || 'developer',
-          companyName,
-          inviteLink,
-        })
+      // Get company name if applicable
+      let companyName: string | undefined
+      if (company_id) {
+        const { data: company } = await supabase
+          .from('companies')
+          .select('name')
+          .eq('id', company_id)
+          .single()
+        companyName = company?.name || undefined
+      }
+
+      const emailResult = await sendInviteEmail({
+        recipientName: name,
+        recipientEmail: email,
+        inviterName,
+        role: role || 'developer',
+        companyName,
+        inviteLink,
+      })
+
+      if (!emailResult.success) {
+        return NextResponse.json({
+          success: false,
+          error: `Failed to send invite email: ${emailResult.error || 'Unknown error'}`,
+        }, { status: 502 })
       }
 
       return NextResponse.json({
