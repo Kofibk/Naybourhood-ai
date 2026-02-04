@@ -92,7 +92,7 @@ export function getAppUrl(requestOrigin?: string): string {
     }
     // Fallback for local development
     return process.env.NODE_ENV === 'production'
-      ? 'https://naybourhood-ai.vercel.app'
+      ? 'https://naybourhood.ai'
       : 'http://localhost:3000'
   }
 

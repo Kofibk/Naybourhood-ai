@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     // The redirect happens on Supabase's servers, so if we use a protected URL,
     // users opening the link in a different browser will see Vercel's login page
     // instead of being authenticated to our app.
-    const PRODUCTION_URL = 'https://naybourhood-ai.vercel.app'
+    const PRODUCTION_URL = 'https://naybourhood.ai'
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || PRODUCTION_URL
     
     // Ensure we're not using a team-protected Vercel URL
