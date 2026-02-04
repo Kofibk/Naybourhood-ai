@@ -4,7 +4,6 @@ import { sendInviteEmail, isEmailConfigured } from '@/lib/email'
 import {
   isMasterAdmin,
   hasElevatedPermissions,
-  getAppUrl,
   getAuthCallbackUrl,
   parseFullName,
   buildDisplayName,
@@ -166,26 +165,28 @@ export async function POST(request: NextRequest) {
       // Create admin client for invitation
       const adminClient = createAdminClient()
 
-      // Determine the app URL for redirects (using centralized auth config)
       const requestOrigin = new URL(request.url).origin
-      const appUrl = getAppUrl(requestOrigin)
 
-      // Send invitation email via Supabase Auth
+      // Generate invite link via Supabase Auth (no email sent)
       const redirectUrl = getAuthCallbackUrl(requestOrigin)
-      console.log('[Invite API] Sending invite to:', email, 'with redirect:', redirectUrl, '(origin:', requestOrigin, ')')
+      console.log('[Invite API] Generating invite link for:', email, 'with redirect:', redirectUrl, '(origin:', requestOrigin, ')')
 
-      const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email, {
-        data: {
-          full_name: name,
-          role: role || 'developer',
-          company_id: company_id || null,
-          is_internal: is_internal || false,
+      const { data, error } = await adminClient.auth.admin.generateLink({
+        type: 'invite',
+        email,
+        options: {
+          redirectTo: redirectUrl,
+          data: {
+            full_name: name,
+            role: role || 'developer',
+            company_id: company_id || null,
+            is_internal: is_internal || false,
+          },
         },
-        redirectTo: redirectUrl,
       })
 
       if (error) {
-        console.error('[Invite API] Supabase invite error:', error.message, error)
+        console.error('[Invite API] Supabase invite link error:', error.message, error)
 
         // Check for specific error types
         if (error.message.includes('already registered')) {
@@ -222,16 +223,25 @@ export async function POST(request: NextRequest) {
           console.error('[Invite API] Profile creation fallback error:', profileError)
           return NextResponse.json({
             success: false,
-            error: `Invite failed: ${error.message}. Check Supabase email settings.`,
+            error: `Invite failed: ${error.message}.`,
           }, { status: 400 })
         }
 
         return NextResponse.json({
           success: true,
           message: `User profile created for ${email}. Email invite failed - they will need to sign up separately.`,
-          note: 'Email invitation failed - profile created only. Check Supabase email configuration.',
+          note: 'Invite link failed - profile created only. User must sign up separately.',
           emailSent: false,
         })
+      }
+
+      const inviteLink = data?.properties?.action_link
+      if (!inviteLink) {
+        console.error('[Invite API] Missing invite link in response:', data)
+        return NextResponse.json({
+          success: false,
+          error: 'Failed to generate invite link.',
+        }, { status: 500 })
       }
 
       // Create profile entry for the invited user with 'pending' status
@@ -271,10 +281,8 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Send branded invite email via Resend (in addition to Supabase's email)
+      // Send branded invite email via Resend
       if (isEmailConfigured()) {
-        // Use the same appUrl logic as above for consistency
-
         // Get inviter's name (using centralized helper)
         let inviterName: string | undefined
         const supabase = createClient()
@@ -310,7 +318,7 @@ export async function POST(request: NextRequest) {
           inviterName,
           role: role || 'developer',
           companyName,
-          inviteLink: `${appUrl}/login?email=${encodeURIComponent(email)}`,
+          inviteLink,
         })
       }
 
