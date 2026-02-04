@@ -37,9 +37,19 @@ export default function CompanyDetailPage() {
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
+  console.log('[DEBUG] CompanyDetailPage rendered, params:', params)
+
   useEffect(() => {
+    console.log('[DEBUG] useEffect triggered, params.id:', params.id)
+    
     async function fetchData() {
-      if (!params.id) return
+      console.log('[DEBUG] fetchData called, params.id:', params.id)
+      if (!params.id) {
+        console.log('[DEBUG] No params.id, returning early')
+        return
+      }
+
+      console.log('[DEBUG] Starting data fetch for company ID:', params.id)
 
       // Start performance tracking
       perf.clear()
@@ -47,8 +57,10 @@ export default function CompanyDetailPage() {
       perf.start('total_load')
 
       const supabase = createClient()
+      console.log('[DEBUG] Supabase client created')
 
       // Fetch company
+      console.log('[DEBUG] Fetching company from Supabase...')
       perf.start('fetch_company')
       const { data: companyData, error: companyError } = await supabase
         .from('companies')
@@ -57,9 +69,18 @@ export default function CompanyDetailPage() {
         .single()
       perf.end('fetch_company')
 
+      console.log('[DEBUG] Company fetch result:', {
+        data: companyData,
+        error: companyError,
+        hasData: !!companyData
+      })
+
       if (companyError) {
-        console.error('Error fetching company:', companyError)
+        console.error('[DEBUG] Error fetching company:', companyError)
+        setIsLoading(false)
+        return
       } else {
+        console.log('[DEBUG] Setting company data:', companyData?.name)
         setCompany(companyData)
 
         // Fetch related campaigns
@@ -173,19 +194,27 @@ export default function CompanyDetailPage() {
 
       perf.end('total_load')
       perf.report()
+      console.log('[DEBUG] All data fetched, setting isLoading to false')
       setIsLoading(false)
     }
 
-    fetchData()
+    console.log('[DEBUG] Calling fetchData()')
+    fetchData().catch((err) => {
+      console.error('[DEBUG] fetchData() threw an error:', err)
+      setIsLoading(false)
+    })
   }, [params.id])
 
   if (isLoading) {
+    console.log('[DEBUG] Rendering loading state, isLoading:', isLoading, 'company:', company)
     return (
       <div className="flex items-center justify-center h-64">
         <p className="text-muted-foreground">Loading...</p>
       </div>
     )
   }
+
+  console.log('[DEBUG] Past loading state, isLoading:', isLoading, 'company:', company?.name)
 
   if (!company) {
     return (

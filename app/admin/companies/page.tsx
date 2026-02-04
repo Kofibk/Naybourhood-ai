@@ -318,7 +318,14 @@ export default function CompaniesPage() {
             <Card
               key={company.id}
               className="cursor-pointer hover:border-primary/50 transition-colors"
-              onClick={() => router.push(`/admin/companies/${company.id}`)}
+              onClick={() => {
+                console.log('[DEBUG] Company card clicked:', {
+                  id: company.id,
+                  name: company.name,
+                  targetUrl: `/admin/companies/${company.id}`
+                })
+                router.push(`/admin/companies/${company.id}`)
+              }}
             >
               <CardContent className="p-4">
                 <div className="flex items-start justify-between gap-2">
