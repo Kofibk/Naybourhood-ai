@@ -600,8 +600,11 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
     }
   }
 
-  // Role options ordered with current userType first
-  const roleOptions = [userType, ...(['developer', 'agent', 'broker'] as const).filter(r => r !== userType)]
+  // Role options ordered with current userType first, then agent, then others
+  const otherRoles = userType === 'broker'
+    ? ['agent', 'developer'] as const
+    : (['developer', 'agent', 'broker'] as const).filter(r => r !== userType)
+  const roleOptions = [userType, ...otherRoles]
 
   // Notification label varies slightly by role
   const leadAlertLabel = userType === 'broker' ? 'New Lead Alerts' : 'New Buyer Alerts'
