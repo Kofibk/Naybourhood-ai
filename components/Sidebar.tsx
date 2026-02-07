@@ -28,7 +28,7 @@ import {
   Briefcase,
   HardHat,
 } from 'lucide-react'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { usePermissions } from '@/hooks/useCanAccess'
 import { hasBillingAccess } from '@/lib/auth'
 import type { Feature } from '@/types'
@@ -68,16 +68,16 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   }, [userEmail, permissions])
 
   // Check if a feature is accessible
-  const canAccessFeature = (feature: Feature | undefined): boolean => {
+  const canAccessFeature = useCallback((feature: Feature | undefined): boolean => {
     if (!feature) return true // No feature requirement = always show
     if (permissionsLoading) return true // Show while loading
     if (!permissions) return false
     if (permissions.isInternalTeam || permissions.isMasterAdmin) return true
     if (!permissions.enabledFeatures.includes(feature)) return false
     return permissions.permissions[feature]?.canRead ?? false
-  }
+  }, [permissions, permissionsLoading])
 
-  const getNavItems = (): NavItem[] => {
+  const getNavItems = useCallback((): NavItem[] => {
     if (userType === 'admin') {
       const adminItems: NavItem[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
@@ -125,12 +125,12 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
       { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
     ]
-  }
+  }, [userType, basePath, userHasBillingAccess])
 
   // Filter nav items based on feature access
   const navItems = useMemo(() => {
     return getNavItems().filter(item => canAccessFeature(item.feature))
-  }, [userType, basePath, userHasBillingAccess, permissions, permissionsLoading])
+  }, [getNavItems, canAccessFeature])
 
   const isActive = (href: string) => pathname === href
 
