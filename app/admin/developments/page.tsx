@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -314,10 +315,11 @@ export default function DevelopmentsPage() {
               {/* Development Image */}
               {dev.image_url && (
                 <div className="h-32 bg-muted relative">
-                  <img
+                  <Image
                     src={dev.image_url}
                     alt={dev.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                   <Badge
                     variant={getStatusColor(dev.status)}

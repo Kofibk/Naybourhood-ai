@@ -16,8 +16,9 @@ import {
   RefreshCw,
   ExternalLink,
   FileText,
-  Image,
+  Image as ImageIcon,
 } from 'lucide-react'
+import Image from 'next/image'
 
 export default function DeveloperDevelopmentsPage() {
   const { developments, isLoading, isSyncing, refreshData } = useData()
@@ -198,10 +199,11 @@ export default function DeveloperDevelopmentsPage() {
               {/* Development Image */}
               {dev.image_url ? (
                 <div className="h-40 bg-white/5 relative">
-                  <img
+                  <Image
                     src={dev.image_url}
                     alt={dev.name}
-                    className="w-full h-full object-cover"
+                    fill
+                    className="object-cover"
                   />
                   <Badge
                     variant={getStatusColor(dev.status)}
@@ -293,7 +295,7 @@ export default function DeveloperDevelopmentsPage() {
                       rel="noopener noreferrer"
                       className="flex items-center gap-1 text-xs text-blue-400 hover:underline"
                     >
-                      <Image className="h-3 w-3" />
+                      <ImageIcon className="h-3 w-3" />
                       Floor Plans
                     </a>
                   )}

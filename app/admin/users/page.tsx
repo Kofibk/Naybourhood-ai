@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -445,9 +446,11 @@ export default function UsersPage() {
                         <Link href={`/admin/users/${user.id}`} className="flex items-center gap-3 hover:opacity-80">
                           <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
                             {user.avatar_url ? (
-                              <img
+                              <Image
                                 src={user.avatar_url}
                                 alt={user.name}
+                                width={36}
+                                height={36}
                                 className="w-9 h-9 rounded-full object-cover"
                               />
                             ) : (
