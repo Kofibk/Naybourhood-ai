@@ -260,9 +260,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    if (isSupabaseConfigured()) {
-      const supabase = createClient()
-      await supabase.auth.signOut()
+    try {
+      if (isSupabaseConfigured()) {
+        const supabase = createClient()
+        await supabase.auth.signOut()
+      }
+    } catch (error) {
+      console.error('Supabase signOut error:', error)
     }
     setUser(null)
     localStorage.removeItem('naybourhood_user')
