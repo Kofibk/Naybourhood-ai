@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -407,8 +407,8 @@ export default function FinanceLeadsPage() {
 
   // Reset to page 1 when filters change
   const filterKey = `${search}-${JSON.stringify(filterConditions)}-${filterLogic}`
-  useMemo(() => {
-    if (currentPage !== 1) setCurrentPage(1)
+  useEffect(() => {
+    setCurrentPage(1)
   }, [filterKey])
 
   // Group leads
