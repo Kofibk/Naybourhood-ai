@@ -58,8 +58,8 @@ export default function CompaniesPage() {
   }, [isLoading, companies.length, markInteractive])
 
   // Compute leads and campaigns per company
-  const computeStart = typeof performance !== 'undefined' ? performance.now() : 0
   const companiesWithCounts = useMemo(() => {
+    const computeStart = typeof performance !== 'undefined' ? performance.now() : 0
     const result = companies.map(company => ({
       ...company,
       total_leads: leads.filter(l => l.company_id === company.id).length,
