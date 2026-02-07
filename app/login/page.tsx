@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, Suspense } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -46,6 +46,22 @@ function LoginPageInner() {
       }
     }
   }, [searchParams])
+
+  const redirectBasedOnRole = useCallback((role: string) => {
+    switch (role) {
+      case 'admin':
+        router.push('/admin')
+        break
+      case 'agent':
+        router.push('/agent')
+        break
+      case 'broker':
+        router.push('/broker')
+        break
+      default:
+        router.push('/developer')
+    }
+  }, [router])
 
   // Check if user is already logged in
   useEffect(() => {
@@ -96,23 +112,7 @@ function LoginPageInner() {
       }
     }
     checkAuth()
-  }, [router, supabaseConfigured])
-
-  const redirectBasedOnRole = (role: string) => {
-    switch (role) {
-      case 'admin':
-        router.push('/admin')
-        break
-      case 'agent':
-        router.push('/agent')
-        break
-      case 'broker':
-        router.push('/broker')
-        break
-      default:
-        router.push('/developer')
-    }
-  }
+  }, [router, supabaseConfigured, redirectBasedOnRole])
 
   const handleMagicLink = async (e: React.FormEvent) => {
     e.preventDefault()

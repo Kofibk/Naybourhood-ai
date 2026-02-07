@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -108,32 +108,32 @@ export function ConversationThread({
   const [error, setError] = useState<string | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     setIsLoading(true)
     setError(null)
-    
+
     try {
       const supabase = createClient()
-      
+
       let query = supabase
         .from('conversations')
         .select('*')
         .eq('buyer_id', buyerId)
         .order('created_at', { ascending: true })
-      
+
       // Filter by channel if specified
       if (channel !== 'all') {
         query = query.eq('channel', channel)
       }
-      
+
       const { data, error: fetchError } = await query
-      
+
       if (fetchError) {
         console.error('[ConversationThread] Fetch error:', fetchError)
         setError(fetchError.message)
         return
       }
-      
+
       setMessages(data || [])
     } catch (e) {
       console.error('[ConversationThread] Error:', e)
@@ -141,13 +141,13 @@ export function ConversationThread({
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [buyerId, channel])
 
   useEffect(() => {
     if (buyerId) {
       fetchConversations()
     }
-  }, [buyerId, channel])
+  }, [buyerId, channel, fetchConversations])
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -371,43 +371,43 @@ export function useConversations(buyerId: string, channel?: 'whatsapp' | 'email'
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     if (!buyerId) return
-    
+
     setIsLoading(true)
     setError(null)
-    
+
     try {
       const supabase = createClient()
-      
+
       let query = supabase
         .from('conversations')
         .select('*')
         .eq('buyer_id', buyerId)
         .order('created_at', { ascending: true })
-      
+
       if (channel && channel !== 'all') {
         query = query.eq('channel', channel)
       }
-      
+
       const { data, error: fetchError } = await query
-      
+
       if (fetchError) {
         setError(fetchError.message)
         return
       }
-      
+
       setMessages(data || [])
     } catch (e) {
       setError('Failed to load conversations')
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [buyerId, channel])
 
   useEffect(() => {
     fetchConversations()
-  }, [buyerId, channel])
+  }, [buyerId, channel, fetchConversations])
 
   return { messages, isLoading, error, refetch: fetchConversations }
 }

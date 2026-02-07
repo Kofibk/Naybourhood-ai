@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -372,11 +373,12 @@ export default function DevelopmentDetailPage() {
 
       {/* Image */}
       {development.image_url && (
-        <Card className="overflow-hidden">
-          <img
+        <Card className="overflow-hidden relative h-64">
+          <Image
             src={development.image_url}
             alt={development.name}
-            className="w-full h-64 object-cover"
+            fill
+            className="object-cover"
           />
         </Card>
       )}

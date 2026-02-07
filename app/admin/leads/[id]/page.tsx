@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -629,7 +629,7 @@ export default function LeadDetailPage() {
     await updateLead(lead.id, { assigned_to: assignee })
   }
 
-  const handleRescore = async () => {
+  const handleRescore = useCallback(async () => {
     if (!lead) return
 
     setIsRescoring(true)
@@ -656,7 +656,7 @@ export default function LeadDetailPage() {
     } finally {
       setIsRescoring(false)
     }
-  }
+  }, [lead, refreshData])
 
   // Auto-score lead if it doesn't have scores yet
   useEffect(() => {
@@ -680,7 +680,7 @@ export default function LeadDetailPage() {
         handleRescore()
       }, 500)
     }
-  }, [lead, hasAutoScored, isRescoring, scoreResult])
+  }, [lead, hasAutoScored, isRescoring, scoreResult, handleRescore])
 
   const handleArchive = async () => {
     if (!lead || !confirm('Archive this lead?')) return
