@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -27,7 +27,7 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
   const [loading, setLoading] = useState(!initialData)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchSummary = async () => {
+  const fetchSummary = useCallback(async () => {
     setLoading(true)
     setError(null)
     try {
@@ -44,13 +44,13 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [buyerId])
 
   useEffect(() => {
     if (!initialData) {
       fetchSummary()
     }
-  }, [buyerId, initialData])
+  }, [buyerId, initialData, fetchSummary])
 
   const getClassification = (quality: number, intent: number) => {
     const combined = (quality * 0.5) + (intent * 0.5)
