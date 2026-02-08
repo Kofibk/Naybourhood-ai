@@ -2,10 +2,11 @@
 
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { FilterBar } from '@/components/ui/filter-bar'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { LeadFilters as FilterState, LeadClassification, LeadStatus } from '@/types'
-import { Search, X, Filter, ChevronDown } from 'lucide-react'
+import { Filter, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface LeadFiltersProps {
@@ -48,114 +49,79 @@ export function LeadFilters({
     onFilterChange(newFilters)
   }
 
-  const clearAllFilters = () => {
-    onFilterChange({})
-  }
-
-  const hasActiveFilters = Object.keys(filters).length > 0
+  // Build active filter tags
+  const activeFilters = [
+    filters.classification && {
+      key: 'classification',
+      label: filters.classification,
+      onRemove: () => clearFilter('classification'),
+    },
+    filters.status && {
+      key: 'status',
+      label: filters.status,
+      onRemove: () => clearFilter('status'),
+    },
+    filters.assignedCaller && {
+      key: 'assignedCaller',
+      label: filters.assignedCaller,
+      onRemove: () => clearFilter('assignedCaller'),
+    },
+    filters.developmentName && {
+      key: 'developmentName',
+      label: filters.developmentName,
+      onRemove: () => clearFilter('developmentName'),
+    },
+  ].filter(Boolean) as Array<{ key: string; label: string; onRemove: () => void }>
 
   return (
     <div className={cn('space-y-3', className)}>
-      {/* Quick Filters Row */}
-      <div className="flex flex-wrap items-center gap-2">
-        {/* Classification Quick Filters */}
-        <div className="flex items-center rounded-md border bg-background p-1">
-          <Button
-            variant={!filters.classification ? 'secondary' : 'ghost'}
-            size="sm"
-            className="h-7 px-3 text-xs"
-            onClick={() => clearFilter('classification')}
-          >
-            All
-          </Button>
-          {classificationOptions.map((c) => (
-            <Button
-              key={c}
-              variant={filters.classification === c ? 'secondary' : 'ghost'}
-              size="sm"
-              className={cn(
-                'h-7 px-3 text-xs',
-                c === 'Hot' && 'text-red-500',
-                c === 'Warm' && 'text-orange-500',
-                c === 'Low' && 'text-gray-500'
-              )}
-              onClick={() => updateFilter('classification', c)}
-            >
-              {c}
-            </Button>
-          ))}
-        </div>
-
-        {/* Status Dropdown */}
-        <div className="relative">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8"
-            onClick={() => setShowAdvanced(!showAdvanced)}
-          >
-            <Filter className="h-3.5 w-3.5 mr-2" />
-            Status
-            {filters.status && (
-              <Badge variant="secondary" className="ml-2 text-[10px]">
-                {filters.status}
-              </Badge>
-            )}
-            <ChevronDown className="h-3.5 w-3.5 ml-2" />
-          </Button>
-        </div>
+      <FilterBar
+        search={filters.search}
+        onSearchChange={(val) => (val ? updateFilter('search', val) : clearFilter('search'))}
+        searchPlaceholder="Search leads..."
+        segments={{
+          options: classificationOptions.map((c) => ({ label: c, value: c })),
+          value: filters.classification,
+          onChange: (val) => (val ? updateFilter('classification', val as LeadClassification) : clearFilter('classification')),
+        }}
+        activeFilters={activeFilters}
+        onClearAll={() => onFilterChange({})}
+      >
+        {/* Status Dropdown Toggle */}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          <Filter className="h-3.5 w-3.5 mr-2" />
+          Status
+          {filters.status && (
+            <Badge variant="secondary" className="ml-2 text-[10px]">
+              {filters.status}
+            </Badge>
+          )}
+          <ChevronDown className="h-3.5 w-3.5 ml-2" />
+        </Button>
 
         {/* Assignee Filter */}
         {availableAssignees.length > 0 && (
-          <select
+          <Select
             value={filters.assignedCaller || ''}
-            onChange={(e) =>
-              e.target.value
-                ? updateFilter('assignedCaller', e.target.value)
-                : clearFilter('assignedCaller')
-            }
-            className="h-8 px-2 text-sm border rounded-md bg-background"
+            onValueChange={(val) => (val ? updateFilter('assignedCaller', val) : clearFilter('assignedCaller'))}
           >
-            <option value="">All Assignees</option>
-            {availableAssignees.map((a) => (
-              <option key={a} value={a}>
-                {a}
-              </option>
-            ))}
-          </select>
+            <SelectTrigger className="h-8 w-[160px] text-sm">
+              <SelectValue placeholder="All Assignees" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">All Assignees</SelectItem>
+              {availableAssignees.map((a) => (
+                <SelectItem key={a} value={a}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         )}
-
-        {/* Search */}
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search leads..."
-            value={filters.search || ''}
-            onChange={(e) =>
-              e.target.value ? updateFilter('search', e.target.value) : clearFilter('search')
-            }
-            className="h-8 pl-9 pr-8"
-          />
-          {filters.search && (
-            <Button
-              variant="ghost"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6"
-              onClick={() => clearFilter('search')}
-            >
-              <X className="h-3 w-3" />
-            </Button>
-          )}
-        </div>
-
-        {/* Clear All */}
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" className="h-8 text-xs" onClick={clearAllFilters}>
-            <X className="h-3 w-3 mr-1" />
-            Clear
-          </Button>
-        )}
-      </div>
+      </FilterBar>
 
       {/* Advanced Filters (Status Grid) */}
       {showAdvanced && (
@@ -181,62 +147,21 @@ export function LeadFilters({
           {availableDevelopments.length > 0 && (
             <>
               <div className="text-xs font-medium text-muted-foreground mt-3">Development</div>
-              <select
+              <Select
                 value={filters.developmentName || ''}
-                onChange={(e) =>
-                  e.target.value
-                    ? updateFilter('developmentName', e.target.value)
-                    : clearFilter('developmentName')
-                }
-                className="w-full h-8 px-2 text-sm border rounded-md bg-background"
+                onValueChange={(val) => (val ? updateFilter('developmentName', val) : clearFilter('developmentName'))}
               >
-                <option value="">All Developments</option>
-                {availableDevelopments.map((d) => (
-                  <option key={d} value={d}>
-                    {d}
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="w-full h-8 text-sm">
+                  <SelectValue placeholder="All Developments" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Developments</SelectItem>
+                  {availableDevelopments.map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </>
-          )}
-        </div>
-      )}
-
-      {/* Active Filters Display */}
-      {hasActiveFilters && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">Active:</span>
-          {filters.classification && (
-            <Badge variant="secondary" className="text-xs">
-              {filters.classification}
-              <button onClick={() => clearFilter('classification')} className="ml-1">
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </Badge>
-          )}
-          {filters.status && (
-            <Badge variant="secondary" className="text-xs">
-              {filters.status}
-              <button onClick={() => clearFilter('status')} className="ml-1">
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </Badge>
-          )}
-          {filters.assignedCaller && (
-            <Badge variant="secondary" className="text-xs">
-              {filters.assignedCaller}
-              <button onClick={() => clearFilter('assignedCaller')} className="ml-1">
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </Badge>
-          )}
-          {filters.developmentName && (
-            <Badge variant="secondary" className="text-xs">
-              {filters.developmentName}
-              <button onClick={() => clearFilter('developmentName')} className="ml-1">
-                <X className="h-2.5 w-2.5" />
-              </button>
-            </Badge>
           )}
         </div>
       )}

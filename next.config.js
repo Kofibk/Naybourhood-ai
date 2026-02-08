@@ -9,7 +9,7 @@ const nextConfig = {
     ],
   },
   experimental: {
-    serverComponentsExternalPackages: ['@supabase/ssr'],
+    serverComponentsExternalPackages: ['@supabase/ssr', 'svix'],
   },
 }
 

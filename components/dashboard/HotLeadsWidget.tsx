@@ -3,7 +3,10 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Lead } from '@/types'
-import { StatusBadge, ClassificationBadge, PaymentBadge, NextActionChip } from '@/components/badges'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { NextActionChip } from '@/components/badges'
+import { LoadingState } from '@/components/ui/loading-state'
+import { EmptyState } from '@/components/ui/empty-state'
 import { Flame, ChevronRight, Phone, MessageCircle, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -43,11 +46,7 @@ export function HotLeadsWidget({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 animate-pulse">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-16 bg-muted rounded-lg" />
-            ))}
-          </div>
+          <LoadingState variant="skeleton" rows={3} />
         </CardContent>
       </Card>
     )
@@ -72,7 +71,7 @@ export function HotLeadsWidget({
       </CardHeader>
       <CardContent>
         {leads.length === 0 ? (
-          <p className="text-sm text-muted-foreground text-center py-4">No hot leads found</p>
+          <EmptyState icon={Flame} title="No hot leads found" className="py-4" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">

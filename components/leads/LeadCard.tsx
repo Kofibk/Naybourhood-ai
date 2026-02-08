@@ -3,7 +3,8 @@
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Lead } from '@/types'
-import { StatusBadge, ClassificationBadge, PaymentBadge, NextActionChip } from '@/components/badges'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { ClassificationBadge, PaymentBadge, NextActionChip } from '@/components/badges'
 import { Phone, MessageCircle, Calendar, MoreVertical } from 'lucide-react'
 import { cn } from '@/lib/utils'
 

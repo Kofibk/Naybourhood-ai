@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Lead, LeadStatus } from '@/types'
-import { StatusBadge, ClassificationBadge, PaymentBadge } from '@/components/badges'
-import { ScoreDisplay } from '@/components/scoring'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { ScoreIndicator } from '@/components/ui/score-indicator'
+import { ClassificationBadge, PaymentBadge } from '@/components/badges'
 import {
   ArrowLeft,
   Edit,
@@ -103,8 +104,8 @@ export function LeadDetail({
   return (
     <div className={cn('space-y-6', className)}>
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" onClick={onBack} className="gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <Button variant="ghost" onClick={onBack} className="gap-2 self-start">
           <ArrowLeft className="h-4 w-4" />
           Back to Leads
         </Button>
@@ -126,11 +127,11 @@ export function LeadDetail({
 
       {/* Lead Header Card */}
       <Card>
-        <CardContent className="p-6">
+        <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-bold">{lead.fullName}</h1>
-              <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+            <div className="min-w-0">
+              <h1 className="text-xl sm:text-2xl font-bold truncate">{lead.fullName}</h1>
+              <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mt-1">
                 {lead.email && (
                   <span className="flex items-center gap-1">
                     <Mail className="h-3.5 w-3.5" />
@@ -153,14 +154,17 @@ export function LeadDetail({
             </div>
 
             {/* Score Display */}
-            <div className="flex flex-col items-end gap-2">
-              <ScoreDisplay
-                qualityScore={lead.qualityScore}
-                intentScore={lead.intentScore}
-                classification={lead.classification}
-                confidence={lead.aiConfidence}
-                layout="horizontal"
-              />
+            <div className="flex flex-col items-start md:items-end gap-2">
+              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+                <ScoreIndicator value={lead.qualityScore} label="Quality" size="md" />
+                <ScoreIndicator value={lead.intentScore} label="Intent" size="md" />
+                <ClassificationBadge classification={lead.classification} />
+                {lead.aiConfidence !== undefined && (
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round((lead.aiConfidence ?? 0) * 100)}% conf.
+                  </span>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"
