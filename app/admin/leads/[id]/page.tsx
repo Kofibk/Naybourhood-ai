@@ -11,11 +11,9 @@ import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import {
-  STATUS_OPTIONS,
   parseBudgetRange,
   formatBudgetValue,
   formatDate,
-  formatDateTime,
 } from '@/lib/leadUtils'
 import {
   DataRow,
@@ -25,10 +23,10 @@ import {
   EditableBooleanField,
   EditableSelectField,
   EditableConnectionStatus,
-  NotesComments,
 } from '@/components/leads/detail/LeadEditableFields'
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { LeadAIInsights } from '@/components/leads/detail/LeadAIInsights'
+import { LeadSidebar } from '@/components/leads/detail/LeadSidebar'
 import {
   ArrowLeft,
   Phone,
@@ -38,9 +36,7 @@ import {
   Bot,
   MessageSquare,
   User,
-  BarChart3,
   Building,
-  CheckCircle,
   Clock,
   DollarSign,
   MapPin,
@@ -470,151 +466,16 @@ export default function LeadDetailPage() {
           )}
         </div>
 
-        {/* ─────────────────────────────────────────────────────────────────
-            COLUMN 3 - STATUS, NOTES & HISTORY
-        ───────────────────────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          {/* Status & Assignment */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Status & Assignment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">Status</label>
-                <select
-                  value={lead.status || ''}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">Assigned To</label>
-                <select
-                  value={lead.assigned_to || ''}
-                  onChange={(e) => handleAssigneeChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="">Unassigned</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {lead.assigned_user_name && (
-                <DataRow label="Assigned User" value={lead.assigned_user_name} />
-              )}
-              {lead.assigned_at && (
-                <DataRow label="Assigned At" value={formatDateTime(lead.assigned_at)} />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Notes & Comments */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Notes & Comments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NotesComments
-                notes={lead.notes}
-                onSave={(notes) => updateLead(lead.id, { notes })}
-                userName="Admin"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Timestamps */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
-              <DataRow label="Date Added" value={formatDateTime(lead.date_added || lead.created_at)} icon={Calendar} />
-              <DataRow label="Last Updated" value={formatDateTime(lead.updated_at)} />
-              <DataRow label="Last Contact" value={formatDateTime(lead.last_contact)} icon={Phone} />
-              <DataRow label="Last AI Score" value={formatDateTime(lead.ai_scored_at)} icon={Bot} />
-            </CardContent>
-          </Card>
-
-          {/* AI Classification Details */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="w-4 h-4" />
-                AI Classification Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
-              <DataRow label="Classification" value={lead.ai_classification || classification} />
-              <DataRow label="Priority" value={lead.ai_priority || priority} />
-              <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
-              <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
-              <DataRow label="Confidence" value={lead.ai_confidence ? `${lead.ai_confidence}%` : '-'} />
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {lead.status !== 'Viewing Booked' && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => handleStatusChange('Viewing Booked')}
-                >
-                  <Calendar className="w-4 h-4 mr-2" /> Book Viewing
-                </Button>
-              )}
-              {(!lead.uk_broker || lead.uk_broker === 'no' || lead.uk_broker === 'unknown') && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => updateLead(lead.id, { uk_broker: 'introduced' })}
-                >
-                  <Building className="w-4 h-4 mr-2" /> Refer to Broker
-                </Button>
-              )}
-              {!lead.proof_of_funds && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => updateLead(lead.id, { proof_of_funds: true })}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" /> Mark Funds Verified
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Lead ID */}
-          <Card>
-            <CardContent className="py-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Lead ID:</span>
-                <code className="bg-muted px-2 py-1 rounded">{lead.id}</code>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* COLUMN 3 - STATUS, NOTES & HISTORY */}
+        <LeadSidebar
+          lead={lead}
+          users={users}
+          classification={classification}
+          priority={priority}
+          onStatusChange={handleStatusChange}
+          onAssigneeChange={handleAssigneeChange}
+          onUpdateLead={updateLead}
+        />
       </div>
 
       {/* Email Composer Modal */}
