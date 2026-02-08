@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer } from '@/types'
@@ -50,7 +51,10 @@ import {
 export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { leads, users, isLoading, updateLead, refreshData } = useData()
+  const { leads, isLoading: leadsLoading, updateLead, refreshLeads } = useLeads()
+  const { users } = useData()
+  const isLoading = leadsLoading
+  const refreshData = refreshLeads
 
   const [isRescoring, setIsRescoring] = useState(false)
   const [scoreResult, setScoreResult] = useState<ScoreBuyerResponse | null>(null)

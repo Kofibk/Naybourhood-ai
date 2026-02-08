@@ -21,7 +21,7 @@ import {
   Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import type { Buyer } from '@/types'
 
 interface AIInsight {
@@ -54,7 +54,7 @@ export function AIOverview({
   onAction,
   className,
 }: AIOverviewProps) {
-  const { leads: contextLeads } = useData()
+  const { leads: contextLeads } = useLeads()
   const leads = propLeads || contextLeads
 
   const [insights, setInsights] = useState<AIInsight[]>(propInsights || [])

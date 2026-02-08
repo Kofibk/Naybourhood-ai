@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { formatCurrency, statusIs } from '@/lib/utils'
 import { AIOverview } from '@/components/ai/AIOverview'
 import { CampaignInsights } from '@/components/ai/CampaignInsights'
@@ -50,7 +51,8 @@ interface NewCampaign {
 
 export default function CampaignsPage() {
   const router = useRouter()
-  const { campaigns, leads, isLoading, createCampaign, updateCampaign } = useData()
+  const { leads } = useLeads()
+  const { campaigns, isLoading, createCampaign, updateCampaign } = useData()
   const [search, setSearch] = useState('')
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
   const [isModalOpen, setIsModalOpen] = useState(false)

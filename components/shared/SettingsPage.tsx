@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { LeadImporter } from '@/components/admin/LeadImporter'
 import type { UserRole, JobRole } from '@/types'
@@ -51,7 +52,9 @@ interface SettingsPageProps {
 // --- Admin-specific sections ---
 
 function AdminSystemStats() {
-  const { isLoading, leads, campaigns, companies, developments, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, companies, developments, refreshData } = useData()
+  const isLoading = leadsLoading
 
   const systemStats = useMemo(() => {
     const activeLeads = leads.filter(l => l.status !== 'Disqualified')

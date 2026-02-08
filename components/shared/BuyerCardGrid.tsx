@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { Search, Phone, Mail, Eye, FileText, Flame, Heart, Users } from 'lucide-react'
 
@@ -45,7 +45,7 @@ const config = {
 } as const
 
 export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
-  const { leads, isLoading } = useData()
+  const { leads, isLoading } = useLeads()
   const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')

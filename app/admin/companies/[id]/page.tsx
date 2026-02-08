@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import type { AppUser } from '@/types'
 import {
   ArrowLeft,
@@ -30,8 +31,9 @@ export default function CompanyDetailPage() {
   const params = useParams()
   const router = useRouter()
   
-  // Use DataContext for companies, campaigns, and leads (already loaded)
-  const { companies, campaigns: allCampaigns, leads: allLeads, financeLeads: allBorrowers, isLoading: dataLoading } = useData()
+  // Use useLeads for leads, DataContext for everything else
+  const { leads: allLeads } = useLeads()
+  const { companies, campaigns: allCampaigns, financeLeads: allBorrowers, isLoading: dataLoading } = useData()
   
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)

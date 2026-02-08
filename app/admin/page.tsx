@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
 import { useRenderTiming } from '@/lib/performance'
 import {
@@ -89,7 +90,9 @@ function AnimatedNumber({
 }
 
 export default function AdminDashboard() {
-  const { leads, campaigns, companies, isLoading, isSyncing, error, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, companies, isLoading: dataLoading, isSyncing, error, refreshData } = useData()
+  const isLoading = leadsLoading || dataLoading
   const [user, setUser] = useState<{ name?: string }>({})
   const { markInteractive } = useRenderTiming('AdminDashboard')
   const hasMarkedInteractive = useRef(false)

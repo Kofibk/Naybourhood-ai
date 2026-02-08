@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { ConversationsView } from '@/components/ConversationsView'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +10,9 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Users, Building } from 'lucide-react'
 
 export default function AdminConversationsPage() {
-  const { leads, financeLeads, companies, isLoading } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { financeLeads, companies, isLoading: dataLoading } = useData()
+  const isLoading = leadsLoading || dataLoading
   const [activeTab, setActiveTab] = useState<'buyers' | 'borrowers'>('buyers')
   const [companyFilter, setCompanyFilter] = useState<string>('all')
 

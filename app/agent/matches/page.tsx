@@ -4,12 +4,12 @@ import { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { Heart, Phone, Mail, Eye, MapPin, Users } from 'lucide-react'
 
 export default function MatchesPage() {
-  const { leads } = useData()
+  const { leads } = useLeads()
   const { user } = useAuth()
 
   // Filter leads by company_id first

@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import {
   Lightbulb,
   RefreshCw,
@@ -48,7 +49,9 @@ interface AIInsightsProps {
 }
 
 export function AIInsights({ onActionClick }: AIInsightsProps) {
-  const { leads, campaigns, isLoading, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, isLoading: dataLoading, refreshData } = useData()
+  const isLoading = leadsLoading || dataLoading
   const [completedActions, setCompletedActions] = useState<Set<string>>(new Set())
 
   // Generate insights from local data

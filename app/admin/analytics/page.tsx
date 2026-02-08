@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { formatCurrency } from '@/lib/utils'
 import {
   TrendingUp,
@@ -25,7 +26,9 @@ import {
 } from 'lucide-react'
 
 export default function AnalyticsPage() {
-  const { leads, campaigns, companies, developments, isLoading, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, companies, developments, isLoading: dataLoading, refreshData } = useData()
+  const isLoading = leadsLoading || dataLoading
 
   // Calculate comprehensive analytics
   const analytics = useMemo(() => {

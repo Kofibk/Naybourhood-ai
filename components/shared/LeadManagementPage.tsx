@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { EmailComposer } from '@/components/EmailComposer'
@@ -87,8 +88,10 @@ const getFinanceStatusColor = (status?: string) => {
 export function LeadManagementPage({ mode }: LeadManagementPageProps) {
   const router = useRouter()
   const { user } = useAuth()
+  const { leads: rqLeads, isLoading: leadsLoading, updateLead: rqUpdateLead } = useLeads()
   const dataContext = useData()
-  const { isLoading, isSyncing } = dataContext
+  const { isLoading: dataContextLoading, isSyncing } = dataContext
+  const isLoading = leadsLoading || dataContextLoading
 
   const isPropertyMode = mode === 'property'
   const statusOptions = isPropertyMode ? PROPERTY_STATUS_OPTIONS : FINANCE_STATUS_OPTIONS
@@ -139,9 +142,9 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
     initializeCompany()
   }, [user, isPropertyMode])
 
-  // Data source
-  const rawLeads = isPropertyMode ? dataContext.leads : dataContext.financeLeads
-  const updateLeadFn = isPropertyMode ? dataContext.updateLead : dataContext.updateFinanceLead
+  // Data source - use React Query for property leads, DataContext for finance leads
+  const rawLeads = isPropertyMode ? rqLeads : dataContext.financeLeads
+  const updateLeadFn = isPropertyMode ? rqUpdateLead : dataContext.updateFinanceLead
 
   // Filter leads by company
   const isAdmin = user?.role === 'admin'

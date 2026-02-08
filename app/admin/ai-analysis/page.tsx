@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { AIAnalysis, AIDashboardInsights } from '@/types'
 import {
   Brain,
@@ -26,7 +27,9 @@ import {
 } from 'lucide-react'
 
 export default function AIAnalysisPage() {
-  const { leads, campaigns, isLoading: dataLoading, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, isLoading: contextLoading, refreshData } = useData()
+  const dataLoading = leadsLoading || contextLoading
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null)
   const [insights, setInsights] = useState<AIDashboardInsights | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)

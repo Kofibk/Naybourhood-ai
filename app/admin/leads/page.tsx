@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { AIOverview } from '@/components/ai/AIOverview'
 import { EditableCell, EditableScore } from '@/components/ui/editable-cell'
 import { useAutoScore } from '@/hooks/useAutoScore'
@@ -374,7 +375,10 @@ function PaymentBadge({ method }: { method: string | undefined | null }) {
 
 export default function LeadsPage() {
   const router = useRouter()
-  const { leads, users, isLoading, refreshData, updateLead } = useData()
+  const { leads, isLoading: leadsLoading, updateLead, refreshLeads } = useLeads()
+  const { users } = useData()
+  const isLoading = leadsLoading
+  const refreshData = refreshLeads
 
   // Initialize state with defaults, will be updated from localStorage
   const [prefsLoaded, setPrefsLoaded] = useState(false)

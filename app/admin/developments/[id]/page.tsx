@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { formatCurrency, formatPriceRange } from '@/lib/utils'
 import type { Development } from '@/types'
 import {
@@ -36,7 +37,8 @@ import {
 export default function DevelopmentDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { developments, campaigns, leads, companies, isLoading, updateDevelopment } = useData()
+  const { leads } = useLeads()
+  const { developments, campaigns, companies, isLoading, updateDevelopment } = useData()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editData, setEditData] = useState<Partial<Development>>({})
