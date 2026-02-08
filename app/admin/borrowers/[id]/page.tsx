@@ -59,7 +59,7 @@ export default function FinanceLeadDetailPage() {
 
   const handleEdit = () => {
     if (lead) {
-      setEditData({ ...lead })
+      setEditData({})
       setIsEditing(true)
       setSaveMessage(null)
     }
@@ -73,6 +73,13 @@ export default function FinanceLeadDetailPage() {
 
   const handleSave = async () => {
     if (!lead) return
+
+    // Only send fields the user actually changed
+    if (Object.keys(editData).length === 0) {
+      setIsEditing(false)
+      return
+    }
+
     setIsSaving(true)
     setSaveMessage(null)
 
@@ -86,7 +93,7 @@ export default function FinanceLeadDetailPage() {
         setSaveMessage({ type: 'error', text: 'Failed to update borrower. Please try again.' })
       }
     } catch (error) {
-      console.error('Error updating borrower:', error)
+      console.error('[BorrowerDetail] Save error for id:', lead.id, error)
       setSaveMessage({ type: 'error', text: 'An error occurred while saving.' })
     } finally {
       setIsSaving(false)
