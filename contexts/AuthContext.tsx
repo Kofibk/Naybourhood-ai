@@ -24,10 +24,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const router = useRouter()
 
+  // Explicit columns for user_profiles + company join in AuthContext
+  const AUTH_PROFILE_COLUMNS = [
+    'id', 'email', 'user_type', 'first_name', 'last_name',
+    'phone', 'job_title', 'avatar_url',
+    'company_name', 'company_id',
+    'onboarding_completed', 'permission_role',
+    'is_internal_team', 'membership_status',
+    'created_at', 'updated_at',
+  ].join(', ')
+  const AUTH_COMPANY_COLUMNS = 'id, name, type, status, subscription_tier'
+
   // Fetch user profile from Supabase and build User object
   const fetchUserProfile = async (authUserId: string, email: string): Promise<User | null> => {
     console.log('[AuthContext] fetchUserProfile called:', { authUserId, email })
-    
+
     if (!isSupabaseConfigured()) {
       console.log('[AuthContext] Supabase not configured')
       return null
@@ -36,10 +47,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const supabase = createClient()
 
-      // Fetch user_profiles with company data joined
+      // Fetch user_profiles with company data joined using explicit columns
       const { data: userProfile, error } = await supabase
         .from('user_profiles')
-        .select('*, company:companies(*)')
+        .select(`${AUTH_PROFILE_COLUMNS}, company:companies(${AUTH_COMPANY_COLUMNS})`)
         .eq('id', authUserId)
         .single()
 

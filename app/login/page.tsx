@@ -14,11 +14,15 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isMasterAdmin, MASTER_ADMIN_EMAILS, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
 
+// Explicit columns for user_profiles queries on login page
+const LOGIN_PROFILE_COLUMNS = 'id, email, user_type, first_name, last_name, company_id, onboarding_completed, permission_role, membership_status'
+
 function LoginPageInner() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
   const [error, setError] = useState('')
   const [magicLinkSent, setMagicLinkSent] = useState(false)
   const [isSignUp, setIsSignUp] = useState(false)
@@ -66,49 +70,60 @@ function LoginPageInner() {
   // Check if user is already logged in
   useEffect(() => {
     const checkAuth = async () => {
-      if (supabaseConfigured) {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-        if (user) {
-          // Update user status to 'active' since they're logged in
-          await supabase
-            .from('user_profiles')
-            .update({ membership_status: 'active' })
-            .eq('id', user.id)
+      try {
+        if (supabaseConfigured) {
+          const supabase = createClient()
+          const { data: { user } } = await supabase.auth.getUser()
+          if (user) {
+            // Update user status to 'active' since they're logged in
+            await supabase
+              .from('user_profiles')
+              .update({ membership_status: 'active' })
+              .eq('id', user.id)
 
-          // Check onboarding status
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('*')
-            .eq('id', user.id)
-            .single()
+            // Check onboarding status with explicit columns
+            const { data: profile, error: profileError } = await supabase
+              .from('user_profiles')
+              .select(LOGIN_PROFILE_COLUMNS)
+              .eq('id', user.id)
+              .single()
 
-          if (!profile?.onboarding_completed) {
-            router.push('/onboarding')
-          } else {
-            // Save user to localStorage before redirecting
-            let role = profile.user_type || 'developer'
+            console.log('[Login] Auth check profile:', { profile, error: profileError?.message })
 
-            // Master admin email override (using centralized auth config)
-            if (isMasterAdmin(user.email)) {
-              role = 'admin'
+            // Only redirect to onboarding if we got a profile AND it explicitly has onboarding_completed = false
+            // If profile is null (RLS or not found), don't redirect to onboarding - show login instead
+            if (profile && profile.onboarding_completed === false) {
+              router.push('/onboarding')
+            } else if (profile) {
+              // Save user to localStorage before redirecting
+              let role = profile.user_type || 'developer'
+
+              // Master admin email override (using centralized auth config)
+              if (isMasterAdmin(user.email)) {
+                role = 'admin'
+              }
+
+              const fullName = profile.first_name
+                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+                : user.email?.split('@')[0] || 'User'
+
+              localStorage.setItem('naybourhood_user', JSON.stringify({
+                id: user.id,
+                email: user.email,
+                name: fullName,
+                role: role,
+                company_id: profile.company_id,
+              }))
+
+              redirectBasedOnRole(role)
             }
-
-            const fullName = profile.first_name
-              ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-              : user.email?.split('@')[0] || 'User'
-
-            localStorage.setItem('naybourhood_user', JSON.stringify({
-              id: user.id,
-              email: user.email,
-              name: fullName,
-              role: role,
-              company_id: profile.company_id,
-            }))
-
-            redirectBasedOnRole(role)
+            // If profile is null, fall through to show login form
           }
         }
+      } catch (err) {
+        console.error('[Login] Auth check error:', err)
+      } finally {
+        setIsCheckingAuth(false)
       }
     }
     checkAuth()
@@ -233,16 +248,18 @@ function LoginPageInner() {
               .update({ membership_status: 'active' })
               .eq('id', data.user.id)
 
-            // Check onboarding status
-            const { data: profile } = await supabase
+            // Check onboarding status with explicit columns
+            const { data: profile, error: profileError } = await supabase
               .from('user_profiles')
-              .select('*')
+              .select(LOGIN_PROFILE_COLUMNS)
               .eq('id', data.user.id)
               .single()
 
-            if (!profile?.onboarding_completed) {
+            console.log('[Login] Sign-in profile:', { profile, error: profileError?.message })
+
+            if (profile && profile.onboarding_completed === false) {
               router.push('/onboarding')
-            } else {
+            } else if (profile) {
               // Save user to localStorage before redirecting
               let role = profile.user_type || 'developer'
 
@@ -377,6 +394,15 @@ function LoginPageInner() {
             Use a different email
           </Button>
         </div>
+      </div>
+    )
+  }
+
+  // Show loading spinner while checking if user is already authenticated
+  if (isCheckingAuth) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
       </div>
     )
   }

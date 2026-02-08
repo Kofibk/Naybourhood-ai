@@ -37,19 +37,50 @@ function mapProfileToUser(p: any): AppUser {
   }
 }
 
+// Explicit columns for user_profiles table
+const USER_PROFILE_COLUMNS = [
+  'id', 'email', 'user_type', 'first_name', 'last_name',
+  'phone', 'job_title', 'avatar_url',
+  'company_name', 'company_id',
+  'onboarding_completed', 'permission_role',
+  'is_internal_team', 'is_company_admin',
+  'membership_status', 'job_role',
+  'created_at', 'updated_at',
+].join(', ')
+
 async function fetchUsers(): Promise<AppUser[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = createClient()
   if (!supabase) return []
 
-  // Try direct query first
-  const { data, error } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .order('first_name', { ascending: true })
+  let allUsers: any[] = []
+  let from = 0
+  const batchSize = 50
+  let hasMore = true
 
-  if (!error && data && data.length > 0) {
-    return data.map(mapProfileToUser)
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('user_profiles')
+      .select(USER_PROFILE_COLUMNS)
+      .order('first_name', { ascending: true })
+      .range(from, from + batchSize - 1)
+
+    if (error) {
+      console.error('[useUsers] Fetch error:', error.message)
+      break
+    }
+    if (data && data.length > 0) {
+      allUsers = [...allUsers, ...data]
+      from += batchSize
+      hasMore = data.length === batchSize
+    } else {
+      hasMore = false
+    }
+  }
+
+  if (allUsers.length > 0) {
+    console.log('[useUsers] Fetched users:', allUsers.length)
+    return allUsers.map(mapProfileToUser)
   }
 
   // API fallback for Quick Access users

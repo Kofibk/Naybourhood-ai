@@ -79,6 +79,29 @@ function mapBuyerRow(b: any): Buyer {
   }
 }
 
+// Explicit columns for buyers table - includes all fields consumers reference
+const BUYER_COLUMNS = [
+  'id', 'full_name', 'first_name', 'last_name', 'email', 'phone', 'country',
+  'budget', 'budget_range', 'budget_min', 'budget_max',
+  'bedrooms', 'location', 'area', 'timeline',
+  'source', 'source_platform', 'source_campaign', 'campaign', 'campaign_id',
+  'development_id', 'development_name', 'company_id', 'company', 'status',
+  'quality_score', 'intent_score',
+  'ai_quality_score', 'ai_intent_score', 'ai_confidence',
+  'ai_summary', 'ai_next_action', 'ai_risk_flags', 'ai_recommendations',
+  'ai_classification', 'ai_priority', 'ai_scored_at',
+  'payment_method', 'mortgage_status', 'proof_of_funds',
+  'uk_broker', 'uk_solicitor',
+  'purchase_purpose', 'ready_within_28_days', 'purpose',
+  'viewing_booked', 'viewing_intent_confirmed', 'viewing_date',
+  'replied', 'stop_comms', 'next_follow_up', 'broker_connected',
+  'assigned_to', 'assigned_user', 'assigned_user_name', 'assigned_at',
+  'notes', 'date_added', 'created_at', 'updated_at', 'last_contact',
+  'last_wa_message', 'transcript', 'call_summary',
+  'is_fake_lead', 'fake_lead_flags', 'low_urgency_flag',
+  'call_priority', 'call_priority_reason',
+].join(', ')
+
 // Fetch all buyers with pagination (1000 per batch)
 async function fetchLeads(): Promise<Buyer[]> {
   if (!isSupabaseConfigured()) return []
@@ -94,7 +117,7 @@ async function fetchLeads(): Promise<Buyer[]> {
   while (hasMore) {
     const { data, error } = await supabase
       .from('buyers')
-      .select('*')
+      .select(BUYER_COLUMNS)
       .order('created_at', { ascending: false })
       .range(from, from + batchSize - 1)
 
@@ -111,6 +134,7 @@ async function fetchLeads(): Promise<Buyer[]> {
     }
   }
 
+  console.log('[useLeads] Fetched leads:', allBuyers.length)
   return allBuyers.map(mapBuyerRow)
 }
 

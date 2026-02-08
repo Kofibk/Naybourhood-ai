@@ -33,17 +33,51 @@ function mapDevelopmentRow(d: any): Development {
   }
 }
 
+// Explicit columns for developments table
+const DEVELOPMENT_COLUMNS = [
+  'id', 'name', 'location', 'address', 'developer',
+  'company_id', 'status', 'total_units', 'available_units',
+  'price_from', 'price_to', 'completion_date',
+  'description', 'image_url', 'features',
+  'brochure_url', 'floor_plan_url', 'price_list_url', 'attachments',
+  'total_leads', 'ad_spend',
+  'created_at', 'updated_at',
+].join(', ')
+
+const COMPANY_JOIN_COLUMNS = 'id, name, type, status, subscription_tier'
+
 async function fetchDevelopments(): Promise<Development[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = createClient()
   if (!supabase) return []
 
-  const { data, error } = await supabase.from('developments').select('*, company:companies(*)')
-  if (error) {
-    console.error('[useDevelopments] Fetch error:', error.message)
-    throw new Error(`Failed to fetch developments: ${error.message}`)
+  let allDevelopments: any[] = []
+  let from = 0
+  const batchSize = 50
+  let hasMore = true
+
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('developments')
+      .select(`${DEVELOPMENT_COLUMNS}, company:companies(${COMPANY_JOIN_COLUMNS})`)
+      .order('name', { ascending: true })
+      .range(from, from + batchSize - 1)
+
+    if (error) {
+      console.error('[useDevelopments] Fetch error:', error.message)
+      throw new Error(`Failed to fetch developments: ${error.message}`)
+    }
+    if (data && data.length > 0) {
+      allDevelopments = [...allDevelopments, ...data]
+      from += batchSize
+      hasMore = data.length === batchSize
+    } else {
+      hasMore = false
+    }
   }
-  return (data || []).map(mapDevelopmentRow)
+
+  console.log('[useDevelopments] Fetched developments:', allDevelopments.length)
+  return allDevelopments.map(mapDevelopmentRow)
 }
 
 export function useDevelopments() {
@@ -61,7 +95,7 @@ export function useDevelopments() {
       if (!supabase) throw new Error('Failed to create Supabase client')
 
       const { data: newData, error } = await supabase
-        .from('developments').insert(data).select('*, company:companies(*)').single()
+        .from('developments').insert(data).select(`${DEVELOPMENT_COLUMNS}, company:companies(${COMPANY_JOIN_COLUMNS})`).single()
       if (error) throw error
       return newData
     },
@@ -89,7 +123,7 @@ export function useDevelopments() {
       cleanData.updated_at = new Date().toISOString()
 
       const { data: updatedData, error } = await supabase
-        .from('developments').update(cleanData).eq('id', id).select('*, company:companies(*)').single()
+        .from('developments').update(cleanData).eq('id', id).select(`${DEVELOPMENT_COLUMNS}, company:companies(${COMPANY_JOIN_COLUMNS})`).single()
       if (error) throw error
       return { id, updatedData }
     },

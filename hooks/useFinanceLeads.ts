@@ -32,21 +32,48 @@ function mapFinanceLeadRow(f: any): FinanceLead {
   }
 }
 
+// Explicit columns for borrowers table
+const BORROWER_COLUMNS = [
+  'id', 'full_name', 'first_name', 'last_name', 'email', 'phone',
+  'finance_type', 'loan_amount', 'loan_amount_display',
+  'required_by_date', 'message',
+  'status', 'notes', 'assigned_agent',
+  'company_id', 'company',
+  'date_added', 'created_at', 'updated_at',
+].join(', ')
+
 async function fetchFinanceLeads(): Promise<FinanceLead[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = createClient()
   if (!supabase) return []
 
-  const { data, error } = await supabase
-    .from('borrowers')
-    .select('*')
-    .order('created_at', { ascending: false })
+  let allBorrowers: any[] = []
+  let from = 0
+  const batchSize = 50
+  let hasMore = true
 
-  if (error) {
-    console.error('[useFinanceLeads] Fetch error:', error.message)
-    throw new Error(`Failed to fetch borrowers: ${error.message}`)
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('borrowers')
+      .select(BORROWER_COLUMNS)
+      .order('created_at', { ascending: false })
+      .range(from, from + batchSize - 1)
+
+    if (error) {
+      console.error('[useFinanceLeads] Fetch error:', error.message)
+      throw new Error(`Failed to fetch borrowers: ${error.message}`)
+    }
+    if (data && data.length > 0) {
+      allBorrowers = [...allBorrowers, ...data]
+      from += batchSize
+      hasMore = data.length === batchSize
+    } else {
+      hasMore = false
+    }
   }
-  return (data || []).map(mapFinanceLeadRow)
+
+  console.log('[useFinanceLeads] Fetched borrowers:', allBorrowers.length)
+  return allBorrowers.map(mapFinanceLeadRow)
 }
 
 export function useFinanceLeads() {

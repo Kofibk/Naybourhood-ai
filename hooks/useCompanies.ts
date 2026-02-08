@@ -13,23 +13,50 @@ function mapCompanyRow(c: any): Company {
   }
 }
 
+// Explicit columns for companies table
+const COMPANY_COLUMNS = [
+  'id', 'name', 'type', 'status',
+  'contact_name', 'contact_email', 'contact_phone', 'website',
+  'subscription_status', 'subscription_tier', 'subscription_price',
+  'billing_cycle', 'next_billing_date',
+  'stripe_customer_id', 'stripe_subscription_id',
+  'enabled_features',
+  'created_at', 'updated_at',
+].join(', ')
+
 async function fetchCompanies(): Promise<Company[]> {
   if (!isSupabaseConfigured()) return []
 
   const supabase = createClient()
   if (!supabase) return []
 
-  const { data, error } = await supabase
-    .from('companies')
-    .select('*')
-    .order('name', { ascending: true })
+  let allCompanies: any[] = []
+  let from = 0
+  const batchSize = 50
+  let hasMore = true
 
-  if (error) {
-    console.error('[useCompanies] Fetch error:', error.message)
-    throw new Error(`Failed to fetch companies: ${error.message}`)
+  while (hasMore) {
+    const { data, error } = await supabase
+      .from('companies')
+      .select(COMPANY_COLUMNS)
+      .order('name', { ascending: true })
+      .range(from, from + batchSize - 1)
+
+    if (error) {
+      console.error('[useCompanies] Fetch error:', error.message)
+      throw new Error(`Failed to fetch companies: ${error.message}`)
+    }
+    if (data && data.length > 0) {
+      allCompanies = [...allCompanies, ...data]
+      from += batchSize
+      hasMore = data.length === batchSize
+    } else {
+      hasMore = false
+    }
   }
 
-  return (data || []).map(mapCompanyRow)
+  console.log('[useCompanies] Fetched companies:', allCompanies.length)
+  return allCompanies.map(mapCompanyRow)
 }
 
 export function useCompanies() {

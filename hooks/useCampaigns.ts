@@ -22,6 +22,14 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   const supabase = createClient()
   if (!supabase) return []
 
+  // Explicit columns for campaigns table (ad-level rows)
+  const CAMPAIGN_COLUMNS = [
+    'id', 'campaign_name', 'ad_name', 'ad_set_name',
+    'platform', 'delivery_status', 'status',
+    'total_spent', 'number_of_leads', 'impressions', 'link_clicks', 'clicks', 'reach', 'ctr',
+    'date', 'company_id', 'development_id', 'development_name',
+  ].join(', ')
+
   // Fetch all with pagination (data is at ad-level)
   let allCampaigns: any[] = []
   let from = 0
@@ -31,7 +39,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   while (hasMore) {
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*')
+      .select(CAMPAIGN_COLUMNS)
       .range(from, from + batchSize - 1)
 
     if (error) {
@@ -46,6 +54,8 @@ async function fetchCampaigns(): Promise<Campaign[]> {
       hasMore = false
     }
   }
+
+  console.log('[useCampaigns] Fetched campaign rows:', allCampaigns.length)
 
   // Aggregate ad-level data by campaign_name
   const campaignAggregates = new Map<string, {
