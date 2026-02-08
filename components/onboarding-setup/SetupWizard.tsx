@@ -58,7 +58,7 @@ export function SetupWizard() {
       if (nextIndex >= ONBOARDING_STEPS.length) {
         await markOnboardingComplete()
         toast.success('Setup complete!')
-        router.push(getDashboardPath(userType))
+        router.push('/select-plan')
       } else {
         setCurrentStep(nextIndex)
       }

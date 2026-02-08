@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Logo } from '@/components/Logo'
 import { PlanCard } from '@/components/billing/PlanCard'
 import { PLAN_CARDS, BOOKING_URL } from '@/types/billing'
 import { useStripeStatus } from '@/hooks/useStripeStatus'
+import { useSetupWizard } from '@/hooks/useSetupWizard'
+import { getDashboardPath } from '@/lib/onboarding'
 import { QueryProvider } from '@/contexts/QueryProvider'
 import { Toaster, toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
@@ -13,8 +15,19 @@ import { Loader2 } from 'lucide-react'
 function SelectPlanContent() {
   const [loadingTier, setLoadingTier] = useState<string | null>(null)
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { data: stripeStatus, isLoading: checking } = useStripeStatus()
+  const { userType } = useSetupWizard()
   const stripeEnabled = stripeStatus?.enabled ?? false
+  const dashboardPath = getDashboardPath(userType)
+
+  // Handle Stripe checkout success redirect
+  useEffect(() => {
+    if (searchParams.get('checkout') === 'success') {
+      toast.success('Payment successful! Welcome aboard.')
+      router.push(dashboardPath)
+    }
+  }, [searchParams, router, dashboardPath])
 
   const handleSelect = async (tier: string) => {
     if (!stripeEnabled) {
@@ -99,7 +112,7 @@ function SelectPlanContent() {
 
         <div className="text-center">
           <button
-            onClick={() => router.push('/onboarding/setup')}
+            onClick={() => router.push(dashboardPath)}
             className="text-sm text-white/50 hover:text-white/80 underline underline-offset-4"
           >
             Skip for now
@@ -114,7 +127,15 @@ export default function SelectPlanPage() {
   return (
     <QueryProvider>
       <Toaster position="top-center" richColors />
-      <SelectPlanContent />
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-[#34D399]" />
+          </div>
+        }
+      >
+        <SelectPlanContent />
+      </Suspense>
     </QueryProvider>
   )
 }

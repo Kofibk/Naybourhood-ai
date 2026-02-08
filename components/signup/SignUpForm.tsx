@@ -58,7 +58,7 @@ export function SignUpForm({ onSuccess }: SignUpFormProps) {
 
       toast.success('Account created! Redirecting...')
       onSuccess?.()
-      router.push('/select-plan')
+      router.push('/onboarding/setup')
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Sign up failed'
