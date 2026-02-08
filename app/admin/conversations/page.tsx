@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { useData } from '@/contexts/DataContext'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useLeads } from '@/hooks/useLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import { ConversationsView } from '@/components/ConversationsView'
@@ -13,7 +13,7 @@ import { Users, Building } from 'lucide-react'
 export default function AdminConversationsPage() {
   const { leads, isLoading: leadsLoading } = useLeads()
   const { companies } = useCompanies()
-  const { financeLeads, isLoading: dataLoading } = useData()
+  const { financeLeads, isLoading: dataLoading } = useFinanceLeads()
   const isLoading = leadsLoading || dataLoading
   const [activeTab, setActiveTab] = useState<'buyers' | 'borrowers'>('buyers')
   const [companyFilter, setCompanyFilter] = useState<string>('all')

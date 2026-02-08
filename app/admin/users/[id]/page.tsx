@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useData } from '@/contexts/DataContext'
+import { useUsers } from '@/hooks/useUsers'
 import { useCompanies } from '@/hooks/useCompanies'
 import { useAuth } from '@/contexts/AuthContext'
 import { INTERNAL_ROLES, CLIENT_ROLES, type UserRole, type AppUser } from '@/types'
@@ -235,7 +235,7 @@ export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { companies } = useCompanies()
-  const { users, isLoading, refreshData } = useData()
+  const { users, isLoading, refreshUsers } = useUsers()
   const { user: currentUser } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
@@ -284,7 +284,7 @@ export default function UserDetailPage() {
       }
 
       setMessage({ type: 'success', text: 'User updated successfully!' })
-      refreshData()
+      refreshUsers()
     } catch (e) {
       setMessage({
         type: 'error',
@@ -393,7 +393,7 @@ export default function UserDetailPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to Users
         </Link>
-        <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
+        <Button variant="outline" size="sm" onClick={() => refreshUsers()} disabled={isLoading}>
           <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
           Refresh
         </Button>

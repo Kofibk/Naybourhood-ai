@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
 import { useLeads } from '@/hooks/useLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
@@ -93,7 +93,7 @@ function AnimatedNumber({
 export default function AdminDashboard() {
   const { leads, isLoading: leadsLoading } = useLeads()
   const { companies } = useCompanies()
-  const { campaigns, isLoading: dataLoading, isSyncing, error, refreshData } = useData()
+  const { campaigns, isLoading: dataLoading, error, refreshCampaigns } = useCampaigns()
   const isLoading = leadsLoading || dataLoading
   const [user, setUser] = useState<{ name?: string }>({})
   const { markInteractive } = useRenderTiming('AdminDashboard')
@@ -309,13 +309,13 @@ export default function AdminDashboard() {
             variant="outline"
             size="sm"
             className="text-xs"
-            onClick={() => refreshData()}
-            disabled={isLoading || isSyncing}
+            onClick={() => refreshCampaigns()}
+            disabled={isLoading}
           >
             <RefreshCw
-              className={`h-3.5 w-3.5 mr-1.5 ${isLoading || isSyncing ? 'animate-spin' : ''}`}
+              className={`h-3.5 w-3.5 mr-1.5 ${isLoading ? 'animate-spin' : ''}`}
             />
-            {isLoading ? 'Loading...' : isSyncing ? 'Syncing...' : 'Sync'}
+            {isLoading ? 'Loading...' : 'Sync'}
           </Button>
           <Button variant="outline" size="sm" className="text-xs">
             <Upload className="h-3.5 w-3.5 mr-1.5" />

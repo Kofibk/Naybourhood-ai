@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import { formatPriceShort } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
@@ -158,7 +158,7 @@ const generateId = () => Math.random().toString(36).substring(2, 9)
 export default function FinanceLeadsPage() {
   const router = useRouter()
   const { companies } = useCompanies()
-  const { financeLeads, isLoading, refreshData, updateFinanceLead } = useData()
+  const { financeLeads, isLoading, refreshFinanceLeads, updateFinanceLead } = useFinanceLeads()
 
   // Get broker companies only
   const brokerCompanies = useMemo(() => {
@@ -560,7 +560,7 @@ export default function FinanceLeadsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refreshData()}
+            onClick={() => refreshFinanceLeads()}
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />

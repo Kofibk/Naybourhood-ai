@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { useData } from '@/contexts/DataContext'
+import { useUsers } from '@/hooks/useUsers'
 import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { ConversationThread } from '@/components/ConversationThread'
@@ -52,7 +52,7 @@ export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { leads, isLoading: leadsLoading, updateLead, refreshLeads } = useLeads()
-  const { users } = useData()
+  const { users } = useUsers()
   const isLoading = leadsLoading
   const refreshData = refreshLeads
 

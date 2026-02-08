@@ -3,13 +3,16 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
+import { useCampaigns } from '@/hooks/useCampaigns'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Sparkles, TrendingUp, Users, Target, Lightbulb, CheckCircle } from 'lucide-react'
 
 export default function InsightsPage() {
-  const { financeLeads, campaigns, isLoading } = useData()
+  const { financeLeads, isLoading: financeLoading } = useFinanceLeads()
+  const { campaigns, isLoading: campaignsLoading } = useCampaigns()
+  const isLoading = financeLoading || campaignsLoading
   const { user } = useAuth()
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [isReady, setIsReady] = useState(false)

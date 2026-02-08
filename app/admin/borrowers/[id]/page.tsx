@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
@@ -34,7 +34,7 @@ export default function FinanceLeadDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { companies } = useCompanies()
-  const { financeLeads, isLoading, updateFinanceLead } = useData()
+  const { financeLeads, isLoading, updateFinanceLead } = useFinanceLeads()
 
   // Get broker companies for assignment
   const brokerCompanies = useMemo(() => {

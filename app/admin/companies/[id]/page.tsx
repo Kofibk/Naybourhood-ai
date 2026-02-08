@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useLeads } from '@/hooks/useLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import type { AppUser } from '@/types'
@@ -35,7 +36,9 @@ export default function CompanyDetailPage() {
   // Use useLeads for leads, DataContext for everything else
   const { leads: allLeads } = useLeads()
   const { companies } = useCompanies()
-  const { campaigns: allCampaigns, financeLeads: allBorrowers, isLoading: dataLoading } = useData()
+  const { campaigns: allCampaigns, isLoading: campaignsLoading } = useCampaigns()
+  const { financeLeads: allBorrowers, isLoading: borrowersLoading } = useFinanceLeads()
+  const dataLoading = campaignsLoading || borrowersLoading
   
   const [companyUsers, setCompanyUsers] = useState<AppUser[]>([])
   const [isLoadingUsers, setIsLoadingUsers] = useState(true)

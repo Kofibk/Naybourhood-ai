@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { useData } from '@/contexts/DataContext'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
@@ -181,7 +181,7 @@ export default function BrokerBorrowerDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user } = useAuth()
-  const { financeLeads, isLoading, updateFinanceLead } = useData()
+  const { financeLeads, isLoading, updateFinanceLead } = useFinanceLeads()
 
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [isReady, setIsReady] = useState(false)

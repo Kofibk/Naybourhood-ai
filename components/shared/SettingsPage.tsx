@@ -6,7 +6,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useDevelopments } from '@/hooks/useDevelopments'
+import { useUsers } from '@/hooks/useUsers'
 import { useLeads } from '@/hooks/useLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
@@ -55,7 +57,8 @@ interface SettingsPageProps {
 function AdminSystemStats() {
   const { leads, isLoading: leadsLoading } = useLeads()
   const { companies } = useCompanies()
-  const { campaigns, developments, refreshData } = useData()
+  const { campaigns, refreshCampaigns } = useCampaigns()
+  const { developments } = useDevelopments()
   const isLoading = leadsLoading
 
   const systemStats = useMemo(() => {
@@ -259,7 +262,7 @@ function AdminSystemStats() {
             <Badge variant="success">Active</Badge>
           </div>
           <button
-            onClick={() => refreshData()}
+            onClick={() => refreshCampaigns()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
@@ -392,7 +395,7 @@ function AINotificationsCard() {
 
 function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broker' }) {
   const { user, refreshUser } = useAuth()
-  const { users, refreshData: refreshUsers } = useData()
+  const { users, refreshUsers } = useUsers()
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
