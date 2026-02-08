@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { useUsers } from '@/hooks/useUsers'
 import { useCompanies } from '@/hooks/useCompanies'
 import { useAuth } from '@/contexts/AuthContext'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { INTERNAL_ROLES, CLIENT_ROLES, JOB_ROLES, type UserRole, type JobRole } from '@/types'
 import {
   Plus,
@@ -60,6 +61,7 @@ export default function UsersPage() {
     is_internal: false,
   })
   const [isSending, setIsSending] = useState(false)
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   // Check if current user is super admin
@@ -188,8 +190,6 @@ export default function UsersPage() {
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) return
-
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'DELETE',
@@ -210,6 +210,8 @@ export default function UsersPage() {
         type: 'error',
         text: e instanceof Error ? e.message : 'Failed to delete user'
       })
+    } finally {
+      setDeleteUserId(null)
     }
   }
 
@@ -519,7 +521,7 @@ export default function UsersPage() {
                               variant="ghost"
                               size="icon"
                               className="h-8 w-8 text-destructive"
-                              onClick={() => handleDeleteUser(user.id)}
+                              onClick={() => setDeleteUserId(user.id)}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -708,6 +710,17 @@ export default function UsersPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmDialog
+        open={!!deleteUserId}
+        onOpenChange={(open) => !open && setDeleteUserId(null)}
+        title="Delete User"
+        description="Are you sure you want to delete this user? This action cannot be undone."
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={() => { if (deleteUserId) return handleDeleteUser(deleteUserId) }}
+      />
     </div>
   )
 }

@@ -1,16 +1,15 @@
 'use client'
 
-import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { PageHeader } from '@/components/ui/page-header'
+import { ScoreIndicator } from '@/components/ui/score-indicator'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import {
-  ScoreCard,
   ClassificationBadge,
   PriorityBadge,
 } from '@/components/leads/detail/LeadDisplayComponents'
 import {
-  ArrowLeft,
   Phone,
   Mail,
   Globe,
@@ -47,27 +46,22 @@ export function LeadHeader({
   onRescore,
   onArchive,
 }: LeadHeaderProps) {
+  const leadName = lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
+
   return (
     <div className="space-y-4">
-      {/* Navigation */}
-      <div className="flex justify-between items-center">
-        <Link href="/admin/leads" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4" />
-          Back to Leads
-        </Link>
-        <div className="flex gap-2">
+      <PageHeader
+        title={leadName}
+        backHref="/admin/leads"
+        backLabel="Back to Leads"
+        actions={
           <Button variant="outline" size="sm" onClick={onArchive}>
             <Archive className="w-4 h-4 mr-1" /> Archive
           </Button>
-        </div>
-      </div>
-
-      {/* Lead Name & Contact */}
-      <div>
-        <h1 className="text-3xl font-bold">
-          {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
-        </h1>
-        <div className="flex flex-wrap gap-4 text-muted-foreground mt-1">
+        }
+      >
+        {/* Contact Info */}
+        <div className="flex flex-wrap gap-4 text-muted-foreground">
           {lead.email && (
             <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-foreground">
               <Mail className="w-4 h-4" /> {lead.email}
@@ -84,25 +78,17 @@ export function LeadHeader({
             </span>
           )}
         </div>
-      </div>
+      </PageHeader>
 
       {/* Score Cards Row */}
       <div className="flex gap-4 items-start flex-wrap">
-        <ScoreCard
-          label="Quality Score"
-          score={qualityScore}
-          explanation="How qualified is this lead?"
-        />
-        <ScoreCard
-          label="Intent Score"
-          score={intentScore}
-          explanation="How ready to buy?"
-        />
-        <ScoreCard
+        <ScoreIndicator value={qualityScore} label="Quality Score" size="lg" />
+        <ScoreIndicator value={intentScore} label="Intent Score" size="lg" />
+        <ScoreIndicator
+          value={confidenceScore !== null ? Math.round(confidenceScore) : null}
+          max={100}
           label="Confidence"
-          score={confidenceScore !== null ? Math.round(confidenceScore) : null}
-          maxScore={100}
-          explanation="AI certainty level"
+          size="lg"
         />
         <ClassificationBadge classification={classification} showExplanation />
       </div>

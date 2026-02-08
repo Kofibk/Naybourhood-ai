@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Lead, LeadStatus } from '@/types'
-import { StatusBadge, ClassificationBadge, PaymentBadge } from '@/components/badges'
-import { ScoreDisplay } from '@/components/scoring'
+import { StatusBadge } from '@/components/ui/status-badge'
+import { ScoreIndicator } from '@/components/ui/score-indicator'
+import { ClassificationBadge, PaymentBadge } from '@/components/badges'
 import {
   ArrowLeft,
   Edit,
@@ -154,13 +155,16 @@ export function LeadDetail({
 
             {/* Score Display */}
             <div className="flex flex-col items-end gap-2">
-              <ScoreDisplay
-                qualityScore={lead.qualityScore}
-                intentScore={lead.intentScore}
-                classification={lead.classification}
-                confidence={lead.aiConfidence}
-                layout="horizontal"
-              />
+              <div className="flex items-center gap-4">
+                <ScoreIndicator value={lead.qualityScore} label="Quality" size="md" />
+                <ScoreIndicator value={lead.intentScore} label="Intent" size="md" />
+                <ClassificationBadge classification={lead.classification} />
+                {lead.aiConfidence !== undefined && (
+                  <span className="text-xs text-muted-foreground">
+                    {Math.round((lead.aiConfidence ?? 0) * 100)}% conf.
+                  </span>
+                )}
+              </div>
               <Button
                 variant="ghost"
                 size="sm"

@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { EmailComposer } from '@/components/EmailComposer'
 import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
+import { LoadingState } from '@/components/ui/loading-state'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import {
@@ -325,11 +326,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
 
   // Loading states
   if (!isReady) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    )
+    return <LoadingState text="Loading leads..." className="h-64" />
   }
 
   // No company state

@@ -13,6 +13,7 @@ import {
   fetchPriorityActions,
   bulkUpdateLeads,
 } from '@/lib/queries/leads'
+import { PageHeader } from '@/components/ui/page-header'
 import { Plus, LayoutGrid, LayoutList } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -127,38 +128,36 @@ export default function LeadsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">Leads</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage and track your lead pipeline
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex items-center border rounded-md">
-            <Button
-              variant={viewMode === 'table' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8 rounded-r-none"
-              onClick={() => setViewMode('table')}
-            >
-              <LayoutList className="h-4 w-4" />
+      <PageHeader
+        title="Leads"
+        description="Manage and track your lead pipeline"
+        actions={
+          <>
+            <div className="flex items-center border rounded-md">
+              <Button
+                variant={viewMode === 'table' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 rounded-r-none"
+                onClick={() => setViewMode('table')}
+              >
+                <LayoutList className="h-4 w-4" />
+              </Button>
+              <Button
+                variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
+                size="sm"
+                className="h-8 rounded-l-none"
+                onClick={() => setViewMode('grid')}
+              >
+                <LayoutGrid className="h-4 w-4" />
+              </Button>
+            </div>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Lead
             </Button>
-            <Button
-              variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-              size="sm"
-              className="h-8 rounded-l-none"
-              onClick={() => setViewMode('grid')}
-            >
-              <LayoutGrid className="h-4 w-4" />
-            </Button>
-          </div>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Lead
-          </Button>
-        </div>
-      </div>
+          </>
+        }
+      />
 
       {/* Pipeline Overview */}
       {pipelineStats && (

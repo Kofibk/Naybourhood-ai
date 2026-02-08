@@ -7,6 +7,9 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
+import { EmptyState } from '@/components/ui/empty-state'
+import { LoadingState } from '@/components/ui/loading-state'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Phone, Mail, Eye, FileText, Flame, Heart, Users } from 'lucide-react'
 
 type UserType = 'agent' | 'broker'
@@ -88,12 +91,12 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
           <p className="text-sm text-muted-foreground">{cfg.subtitle}</p>
         </div>
         <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Your account is not linked to a company.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Contact an administrator to assign you to a company.
-            </p>
+          <CardContent>
+            <EmptyState
+              icon={Users}
+              title="No company linked"
+              description="Your account is not linked to a company. Contact an administrator to assign you to a company."
+            />
           </CardContent>
         </Card>
       </div>
@@ -119,26 +122,30 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select
-          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[150px]"
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">All Status</option>
-          {cfg.statusOptions.map(s => (
-            <option key={s.value} value={s.value}>{s.label}</option>
-          ))}
-        </select>
+        <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            {cfg.statusOptions.map(s => (
+              <SelectItem key={s.value} value={s.value}>{s.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            Loading...
+          <div className="col-span-full">
+            <LoadingState text="Loading..." />
           </div>
         ) : filteredLeads.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
-            {myLeads.length === 0 ? cfg.emptyMessage : cfg.noMatchMessage}
+          <div className="col-span-full">
+            <EmptyState
+              icon={Users}
+              title={myLeads.length === 0 ? cfg.emptyMessage : cfg.noMatchMessage}
+            />
           </div>
         ) : (
           filteredLeads.map((lead) => (

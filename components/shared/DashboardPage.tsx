@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { UserDashboard } from '@/components/UserDashboard'
+import { LoadingState } from '@/components/ui/loading-state'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
@@ -68,11 +69,7 @@ export function DashboardPage({ userType }: DashboardPageProps) {
   }, [user, userType])
 
   if (!isReady) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
-    )
+    return <LoadingState text="Loading dashboard..." className="h-64" />
   }
 
   return <UserDashboard userType={userType} userName={userName} companyId={companyId} />
