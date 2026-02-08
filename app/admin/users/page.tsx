@@ -7,7 +7,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useUsers } from '@/hooks/useUsers'
+import { useCompanies } from '@/hooks/useCompanies'
 import { useAuth } from '@/contexts/AuthContext'
 import { INTERNAL_ROLES, CLIENT_ROLES, JOB_ROLES, type UserRole, type JobRole } from '@/types'
 import {
@@ -42,7 +43,8 @@ interface InviteUser {
 }
 
 export default function UsersPage() {
-  const { users, companies, isLoading, refreshData } = useData()
+  const { companies } = useCompanies()
+  const { users, isLoading, refreshUsers } = useUsers()
   const { user: currentUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
@@ -174,7 +176,7 @@ export default function UsersPage() {
       setIsModalOpen(false)
       setInviteData({ name: '', email: '', role: 'developer', job_role: undefined, company_id: '', is_internal: false })
 
-      refreshData()
+      refreshUsers()
     } catch (e) {
       setMessage({
         type: 'error',
@@ -202,7 +204,7 @@ export default function UsersPage() {
       }
 
       setMessage({ type: 'success', text: 'User deleted successfully!' })
-      refreshData()
+      refreshUsers()
     } catch (e) {
       setMessage({
         type: 'error',
@@ -299,7 +301,7 @@ export default function UsersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={() => refreshUsers()} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>

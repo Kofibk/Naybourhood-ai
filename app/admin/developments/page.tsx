@@ -7,7 +7,8 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useDevelopments } from '@/hooks/useDevelopments'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatPriceRange } from '@/lib/utils'
 import {
   Plus,
@@ -37,7 +38,8 @@ interface NewDevelopment {
 
 export default function DevelopmentsPage() {
   const router = useRouter()
-  const { developments, companies, isLoading, refreshData, createDevelopment } = useData()
+  const { companies } = useCompanies()
+  const { developments, isLoading, refreshDevelopments, createDevelopment } = useDevelopments()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
@@ -176,7 +178,7 @@ export default function DevelopmentsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" size="sm" onClick={() => refreshData()} disabled={isLoading}>
+          <Button variant="outline" size="sm" onClick={() => refreshDevelopments()} disabled={isLoading}>
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>

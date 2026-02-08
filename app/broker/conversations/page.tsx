@@ -1,13 +1,13 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { useData } from '@/contexts/DataContext'
+import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { ConversationsView, ConversationsEmptyCompany } from '@/components/ConversationsView'
 
 export default function BrokerConversationsPage() {
-  const { financeLeads, isLoading } = useData()
+  const { financeLeads, isLoading } = useFinanceLeads()
   const { user } = useAuth()
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [isReady, setIsReady] = useState(false)

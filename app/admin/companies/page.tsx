@@ -6,7 +6,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency } from '@/lib/utils'
 import { useRenderTiming } from '@/lib/performance'
 import { Company } from '@/types'
@@ -44,7 +46,9 @@ interface EditingCompany {
 
 export default function CompaniesPage() {
   const router = useRouter()
-  const { companies, leads, campaigns, isLoading, createCompany, updateCompany, deleteCompany } = useData()
+  const { leads } = useLeads()
+  const { companies, createCompany, updateCompany, deleteCompany } = useCompanies()
+  const { campaigns, isLoading } = useCampaigns()
   const { markInteractive } = useRenderTiming('CompaniesPage')
   const hasMarkedInteractive = useRef(false)
 

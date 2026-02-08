@@ -7,7 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useDevelopments } from '@/hooks/useDevelopments'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency, formatPriceRange } from '@/lib/utils'
 import type { Development } from '@/types'
 import {
@@ -36,7 +39,11 @@ import {
 export default function DevelopmentDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { developments, campaigns, leads, companies, isLoading, updateDevelopment } = useData()
+  const { leads } = useLeads()
+  const { companies } = useCompanies()
+  const { developments, isLoading: developmentsLoading, updateDevelopment } = useDevelopments()
+  const { campaigns, isLoading: campaignsLoading } = useCampaigns()
+  const isLoading = developmentsLoading || campaignsLoading
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [editData, setEditData] = useState<Partial<Development>>({})

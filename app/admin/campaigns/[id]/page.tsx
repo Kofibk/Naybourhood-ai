@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { createClient } from '@/lib/supabase/client'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
 import { formatCurrency } from '@/lib/utils'
 import type { Campaign, Buyer } from '@/types'
 import {
@@ -33,7 +33,7 @@ import {
 export default function CampaignDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { updateCampaign } = useData()
+  const { updateCampaign } = useCampaigns()
   const [campaign, setCampaign] = useState<Campaign | null>(null)
   const [leads, setLeads] = useState<Buyer[]>([])
   const [isLoading, setIsLoading] = useState(true)

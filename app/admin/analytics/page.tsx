@@ -4,7 +4,10 @@ import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useDevelopments } from '@/hooks/useDevelopments'
+import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency } from '@/lib/utils'
 import {
   TrendingUp,
@@ -25,7 +28,12 @@ import {
 } from 'lucide-react'
 
 export default function AnalyticsPage() {
-  const { leads, campaigns, companies, developments, isLoading, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { companies } = useCompanies()
+  const { campaigns, isLoading: campaignsLoading, refreshCampaigns } = useCampaigns()
+  const { developments, isLoading: developmentsLoading } = useDevelopments()
+  const dataLoading = campaignsLoading || developmentsLoading
+  const isLoading = leadsLoading || dataLoading
 
   // Calculate comprehensive analytics
   const analytics = useMemo(() => {
@@ -159,7 +167,7 @@ export default function AnalyticsPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refreshData()}
+            onClick={() => refreshCampaigns()}
             disabled={isLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />

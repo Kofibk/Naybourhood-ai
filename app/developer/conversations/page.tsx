@@ -1,12 +1,12 @@
 'use client'
 
 import { useMemo } from 'react'
-import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { ConversationsView, ConversationsEmptyCompany } from '@/components/ConversationsView'
 
 export default function DeveloperConversationsPage() {
-  const { leads, isLoading } = useData()
+  const { leads, isLoading } = useLeads()
   const { user } = useAuth()
 
   // Filter leads by company_id

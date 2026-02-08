@@ -5,613 +5,59 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Textarea } from '@/components/ui/textarea'
-import { useData } from '@/contexts/DataContext'
+import { useUsers } from '@/hooks/useUsers'
+import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
+import {
+  parseBudgetRange,
+  formatBudgetValue,
+  formatDate,
+} from '@/lib/leadUtils'
+import {
+  DataRow,
+} from '@/components/leads/detail/LeadDisplayComponents'
+import {
+  EditableTextField,
+  EditableBooleanField,
+  EditableSelectField,
+  EditableConnectionStatus,
+} from '@/components/leads/detail/LeadEditableFields'
+import { LeadHeader } from '@/components/leads/detail/LeadHeader'
+import { LeadAIInsights } from '@/components/leads/detail/LeadAIInsights'
+import { LeadSidebar } from '@/components/leads/detail/LeadSidebar'
 import {
   ArrowLeft,
   Phone,
   Mail,
   MessageCircle,
   Calendar,
-  Edit,
-  Archive,
-  RefreshCw,
   Bot,
-  Target,
-  Lightbulb,
-  AlertTriangle,
   MessageSquare,
   User,
-  BarChart3,
   Building,
-  ArrowRight,
-  CheckCircle,
-  XCircle,
-  ChevronDown,
-  ChevronUp,
   Clock,
-  Zap,
   DollarSign,
   MapPin,
-  FileText,
   Hash,
   Globe,
   Briefcase,
   Home,
 } from 'lucide-react'
 
-// Status options
-const STATUS_OPTIONS = [
-  'Contact Pending',
-  'Follow Up',
-  'Viewing Booked',
-  'Negotiating',
-  'Reserved',
-  'Exchanged',
-  'Completed',
-  'Not Proceeding',
-  'Disqualified',
-]
-
-// Parse budget range string to extract min/max values
-// Handles formats like: "£1 - £2 Million", "£1M - £2M", "£500K - £1M", "£12000K"
-function parseBudgetRange(budgetString: string | null | undefined): { min: number | null; max: number | null } {
-  if (!budgetString) return { min: null, max: null }
-
-  const str = budgetString.toString().toLowerCase()
-
-  // Helper to convert value with suffix to number
-  const parseValue = (val: string): number | null => {
-    if (!val) return null
-    // Remove £ and whitespace
-    val = val.replace(/[£,\s]/g, '')
-
-    // Handle different formats
-    if (val.includes('million') || val.endsWith('m')) {
-      const num = parseFloat(val.replace(/million|m/gi, ''))
-      return isNaN(num) ? null : num * 1000000
-    }
-    if (val.endsWith('k')) {
-      const num = parseFloat(val.replace(/k/gi, ''))
-      return isNaN(num) ? null : num * 1000
-    }
-    // Plain number
-    const num = parseFloat(val)
-    return isNaN(num) ? null : num
-  }
-
-  // Try to find range pattern (e.g., "1 - 2 million", "1m - 2m")
-  const rangeMatch = str.match(/([£\d.,]+[km]?)\s*[-–to]+\s*([£\d.,]+)\s*(million|m|k)?/i)
-  if (rangeMatch) {
-    const suffix = rangeMatch[3] || ''
-    let minStr = rangeMatch[1] + (rangeMatch[1].match(/[km]$/i) ? '' : suffix)
-    let maxStr = rangeMatch[2] + suffix
-    return {
-      min: parseValue(minStr),
-      max: parseValue(maxStr)
-    }
-  }
-
-  // Single value (e.g., "£2M", "£500K")
-  const singleValue = parseValue(str)
-  if (singleValue) {
-    return { min: singleValue, max: singleValue }
-  }
-
-  return { min: null, max: null }
-}
-
-// Format budget value for display (e.g., 12000000 -> "£12M", 500000 -> "£500K")
-function formatBudgetValue(value: number | null | undefined): string {
-  if (value === null || value === undefined) return '-'
-
-  if (value >= 1000000) {
-    const millions = value / 1000000
-    return `£${millions % 1 === 0 ? millions.toFixed(0) : millions.toFixed(1)}M`
-  }
-  if (value >= 1000) {
-    const thousands = value / 1000
-    return `£${thousands % 1 === 0 ? thousands.toFixed(0) : thousands.toFixed(0)}K`
-  }
-  return `£${value.toLocaleString()}`
-}
-
-// Editable Text Field Component
-function EditableTextField({
-  label,
-  value,
-  field,
-  onSave,
-  icon: Icon,
-  type = 'text'
-}: {
-  label: string
-  value: string | number | null | undefined
-  field: string
-  onSave: (field: string, value: string) => void
-  icon?: any
-  type?: 'text' | 'email' | 'tel' | 'number'
-}) {
-  const [editing, setEditing] = useState(false)
-  const [tempValue, setTempValue] = useState(String(value || ''))
-
-  const handleSave = () => {
-    onSave(field, tempValue)
-    setEditing(false)
-  }
-
-  const handleCancel = () => {
-    setTempValue(String(value || ''))
-    setEditing(false)
-  }
-
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 group gap-4">
-      <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
-        {Icon && <Icon className="w-4 h-4" />}
-        {label}
-      </span>
-      {editing ? (
-        <div className="flex items-center gap-2 flex-1 justify-end">
-          <input
-            type={type}
-            value={tempValue}
-            onChange={(e) => setTempValue(e.target.value)}
-            className="text-sm bg-background border border-input rounded-md px-2 py-1 w-full max-w-[200px]"
-            autoFocus
-          />
-          <Button size="sm" variant="ghost" onClick={handleSave}><CheckCircle className="h-4 w-4 text-green-600" /></Button>
-          <Button size="sm" variant="ghost" onClick={handleCancel}><XCircle className="h-4 w-4 text-red-400" /></Button>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2 flex-1 justify-end min-w-0">
-          <span className="text-sm font-medium text-right break-words">{value || '-'}</span>
-          <Button size="sm" variant="ghost" className="opacity-0 group-hover:opacity-100 h-6 w-6 p-0 flex-shrink-0" onClick={() => setEditing(true)}>
-            <Edit className="h-3 w-3" />
-          </Button>
-        </div>
-      )}
-    </div>
-  )
-}
-
-// Editable Boolean Field Component
-function EditableBooleanField({
-  label,
-  value,
-  field,
-  onSave,
-}: {
-  label: string
-  value: boolean | undefined | null
-  field: string
-  onSave: (field: string, value: boolean) => void
-}) {
-  const isTrue = Boolean(value)
-
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 gap-4">
-      <span className="text-sm text-muted-foreground flex-shrink-0 whitespace-nowrap">{label}</span>
-      <button
-        onClick={() => onSave(field, !isTrue)}
-        className={`flex items-center gap-1 px-2 py-1 rounded text-sm transition-colors flex-shrink-0 ${
-          isTrue
-            ? 'text-green-600 hover:bg-green-50'
-            : 'text-red-400 hover:bg-red-50'
-        }`}
-      >
-        {isTrue ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
-        {isTrue ? 'Yes' : 'No'}
-      </button>
-    </div>
-  )
-}
-
-// Editable Select Field Component
-function EditableSelectField({
-  label,
-  value,
-  field,
-  options,
-  onSave,
-  icon: Icon,
-}: {
-  label: string
-  value: string | undefined | null
-  field: string
-  options: { value: string; label: string }[]
-  onSave: (field: string, value: string) => void
-  icon?: any
-}) {
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 gap-4">
-      <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0 whitespace-nowrap">
-        {Icon && <Icon className="w-4 h-4" />}
-        {label}
-      </span>
-      <select
-        value={value || ''}
-        onChange={(e) => onSave(field, e.target.value)}
-        className="text-sm bg-background border border-input rounded-md px-2 py-1 min-w-0 max-w-[220px]"
-      >
-        <option value="">-</option>
-        {options.map(opt => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
-// Comment type for notes
-interface Comment {
-  id: string
-  text: string
-  author: string
-  timestamp: string
-}
-
-// Notes/Comments Component
-function NotesComments({
-  notes,
-  onSave,
-  userName = 'Admin'
-}: {
-  notes: string | null | undefined
-  onSave: (notes: string) => void
-  userName?: string
-}) {
-  const [newComment, setNewComment] = useState('')
-
-  // Parse existing notes as comments (JSON array) or convert legacy text
-  const parseComments = (): Comment[] => {
-    if (!notes) return []
-    try {
-      const parsed = JSON.parse(notes)
-      if (Array.isArray(parsed)) return parsed
-      // Legacy text format - convert to single comment
-      return [{ id: '1', text: notes, author: 'System', timestamp: new Date().toISOString() }]
-    } catch {
-      // Legacy text format
-      if (notes.trim()) {
-        return [{ id: '1', text: notes, author: 'Imported', timestamp: new Date().toISOString() }]
-      }
-      return []
-    }
-  }
-
-  const comments = parseComments()
-
-  const handleAddComment = () => {
-    if (!newComment.trim()) return
-
-    const newCommentObj: Comment = {
-      id: Date.now().toString(),
-      text: newComment.trim(),
-      author: userName,
-      timestamp: new Date().toISOString()
-    }
-
-    const updatedComments = [...comments, newCommentObj]
-    onSave(JSON.stringify(updatedComments))
-    setNewComment('')
-  }
-
-  const formatTimestamp = (ts: string) => {
-    return new Date(ts).toLocaleString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    })
-  }
-
-  return (
-    <div className="space-y-3">
-      {/* Existing Comments */}
-      <div className="space-y-3 max-h-[400px] overflow-y-auto">
-        {comments.length === 0 ? (
-          <p className="text-sm text-muted-foreground italic py-4 text-center">No comments yet</p>
-        ) : (
-          comments.map((comment) => (
-            <div key={comment.id} className="bg-muted/50 rounded-lg p-3">
-              <div className="flex justify-between items-start mb-1">
-                <span className="text-xs font-medium text-primary">{comment.author}</span>
-                <span className="text-xs text-muted-foreground">{formatTimestamp(comment.timestamp)}</span>
-              </div>
-              <p className="text-sm whitespace-pre-wrap">{comment.text}</p>
-            </div>
-          ))
-        )}
-      </div>
-
-      {/* Add New Comment */}
-      <div className="border-t pt-3">
-        <Textarea
-          value={newComment}
-          onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          rows={3}
-          className="text-sm mb-2"
-        />
-        <div className="flex justify-end">
-          <Button size="sm" onClick={handleAddComment} disabled={!newComment.trim()}>
-            <MessageSquare className="w-4 h-4 mr-1" /> Add Comment
-          </Button>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// Classification colors and labels
-const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string; description: string }> = {
-  'Hot': { bg: 'bg-red-500', text: 'text-white', label: 'Hot', description: 'Quality ≥70 AND Intent ≥70. Ready to buy. Respond within 1 hour.' },
-  'Warm-Qualified': { bg: 'bg-orange-500', text: 'text-white', label: 'Warm (Qualified)', description: 'Quality ≥70, Intent ≥45. Financially ready but needs nurturing.' },
-  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm (Engaged)', description: 'Quality ≥45, Intent ≥70. Highly interested but needs qualification.' },
-  'Nurture': { bg: 'bg-blue-400', text: 'text-white', label: 'Nurture', description: 'Quality 35-69, Intent 35-69. Requires longer-term engagement.' },
-  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold', description: 'Lower scores. May need re-engagement or qualification.' },
-  'Disqualified': { bg: 'bg-gray-600', text: 'text-white', label: 'Disqualified', description: 'Quality <20 OR Intent <20. Not suitable for current inventory.' },
-  'Spam': { bg: 'bg-red-700', text: 'text-white', label: 'Spam', description: 'Detected as spam or fake lead.' },
-}
-
-const PRIORITY_CONFIG: Record<string, { bg: string; label: string; time: string; description: string }> = {
-  'P1': { bg: 'bg-red-100 text-red-800 border-red-300', label: 'P1 - Urgent', time: '< 1 hour', description: 'Hot leads - respond immediately' },
-  'P2': { bg: 'bg-orange-100 text-orange-800 border-orange-300', label: 'P2 - High', time: '< 4 hours', description: 'Warm leads - respond same day' },
-  'P3': { bg: 'bg-yellow-100 text-yellow-800 border-yellow-300', label: 'P3 - Medium', time: '< 24 hours', description: 'Nurture leads - respond within a day' },
-  'P4': { bg: 'bg-gray-100 text-gray-800 border-gray-300', label: 'P4 - Low', time: '48+ hours', description: 'Cold/Disqualified - low priority' },
-}
-
-// Boolean Indicator Component
-function BooleanIndicator({ value, showText = true }: { value: boolean | undefined | null; showText?: boolean }) {
-  return value ? (
-    <span className="text-green-600 flex items-center gap-1">
-      <CheckCircle className="h-4 w-4" /> {showText && 'Yes'}
-    </span>
-  ) : (
-    <span className="text-red-400 flex items-center gap-1">
-      <XCircle className="h-4 w-4" /> {showText && 'No'}
-    </span>
-  )
-}
-
-// Connection Status Options for Broker/Solicitor
-const CONNECTION_STATUS_OPTIONS = [
-  { value: 'yes', label: 'Yes, already has', icon: CheckCircle, color: 'text-green-600' },
-  { value: 'introduced', label: 'Introduction made', icon: CheckCircle, color: 'text-green-600' },
-  { value: 'no', label: "No, doesn't have", icon: XCircle, color: 'text-red-400' },
-  { value: 'unknown', label: 'Unknown', icon: null, color: 'text-muted-foreground' },
-] as const
-
-// Connection Status Display Component
-function ConnectionStatusDisplay({ value }: { value: string | boolean | undefined | null }) {
-  // Handle legacy boolean values
-  if (typeof value === 'boolean') {
-    value = value ? 'yes' : 'unknown'
-  }
-
-  const status = CONNECTION_STATUS_OPTIONS.find(s => s.value === value) || CONNECTION_STATUS_OPTIONS[3]
-  const Icon = status.icon
-
-  return (
-    <span className={`flex items-center gap-1 ${status.color}`}>
-      {Icon ? <Icon className="h-4 w-4" /> : <span className="h-4 w-4 inline-flex items-center justify-center">—</span>}
-      <span className="text-xs">{status.label}</span>
-    </span>
-  )
-}
-
-// Editable Connection Status Component
-function EditableConnectionStatus({
-  value,
-  onChange,
-  label
-}: {
-  value: string | boolean | undefined | null
-  onChange: (newValue: string) => void
-  label: string
-}) {
-  // Handle legacy boolean values
-  const currentValue = typeof value === 'boolean' ? (value ? 'yes' : 'unknown') : (value || 'unknown')
-
-  return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0 gap-4">
-      <span className="text-sm text-muted-foreground flex-shrink-0 whitespace-nowrap">{label}</span>
-      <select
-        value={currentValue}
-        onChange={(e) => onChange(e.target.value)}
-        className="text-sm bg-background border border-input rounded-md px-2 py-1 min-w-0 max-w-[220px]"
-      >
-        {CONNECTION_STATUS_OPTIONS.map(option => (
-          <option key={option.value} value={option.value}>
-            {option.value === 'yes' || option.value === 'introduced' ? '✓ ' : option.value === 'no' ? '✗ ' : '— '}
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  )
-}
-
-// Score Card with Progress Bar
-function ScoreCard({ label, score, maxScore = 100, explanation }: { label: string; score: number | null | undefined; maxScore?: number; explanation?: string }) {
-  // Handle null/undefined scores - show as unscored
-  if (score === null || score === undefined) {
-    return (
-      <div className="border rounded-lg p-4 min-w-[140px] bg-card">
-        <div className="text-sm text-muted-foreground mb-1">{label}</div>
-        <div className="text-3xl font-bold text-muted-foreground">-</div>
-        <div className="w-full h-2 bg-muted rounded-full mt-2" />
-        {explanation && (
-          <p className="text-xs text-muted-foreground mt-2">Scoring...</p>
-        )}
-      </div>
-    )
-  }
-
-  const percentage = (score / maxScore) * 100
-  const getColor = (p: number) => {
-    if (p >= 70) return 'bg-green-500'
-    if (p >= 45) return 'bg-orange-500'
-    return 'bg-gray-400'
-  }
-
-  return (
-    <div className="border rounded-lg p-4 min-w-[140px] bg-card">
-      <div className="text-sm text-muted-foreground mb-1">{label}</div>
-      <div className="text-3xl font-bold">{score}{maxScore !== 100 && <span className="text-lg text-muted-foreground">/{maxScore}</span>}</div>
-      <div className="w-full h-2 bg-muted rounded-full mt-2">
-        <div
-          className={`h-2 rounded-full transition-all ${getColor(percentage)}`}
-          style={{ width: `${Math.min(percentage, 100)}%` }}
-        />
-      </div>
-      {explanation && (
-        <p className="text-xs text-muted-foreground mt-2">{explanation}</p>
-      )}
-    </div>
-  )
-}
-
-// Classification Badge with Explanation
-function ClassificationBadge({ classification, showExplanation = false }: { classification: string; showExplanation?: boolean }) {
-  const config = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Cold']
-
-  return (
-    <div>
-      <span className={`rounded-lg font-medium px-4 py-2 text-lg ${config.bg} ${config.text}`}>
-        {config.label}
-      </span>
-      {showExplanation && (
-        <p className="text-xs text-muted-foreground mt-2 max-w-xs">{config.description}</p>
-      )}
-    </div>
-  )
-}
-
-// Priority Badge with Explanation
-function PriorityBadge({ priority, showExplanation = false }: { priority: string; showExplanation?: boolean }) {
-  const config = PRIORITY_CONFIG[priority] || PRIORITY_CONFIG['P4']
-
-  return (
-    <div>
-      <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border ${config.bg}`}>
-        <Clock className="w-4 h-4" />
-        <span className="font-medium">{config.label}</span>
-        <span className="text-xs opacity-75">({config.time})</span>
-      </div>
-      {showExplanation && (
-        <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
-      )}
-    </div>
-  )
-}
-
-// Payment Badge
-function PaymentBadge({ method }: { method: string | undefined | null }) {
-  if (!method) return <span className="text-muted-foreground">-</span>
-  const isCash = method.toLowerCase() === 'cash'
-  return (
-    <span className={`px-2 py-1 rounded text-xs font-medium ${isCash ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'}`}>
-      {method} {isCash && '✓'}
-    </span>
-  )
-}
-
-// Data Row Component for consistent styling
-function DataRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
-  return (
-    <div className="flex justify-between items-start py-2 border-b border-border last:border-0 gap-4">
-      <span className="text-sm text-muted-foreground flex items-center gap-2 flex-shrink-0">
-        {Icon && <Icon className="w-4 h-4" />}
-        {label}
-      </span>
-      <span className="text-sm font-medium text-right break-words">{value || '-'}</span>
-    </div>
-  )
-}
-
-// Score Breakdown Section
-function ScoreBreakdownSection({
-  title,
-  items,
-  isOpen,
-  onToggle
-}: {
-  title: string
-  items: Array<{ label: string; score: number; maxScore: number; details?: string[] }>
-  isOpen: boolean
-  onToggle: () => void
-}) {
-  const total = items.reduce((sum, item) => sum + item.score, 0)
-  const maxTotal = items.reduce((sum, item) => sum + item.maxScore, 0)
-  const percentage = maxTotal > 0 ? (total / maxTotal) * 100 : 0
-
-  return (
-    <div className="border rounded-lg overflow-hidden">
-      <button
-        onClick={onToggle}
-        className="w-full flex items-center justify-between p-3 bg-muted/50 hover:bg-muted transition-colors text-left"
-      >
-        <div className="flex items-center gap-3">
-          <span className="font-medium">{title}</span>
-          <span className="text-sm text-muted-foreground">{total}/{maxTotal} pts</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="w-20 h-2 bg-muted rounded-full">
-            <div
-              className={`h-2 rounded-full ${percentage >= 70 ? 'bg-green-500' : percentage >= 45 ? 'bg-orange-500' : 'bg-gray-400'}`}
-              style={{ width: `${percentage}%` }}
-            />
-          </div>
-          {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-        </div>
-      </button>
-      {isOpen && (
-        <div className="p-3 space-y-3 bg-card">
-          {items.map((item, i) => (
-            <div key={i} className="space-y-1">
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{item.label}</span>
-                <span className="font-medium">{item.score}/{item.maxScore}</span>
-              </div>
-              <div className="w-full h-1.5 bg-muted rounded-full">
-                <div
-                  className="h-1.5 rounded-full bg-primary transition-all"
-                  style={{ width: `${item.maxScore > 0 ? (item.score / item.maxScore) * 100 : 0}%` }}
-                />
-              </div>
-              {item.details && item.details.length > 0 && (
-                <ul className="text-xs text-muted-foreground mt-1 space-y-0.5 pl-2">
-                  {item.details.map((d, j) => (
-                    <li key={j} className="flex items-start gap-1">
-                      <span className="text-primary">•</span> {d}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
 
 export default function LeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { leads, users, isLoading, updateLead, refreshData } = useData()
+  const { leads, isLoading: leadsLoading, updateLead, refreshLeads } = useLeads()
+  const { users } = useUsers()
+  const isLoading = leadsLoading
+  const refreshData = refreshLeads
 
   const [isRescoring, setIsRescoring] = useState(false)
   const [scoreResult, setScoreResult] = useState<ScoreBuyerResponse | null>(null)
-  const [openBreakdown, setOpenBreakdown] = useState<string | null>('quality')
   const [hasAutoScored, setHasAutoScored] = useState(false)
   const [showEmailComposer, setShowEmailComposer] = useState(false)
 
@@ -691,26 +137,6 @@ export default function LeadDetailPage() {
   const handleFieldSave = async (field: string, value: string | boolean | number | null) => {
     if (!lead) return
     await updateLead(lead.id, { [field]: value })
-  }
-
-  const formatDate = (dateString?: string) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleDateString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-    })
-  }
-
-  const formatDateTime = (dateString?: string) => {
-    if (!dateString) return '-'
-    return new Date(dateString).toLocaleString('en-GB', {
-      day: 'numeric',
-      month: 'short',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    })
   }
 
   if (isLoading) {
@@ -802,296 +228,35 @@ export default function LeadDetailPage() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* ═══════════════════════════════════════════════════════════════════
-          HEADER SECTION
-      ═══════════════════════════════════════════════════════════════════ */}
-      <div className="space-y-4">
-        {/* Navigation */}
-        <div className="flex justify-between items-center">
-          <Link href="/admin/leads" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Leads
-          </Link>
-          <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleArchive}>
-              <Archive className="w-4 h-4 mr-1" /> Archive
-            </Button>
-          </div>
-        </div>
-
-        {/* Lead Name & Contact */}
-        <div>
-          <h1 className="text-3xl font-bold">
-            {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
-          </h1>
-          <div className="flex flex-wrap gap-4 text-muted-foreground mt-1">
-            {lead.email && (
-              <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-foreground">
-                <Mail className="w-4 h-4" /> {lead.email}
-              </a>
-            )}
-            {lead.phone && (
-              <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-foreground">
-                <Phone className="w-4 h-4" /> {lead.phone}
-              </a>
-            )}
-            {lead.country && (
-              <span className="flex items-center gap-1">
-                <Globe className="w-4 h-4" /> {lead.country}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Score Cards Row */}
-        <div className="flex gap-4 items-start flex-wrap">
-          <ScoreCard
-            label="Quality Score"
-            score={qualityScore}
-            explanation="How qualified is this lead?"
-          />
-          <ScoreCard
-            label="Intent Score"
-            score={intentScore}
-            explanation="How ready to buy?"
-          />
-          <ScoreCard
-            label="Confidence"
-            score={confidenceScore !== null ? Math.round(confidenceScore) : null}
-            maxScore={100}
-            explanation="AI certainty level"
-          />
-          <ClassificationBadge classification={classification} showExplanation />
-        </div>
-
-        {/* Priority + Rescore */}
-        <div className="flex justify-between items-start flex-wrap gap-4">
-          <PriorityBadge priority={priority} showExplanation />
-          <Button variant="default" onClick={handleRescore} disabled={isRescoring}>
-            <RefreshCw className={`w-4 h-4 mr-2 ${isRescoring ? 'animate-spin' : ''}`} />
-            {isRescoring ? 'Scoring...' : 'Re-score with AI'}
-          </Button>
-        </div>
-
-        {/* Score Reasons Summary */}
-        {scoreReasons.length > 0 && (
-          <div className="bg-muted/50 rounded-lg p-4">
-            <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
-              <Lightbulb className="w-4 h-4 text-yellow-500" />
-              Why these scores?
-            </h4>
-            <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
-              {scoreReasons.map((reason, i) => (
-                <li key={i} className="text-sm text-muted-foreground flex items-center gap-1">
-                  <span className="text-primary">•</span> {reason}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Spam Warning */}
-        {scoreResult?.is_spam && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div>
-              <h4 className="font-medium text-red-800">Potential Spam Detected</h4>
-              <ul className="text-sm text-red-700 mt-1">
-                {scoreResult.spam_flags.map((flag, i) => (
-                  <li key={i}>• {flag}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* HEADER SECTION */}
+      <LeadHeader
+        lead={lead}
+        qualityScore={qualityScore}
+        intentScore={intentScore}
+        confidenceScore={confidenceScore}
+        classification={classification}
+        priority={priority}
+        scoreReasons={scoreReasons}
+        scoreResult={scoreResult}
+        isRescoring={isRescoring}
+        onRescore={handleRescore}
+        onArchive={handleArchive}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════
           THREE COLUMN LAYOUT
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* ─────────────────────────────────────────────────────────────────
-            COLUMN 1 - AI INSIGHTS & ACTIONS
-        ───────────────────────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          {/* AI Summary */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="w-4 h-4 text-primary" />
-                AI Summary
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm leading-relaxed">
-                {summary || 'No AI summary available. Click "Re-score with AI" to generate.'}
-              </p>
-            </CardContent>
-          </Card>
-
-          {/* Next Action */}
-          <Card className="border-primary/50 bg-primary/5">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Target className="w-4 h-4 text-primary" />
-                Recommended Next Action
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm font-medium mb-3">{nextAction || 'No action recommended'}</p>
-              <div className="flex gap-2 flex-wrap">
-                {lead.phone && (
-                  <Button size="sm" asChild>
-                    <a href={`tel:${lead.phone}`}>
-                      <Phone className="w-4 h-4 mr-1" /> Call
-                    </a>
-                  </Button>
-                )}
-                {lead.email && (
-                  <Button size="sm" variant="outline" onClick={() => setShowEmailComposer(true)}>
-                    <Mail className="w-4 h-4 mr-1" /> Email
-                  </Button>
-                )}
-                {lead.phone && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
-                      <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
-                    </a>
-                  </Button>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recommendations */}
-          {recommendations.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Lightbulb className="w-4 h-4" />
-                  AI Recommendations
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-2">
-                  {recommendations.map((rec, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm">
-                      <ArrowRight className="w-4 h-4 mt-0.5 text-primary shrink-0" />
-                      <span>{rec}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Risk Flags */}
-          {riskFlags.length > 0 && (
-            <Card className="border-yellow-500/50 bg-yellow-500/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2 text-yellow-600">
-                  <AlertTriangle className="w-4 h-4" />
-                  Risk Flags ({riskFlags.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-1">
-                  {riskFlags.map((flag, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm">
-                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                      {flag}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Score Breakdown */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Score Breakdown
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {scoreBreakdown ? (
-                (() => {
-                  // Cast to any to handle both Naybourhood (array) and legacy (object) formats
-                  const breakdown = scoreBreakdown as any
-                  return (
-                    <>
-                      <ScoreBreakdownSection
-                        title="Quality Score"
-                        items={
-                          Array.isArray(breakdown.quality?.breakdown)
-                            ? breakdown.quality.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
-                                label: item.factor,
-                                score: item.points,
-                                maxScore: Math.abs(item.points) || 10,
-                                details: [item.reason]
-                              }))
-                            : [
-                                { label: 'Profile Completeness', ...breakdown.quality?.profileCompleteness },
-                                { label: 'Financial Qualification', ...breakdown.quality?.financialQualification },
-                                { label: 'Verification Status', ...breakdown.quality?.verificationStatus },
-                                { label: 'Inventory Fit', ...breakdown.quality?.inventoryFit },
-                              ].filter((item: any) => item.score !== undefined)
-                        }
-                        isOpen={openBreakdown === 'quality'}
-                        onToggle={() => setOpenBreakdown(openBreakdown === 'quality' ? null : 'quality')}
-                      />
-                      <ScoreBreakdownSection
-                        title="Intent Score"
-                        items={
-                          Array.isArray(breakdown.intent?.breakdown)
-                            ? breakdown.intent.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
-                                label: item.factor,
-                                score: item.points,
-                                maxScore: Math.abs(item.points) || 10,
-                                details: [item.reason]
-                              }))
-                            : [
-                                { label: 'Timeline', ...breakdown.intent?.timeline },
-                                { label: 'Purpose/Payment', ...breakdown.intent?.purpose },
-                                { label: 'Engagement', ...breakdown.intent?.engagement },
-                                { label: 'Commitment', ...breakdown.intent?.commitment },
-                                { label: 'Negative Modifiers', ...breakdown.intent?.negativeModifiers },
-                              ].filter((item: any) => item.score !== undefined)
-                        }
-                        isOpen={openBreakdown === 'intent'}
-                        onToggle={() => setOpenBreakdown(openBreakdown === 'intent' ? null : 'intent')}
-                      />
-                      <ScoreBreakdownSection
-                        title="Confidence Score"
-                        items={
-                          Array.isArray(breakdown.confidence?.breakdown)
-                            ? breakdown.confidence.breakdown.map((item: { factor: string; points: number; reason: string }) => ({
-                                label: item.factor,
-                                score: item.points,
-                                maxScore: Math.abs(item.points) || 10,
-                                details: [item.reason]
-                              }))
-                            : [
-                                { label: 'Data Completeness', ...breakdown.confidence?.dataCompleteness },
-                                { label: 'Verification Level', ...breakdown.confidence?.verificationLevel },
-                                { label: 'Engagement Data', ...breakdown.confidence?.engagementData },
-                                { label: 'Transcript Quality', ...breakdown.confidence?.transcriptQuality },
-                              ].filter((item: any) => item.score !== undefined)
-                        }
-                        isOpen={openBreakdown === 'confidence'}
-                        onToggle={() => setOpenBreakdown(openBreakdown === 'confidence' ? null : 'confidence')}
-                      />
-                    </>
-                  )
-                })()
-              ) : (
-                <p className="text-sm text-muted-foreground">Re-score to see detailed breakdown</p>
-              )}
-            </CardContent>
-          </Card>
-        </div>
+        {/* COLUMN 1 - AI INSIGHTS & ACTIONS */}
+        <LeadAIInsights
+          lead={lead}
+          summary={summary}
+          nextAction={nextAction}
+          recommendations={recommendations}
+          riskFlags={riskFlags}
+          scoreBreakdown={scoreBreakdown}
+          onShowEmailComposer={() => setShowEmailComposer(true)}
+        />
 
         {/* ─────────────────────────────────────────────────────────────────
             COLUMN 2 - BUYER PROFILE & REQUIREMENTS
@@ -1305,151 +470,16 @@ export default function LeadDetailPage() {
           )}
         </div>
 
-        {/* ─────────────────────────────────────────────────────────────────
-            COLUMN 3 - STATUS, NOTES & HISTORY
-        ───────────────────────────────────────────────────────────────── */}
-        <div className="space-y-4">
-          {/* Status & Assignment */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <BarChart3 className="w-4 h-4" />
-                Status & Assignment
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">Status</label>
-                <select
-                  value={lead.status || ''}
-                  onChange={(e) => handleStatusChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                >
-                  {STATUS_OPTIONS.map((s) => (
-                    <option key={s} value={s}>{s}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-sm text-muted-foreground">Assigned To</label>
-                <select
-                  value={lead.assigned_to || ''}
-                  onChange={(e) => handleAssigneeChange(e.target.value)}
-                  className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
-                >
-                  <option value="">Unassigned</option>
-                  {users.map((u) => (
-                    <option key={u.id} value={u.id}>{u.name}</option>
-                  ))}
-                </select>
-              </div>
-
-              {lead.assigned_user_name && (
-                <DataRow label="Assigned User" value={lead.assigned_user_name} />
-              )}
-              {lead.assigned_at && (
-                <DataRow label="Assigned At" value={formatDateTime(lead.assigned_at)} />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Notes & Comments */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <MessageSquare className="w-4 h-4" />
-                Notes & Comments
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <NotesComments
-                notes={lead.notes}
-                onSave={(notes) => updateLead(lead.id, { notes })}
-                userName="Admin"
-              />
-            </CardContent>
-          </Card>
-
-          {/* Timestamps */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Clock className="w-4 h-4" />
-                Timeline
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
-              <DataRow label="Date Added" value={formatDateTime(lead.date_added || lead.created_at)} icon={Calendar} />
-              <DataRow label="Last Updated" value={formatDateTime(lead.updated_at)} />
-              <DataRow label="Last Contact" value={formatDateTime(lead.last_contact)} icon={Phone} />
-              <DataRow label="Last AI Score" value={formatDateTime(lead.ai_scored_at)} icon={Bot} />
-            </CardContent>
-          </Card>
-
-          {/* AI Classification Details */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Bot className="w-4 h-4" />
-                AI Classification Details
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
-              <DataRow label="Classification" value={lead.ai_classification || classification} />
-              <DataRow label="Priority" value={lead.ai_priority || priority} />
-              <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
-              <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
-              <DataRow label="Confidence" value={lead.ai_confidence ? `${lead.ai_confidence}%` : '-'} />
-            </CardContent>
-          </Card>
-
-          {/* Quick Actions */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Quick Actions</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              {lead.status !== 'Viewing Booked' && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => handleStatusChange('Viewing Booked')}
-                >
-                  <Calendar className="w-4 h-4 mr-2" /> Book Viewing
-                </Button>
-              )}
-              {(!lead.uk_broker || lead.uk_broker === 'no' || lead.uk_broker === 'unknown') && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => updateLead(lead.id, { uk_broker: 'introduced' })}
-                >
-                  <Building className="w-4 h-4 mr-2" /> Refer to Broker
-                </Button>
-              )}
-              {!lead.proof_of_funds && (
-                <Button
-                  className="w-full"
-                  variant="outline"
-                  onClick={() => updateLead(lead.id, { proof_of_funds: true })}
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" /> Mark Funds Verified
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Lead ID */}
-          <Card>
-            <CardContent className="py-3">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Lead ID:</span>
-                <code className="bg-muted px-2 py-1 rounded">{lead.id}</code>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        {/* COLUMN 3 - STATUS, NOTES & HISTORY */}
+        <LeadSidebar
+          lead={lead}
+          users={users}
+          classification={classification}
+          priority={priority}
+          onStatusChange={handleStatusChange}
+          onAssigneeChange={handleAssigneeChange}
+          onUpdateLead={updateLead}
+        />
       </div>
 
       {/* Email Composer Modal */}

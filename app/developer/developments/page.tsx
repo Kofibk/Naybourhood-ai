@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useDevelopments } from '@/hooks/useDevelopments'
 import { formatPriceRange } from '@/lib/utils'
 import {
   Search,
@@ -21,7 +21,7 @@ import {
 import Image from 'next/image'
 
 export default function DeveloperDevelopmentsPage() {
-  const { developments, isLoading, isSyncing, refreshData } = useData()
+  const { developments, isLoading, refreshDevelopments } = useDevelopments()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [companyId, setCompanyId] = useState<string | undefined>()
@@ -105,12 +105,12 @@ export default function DeveloperDevelopmentsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => refreshData()}
-          disabled={isLoading || isSyncing}
+          onClick={() => refreshDevelopments()}
+          disabled={isLoading}
           className="border-white/10 text-white hover:bg-white/5"
         >
-          <RefreshCw className={`h-4 w-4 mr-2 ${(isLoading || isSyncing) ? 'animate-spin' : ''}`} />
-          {isSyncing ? 'Syncing...' : 'Refresh'}
+          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+          Refresh
         </Button>
       </div>
 

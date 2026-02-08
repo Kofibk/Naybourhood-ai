@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useLeads } from '@/hooks/useLeads'
 import { AIAnalysis, AIDashboardInsights } from '@/types'
 import {
   Brain,
@@ -26,7 +27,9 @@ import {
 } from 'lucide-react'
 
 export default function AIAnalysisPage() {
-  const { leads, campaigns, isLoading: dataLoading, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, isLoading: contextLoading, refreshCampaigns } = useCampaigns()
+  const dataLoading = leadsLoading || contextLoading
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null)
   const [insights, setInsights] = useState<AIDashboardInsights | null>(null)
   const [isAnalyzing, setIsAnalyzing] = useState(false)
@@ -113,7 +116,7 @@ export default function AIAnalysisPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => refreshData()}
+            onClick={() => refreshCampaigns()}
             disabled={dataLoading}
           >
             <RefreshCw className={`h-4 w-4 mr-2 ${dataLoading ? 'animate-spin' : ''}`} />

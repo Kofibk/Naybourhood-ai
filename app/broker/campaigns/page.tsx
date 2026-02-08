@@ -3,14 +3,14 @@
 import { useMemo, useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Megaphone } from 'lucide-react'
 
 export default function CampaignsPage() {
-  const { campaigns, isLoading } = useData()
+  const { campaigns, isLoading } = useCampaigns()
   const { user } = useAuth()
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [isReady, setIsReady] = useState(false)

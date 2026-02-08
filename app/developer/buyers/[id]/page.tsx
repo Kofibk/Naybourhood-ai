@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
-import { useData } from '@/contexts/DataContext'
+import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { toast } from 'sonner'
 import {
@@ -139,7 +139,7 @@ function DataRow({ label, value, icon: Icon }: { label: string; value: React.Rea
 export default function DeveloperLeadDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { leads, isLoading, updateLead, refreshData } = useData()
+  const { leads, isLoading, updateLead, refreshLeads } = useLeads()
 
   const [isRescoring, setIsRescoring] = useState(false)
   const [editingNotes, setEditingNotes] = useState(false)
@@ -178,7 +178,7 @@ export default function DeveloperLeadDetailPage() {
         body: JSON.stringify({ buyerId: lead.id })
       })
       if (response.ok) {
-        await refreshData()
+        await refreshLeads()
         toast.success('Lead rescored successfully')
       } else {
         toast.error('Failed to rescore lead')

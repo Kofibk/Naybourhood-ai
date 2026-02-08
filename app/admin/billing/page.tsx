@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useData } from '@/contexts/DataContext'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency } from '@/lib/utils'
 import {
   CreditCard,
@@ -41,7 +41,7 @@ const TIER_PRICES = {
 
 export default function BillingPage() {
   const router = useRouter()
-  const { companies, isLoading, refreshData } = useData()
+  const { companies, isLoading, refreshCompanies: refreshData } = useCompanies()
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [userEmail, setUserEmail] = useState<string | null>(null)

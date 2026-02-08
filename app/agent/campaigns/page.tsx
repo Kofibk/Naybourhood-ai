@@ -3,13 +3,13 @@
 import { useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Megaphone } from 'lucide-react'
 
 export default function CampaignsPage() {
-  const { campaigns } = useData()
+  const { campaigns } = useCampaigns()
   const { user } = useAuth()
 
   // Filter campaigns by company_id - strict filtering for multi-tenant

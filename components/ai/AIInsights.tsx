@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useLeads } from '@/hooks/useLeads'
 import {
   Lightbulb,
   RefreshCw,
@@ -48,7 +49,9 @@ interface AIInsightsProps {
 }
 
 export function AIInsights({ onActionClick }: AIInsightsProps) {
-  const { leads, campaigns, isLoading, refreshData } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, isLoading: dataLoading, refreshCampaigns } = useCampaigns()
+  const isLoading = leadsLoading || dataLoading
   const [completedActions, setCompletedActions] = useState<Set<string>>(new Set())
 
   // Generate insights from local data
@@ -263,7 +266,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
               <Lightbulb className="h-5 w-5 text-primary" />
               AI Insights
             </CardTitle>
-            <Button variant="ghost" size="sm" onClick={() => refreshData()} disabled={isLoading}>
+            <Button variant="ghost" size="sm" onClick={() => refreshCampaigns()} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>

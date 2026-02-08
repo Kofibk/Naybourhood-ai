@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { DataProvider } from '@/contexts/DataContext'
+import { QueryProvider } from '@/contexts/QueryProvider'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isMasterAdmin, canAccessDashboard } from '@/lib/auth'
@@ -137,8 +137,8 @@ function AgentLayoutContent({ children }: { children: React.ReactNode }) {
     verifyAccess()
   }, [user, isLoading, router, searchParams])
 
-  const handleLogout = async () => {
-    await logout()
+  const handleLogout = () => {
+    logout()
   }
 
   // Show loading while verifying access
@@ -176,18 +176,18 @@ function AgentLayoutContent({ children }: { children: React.ReactNode }) {
   console.log('[Agent Layout] ✅ Rendering dashboard for user:', { id: currentUser.id, name: currentUser.name, role: currentUser.role })
 
   return (
-    <DataProvider>
-      <Toaster position="top-right" richColors closeButton />
-      <DashboardLayout
-        title={`Welcome back, ${currentUser.name?.split(' ')[0] || 'Agent'}`}
-        userType="agent"
-        userName={currentUser.name}
-        userEmail={currentUser.email}
-        onLogout={handleLogout}
-      >
-        {children}
-      </DashboardLayout>
-    </DataProvider>
+    <QueryProvider>
+        <Toaster position="top-right" richColors closeButton />
+        <DashboardLayout
+          title={`Welcome back, ${currentUser.name?.split(' ')[0] || 'Agent'}`}
+          userType="agent"
+          userName={currentUser.name}
+          userEmail={currentUser.email}
+          onLogout={handleLogout}
+        >
+          {children}
+        </DashboardLayout>
+    </QueryProvider>
   )
 }
 

@@ -3,12 +3,15 @@
 import { useMemo } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useData } from '@/contexts/DataContext'
+import { useCampaigns } from '@/hooks/useCampaigns'
+import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { Sparkles, TrendingUp, Users, Target, Lightbulb, CheckCircle } from 'lucide-react'
 
 export default function InsightsPage() {
-  const { leads, campaigns, isLoading } = useData()
+  const { leads, isLoading: leadsLoading } = useLeads()
+  const { campaigns, isLoading: dataLoading } = useCampaigns()
+  const isLoading = leadsLoading || dataLoading
   const { user } = useAuth()
 
   // Filter data by company_id for multi-tenant
