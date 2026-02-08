@@ -105,8 +105,8 @@ function DeveloperLayoutContent({ children }: { children: React.ReactNode }) {
     verifyAccess()
   }, [user, isLoading, router, searchParams])
 
-  const handleLogout = async () => {
-    await logout()
+  const handleLogout = () => {
+    logout()
   }
 
   // Show loading while verifying access

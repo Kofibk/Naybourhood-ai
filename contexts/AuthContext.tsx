@@ -260,17 +260,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    try {
-      if (isSupabaseConfigured()) {
-        const supabase = createClient()
-        await supabase.auth.signOut()
-      }
-    } catch (error) {
-      console.error('Supabase signOut error:', error)
-    }
+    // Clear local state and redirect immediately — never block on network
     setUser(null)
     localStorage.removeItem('naybourhood_user')
     router.push('/login')
+
+    // Fire-and-forget Supabase session cleanup
+    if (isSupabaseConfigured()) {
+      try {
+        const supabase = createClient()
+        supabase.auth.signOut().catch((err: unknown) =>
+          console.error('Supabase signOut error:', err)
+        )
+      } catch (error) {
+        console.error('Supabase signOut error:', error)
+      }
+    }
   }
 
   const setUserRole = (role: UserRole) => {
