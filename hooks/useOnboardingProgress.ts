@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import type { OnboardingProgressRow } from '@/types/billing'
 
 const STEPS = ['company_profile', 'import_leads', 'invite_team'] as const
@@ -64,8 +65,9 @@ export function useOnboardingProgress() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['onboarding-progress'] })
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error('[onboarding] Mutation error:', error)
+      toast.error(error.message || 'Failed to save progress')
     },
   })
 

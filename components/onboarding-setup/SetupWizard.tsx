@@ -1,13 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import {
   useOnboardingProgress,
   ONBOARDING_STEPS,
   type OnboardingStep,
 } from '@/hooks/useOnboardingProgress'
+import { useSetupWizard } from '@/hooks/useSetupWizard'
 import { getDashboardPath } from '@/lib/onboarding'
 import { CompanyProfileStep } from './CompanyProfileStep'
 import { ImportLeadsStep } from './ImportLeadsStep'
@@ -19,42 +19,22 @@ const STEP_LABELS = ['Company Profile', 'Import Leads', 'Invite Team']
 
 export function SetupWizard() {
   const [currentStep, setCurrentStep] = useState(0)
-  const [userRole, setUserRole] = useState<string>('developer')
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
   const router = useRouter()
   const { completedSteps, completeStep, isSaving, isLoading } =
     useOnboardingProgress()
+  const {
+    userType,
+    isAuthenticated,
+    isLoading: isRoleLoading,
+    markOnboardingComplete,
+  } = useSetupWizard()
 
-  const loadUserRole = useCallback(async () => {
-    try {
-      const supabase = createClient()
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
-      if (!user) {
-        router.push('/login')
-        return
-      }
-
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('user_type')
-        .eq('id', user.id)
-        .single()
-
-      if (profile?.user_type) {
-        setUserRole(profile.user_type)
-      }
-    } catch (error) {
-      console.error('[SetupWizard] Error loading user role:', error)
-    } finally {
-      setIsInitialLoading(false)
-    }
-  }, [router])
-
+  // Redirect unauthenticated users
   useEffect(() => {
-    loadUserRole()
-  }, [loadUserRole])
+    if (!isRoleLoading && !isAuthenticated) {
+      router.push('/login')
+    }
+  }, [isRoleLoading, isAuthenticated, router])
 
   // Skip to first incomplete step on load
   useEffect(() => {
@@ -63,13 +43,12 @@ export function SetupWizard() {
         (s) => !completedSteps.has(s)
       )
       if (firstIncomplete === -1) {
-        // All steps complete - redirect to dashboard
-        router.push(getDashboardPath(userRole))
+        router.push(getDashboardPath(userType))
         return
       }
       setCurrentStep(firstIncomplete)
     }
-  }, [isLoading, completedSteps, router, userRole])
+  }, [isLoading, completedSteps, router, userType])
 
   const handleStepComplete = async (step: OnboardingStep) => {
     try {
@@ -77,28 +56,13 @@ export function SetupWizard() {
 
       const nextIndex = ONBOARDING_STEPS.indexOf(step) + 1
       if (nextIndex >= ONBOARDING_STEPS.length) {
-        // All steps done - mark onboarding complete
-        const supabase = createClient()
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
-
-        if (user) {
-          await supabase
-            .from('user_profiles')
-            .update({
-              onboarding_completed: true,
-              onboarding_completed_at: new Date().toISOString(),
-            })
-            .eq('id', user.id)
-        }
-
+        await markOnboardingComplete()
         toast.success('Setup complete!')
-        router.push(getDashboardPath(userRole))
+        router.push(getDashboardPath(userType))
       } else {
         setCurrentStep(nextIndex)
       }
-    } catch (error) {
+    } catch {
       toast.error('Failed to save progress. Please try again.')
     }
   }
@@ -113,7 +77,7 @@ export function SetupWizard() {
     }
   }
 
-  if (isInitialLoading || isLoading) {
+  if (isRoleLoading || isLoading) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center">
         <div className="text-center">

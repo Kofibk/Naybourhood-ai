@@ -1,34 +1,20 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Logo } from '@/components/Logo'
 import { PlanCard } from '@/components/billing/PlanCard'
 import { PLAN_CARDS, BOOKING_URL } from '@/types/billing'
+import { useStripeStatus } from '@/hooks/useStripeStatus'
 import { QueryProvider } from '@/contexts/QueryProvider'
 import { Toaster, toast } from 'sonner'
 import { Loader2 } from 'lucide-react'
 
 function SelectPlanContent() {
-  const [stripeEnabled, setStripeEnabled] = useState(false)
-  const [checking, setChecking] = useState(true)
   const [loadingTier, setLoadingTier] = useState<string | null>(null)
   const router = useRouter()
-
-  useEffect(() => {
-    async function checkStripe() {
-      try {
-        const res = await fetch('/api/billing/check-stripe')
-        const data = await res.json()
-        setStripeEnabled(data.enabled === true)
-      } catch {
-        setStripeEnabled(false)
-      } finally {
-        setChecking(false)
-      }
-    }
-    checkStripe()
-  }, [])
+  const { data: stripeStatus, isLoading: checking } = useStripeStatus()
+  const stripeEnabled = stripeStatus?.enabled ?? false
 
   const handleSelect = async (tier: string) => {
     if (!stripeEnabled) {

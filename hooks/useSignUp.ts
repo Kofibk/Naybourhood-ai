@@ -2,6 +2,7 @@
 
 import { useMutation } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 
 interface SignUpPayload {
   email: string
@@ -101,5 +102,11 @@ async function signUpUser(payload: SignUpPayload): Promise<SignUpResult> {
 export function useSignUp() {
   return useMutation({
     mutationFn: signUpUser,
+    onSuccess: () => {
+      toast.success('Account created successfully!')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Sign up failed. Please try again.')
+    },
   })
 }
