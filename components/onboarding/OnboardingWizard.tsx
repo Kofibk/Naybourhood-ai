@@ -30,36 +30,45 @@ export default function OnboardingWizard() {
   const loadProgress = useCallback(async () => {
     setIsLoading(true)
 
-    const supabase = createClient()
-    const { data: { user } } = await supabase.auth.getUser()
+    try {
+      const supabase = createClient()
+      if (!supabase) {
+        router.push('/login')
+        return
+      }
 
-    if (!user) {
-      router.push('/login')
-      return
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push('/login')
+        return
+      }
+
+      let profile = await getUserProfile()
+
+      // If no profile exists, create one
+      if (!profile) {
+        profile = await createUserProfile()
+      }
+
+      if (profile?.onboarding_completed) {
+        // Redirect based on user type
+        const redirectPath = getDashboardPath(profile.user_type || 'developer')
+        router.push(redirectPath)
+        return
+      }
+
+      if (profile) {
+        // Clamp step to new max of 2
+        const step = Math.min(profile.onboarding_step || 1, TOTAL_STEPS)
+        setCurrentStep(step)
+        setFormData(profileToFormData(profile))
+      }
+    } catch (err) {
+      console.error('[Onboarding] Error loading progress:', err)
+    } finally {
+      setIsLoading(false)
     }
-
-    let profile = await getUserProfile()
-
-    // If no profile exists, create one
-    if (!profile) {
-      profile = await createUserProfile()
-    }
-
-    if (profile?.onboarding_completed) {
-      // Redirect based on user type
-      const redirectPath = getDashboardPath(profile.user_type || 'developer')
-      router.push(redirectPath)
-      return
-    }
-
-    if (profile) {
-      // Clamp step to new max of 2
-      const step = Math.min(profile.onboarding_step || 1, TOTAL_STEPS)
-      setCurrentStep(step)
-      setFormData(profileToFormData(profile))
-    }
-
-    setIsLoading(false)
   }, [router])
 
   useEffect(() => {
@@ -68,23 +77,27 @@ export default function OnboardingWizard() {
 
   const handleNext = async (stepData: Partial<OnboardingFormData>) => {
     setIsSaving(true)
-    const newFormData = { ...formData, ...stepData }
-    setFormData(newFormData)
+    try {
+      const newFormData = { ...formData, ...stepData }
+      setFormData(newFormData)
 
-    // Step 1: Save profile data (role, name, phone, job title)
-    if (currentStep === 1) {
-      await saveOnboardingProgress(2, {
-        user_type: stepData.userType as string,
-        first_name: stepData.firstName,
-        last_name: stepData.lastName,
-        phone: stepData.phone,
-        job_title: stepData.jobTitle,
-      })
+      // Step 1: Save profile data (role, name, phone, job title)
+      if (currentStep === 1) {
+        await saveOnboardingProgress(2, {
+          user_type: stepData.userType as string,
+          first_name: stepData.firstName,
+          last_name: stepData.lastName,
+          phone: stepData.phone,
+          job_title: stepData.jobTitle,
+        })
 
-      setCurrentStep(2)
+        setCurrentStep(2)
+      }
+    } catch (err) {
+      console.error('[Onboarding] Error saving progress:', err)
+    } finally {
+      setIsSaving(false)
     }
-
-    setIsSaving(false)
   }
 
   const handleBack = () => {
