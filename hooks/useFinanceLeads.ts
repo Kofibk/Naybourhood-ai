@@ -63,16 +63,34 @@ export function useFinanceLeads() {
       const supabase = createClient()
       if (!supabase) throw new Error('Failed to create Supabase client')
 
-      const excludeColumns = ['id', 'created_at']
+      // Exclude read-only and non-editable columns
+      const excludeColumns = ['id', 'created_at', 'airtable_id']
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
         if (!excludeColumns.includes(key) && value !== undefined) cleanData[key] = value
       }
       cleanData.updated_at = new Date().toISOString()
 
+      console.log('[useFinanceLeads] Updating borrower:', { id, fields: Object.keys(cleanData) })
+
       const { data: updatedData, error } = await supabase
         .from('borrowers').update(cleanData).eq('id', id).select().single()
-      if (error) throw error
+
+      if (error) {
+        console.error('[useFinanceLeads] Supabase update failed:', {
+          id,
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        })
+        throw error
+      }
+
+      if (!updatedData) {
+        throw new Error(`No data returned after updating borrower ${id}. The record may not exist.`)
+      }
+
       return { id, updatedData }
     },
     onSuccess: ({ id, updatedData }) => {
@@ -83,13 +101,19 @@ export function useFinanceLeads() {
       toast.success('Borrower updated')
     },
     onError: (error: any) => {
-      console.error('[useFinanceLeads] Update error:', error)
-      toast.error('Failed to update borrower', { description: error.message })
+      console.error('[useFinanceLeads] Update error:', error?.message || error)
+      toast.error('Failed to update borrower', { description: error?.message || 'Unknown error' })
     },
   })
 
   const updateFinanceLead = async (id: string, data: Partial<FinanceLead>): Promise<FinanceLead | null> => {
-    try { const r = await updateFinanceLeadMutation.mutateAsync({ id, data }); return r.updatedData } catch { return null }
+    try {
+      const r = await updateFinanceLeadMutation.mutateAsync({ id, data })
+      return r.updatedData
+    } catch (error) {
+      console.error('[useFinanceLeads] updateFinanceLead failed for id:', id, error)
+      return null
+    }
   }
 
   return { financeLeads, isLoading, error: error?.message ?? null, refreshFinanceLeads: refetch, updateFinanceLead }
