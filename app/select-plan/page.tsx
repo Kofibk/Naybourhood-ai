@@ -99,7 +99,7 @@ function SelectPlanContent() {
 
         <div className="text-center">
           <button
-            onClick={() => router.push('/onboarding')}
+            onClick={() => router.push('/onboarding/setup')}
             className="text-sm text-white/50 hover:text-white/80 underline underline-offset-4"
           >
             Skip for now
