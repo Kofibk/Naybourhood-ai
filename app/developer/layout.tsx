@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
-import { DataProvider } from '@/contexts/DataContext'
 import { QueryProvider } from '@/contexts/QueryProvider'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
@@ -139,7 +138,6 @@ function DeveloperLayoutContent({ children }: { children: React.ReactNode }) {
 
   return (
     <QueryProvider>
-      <DataProvider>
         <Toaster position="top-right" richColors closeButton />
         <DashboardLayout
           title={`Welcome back, ${currentUser.name?.split(' ')[0] || 'Developer'}`}
@@ -150,7 +148,6 @@ function DeveloperLayoutContent({ children }: { children: React.ReactNode }) {
         >
           {children}
         </DashboardLayout>
-      </DataProvider>
     </QueryProvider>
   )
 }
