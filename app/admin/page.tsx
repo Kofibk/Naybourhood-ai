@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useData } from '@/contexts/DataContext'
 import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { getGreeting, getDateString, formatCurrency, statusIs } from '@/lib/utils'
 import { useRenderTiming } from '@/lib/performance'
 import {
@@ -91,7 +92,8 @@ function AnimatedNumber({
 
 export default function AdminDashboard() {
   const { leads, isLoading: leadsLoading } = useLeads()
-  const { campaigns, companies, isLoading: dataLoading, isSyncing, error, refreshData } = useData()
+  const { companies } = useCompanies()
+  const { campaigns, isLoading: dataLoading, isSyncing, error, refreshData } = useData()
   const isLoading = leadsLoading || dataLoading
   const [user, setUser] = useState<{ name?: string }>({})
   const { markInteractive } = useRenderTiming('AdminDashboard')

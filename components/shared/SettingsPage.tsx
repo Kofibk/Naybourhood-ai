@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
 import { useData } from '@/contexts/DataContext'
 import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { LeadImporter } from '@/components/admin/LeadImporter'
 import type { UserRole, JobRole } from '@/types'
@@ -53,7 +54,8 @@ interface SettingsPageProps {
 
 function AdminSystemStats() {
   const { leads, isLoading: leadsLoading } = useLeads()
-  const { campaigns, companies, developments, refreshData } = useData()
+  const { companies } = useCompanies()
+  const { campaigns, developments, refreshData } = useData()
   const isLoading = leadsLoading
 
   const systemStats = useMemo(() => {

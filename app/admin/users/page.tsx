@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useCompanies } from '@/hooks/useCompanies'
 import { useAuth } from '@/contexts/AuthContext'
 import { INTERNAL_ROLES, CLIENT_ROLES, JOB_ROLES, type UserRole, type JobRole } from '@/types'
 import {
@@ -42,7 +43,8 @@ interface InviteUser {
 }
 
 export default function UsersPage() {
-  const { users, companies, isLoading, refreshData } = useData()
+  const { companies } = useCompanies()
+  const { users, isLoading, refreshData } = useData()
   const { user: currentUser } = useAuth()
   const [searchQuery, setSearchQuery] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')

@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
 import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency } from '@/lib/utils'
 import { useRenderTiming } from '@/lib/performance'
 import { Company } from '@/types'
@@ -46,7 +47,8 @@ interface EditingCompany {
 export default function CompaniesPage() {
   const router = useRouter()
   const { leads } = useLeads()
-  const { companies, campaigns, isLoading, createCompany, updateCompany, deleteCompany } = useData()
+  const { companies, createCompany, updateCompany, deleteCompany } = useCompanies()
+  const { campaigns, isLoading } = useData()
   const { markInteractive } = useRenderTiming('CompaniesPage')
   const hasMarkedInteractive = useRef(false)
 

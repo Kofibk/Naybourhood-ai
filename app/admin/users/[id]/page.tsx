@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useData } from '@/contexts/DataContext'
+import { useCompanies } from '@/hooks/useCompanies'
 import { useAuth } from '@/contexts/AuthContext'
 import { INTERNAL_ROLES, CLIENT_ROLES, type UserRole, type AppUser } from '@/types'
 import {
@@ -233,7 +234,8 @@ function DataRow({ label, value, icon: Icon }: { label: string; value: React.Rea
 export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { users, companies, isLoading, refreshData } = useData()
+  const { companies } = useCompanies()
+  const { users, isLoading, refreshData } = useData()
   const { user: currentUser } = useAuth()
   const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)

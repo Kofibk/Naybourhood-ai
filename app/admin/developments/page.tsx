@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatPriceRange } from '@/lib/utils'
 import {
   Plus,
@@ -37,7 +38,8 @@ interface NewDevelopment {
 
 export default function DevelopmentsPage() {
   const router = useRouter()
-  const { developments, companies, isLoading, refreshData, createDevelopment } = useData()
+  const { companies } = useCompanies()
+  const { developments, isLoading, refreshData, createDevelopment } = useData()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)

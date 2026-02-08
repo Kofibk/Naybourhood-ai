@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useData } from '@/contexts/DataContext'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatPriceShort } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
 import {
@@ -156,7 +157,8 @@ const generateId = () => Math.random().toString(36).substring(2, 9)
 
 export default function FinanceLeadsPage() {
   const router = useRouter()
-  const { financeLeads, companies, isLoading, refreshData, updateFinanceLead } = useData()
+  const { companies } = useCompanies()
+  const { financeLeads, isLoading, refreshData, updateFinanceLead } = useData()
 
   // Get broker companies only
   const brokerCompanies = useMemo(() => {

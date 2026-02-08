@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useData } from '@/contexts/DataContext'
 import { useLeads } from '@/hooks/useLeads'
+import { useCompanies } from '@/hooks/useCompanies'
 import { formatCurrency } from '@/lib/utils'
 import {
   TrendingUp,
@@ -27,7 +28,8 @@ import {
 
 export default function AnalyticsPage() {
   const { leads, isLoading: leadsLoading } = useLeads()
-  const { campaigns, companies, developments, isLoading: dataLoading, refreshData } = useData()
+  const { companies } = useCompanies()
+  const { campaigns, developments, isLoading: dataLoading, refreshData } = useData()
   const isLoading = leadsLoading || dataLoading
 
   // Calculate comprehensive analytics
