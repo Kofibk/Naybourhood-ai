@@ -81,7 +81,7 @@ export function LeadHeader({
       </PageHeader>
 
       {/* Score Cards Row */}
-      <div className="flex gap-4 items-start flex-wrap">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 items-start">
         <ScoreIndicator value={qualityScore} label="Quality Score" size="lg" />
         <ScoreIndicator value={intentScore} label="Intent Score" size="lg" />
         <ScoreIndicator
@@ -94,7 +94,7 @@ export function LeadHeader({
       </div>
 
       {/* Priority + Rescore */}
-      <div className="flex justify-between items-start flex-wrap gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:justify-between sm:items-start">
         <PriorityBadge priority={priority} showExplanation />
         <Button variant="default" onClick={onRescore} disabled={isRescoring}>
           <RefreshCw className={`w-4 h-4 mr-2 ${isRescoring ? 'animate-spin' : ''}`} />

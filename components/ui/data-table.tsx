@@ -193,13 +193,13 @@ export function DataTable<T>({
 
       {/* Pagination */}
       {pagination && onPageChange && !loading && data.length > 0 && (
-        <div className="flex items-center justify-between pt-4 border-t">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-4 border-t">
+          <div className="text-xs sm:text-sm text-muted-foreground text-center sm:text-left">
             Showing {pagination.page * pagination.pageSize + 1}-
             {Math.min((pagination.page + 1) * pagination.pageSize, pagination.total)} of{' '}
             {pagination.total.toLocaleString()}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center justify-center gap-2">
             <Button
               variant="outline"
               size="sm"
