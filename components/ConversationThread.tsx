@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -109,11 +109,22 @@ export function ConversationThread({
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const fetchConversations = useCallback(async () => {
+    if (!isSupabaseConfigured()) {
+      setMessages([])
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
     setError(null)
 
     try {
       const supabase = createClient()
+      if (!supabase) {
+        setMessages([])
+        setIsLoading(false)
+        return
+      }
 
       let query = supabase
         .from('conversations')
@@ -372,13 +383,22 @@ export function useConversations(buyerId: string, channel?: 'whatsapp' | 'email'
   const [error, setError] = useState<string | null>(null)
 
   const fetchConversations = useCallback(async () => {
-    if (!buyerId) return
+    if (!buyerId || !isSupabaseConfigured()) {
+      setMessages([])
+      setIsLoading(false)
+      return
+    }
 
     setIsLoading(true)
     setError(null)
 
     try {
       const supabase = createClient()
+      if (!supabase) {
+        setMessages([])
+        setIsLoading(false)
+        return
+      }
 
       let query = supabase
         .from('conversations')
