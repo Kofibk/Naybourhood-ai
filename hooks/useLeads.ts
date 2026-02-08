@@ -130,9 +130,11 @@ export function useLeads() {
   // Update a lead
   const updateLeadMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Buyer> }) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
-      const excludeColumns = ['id', 'created_at']
+      if (!supabase) throw new Error('Failed to create Supabase client')
 
+      const excludeColumns = ['id', 'created_at']
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
         if (!excludeColumns.includes(key) && value !== undefined) {
@@ -152,9 +154,10 @@ export function useLeads() {
       return { id, updatedData }
     },
     onSuccess: ({ id, updatedData }) => {
-      // Optimistically update the cache
+      // Update cache with properly mapped data
+      const mapped = mapBuyerRow(updatedData)
       queryClient.setQueryData<Buyer[]>(['leads'], (old) =>
-        old?.map((l) => (l.id === id ? { ...l, ...updatedData } : l)) ?? []
+        old?.map((l) => (l.id === id ? mapped : l)) ?? []
       )
       toast.success('Lead updated')
     },
@@ -167,7 +170,10 @@ export function useLeads() {
   // Create a lead with auto-scoring
   const createLeadMutation = useMutation({
     mutationFn: async (data: Partial<Buyer>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { data: newData, error } = await supabase
         .from('buyers')
         .insert(data)
@@ -178,8 +184,9 @@ export function useLeads() {
       return newData
     },
     onSuccess: (newData) => {
+      const mapped = mapBuyerRow(newData)
       queryClient.setQueryData<Buyer[]>(['leads'], (old) =>
-        [newData, ...(old ?? [])]
+        [mapped, ...(old ?? [])]
       )
       toast.success('Lead created')
 
@@ -227,7 +234,10 @@ export function useLeads() {
   // Delete a lead
   const deleteLeadMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { error } = await supabase
         .from('buyers')
         .delete()

@@ -139,8 +139,11 @@ export function useCampaigns() {
 
   const updateCampaignMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Campaign> }) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
-      const excludeColumns = ['id', 'created_at', 'company', 'developmentData', 'cpl', 'updated_at']
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
+      const excludeColumns = ['id', 'created_at', 'company', 'developmentData', 'cpl', 'ctr', 'cpc', 'cpm', 'updated_at', 'ads', 'ad_count', 'ad_set_count', 'start_date', 'end_date']
       const fieldMapping: Record<string, string> = {
         name: 'campaign_name', spend: 'total_spent', leads: 'number_of_leads', status: 'delivery_status',
       }
@@ -172,10 +175,8 @@ export function useCampaigns() {
         },
       }
     },
-    onSuccess: ({ id, updatedData }) => {
-      queryClient.setQueryData<Campaign[]>(['campaigns'], (old) =>
-        old?.map((c) => (c.id === id ? { ...c, ...updatedData } : c)) ?? []
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Campaign updated')
     },
     onError: (error: any) => {
@@ -186,7 +187,10 @@ export function useCampaigns() {
 
   const createCampaignMutation = useMutation({
     mutationFn: async (data: Partial<Campaign>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const fieldMapping: Record<string, string> = {
         name: 'campaign_name', spend: 'total_spent', leads: 'number_of_leads', status: 'delivery_status',
       }
@@ -218,8 +222,8 @@ export function useCampaigns() {
         created_at: newData.date,
       }
     },
-    onSuccess: (newData) => {
-      queryClient.setQueryData<Campaign[]>(['campaigns'], (old) => [newData, ...(old ?? [])])
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Campaign created')
     },
     onError: (error: any) => {
@@ -230,13 +234,16 @@ export function useCampaigns() {
 
   const deleteCampaignMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { error } = await supabase.from('campaigns').delete().eq('id', id)
       if (error) throw error
       return id
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData<Campaign[]>(['campaigns'], (old) => old?.filter((c) => c.id !== id) ?? [])
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['campaigns'] })
       toast.success('Campaign deleted')
     },
     onError: (error: any) => {

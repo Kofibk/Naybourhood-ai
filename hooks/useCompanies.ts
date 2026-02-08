@@ -47,7 +47,10 @@ export function useCompanies() {
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: Partial<Company>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { data: newData, error } = await supabase
         .from('companies')
         .insert(data)
@@ -71,7 +74,10 @@ export function useCompanies() {
 
   const updateCompanyMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Company> }) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const excludeColumns = ['id', 'created_at', 'phone', 'tier']
 
       const cleanData: Record<string, any> = {}
@@ -93,8 +99,9 @@ export function useCompanies() {
       return { id, updatedData }
     },
     onSuccess: ({ id, updatedData }) => {
+      const mapped = mapCompanyRow(updatedData)
       queryClient.setQueryData<Company[]>(['companies'], (old) =>
-        old?.map((c) => (c.id === id ? { ...c, ...mapCompanyRow(updatedData) } : c)) ?? []
+        old?.map((c) => (c.id === id ? mapped : c)) ?? []
       )
       toast.success('Company updated')
     },
@@ -106,7 +113,10 @@ export function useCompanies() {
 
   const deleteCompanyMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { error } = await supabase
         .from('companies')
         .delete()

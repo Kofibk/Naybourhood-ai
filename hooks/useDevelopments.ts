@@ -56,7 +56,10 @@ export function useDevelopments() {
 
   const createDevelopmentMutation = useMutation({
     mutationFn: async (data: Partial<Development>) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { data: newData, error } = await supabase
         .from('developments').insert(data).select('*, company:companies(*)').single()
       if (error) throw error
@@ -74,7 +77,10 @@ export function useDevelopments() {
 
   const updateDevelopmentMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Development> }) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const excludeColumns = ['id', 'created_at']
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
@@ -88,8 +94,9 @@ export function useDevelopments() {
       return { id, updatedData }
     },
     onSuccess: ({ id, updatedData }) => {
+      const mapped = mapDevelopmentRow(updatedData)
       queryClient.setQueryData<Development[]>(['developments'], (old) =>
-        old?.map((d) => (d.id === id ? { ...d, ...mapDevelopmentRow(updatedData) } : d)) ?? []
+        old?.map((d) => (d.id === id ? mapped : d)) ?? []
       )
       toast.success('Development updated')
     },
@@ -101,7 +108,10 @@ export function useDevelopments() {
 
   const deleteDevelopmentMutation = useMutation({
     mutationFn: async (id: string) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const { error } = await supabase.from('developments').delete().eq('id', id)
       if (error) throw error
       return id

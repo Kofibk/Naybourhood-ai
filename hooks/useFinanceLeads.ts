@@ -11,6 +11,7 @@ function mapFinanceLeadRow(f: any): FinanceLead {
   const combinedName = `${firstName} ${lastName}`.trim()
 
   return {
+    ...f,
     id: f.id,
     full_name: f.full_name || f['Full Name'] || combinedName || f['Name'] || f.name || 'Unknown',
     first_name: firstName,
@@ -28,7 +29,6 @@ function mapFinanceLeadRow(f: any): FinanceLead {
     date_added: f.date_added || f['Date Added'],
     created_at: f.created_at || f['Created At'],
     updated_at: f.updated_at,
-    ...f,
   }
 }
 
@@ -59,7 +59,10 @@ export function useFinanceLeads() {
 
   const updateFinanceLeadMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<FinanceLead> }) => {
+      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
       const supabase = createClient()
+      if (!supabase) throw new Error('Failed to create Supabase client')
+
       const excludeColumns = ['id', 'created_at']
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
@@ -73,8 +76,9 @@ export function useFinanceLeads() {
       return { id, updatedData }
     },
     onSuccess: ({ id, updatedData }) => {
+      const mapped = mapFinanceLeadRow(updatedData)
       queryClient.setQueryData<FinanceLead[]>(['financeLeads'], (old) =>
-        old?.map((f) => (f.id === id ? { ...f, ...updatedData } : f)) ?? []
+        old?.map((f) => (f.id === id ? mapped : f)) ?? []
       )
       toast.success('Borrower updated')
     },

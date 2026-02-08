@@ -9,7 +9,8 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 30_000, // 30 seconds - matches old DataContext cache behavior
+            staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh, mutations update cache directly
+            gcTime: 30 * 60 * 1000, // 30 minutes - keep unused data in cache (matches old DataContext)
             refetchOnWindowFocus: false,
             retry: 1,
           },
