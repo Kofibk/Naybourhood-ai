@@ -386,7 +386,7 @@ export async function GET(request: NextRequest) {
         const adminClient = createAdminClient()
         const { data: users, error } = await adminClient
           .from('user_profiles')
-          .select('*')
+          .select('id, email, first_name, last_name, full_name, user_type, company_id, company_name, avatar_url, membership_status, email_confirmed, last_active, onboarding_completed, created_at, updated_at')
           .order('created_at', { ascending: false })
 
         if (error) {
@@ -421,7 +421,7 @@ export async function GET(request: NextRequest) {
     // Get all profiles
     const { data: users, error } = await supabase
       .from('user_profiles')
-      .select('*')
+      .select('id, email, first_name, last_name, full_name, user_type, company_id, company_name, avatar_url, membership_status, email_confirmed, last_active, onboarding_completed, created_at, updated_at')
       .order('created_at', { ascending: false })
 
     if (error) {

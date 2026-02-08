@@ -13,8 +13,14 @@ import {
   ArrowDown,
   RefreshCw,
   User,
-  Bot,
+  ChevronUp,
 } from 'lucide-react'
+
+// Explicit columns for conversations table - no select('*')
+const CONVERSATIONS_COLUMNS = 'id, buyer_id, channel, direction, content, status, sender_name, created_at'
+
+// Default page size for conversations
+const CONVERSATIONS_PAGE_SIZE = 20
 
 // WhatsApp icon component
 function WhatsAppIcon({ className }: { className?: string }) {
@@ -50,7 +56,7 @@ function formatTimestamp(dateString: string): string {
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
   const diffDays = Math.floor(diffMs / 86400000)
-  
+
   if (diffDays === 0) {
     return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
   } else if (diffDays === 1) {
@@ -58,11 +64,11 @@ function formatTimestamp(dateString: string): string {
   } else if (diffDays < 7) {
     return date.toLocaleDateString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
   }
-  return date.toLocaleDateString('en-GB', { 
-    day: 'numeric', 
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
     month: 'short',
-    hour: '2-digit', 
-    minute: '2-digit' 
+    hour: '2-digit',
+    minute: '2-digit'
   })
 }
 
@@ -105,17 +111,24 @@ export function ConversationThread({
 }: ConversationThreadProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
+  const [totalCount, setTotalCount] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (loadMore = false) => {
     if (!isSupabaseConfigured()) {
       setMessages([])
       setIsLoading(false)
       return
     }
 
-    setIsLoading(true)
+    if (loadMore) {
+      setIsLoadingMore(true)
+    } else {
+      setIsLoading(true)
+    }
     setError(null)
 
     try {
@@ -126,18 +139,19 @@ export function ConversationThread({
         return
       }
 
+      const offset = loadMore ? messages.length : 0
       let query = supabase
         .from('conversations')
-        .select('*')
+        .select(CONVERSATIONS_COLUMNS, { count: 'exact' })
         .eq('buyer_id', buyerId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + CONVERSATIONS_PAGE_SIZE - 1)
 
-      // Filter by channel if specified
       if (channel !== 'all') {
         query = query.eq('channel', channel)
       }
 
-      const { data, error: fetchError } = await query
+      const { data, count, error: fetchError } = await query
 
       if (fetchError) {
         console.error('[ConversationThread] Fetch error:', fetchError)
@@ -145,30 +159,46 @@ export function ConversationThread({
         return
       }
 
-      setMessages(data || [])
+      const newMessages = (data || []).reverse()
+      const total = count ?? 0
+      setTotalCount(total)
+
+      if (loadMore) {
+        setMessages(prev => [...newMessages, ...prev])
+      } else {
+        setMessages(newMessages)
+      }
+
+      setHasMore(offset + CONVERSATIONS_PAGE_SIZE < total)
     } catch (e) {
       console.error('[ConversationThread] Error:', e)
       setError('Failed to load conversation')
     } finally {
       setIsLoading(false)
+      setIsLoadingMore(false)
     }
-  }, [buyerId, channel])
+  }, [buyerId, channel, messages.length])
 
   useEffect(() => {
     if (buyerId) {
       fetchConversations()
     }
-  }, [buyerId, channel, fetchConversations])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buyerId, channel])
 
-  // Scroll to bottom when messages change
+  // Scroll to bottom when messages change (only on initial load)
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (messagesEndRef.current && !isLoadingMore) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [messages])
+  }, [messages, isLoadingMore])
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }
+
+  const handleLoadMore = () => {
+    fetchConversations(true)
   }
 
   // Group messages by date
@@ -219,7 +249,7 @@ export function ConversationThread({
         )}
         <CardContent className="py-8 text-center">
           <p className="text-destructive mb-2">{error}</p>
-          <Button variant="outline" size="sm" onClick={fetchConversations}>
+          <Button variant="outline" size="sm" onClick={() => fetchConversations()}>
             <RefreshCw className="w-4 h-4 mr-2" />
             Retry
           </Button>
@@ -272,14 +302,14 @@ export function ConversationThread({
               <WhatsAppIcon className="w-4 h-4 text-green-600" />
               Conversation History
               <Badge variant="secondary" className="text-xs">
-                {messages.length} messages
+                {messages.length}{totalCount > messages.length ? ` of ${totalCount}` : ''} messages
               </Badge>
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={scrollToBottom}>
                 <ArrowDown className="h-4 w-4" />
               </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={fetchConversations}>
+              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => fetchConversations()}>
                 <RefreshCw className="h-4 w-4" />
               </Button>
             </div>
@@ -287,10 +317,29 @@ export function ConversationThread({
         </CardHeader>
       )}
       <CardContent className="p-0">
-        <div 
+        <div
           className="overflow-y-auto px-4 py-3 space-y-4"
           style={{ maxHeight }}
         >
+          {/* Load more button at top */}
+          {hasMore && (
+            <div className="flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoadMore}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? (
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <ChevronUp className="h-4 w-4 mr-2" />
+                )}
+                Load older messages
+              </Button>
+            </div>
+          )}
+
           {Object.entries(groupedMessages).map(([date, dateMessages]) => (
             <div key={date}>
               {/* Date separator */}
@@ -299,7 +348,7 @@ export function ConversationThread({
                   {date}
                 </div>
               </div>
-              
+
               {/* Messages for this date */}
               <div className="space-y-2">
                 {dateMessages.map((message) => (
@@ -323,12 +372,12 @@ export function ConversationThread({
                           </span>
                         </div>
                       )}
-                      
+
                       {/* Message content */}
                       <p className="text-sm whitespace-pre-wrap break-words">
                         {message.content}
                       </p>
-                      
+
                       {/* Footer with time and status */}
                       <div className={`flex items-center justify-end gap-1.5 mt-1 ${
                         message.direction === 'outbound' ? 'text-green-100' : 'text-muted-foreground'
@@ -353,7 +402,7 @@ export function ConversationThread({
           ))}
           <div ref={messagesEndRef} />
         </div>
-        
+
         {/* Quick action footer */}
         {buyerPhone && (
           <div className="border-t p-3 flex gap-2">
@@ -376,13 +425,14 @@ export function ConversationThread({
   )
 }
 
-// Hook for fetching conversations (can be used separately)
+// Hook for fetching conversations (can be used separately) - paginated
 export function useConversations(buyerId: string, channel?: 'whatsapp' | 'email' | 'sms' | 'phone' | 'all') {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hasMore, setHasMore] = useState(false)
 
-  const fetchConversations = useCallback(async () => {
+  const fetchConversations = useCallback(async (loadMore = false) => {
     if (!buyerId || !isSupabaseConfigured()) {
       setMessages([])
       setIsLoading(false)
@@ -400,34 +450,48 @@ export function useConversations(buyerId: string, channel?: 'whatsapp' | 'email'
         return
       }
 
+      const offset = loadMore ? messages.length : 0
       let query = supabase
         .from('conversations')
-        .select('*')
+        .select(CONVERSATIONS_COLUMNS, { count: 'exact' })
         .eq('buyer_id', buyerId)
-        .order('created_at', { ascending: true })
+        .order('created_at', { ascending: false })
+        .range(offset, offset + CONVERSATIONS_PAGE_SIZE - 1)
 
       if (channel && channel !== 'all') {
         query = query.eq('channel', channel)
       }
 
-      const { data, error: fetchError } = await query
+      const { data, count, error: fetchError } = await query
 
       if (fetchError) {
         setError(fetchError.message)
         return
       }
 
-      setMessages(data || [])
-    } catch (e) {
+      const newMessages = (data || []).reverse()
+      const total = count ?? 0
+
+      if (loadMore) {
+        setMessages(prev => [...newMessages, ...prev])
+      } else {
+        setMessages(newMessages)
+      }
+
+      setHasMore(offset + CONVERSATIONS_PAGE_SIZE < total)
+    } catch {
       setError('Failed to load conversations')
     } finally {
       setIsLoading(false)
     }
-  }, [buyerId, channel])
+  }, [buyerId, channel, messages.length])
 
   useEffect(() => {
     fetchConversations()
-  }, [buyerId, channel, fetchConversations])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [buyerId, channel])
 
-  return { messages, isLoading, error, refetch: fetchConversations }
+  const loadMore = () => fetchConversations(true)
+
+  return { messages, isLoading, error, hasMore, loadMore, refetch: () => fetchConversations() }
 }

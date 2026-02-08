@@ -5,127 +5,171 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Buyer } from '@/types'
 
+// Explicit columns for buyers table - no select('*')
+const BUYERS_COLUMNS = [
+  'id', 'full_name', 'first_name', 'last_name', 'email', 'phone', 'country',
+  'status', 'quality_score', 'ai_quality_score', 'intent_score', 'ai_intent_score',
+  'ai_confidence', 'ai_summary', 'ai_next_action', 'ai_risk_flags',
+  'ai_recommendations', 'ai_classification', 'ai_priority', 'ai_scored_at',
+  'budget', 'budget_range', 'budget_min', 'budget_max',
+  'bedrooms', 'preferred_bedrooms', 'location', 'area', 'timeline',
+  'source', 'source_campaign', 'campaign_id',
+  'development_id', 'development_name', 'company_id',
+  'payment_method', 'mortgage_status', 'proof_of_funds',
+  'uk_broker', 'uk_solicitor',
+  'assigned_to', 'assigned_user_name', 'assigned_at',
+  'purpose', 'ready_in_28_days',
+  'viewing_intent_confirmed', 'viewing_booked', 'viewing_date',
+  'replied', 'stop_comms', 'next_follow_up', 'broker_connected',
+  'last_wa_message', 'transcript', 'call_summary',
+  'notes', 'date_added', 'created_at', 'updated_at',
+].join(', ')
+
+export interface UseLeadsOptions {
+  page?: number
+  limit?: number
+  companyId?: string
+  status?: string
+  assignedTo?: string
+  search?: string
+}
+
 // Map raw Supabase buyer row to normalized Buyer type
-function mapBuyerRow(b: any): Buyer {
-  const firstName = b.first_name || b['First Name'] || b['first name'] || ''
-  const lastName = b.last_name || b['Last Name'] || b['last name'] || ''
+function mapBuyerRow(b: Record<string, unknown>): Buyer {
+  const raw = b as Record<string, any>
+  const firstName = raw.first_name || ''
+  const lastName = raw.last_name || ''
   const combinedName = `${firstName} ${lastName}`.trim()
 
   return {
-    ...b,
-    id: b.id,
-    full_name: b.full_name || b['Lead Name'] || b['lead name'] || combinedName || b.name || 'Unknown',
+    ...raw,
+    id: raw.id,
+    full_name: raw.full_name || combinedName || 'Unknown',
     first_name: firstName,
     last_name: lastName,
-    email: b.email || b['Email'],
-    phone: b.phone || b['phone number'] || b['Phone Number'],
-    budget: b.budget || b.budget_range || b['budget range'] || b['Budget Range'],
-    budget_range: b.budget_range || b['budget range'] || b['Budget Range'],
-    budget_min: b.budget_min,
-    budget_max: b.budget_max,
-    bedrooms: b.bedrooms || b.preferred_bedrooms || b['preferred bedrooms'] || b['Preferred Bedrooms'],
-    preferred_bedrooms: b.preferred_bedrooms || b['preferred bedrooms'] || b['Preferred Bedrooms'],
-    location: b.location || b['preferred location'] || b['Preferred Location'],
-    area: b.area || b['preferred location'] || b['Preferred Location'],
-    country: b.country || b['Country'],
-    timeline: b.timeline || b['timeline to purchase'] || b['Timeline to Purchase'],
-    source: b.source || b['source platform'] || b['Source Platform'],
-    campaign: b.campaign || b.source_campaign || b['Source Campaign'] || b['source campaign'],
-    campaign_id: b.campaign_id,
-    source_campaign: b.source_campaign || b['Source Campaign'] || b['source campaign'],
-    development_id: b.development_id,
-    development_name: b.development_name || b.development || b['Development'] || b['development'],
-    company_id: b.company_id,
-    status: b.status || b['Status'] || 'New',
-    // Scores - use ?? to preserve 0 values, null means unscored
-    quality_score: b.quality_score ?? b.ai_quality_score ?? b['Quality Score'] ?? b['quality score'] ?? null,
-    intent_score: b.intent_score ?? b.ai_intent_score ?? b['Intent Score'] ?? b['intent score'] ?? null,
-    ai_quality_score: b.ai_quality_score ?? b.quality_score ?? null,
-    ai_intent_score: b.ai_intent_score ?? b.intent_score ?? null,
-    ai_confidence: b.ai_confidence ?? b.confidence ?? null,
-    ai_summary: b.ai_summary,
-    ai_next_action: b.ai_next_action,
-    ai_risk_flags: b.ai_risk_flags,
-    ai_recommendations: b.ai_recommendations,
-    ai_classification: b.ai_classification,
-    ai_priority: b.ai_priority,
-    ai_scored_at: b.ai_scored_at,
-    payment_method: b.payment_method || b['cash or mortgage'] || b['Cash or Mortgage'],
-    mortgage_status: b.mortgage_status || b['manual update'] || b['Manual Update'],
-    proof_of_funds: b.proof_of_funds,
-    uk_broker: b.uk_broker,
-    uk_solicitor: b.uk_solicitor,
-    date_added: b.date_added || b['date added'] || b['Date Added'],
-    created_at: b.date_added || b.created_at || b['date added'] || b['Date Added'],
-    updated_at: b.updated_at,
-    notes: b.notes,
-    assigned_to: b.assigned_to,
-    assigned_user_name: b.assigned_user_name,
-    assigned_at: b.assigned_at,
-    // Engagement fields
-    purpose: b.purpose || b['Purpose'] || b['purchase_purpose'],
-    ready_in_28_days: b.ready_in_28_days ?? b['Ready in 28 Days'] ?? b.ready_in_28days,
-    viewing_intent_confirmed: b.viewing_intent_confirmed ?? b['Viewing Intent'] ?? b.viewing_intent,
-    viewing_booked: b.viewing_booked ?? b['Viewing Booked'],
-    viewing_date: b.viewing_date || b['Viewing Date'],
-    replied: b.replied ?? b['Replied'] ?? b.has_replied,
-    stop_comms: b.stop_comms ?? b['Stop Comms'] ?? b.opt_out,
-    next_follow_up: b.next_follow_up || b['Next Follow Up'] || b.follow_up_date,
-    broker_connected: b.broker_connected ?? b['Broker Connected'],
-    // Communication history
-    last_wa_message: b.last_wa_message || b['Last WA Message'] || b.last_whatsapp_message,
-    transcript: b.transcript || b['Transcript'],
-    call_summary: b.call_summary || b['Call Summary'],
+    email: raw.email,
+    phone: raw.phone,
+    budget: raw.budget || raw.budget_range,
+    budget_range: raw.budget_range,
+    budget_min: raw.budget_min,
+    budget_max: raw.budget_max,
+    bedrooms: raw.bedrooms || raw.preferred_bedrooms,
+    preferred_bedrooms: raw.preferred_bedrooms,
+    location: raw.location,
+    area: raw.area,
+    country: raw.country,
+    timeline: raw.timeline,
+    source: raw.source,
+    campaign: raw.source_campaign,
+    campaign_id: raw.campaign_id,
+    source_campaign: raw.source_campaign,
+    development_id: raw.development_id,
+    development_name: raw.development_name,
+    company_id: raw.company_id,
+    status: raw.status || 'New',
+    quality_score: raw.quality_score ?? raw.ai_quality_score ?? null,
+    intent_score: raw.intent_score ?? raw.ai_intent_score ?? null,
+    ai_quality_score: raw.ai_quality_score ?? raw.quality_score ?? null,
+    ai_intent_score: raw.ai_intent_score ?? raw.intent_score ?? null,
+    ai_confidence: raw.ai_confidence ?? null,
+    ai_summary: raw.ai_summary,
+    ai_next_action: raw.ai_next_action,
+    ai_risk_flags: raw.ai_risk_flags,
+    ai_recommendations: raw.ai_recommendations,
+    ai_classification: raw.ai_classification,
+    ai_priority: raw.ai_priority,
+    ai_scored_at: raw.ai_scored_at,
+    payment_method: raw.payment_method,
+    mortgage_status: raw.mortgage_status,
+    proof_of_funds: raw.proof_of_funds,
+    uk_broker: raw.uk_broker,
+    uk_solicitor: raw.uk_solicitor,
+    date_added: raw.date_added || raw.created_at,
+    created_at: raw.date_added || raw.created_at,
+    updated_at: raw.updated_at,
+    notes: raw.notes,
+    assigned_to: raw.assigned_to,
+    assigned_user_name: raw.assigned_user_name,
+    assigned_at: raw.assigned_at,
+    purpose: raw.purpose,
+    ready_in_28_days: raw.ready_in_28_days,
+    viewing_intent_confirmed: raw.viewing_intent_confirmed,
+    viewing_booked: raw.viewing_booked,
+    viewing_date: raw.viewing_date,
+    replied: raw.replied,
+    stop_comms: raw.stop_comms,
+    next_follow_up: raw.next_follow_up,
+    broker_connected: raw.broker_connected,
+    last_wa_message: raw.last_wa_message,
+    transcript: raw.transcript,
+    call_summary: raw.call_summary,
   }
 }
 
-// Fetch all buyers with pagination (1000 per batch)
-async function fetchLeads(): Promise<Buyer[]> {
-  if (!isSupabaseConfigured()) return []
+// Fetch buyers with pagination and filters - max 50 rows per request
+async function fetchLeads(
+  options: UseLeadsOptions
+): Promise<{ data: Buyer[]; totalCount: number }> {
+  if (!isSupabaseConfigured()) return { data: [], totalCount: 0 }
 
   const supabase = createClient()
-  if (!supabase) return []
+  if (!supabase) return { data: [], totalCount: 0 }
 
-  let allBuyers: any[] = []
-  let from = 0
-  const batchSize = 1000
-  let hasMore = true
+  const { page = 0, limit = 50, companyId, status, assignedTo, search } = options
+  const from = page * limit
+  const to = from + limit - 1
 
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from('buyers')
-      .select('*')
-      .order('created_at', { ascending: false })
-      .range(from, from + batchSize - 1)
+  let query = supabase
+    .from('buyers')
+    .select(BUYERS_COLUMNS, { count: 'exact' })
+    .order('created_at', { ascending: false })
+    .range(from, to)
 
-    if (error) {
-      console.error('[useLeads] Fetch error:', error.message)
-      throw new Error(`Failed to fetch leads: ${error.message}`)
-    }
-    if (data && data.length > 0) {
-      allBuyers = [...allBuyers, ...data]
-      from += batchSize
-      hasMore = data.length === batchSize
-    } else {
-      hasMore = false
-    }
+  if (companyId) {
+    query = query.eq('company_id', companyId)
+  }
+  if (status) {
+    query = query.eq('status', status)
+  }
+  if (assignedTo) {
+    query = query.eq('assigned_to', assignedTo)
+  }
+  if (search) {
+    query = query.or(
+      `full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`
+    )
   }
 
-  return allBuyers.map(mapBuyerRow)
+  const { data, count, error } = await query
+
+  if (error) {
+    console.error('[useLeads] Fetch error:', error.message)
+    throw new Error(`Failed to fetch leads: ${error.message}`)
+  }
+
+  return {
+    data: (data || []).map(mapBuyerRow),
+    totalCount: count ?? 0,
+  }
 }
 
-export function useLeads() {
+export function useLeads(options: UseLeadsOptions = {}) {
   const queryClient = useQueryClient()
 
   const {
-    data: leads = [],
+    data: result,
     isLoading,
     error,
     refetch,
-  } = useQuery<Buyer[], Error>({
-    queryKey: ['leads'],
-    queryFn: fetchLeads,
+  } = useQuery({
+    queryKey: ['leads', options],
+    queryFn: () => fetchLeads(options),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
+
+  const leads = result?.data ?? []
+  const totalCount = result?.totalCount ?? 0
 
   // Update a lead
   const updateLeadMutation = useMutation({
@@ -147,17 +191,24 @@ export function useLeads() {
         .from('buyers')
         .update(cleanData)
         .eq('id', id)
-        .select()
+        .select(BUYERS_COLUMNS)
         .single()
 
       if (error) throw error
       return { id, updatedData }
     },
     onSuccess: ({ id, updatedData }) => {
-      // Update cache with properly mapped data
       const mapped = mapBuyerRow(updatedData)
-      queryClient.setQueryData<Buyer[]>(['leads'], (old) =>
-        old?.map((l) => (l.id === id ? mapped : l)) ?? []
+      // Update all cached lead queries that might contain this lead
+      queryClient.setQueriesData<{ data: Buyer[]; totalCount: number }>(
+        { queryKey: ['leads'] },
+        (old) => {
+          if (!old) return old
+          return {
+            ...old,
+            data: old.data.map((l) => (l.id === id ? mapped : l)),
+          }
+        }
       )
       toast.success('Lead updated')
     },
@@ -177,17 +228,15 @@ export function useLeads() {
       const { data: newData, error } = await supabase
         .from('buyers')
         .insert(data)
-        .select()
+        .select(BUYERS_COLUMNS)
         .single()
 
       if (error) throw error
       return newData
     },
     onSuccess: (newData) => {
-      const mapped = mapBuyerRow(newData)
-      queryClient.setQueryData<Buyer[]>(['leads'], (old) =>
-        [mapped, ...(old ?? [])]
-      )
+      // Invalidate all lead queries to refresh counts and pages
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
       toast.success('Lead created')
 
       // Auto-score in background
@@ -200,24 +249,10 @@ export function useLeads() {
           .then(async (res) => {
             if (res.ok) {
               const scoreResult = await res.json()
-              queryClient.setQueryData<Buyer[]>(['leads'], (old) =>
-                old?.map((l) =>
-                  l.id === newData.id
-                    ? {
-                        ...l,
-                        ai_quality_score: scoreResult.quality_score,
-                        ai_intent_score: scoreResult.intent_score,
-                        ai_confidence: scoreResult.confidence,
-                        ai_classification: scoreResult.classification,
-                        ai_priority: scoreResult.priority,
-                        ai_summary: scoreResult.summary,
-                        ai_next_action: scoreResult.next_action,
-                        ai_scored_at: new Date().toISOString(),
-                      }
-                    : l
-                ) ?? []
-              )
-              toast.success('Lead scored', { description: `Classification: ${scoreResult.classification}` })
+              queryClient.invalidateQueries({ queryKey: ['leads'] })
+              toast.success('Lead scored', {
+                description: `Classification: ${scoreResult.classification}`,
+              })
             }
           })
           .catch(() => {
@@ -246,10 +281,8 @@ export function useLeads() {
       if (error) throw error
       return id
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData<Buyer[]>(['leads'], (old) =>
-        old?.filter((l) => l.id !== id) ?? []
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['leads'] })
       toast.success('Lead deleted')
     },
     onError: (error: any) => {
@@ -296,6 +329,7 @@ export function useLeads() {
 
   return {
     leads,
+    totalCount,
     isLoading,
     error: error?.message ?? null,
     refreshLeads: refetch,

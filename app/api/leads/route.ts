@@ -39,10 +39,30 @@ export async function GET(request: NextRequest) {
     const sortBy = searchParams.get('sortBy') || 'created_at'
     const sortOrder = searchParams.get('sortOrder') || 'desc'
 
+    // Explicit columns - no select('*')
+    const BUYERS_API_COLUMNS = [
+      'id', 'full_name', 'first_name', 'last_name', 'email', 'phone', 'country',
+      'status', 'quality_score', 'ai_quality_score', 'intent_score', 'ai_intent_score',
+      'ai_confidence', 'ai_summary', 'ai_next_action', 'ai_risk_flags',
+      'ai_recommendations', 'ai_classification', 'ai_priority', 'ai_scored_at',
+      'budget', 'budget_range', 'budget_min', 'budget_max',
+      'bedrooms', 'preferred_bedrooms', 'location', 'area', 'timeline',
+      'source', 'source_campaign', 'campaign_id',
+      'development_id', 'development_name', 'company_id',
+      'payment_method', 'mortgage_status', 'proof_of_funds',
+      'uk_broker', 'uk_solicitor',
+      'assigned_to', 'assigned_user_name', 'assigned_at',
+      'purpose', 'ready_in_28_days',
+      'viewing_intent_confirmed', 'viewing_booked', 'viewing_date',
+      'replied', 'stop_comms', 'next_follow_up', 'broker_connected',
+      'last_wa_message', 'transcript', 'call_summary',
+      'notes', 'date_added', 'created_at', 'updated_at',
+    ].join(', ')
+
     // Build query
     let query = supabase
       .from('buyers')
-      .select('*', { count: 'exact' })
+      .select(BUYERS_API_COLUMNS, { count: 'exact' })
 
     // Filter by company for non-admin users
     if (!isAdmin && userProfile?.company_id) {

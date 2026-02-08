@@ -36,7 +36,7 @@ export async function GET() {
     // Fetch all buyers
     const { data: buyers, error: buyersError } = await supabase
       .from('buyers')
-      .select('*')
+      .select('id, full_name, first_name, last_name, email, phone, country, status, quality_score, ai_quality_score, intent_score, ai_intent_score, ai_confidence, ai_summary, ai_next_action, ai_risk_flags, ai_recommendations, ai_classification, ai_priority, ai_scored_at, budget, budget_range, budget_min, budget_max, bedrooms, preferred_bedrooms, location, area, timeline, source, source_campaign, campaign_id, development_id, development_name, company_id, payment_method, mortgage_status, proof_of_funds, uk_broker, uk_solicitor, assigned_to, assigned_user_name, assigned_at, purpose, ready_in_28_days, viewing_intent_confirmed, viewing_booked, viewing_date, replied, stop_comms, next_follow_up, broker_connected, last_wa_message, transcript, call_summary, notes, date_added, created_at, updated_at')
 
     if (buyersError) {
       console.error('[AI Analysis] Buyers error:', buyersError)
@@ -45,7 +45,7 @@ export async function GET() {
     // Fetch all campaigns
     const { data: campaigns, error: campaignsError } = await supabase
       .from('campaigns')
-      .select('*')
+      .select('id, campaign_name, name, ad_name, ad_set_name, date, company_id, development_id, development_name, platform, delivery_status, status, total_spent, spend, number_of_leads, leads, impressions, link_clicks, clicks, reach, ctr')
 
     if (campaignsError) {
       console.error('[AI Analysis] Campaigns error:', campaignsError)
@@ -164,7 +164,7 @@ export async function GET() {
     const predictedViewings = Math.round(recentViewings * 1.1)
     const predictedReservations = Math.round(predictedViewings * 0.25)
 
-    const totalSpend = campaignsList.reduce((acc, c) => acc + (c.spend || c.amount_spent || 0), 0)
+    const totalSpend = campaignsList.reduce((acc, c) => acc + (c.spend || c.total_spent || 0), 0)
     const avgDealValue = 250000 // Assume average property value
     const pipelineValue = `£${((predictedReservations * avgDealValue) / 1000000).toFixed(1)}M`
 

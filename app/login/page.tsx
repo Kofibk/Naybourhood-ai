@@ -79,7 +79,7 @@ function LoginPageInner() {
           // Check onboarding status
           const { data: profile } = await supabase
             .from('user_profiles')
-            .select('*')
+            .select('id, email, first_name, last_name, full_name, user_type, company_id, company_name, avatar_url, membership_status, email_confirmed, last_active, onboarding_completed, created_at, updated_at')
             .eq('id', user.id)
             .single()
 
@@ -236,7 +236,7 @@ function LoginPageInner() {
             // Check onboarding status
             const { data: profile } = await supabase
               .from('user_profiles')
-              .select('*')
+              .select('id, email, first_name, last_name, full_name, user_type, company_id, company_name, avatar_url, membership_status, email_confirmed, last_active, onboarding_completed, created_at, updated_at')
               .eq('id', data.user.id)
               .single()
 

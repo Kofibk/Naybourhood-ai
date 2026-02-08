@@ -4,7 +4,21 @@ import { useQuery } from '@tanstack/react-query'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { AppUser } from '@/types'
 
-function mapProfileToUser(p: any): AppUser {
+// Explicit columns for user_profiles table - no select('*')
+const USER_PROFILES_COLUMNS = [
+  'id', 'email', 'first_name', 'last_name', 'full_name',
+  'user_type', 'company_id', 'company_name',
+  'avatar_url', 'membership_status', 'email_confirmed',
+  'last_active', 'onboarding_completed',
+  'created_at', 'updated_at',
+].join(', ')
+
+export interface UseUsersOptions {
+  page?: number
+  limit?: number
+}
+
+function mapProfileToUser(p: Record<string, any>): AppUser {
   let status: 'active' | 'inactive' | 'pending' = 'pending'
   const emailConfirmed = p.email_confirmed ?? (p.last_active ? true : false)
 
@@ -37,19 +51,28 @@ function mapProfileToUser(p: any): AppUser {
   }
 }
 
-async function fetchUsers(): Promise<AppUser[]> {
-  if (!isSupabaseConfigured()) return []
+async function fetchUsers(
+  options: UseUsersOptions
+): Promise<{ data: AppUser[]; totalCount: number }> {
+  if (!isSupabaseConfigured()) return { data: [], totalCount: 0 }
   const supabase = createClient()
-  if (!supabase) return []
+  if (!supabase) return { data: [], totalCount: 0 }
 
-  // Try direct query first
-  const { data, error } = await supabase
+  const { page = 0, limit = 50 } = options
+  const from = page * limit
+  const to = from + limit - 1
+
+  const { data, count, error } = await supabase
     .from('user_profiles')
-    .select('*')
+    .select(USER_PROFILES_COLUMNS, { count: 'exact' })
     .order('first_name', { ascending: true })
+    .range(from, to)
 
   if (!error && data && data.length > 0) {
-    return data.map(mapProfileToUser)
+    return {
+      data: data.map(mapProfileToUser),
+      totalCount: count ?? 0,
+    }
   }
 
   // API fallback for Quick Access users
@@ -58,21 +81,40 @@ async function fetchUsers(): Promise<AppUser[]> {
     if (response.ok) {
       const result = await response.json()
       if (result.users && result.users.length > 0) {
-        return result.users.map(mapProfileToUser)
+        return {
+          data: result.users.map(mapProfileToUser),
+          totalCount: result.users.length,
+        }
       }
     }
   } catch {
     // API fallback failed
   }
 
-  return []
+  return { data: [], totalCount: 0 }
 }
 
-export function useUsers() {
-  const { data: users = [], isLoading, error, refetch } = useQuery<AppUser[], Error>({
-    queryKey: ['users'],
-    queryFn: fetchUsers,
+export function useUsers(options: UseUsersOptions = {}) {
+  const {
+    data: result,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['users', options],
+    queryFn: () => fetchUsers(options),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
 
-  return { users, isLoading, error: error?.message ?? null, refreshUsers: refetch }
+  const users = result?.data ?? []
+  const totalCount = result?.totalCount ?? 0
+
+  return {
+    users,
+    totalCount,
+    isLoading,
+    error: error?.message ?? null,
+    refreshUsers: refetch,
+  }
 }

@@ -5,57 +5,103 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { FinanceLead } from '@/types'
 
-function mapFinanceLeadRow(f: any): FinanceLead {
-  const firstName = f.first_name || f['First Name'] || f['first name'] || ''
-  const lastName = f.last_name || f['Last Name'] || f['last name'] || ''
+// Explicit columns for borrowers table - no select('*')
+const BORROWERS_COLUMNS = [
+  'id', 'full_name', 'first_name', 'last_name', 'email', 'phone',
+  'finance_type', 'loan_amount', 'loan_amount_display',
+  'required_by_date', 'message', 'status', 'notes',
+  'assigned_agent', 'company_id',
+  'date_added', 'created_at', 'updated_at',
+].join(', ')
+
+export interface UseFinanceLeadsOptions {
+  page?: number
+  limit?: number
+  companyId?: string
+  status?: string
+}
+
+function mapFinanceLeadRow(f: Record<string, any>): FinanceLead {
+  const firstName = f.first_name || ''
+  const lastName = f.last_name || ''
   const combinedName = `${firstName} ${lastName}`.trim()
 
   return {
     ...f,
     id: f.id,
-    full_name: f.full_name || f['Full Name'] || combinedName || f['Name'] || f.name || 'Unknown',
+    full_name: f.full_name || combinedName || 'Unknown',
     first_name: firstName,
     last_name: lastName,
-    email: f.email || f['Email'],
-    phone: f.phone || f['Phone'] || f['Phone Number'],
-    finance_type: f.finance_type || f['Finance Type'],
-    loan_amount: f.loan_amount || f['Loan Amount'] || 0,
-    loan_amount_display: f.loan_amount_display || f['Loan Amount Display'],
-    required_by_date: f.required_by_date || f['Required By Date'] || f['required_by'],
-    message: f.message || f['Message'],
-    status: f.status || f['Status'] || 'Contact Pending',
-    notes: f.notes || f['Notes'],
-    assigned_agent: f.assigned_agent || f['Assigned Agent'],
-    date_added: f.date_added || f['Date Added'],
-    created_at: f.created_at || f['Created At'],
+    email: f.email,
+    phone: f.phone,
+    finance_type: f.finance_type,
+    loan_amount: f.loan_amount || 0,
+    loan_amount_display: f.loan_amount_display,
+    required_by_date: f.required_by_date,
+    message: f.message,
+    status: f.status || 'Contact Pending',
+    notes: f.notes,
+    assigned_agent: f.assigned_agent,
+    date_added: f.date_added,
+    created_at: f.created_at,
     updated_at: f.updated_at,
   }
 }
 
-async function fetchFinanceLeads(): Promise<FinanceLead[]> {
-  if (!isSupabaseConfigured()) return []
+async function fetchFinanceLeads(
+  options: UseFinanceLeadsOptions
+): Promise<{ data: FinanceLead[]; totalCount: number }> {
+  if (!isSupabaseConfigured()) return { data: [], totalCount: 0 }
   const supabase = createClient()
-  if (!supabase) return []
+  if (!supabase) return { data: [], totalCount: 0 }
 
-  const { data, error } = await supabase
+  const { page = 0, limit = 50, companyId, status } = options
+  const from = page * limit
+  const to = from + limit - 1
+
+  let query = supabase
     .from('borrowers')
-    .select('*')
+    .select(BORROWERS_COLUMNS, { count: 'exact' })
     .order('created_at', { ascending: false })
+    .range(from, to)
+
+  if (companyId) {
+    query = query.eq('company_id', companyId)
+  }
+  if (status) {
+    query = query.eq('status', status)
+  }
+
+  const { data, count, error } = await query
 
   if (error) {
     console.error('[useFinanceLeads] Fetch error:', error.message)
     throw new Error(`Failed to fetch borrowers: ${error.message}`)
   }
-  return (data || []).map(mapFinanceLeadRow)
+
+  return {
+    data: (data || []).map(mapFinanceLeadRow),
+    totalCount: count ?? 0,
+  }
 }
 
-export function useFinanceLeads() {
+export function useFinanceLeads(options: UseFinanceLeadsOptions = {}) {
   const queryClient = useQueryClient()
 
-  const { data: financeLeads = [], isLoading, error, refetch } = useQuery<FinanceLead[], Error>({
-    queryKey: ['financeLeads'],
-    queryFn: fetchFinanceLeads,
+  const {
+    data: result,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['financeLeads', options],
+    queryFn: () => fetchFinanceLeads(options),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
+
+  const financeLeads = result?.data ?? []
+  const totalCount = result?.totalCount ?? 0
 
   const updateFinanceLeadMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<FinanceLead> }) => {
@@ -63,7 +109,6 @@ export function useFinanceLeads() {
       const supabase = createClient()
       if (!supabase) throw new Error('Failed to create Supabase client')
 
-      // Exclude read-only and non-editable columns
       const excludeColumns = ['id', 'created_at', 'airtable_id']
       const cleanData: Record<string, any> = {}
       for (const [key, value] of Object.entries(data)) {
@@ -71,18 +116,13 @@ export function useFinanceLeads() {
       }
       cleanData.updated_at = new Date().toISOString()
 
-      console.log('[useFinanceLeads] Updating borrower:', { id, fields: Object.keys(cleanData) })
-
       const { data: updatedData, error } = await supabase
-        .from('borrowers').update(cleanData).eq('id', id).select().single()
+        .from('borrowers').update(cleanData).eq('id', id).select(BORROWERS_COLUMNS).single()
 
       if (error) {
         console.error('[useFinanceLeads] Supabase update failed:', {
-          id,
-          code: error.code,
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
+          id, code: error.code, message: error.message,
+          details: error.details, hint: error.hint,
         })
         throw error
       }
@@ -93,11 +133,8 @@ export function useFinanceLeads() {
 
       return { id, updatedData }
     },
-    onSuccess: ({ id, updatedData }) => {
-      const mapped = mapFinanceLeadRow(updatedData)
-      queryClient.setQueryData<FinanceLead[]>(['financeLeads'], (old) =>
-        old?.map((f) => (f.id === id ? mapped : f)) ?? []
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['financeLeads'] })
       toast.success('Borrower updated')
     },
     onError: (error: any) => {
@@ -116,5 +153,12 @@ export function useFinanceLeads() {
     }
   }
 
-  return { financeLeads, isLoading, error: error?.message ?? null, refreshFinanceLeads: refetch, updateFinanceLead }
+  return {
+    financeLeads,
+    totalCount,
+    isLoading,
+    error: error?.message ?? null,
+    refreshFinanceLeads: refetch,
+    updateFinanceLead,
+  }
 }

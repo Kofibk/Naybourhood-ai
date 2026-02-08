@@ -169,7 +169,7 @@ export async function checkCompanyMatch(companyName: string): Promise<Company | 
     // Get development count for the company
     const { count } = await supabase
       .from('developments')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
       .eq('company_id', company.id)
 
     return {

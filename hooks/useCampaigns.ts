@@ -5,6 +5,15 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Campaign } from '@/types'
 
+// Explicit columns for campaigns table - no select('*')
+const CAMPAIGNS_COLUMNS = [
+  'id', 'campaign_name', 'name', 'ad_name', 'ad_set_name', 'date',
+  'company_id', 'development_id', 'development_name',
+  'platform', 'delivery_status', 'status',
+  'total_spent', 'spend', 'number_of_leads', 'leads',
+  'impressions', 'link_clicks', 'clicks', 'reach', 'ctr',
+].join(', ')
+
 const parseNumber = (val: any): number => {
   if (val === null || val === undefined) return 0
   if (typeof val === 'number') return val
@@ -16,35 +25,43 @@ const parseNumber = (val: any): number => {
   return 0
 }
 
-async function fetchCampaigns(): Promise<Campaign[]> {
-  if (!isSupabaseConfigured()) return []
+export interface UseCampaignsOptions {
+  page?: number
+  limit?: number
+  companyId?: string
+}
+
+async function fetchCampaigns(
+  options: UseCampaignsOptions
+): Promise<{ data: Campaign[]; totalCount: number }> {
+  if (!isSupabaseConfigured()) return { data: [], totalCount: 0 }
 
   const supabase = createClient()
-  if (!supabase) return []
+  if (!supabase) return { data: [], totalCount: 0 }
 
-  // Fetch all with pagination (data is at ad-level)
-  let allCampaigns: any[] = []
-  let from = 0
-  const batchSize = 1000
-  let hasMore = true
+  const { page = 0, limit = 50, companyId } = options
 
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select('*')
-      .range(from, from + batchSize - 1)
+  // Fetch ad-level data with explicit columns and pagination
+  // Campaigns are stored at ad-level and need aggregation
+  let query = supabase
+    .from('campaigns')
+    .select(CAMPAIGNS_COLUMNS, { count: 'exact' })
+    .order('date', { ascending: false })
+    .range(0, 499)
 
-    if (error) {
-      console.error('[useCampaigns] Fetch error:', error.message)
-      return []
-    }
-    if (data && data.length > 0) {
-      allCampaigns = [...allCampaigns, ...data]
-      from += batchSize
-      hasMore = data.length === batchSize
-    } else {
-      hasMore = false
-    }
+  if (companyId) {
+    query = query.eq('company_id', companyId)
+  }
+
+  const { data: allCampaigns, count, error } = await query
+
+  if (error) {
+    console.error('[useCampaigns] Fetch error:', error.message)
+    throw new Error(`Failed to fetch campaigns: ${error.message}`)
+  }
+
+  if (!allCampaigns || allCampaigns.length === 0) {
+    return { data: [], totalCount: 0 }
   }
 
   // Aggregate ad-level data by campaign_name
@@ -96,7 +113,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
     }
   }
 
-  const aggregated = Array.from(campaignAggregates.values()).map(agg => {
+  const allAggregated = Array.from(campaignAggregates.values()).map(agg => {
     const cpl = agg.totalLeads > 0 ? agg.totalSpend / agg.totalLeads : 0
     const ctr = agg.totalImpressions > 0 ? (agg.totalClicks / agg.totalImpressions) * 100 : 0
     const cpc = agg.totalClicks > 0 ? agg.totalSpend / agg.totalClicks : 0
@@ -125,17 +142,35 @@ async function fetchCampaigns(): Promise<Campaign[]> {
     }
   })
 
-  aggregated.sort((a, b) => (b.spend ?? 0) - (a.spend ?? 0))
-  return aggregated as Campaign[]
+  allAggregated.sort((a, b) => (b.spend ?? 0) - (a.spend ?? 0))
+
+  // Paginate the aggregated result - max 50 campaigns per page
+  const start = page * limit
+  const paginatedCampaigns = allAggregated.slice(start, start + limit)
+
+  return {
+    data: paginatedCampaigns as Campaign[],
+    totalCount: allAggregated.length,
+  }
 }
 
-export function useCampaigns() {
+export function useCampaigns(options: UseCampaignsOptions = {}) {
   const queryClient = useQueryClient()
 
-  const { data: campaigns = [], isLoading, error, refetch } = useQuery<Campaign[], Error>({
-    queryKey: ['campaigns'],
-    queryFn: fetchCampaigns,
+  const {
+    data: result,
+    isLoading,
+    error,
+    refetch,
+  } = useQuery({
+    queryKey: ['campaigns', options],
+    queryFn: () => fetchCampaigns(options),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
+
+  const campaigns = result?.data ?? []
+  const totalCount = result?.totalCount ?? 0
 
   const updateCampaignMutation = useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Campaign> }) => {
@@ -159,7 +194,7 @@ export function useCampaigns() {
         .from('campaigns')
         .update(cleanData)
         .eq('id', id)
-        .select('*, company:companies(*), developmentData:developments(*)')
+        .select('*, company:companies(id, name, type), developmentData:developments(id, name)')
         .single()
 
       if (error) throw error
@@ -208,7 +243,7 @@ export function useCampaigns() {
       const { data: newData, error } = await supabase
         .from('campaigns')
         .insert(cleanData)
-        .select('*, company:companies(*), developmentData:developments(*)')
+        .select('*, company:companies(id, name, type), developmentData:developments(id, name)')
         .single()
 
       if (error) throw error
@@ -262,5 +297,14 @@ export function useCampaigns() {
     try { await deleteCampaignMutation.mutateAsync(id); return true } catch { return false }
   }
 
-  return { campaigns, isLoading, error: error?.message ?? null, refreshCampaigns: refetch, updateCampaign, createCampaign, deleteCampaign }
+  return {
+    campaigns,
+    totalCount,
+    isLoading,
+    error: error?.message ?? null,
+    refreshCampaigns: refetch,
+    updateCampaign,
+    createCampaign,
+    deleteCampaign,
+  }
 }

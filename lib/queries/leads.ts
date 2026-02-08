@@ -1,6 +1,26 @@
 import { createClient } from '@/lib/supabase/client'
 import { Lead, LeadFilters, LeadClassification, PipelineStats, PriorityAction } from '@/types'
 
+// Explicit columns for buyers table - no select('*')
+const BUYERS_LIST_COLUMNS = [
+  'id', 'full_name', 'first_name', 'last_name', 'email', 'phone', 'country',
+  'status', 'quality_score', 'ai_quality_score', 'intent_score', 'ai_intent_score',
+  'ai_confidence', 'ai_summary', 'ai_next_action', 'ai_risk_flags',
+  'ai_recommendations', 'ai_classification', 'ai_priority', 'ai_scored_at',
+  'budget', 'budget_range', 'budget_min', 'budget_max',
+  'bedrooms', 'preferred_bedrooms', 'location', 'area', 'timeline',
+  'source', 'source_campaign', 'campaign_id',
+  'development_id', 'development_name', 'company_id',
+  'payment_method', 'mortgage_status', 'proof_of_funds',
+  'uk_broker', 'uk_solicitor',
+  'assigned_to', 'assigned_user_name', 'assigned_at',
+  'purpose', 'ready_in_28_days',
+  'viewing_intent_confirmed', 'viewing_booked', 'viewing_date',
+  'replied', 'stop_comms', 'next_follow_up', 'broker_connected',
+  'last_wa_message', 'transcript', 'call_summary',
+  'notes', 'date_added', 'created_at', 'updated_at',
+].join(', ')
+
 // Transform raw Supabase data to Lead interface
 export function transformBuyerToLead(buyer: Record<string, unknown>): Lead {
   const qualityScore = (buyer.quality_score as number) || (buyer.ai_quality_score as number) || 0
@@ -107,7 +127,7 @@ export function transformBuyerToLead(buyer: Record<string, unknown>): Lead {
   }
 }
 
-// Fetch all leads with optional filters
+// Fetch leads with optional filters - paginated, max 50 rows per request
 export async function fetchLeads(
   filters?: LeadFilters,
   pagination?: { page: number; pageSize: number },
@@ -129,7 +149,7 @@ export async function fetchLeads(
 
   let query = supabase
     .from('buyers')
-    .select('*', { count: 'exact' })
+    .select(BUYERS_LIST_COLUMNS, { count: 'exact' })
 
   // Apply filters
   if (filters?.classification) {
@@ -177,11 +197,9 @@ export async function fetchLeads(
   // Apply sorting
   query = query.order(sortColumn, { ascending: sortAsc })
 
-  // Apply pagination
-  if (pagination) {
-    const { page, pageSize } = pagination
-    query = query.range(page * pageSize, (page + 1) * pageSize - 1)
-  }
+  // Apply pagination - default to 50 rows if no pagination specified
+  const { page = 0, pageSize = 50 } = pagination ?? {}
+  query = query.range(page * pageSize, (page + 1) * pageSize - 1)
 
   const { data, count, error } = await query
 
@@ -200,7 +218,7 @@ export async function fetchLeadById(id: string): Promise<Lead | null> {
 
   const { data, error } = await supabase
     .from('buyers')
-    .select('*')
+    .select(BUYERS_LIST_COLUMNS)
     .eq('id', id)
     .single()
 
@@ -212,16 +230,16 @@ export async function fetchLeadById(id: string): Promise<Lead | null> {
   return transformBuyerToLead(data)
 }
 
-// Fetch hot leads (quality score >= 70)
+// Fetch hot leads (quality score >= 70) - paginated
 export async function fetchHotLeads(limit: number = 10): Promise<Lead[]> {
   const supabase = createClient()
 
   const { data, error } = await supabase
     .from('buyers')
-    .select('*')
+    .select(BUYERS_LIST_COLUMNS)
     .gte('quality_score', 70)
     .order('quality_score', { ascending: false })
-    .limit(limit)
+    .range(0, limit - 1)
 
   if (error) {
     console.error('Error fetching hot leads:', error)
@@ -231,15 +249,16 @@ export async function fetchHotLeads(limit: number = 10): Promise<Lead[]> {
   return (data || []).map(transformBuyerToLead)
 }
 
-// Fetch leads assigned to a specific user
+// Fetch leads assigned to a specific user - paginated, max 50
 export async function fetchMyLeads(userName: string): Promise<Lead[]> {
   const supabase = createClient()
 
   const { data, error } = await supabase
     .from('buyers')
-    .select('*')
+    .select(BUYERS_LIST_COLUMNS)
     .or(`assigned_user_name.eq.${userName},assigned_user.eq.${userName}`)
     .order('quality_score', { ascending: false })
+    .range(0, 49)
 
   if (error) {
     console.error('Error fetching my leads:', error)
@@ -249,30 +268,11 @@ export async function fetchMyLeads(userName: string): Promise<Lead[]> {
   return (data || []).map(transformBuyerToLead)
 }
 
-// Get pipeline stats
+// Get pipeline stats using count queries instead of fetching all rows
 export async function fetchPipelineStats(): Promise<PipelineStats> {
   const supabase = createClient()
 
-  const { data, error } = await supabase
-    .from('buyers')
-    .select('status')
-
-  if (error) {
-    console.error('Error fetching pipeline stats:', error)
-    return {
-      contactPending: 0,
-      followUp: 0,
-      viewingBooked: 0,
-      negotiating: 0,
-      reserved: 0,
-      exchanged: 0,
-      completed: 0,
-      notProceeding: 0,
-      disqualified: 0,
-    }
-  }
-
-  const stats: PipelineStats = {
+  const defaultStats: PipelineStats = {
     contactPending: 0,
     followUp: 0,
     viewingBooked: 0,
@@ -284,32 +284,42 @@ export async function fetchPipelineStats(): Promise<PipelineStats> {
     disqualified: 0,
   }
 
-  const statusMap: Record<string, keyof PipelineStats> = {
-    'New': 'contactPending',
-    'Contact Pending': 'contactPending',
-    'Contacted': 'followUp',
-    'Follow Up': 'followUp',
-    'Qualified': 'followUp',
-    'Viewing Booked': 'viewingBooked',
-    'Viewing Completed': 'negotiating',
-    'Offer Made': 'negotiating',
-    'Negotiating': 'negotiating',
-    'Reserved': 'reserved',
-    'Exchanged': 'exchanged',
-    'Completed': 'completed',
-    'Not Proceeding': 'notProceeding',
-    'Disqualified': 'disqualified',
-  }
+  // Use count queries for each status group instead of fetching all rows
+  const statusGroups = [
+    { key: 'contactPending', statuses: ['New', 'Contact Pending'] },
+    { key: 'followUp', statuses: ['Contacted', 'Follow Up', 'Qualified'] },
+    { key: 'viewingBooked', statuses: ['Viewing Booked'] },
+    { key: 'negotiating', statuses: ['Viewing Completed', 'Offer Made', 'Negotiating'] },
+    { key: 'reserved', statuses: ['Reserved'] },
+    { key: 'exchanged', statuses: ['Exchanged'] },
+    { key: 'completed', statuses: ['Completed'] },
+    { key: 'notProceeding', statuses: ['Not Proceeding'] },
+    { key: 'disqualified', statuses: ['Disqualified'] },
+  ]
 
-  for (const row of data || []) {
-    const key = statusMap[row.status] || 'contactPending'
-    stats[key]++
+  const countPromises = statusGroups.map(async ({ key, statuses }) => {
+    const { count, error } = await supabase
+      .from('buyers')
+      .select('id', { count: 'exact', head: true })
+      .in('status', statuses)
+
+    if (error) {
+      console.error(`Error counting ${key}:`, error)
+      return { key, count: 0 }
+    }
+    return { key, count: count ?? 0 }
+  })
+
+  const results = await Promise.all(countPromises)
+  const stats = { ...defaultStats }
+  for (const { key, count } of results) {
+    stats[key as keyof PipelineStats] = count
   }
 
   return stats
 }
 
-// Get stale leads (stuck in status for too long)
+// Get stale leads (stuck in status for too long) - paginated, max 50
 export async function fetchStaleLeads(daysThreshold: number = 5): Promise<Lead[]> {
   const supabase = createClient()
   const thresholdDate = new Date()
@@ -317,10 +327,11 @@ export async function fetchStaleLeads(daysThreshold: number = 5): Promise<Lead[]
 
   const { data, error } = await supabase
     .from('buyers')
-    .select('*')
+    .select(BUYERS_LIST_COLUMNS)
     .in('status', ['Follow Up', 'Contacted', 'Qualified'])
     .lt('updated_at', thresholdDate.toISOString())
     .order('updated_at', { ascending: true })
+    .range(0, 49)
 
   if (error) {
     console.error('Error fetching stale leads:', error)

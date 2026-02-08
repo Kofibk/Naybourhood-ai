@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     // Fetch campaign data
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
-      .select('*')
+      .select('id, campaign_name, name, ad_name, ad_set_name, date, company_id, development_id, development_name, platform, delivery_status, status, total_spent, spend, number_of_leads, leads, impressions, link_clicks, clicks, reach, ctr')
       .eq('id', campaignId)
       .single()
 
@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     // Fetch associated buyers
     const { data: buyers } = await supabase
       .from('buyers')
-      .select('*')
+      .select('id, full_name, first_name, last_name, email, phone, country, status, quality_score, ai_quality_score, intent_score, ai_intent_score, ai_confidence, ai_summary, ai_next_action, ai_risk_flags, ai_recommendations, ai_classification, ai_priority, ai_scored_at, budget, budget_range, budget_min, budget_max, bedrooms, preferred_bedrooms, location, area, timeline, source, source_campaign, campaign_id, development_id, development_name, company_id, payment_method, mortgage_status, proof_of_funds, uk_broker, uk_solicitor, assigned_to, assigned_user_name, assigned_at, purpose, ready_in_28_days, viewing_intent_confirmed, viewing_booked, viewing_date, replied, stop_comms, next_follow_up, broker_connected, last_wa_message, transcript, call_summary, notes, date_added, created_at, updated_at')
       .eq('campaign_id', campaignId)
 
     const buyersList = buyers || []
@@ -48,8 +48,8 @@ export async function POST(request: NextRequest) {
     else if (conversionRate < 0.03 && buyersList.length > 10) healthScore -= 15
 
     // CPL component (+/- 15)
-    const spend = campaign.spend || campaign.amount_spent || 0
-    const leads = campaign.leads || campaign.lead_count || buyersList.length
+    const spend = campaign.spend || campaign.total_spent || 0
+    const leads = campaign.leads || campaign.number_of_leads || buyersList.length
     const cpl = leads > 0 ? spend / leads : 0
     if (cpl > 0 && cpl < 50) healthScore += 15
     else if (cpl > 150) healthScore -= 15

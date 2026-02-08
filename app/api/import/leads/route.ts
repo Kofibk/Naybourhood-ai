@@ -197,7 +197,7 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient()
     const { count } = await supabase
       .from('buyers')
-      .select('*', { count: 'exact', head: true })
+      .select('id', { count: 'exact', head: true })
 
     return NextResponse.json({
       exists: true,

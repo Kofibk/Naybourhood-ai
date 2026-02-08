@@ -5,45 +5,102 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import type { Company } from '@/types'
 
-function mapCompanyRow(c: any): Company {
+// Explicit columns for companies table - no select('*')
+const COMPANIES_COLUMNS = [
+  'id', 'name', 'type', 'website',
+  'contact_name', 'contact_email', 'contact_phone',
+  'status', 'ad_spend', 'total_leads', 'campaign_count',
+  'subscription_status', 'subscription_tier', 'subscription_price',
+  'billing_cycle', 'next_billing_date',
+  'stripe_customer_id', 'stripe_subscription_id',
+  'created_at', 'updated_at',
+].join(', ')
+
+export interface UseCompaniesOptions {
+  page?: number
+  limit?: number
+  search?: string
+}
+
+function mapCompanyRow(c: Record<string, any>): Company {
   return {
-    ...c,
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    website: c.website,
+    contact_name: c.contact_name,
+    contact_email: c.contact_email,
+    contact_phone: c.contact_phone,
     phone: c.contact_phone,
+    status: c.status,
+    ad_spend: c.ad_spend,
+    total_leads: c.total_leads,
+    campaign_count: c.campaign_count,
+    subscription_status: c.subscription_status,
+    subscription_tier: c.subscription_tier,
     tier: c.subscription_tier,
+    subscription_price: c.subscription_price,
+    billing_cycle: c.billing_cycle,
+    next_billing_date: c.next_billing_date,
+    stripe_customer_id: c.stripe_customer_id,
+    stripe_subscription_id: c.stripe_subscription_id,
+    created_at: c.created_at,
+    updated_at: c.updated_at,
   }
 }
 
-async function fetchCompanies(): Promise<Company[]> {
-  if (!isSupabaseConfigured()) return []
+async function fetchCompanies(
+  options: UseCompaniesOptions
+): Promise<{ data: Company[]; totalCount: number }> {
+  if (!isSupabaseConfigured()) return { data: [], totalCount: 0 }
 
   const supabase = createClient()
-  if (!supabase) return []
+  if (!supabase) return { data: [], totalCount: 0 }
 
-  const { data, error } = await supabase
+  const { page = 0, limit = 50, search } = options
+  const from = page * limit
+  const to = from + limit - 1
+
+  let query = supabase
     .from('companies')
-    .select('*')
+    .select(COMPANIES_COLUMNS, { count: 'exact' })
     .order('name', { ascending: true })
+    .range(from, to)
+
+  if (search) {
+    query = query.ilike('name', `%${search}%`)
+  }
+
+  const { data, count, error } = await query
 
   if (error) {
     console.error('[useCompanies] Fetch error:', error.message)
     throw new Error(`Failed to fetch companies: ${error.message}`)
   }
 
-  return (data || []).map(mapCompanyRow)
+  return {
+    data: (data || []).map(mapCompanyRow),
+    totalCount: count ?? 0,
+  }
 }
 
-export function useCompanies() {
+export function useCompanies(options: UseCompaniesOptions = {}) {
   const queryClient = useQueryClient()
 
   const {
-    data: companies = [],
+    data: result,
     isLoading,
     error,
     refetch,
-  } = useQuery<Company[], Error>({
-    queryKey: ['companies'],
-    queryFn: fetchCompanies,
+  } = useQuery({
+    queryKey: ['companies', options],
+    queryFn: () => fetchCompanies(options),
+    staleTime: 5 * 60 * 1000,
+    gcTime: 30 * 60 * 1000,
   })
+
+  const companies = result?.data ?? []
+  const totalCount = result?.totalCount ?? 0
 
   const createCompanyMutation = useMutation({
     mutationFn: async (data: Partial<Company>) => {
@@ -54,16 +111,14 @@ export function useCompanies() {
       const { data: newData, error } = await supabase
         .from('companies')
         .insert(data)
-        .select()
+        .select(COMPANIES_COLUMNS)
         .single()
 
       if (error) throw error
       return newData
     },
-    onSuccess: (newData) => {
-      queryClient.setQueryData<Company[]>(['companies'], (old) =>
-        [mapCompanyRow(newData), ...(old ?? [])]
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       toast.success('Company created')
     },
     onError: (error: any) => {
@@ -92,17 +147,14 @@ export function useCompanies() {
         .from('companies')
         .update(cleanData)
         .eq('id', id)
-        .select()
+        .select(COMPANIES_COLUMNS)
         .single()
 
       if (error) throw error
       return { id, updatedData }
     },
-    onSuccess: ({ id, updatedData }) => {
-      const mapped = mapCompanyRow(updatedData)
-      queryClient.setQueryData<Company[]>(['companies'], (old) =>
-        old?.map((c) => (c.id === id ? mapped : c)) ?? []
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       toast.success('Company updated')
     },
     onError: (error: any) => {
@@ -125,10 +177,8 @@ export function useCompanies() {
       if (error) throw error
       return id
     },
-    onSuccess: (id) => {
-      queryClient.setQueryData<Company[]>(['companies'], (old) =>
-        old?.filter((c) => c.id !== id) ?? []
-      )
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['companies'] })
       toast.success('Company deleted')
     },
     onError: (error: any) => {
@@ -137,7 +187,6 @@ export function useCompanies() {
     },
   })
 
-  // Convenience wrappers matching DataContext API
   const createCompany = async (data: Partial<Company>): Promise<Company | null> => {
     try {
       return await createCompanyMutation.mutateAsync(data)
@@ -166,6 +215,7 @@ export function useCompanies() {
 
   return {
     companies,
+    totalCount,
     isLoading,
     error: error?.message ?? null,
     refreshCompanies: refetch,
