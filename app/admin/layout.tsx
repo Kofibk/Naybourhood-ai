@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { DataProvider } from '@/contexts/DataContext'
+import { QueryProvider } from '@/contexts/QueryProvider'
 import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isAdminRole, isMasterAdmin, canAccessDashboard } from '@/lib/auth'
@@ -139,18 +140,20 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <DataProvider>
-      <Toaster position="top-right" richColors closeButton />
-      <DashboardLayout
-        title={`Welcome back, ${currentUser.name?.split(' ')[0] || 'Admin'}`}
-        userType="admin"
-        userName={currentUser.name}
-        userEmail={currentUser.email}
-        onLogout={handleLogout}
-      >
-        {children}
-      </DashboardLayout>
-    </DataProvider>
+    <QueryProvider>
+      <DataProvider>
+        <Toaster position="top-right" richColors closeButton />
+        <DashboardLayout
+          title={`Welcome back, ${currentUser.name?.split(' ')[0] || 'Admin'}`}
+          userType="admin"
+          userName={currentUser.name}
+          userEmail={currentUser.email}
+          onLogout={handleLogout}
+        >
+          {children}
+        </DashboardLayout>
+      </DataProvider>
+    </QueryProvider>
   )
 }
 
