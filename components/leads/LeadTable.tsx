@@ -6,6 +6,7 @@ import { DataTable, type DataTableColumn } from '@/components/ui/data-table'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { Lead, LeadFilters as FilterState, LeadPagination } from '@/types'
 import { ClassificationBadge, PaymentBadge, NextActionChip } from '@/components/badges'
+import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { LeadFilters } from './LeadFilters'
 import { BulkActions } from './BulkActions'
 import { Users } from 'lucide-react'
@@ -81,6 +82,14 @@ const columns: DataTableColumn<Lead>[] = [
         <div className="text-sm">{lead.budgetRange || 'Not specified'}</div>
         {lead.paymentMethod && <PaymentBadge method={lead.paymentMethod} showIcon={false} />}
       </div>
+    ),
+  },
+  {
+    id: 'kycStatus',
+    header: 'Verified',
+    className: 'w-24',
+    cell: (lead) => (
+      <KycStatusBadge status={lead.kycStatus ?? 'not_started'} />
     ),
   },
   {

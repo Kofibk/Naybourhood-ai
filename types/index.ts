@@ -216,6 +216,8 @@ export interface Buyer {
   is_archived?: boolean
   is_duplicate?: boolean
   is_fake?: boolean
+  // KYC/AML Verification
+  kyc_status?: KycStatus
 }
 
 export interface AppUser {
@@ -711,6 +713,9 @@ export interface Lead {
   aiRiskFlags?: string[]
   aiRecommendations?: string[]
 
+  // KYC/AML Verification
+  kycStatus?: KycStatus
+
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -727,6 +732,7 @@ export interface LeadFilters {
   search?: string
   minScore?: number
   maxScore?: number
+  kycStatus?: KycStatus
 }
 
 export interface LeadPagination {
