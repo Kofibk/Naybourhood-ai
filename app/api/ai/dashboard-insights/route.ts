@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import type { AIDashboardInsights } from '@/types'
 
+// Force dynamic rendering - this route uses cookies
+export const dynamic = 'force-dynamic'
+
 // Generate AI-powered dashboard insights based on pipeline data
 export async function GET() {
   try {

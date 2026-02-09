@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
 
+// Force dynamic rendering - this route uses cookies
+export const dynamic = 'force-dynamic'
+
 // Get admin client for database operations (bypasses RLS)
 function getSupabaseClient() {
   try {

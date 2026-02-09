@@ -8,6 +8,9 @@ import {
   NaybourhoodScoreResult
 } from '@/lib/scoring/naybourhood-scoring'
 
+// Force dynamic rendering - this route uses cookies
+export const dynamic = 'force-dynamic'
+
 // Get admin client for database operations (bypasses RLS)
 function getSupabaseClient() {
   try {

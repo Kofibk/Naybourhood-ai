@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import type { AIAnalysis } from '@/types'
 
+// Force dynamic rendering - this route uses cookies
+export const dynamic = 'force-dynamic'
+
 // Generate comprehensive AI analysis of the pipeline
 export async function GET() {
   try {

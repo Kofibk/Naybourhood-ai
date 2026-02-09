@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import type { AICampaignAnalysis } from '@/types'
 
+// Force dynamic rendering - this route uses cookies
+export const dynamic = 'force-dynamic'
+
 // Analyze a campaign and generate AI insights
 export async function POST(request: NextRequest) {
   try {
