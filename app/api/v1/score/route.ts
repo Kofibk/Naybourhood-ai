@@ -4,8 +4,104 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import {
   scoreLeadNaybourhood,
   convertToLegacyFormat,
+  type NaybourhoodScoreResult,
+  type NaybourhoodClassification,
 } from '@/lib/scoring/naybourhood-scoring'
 import type { Buyer } from '@/types'
+
+function generateAiSummary(buyer: Buyer, result: NaybourhoodScoreResult): string {
+  const name = buyer.full_name || [buyer.first_name, buyer.last_name].filter(Boolean).join(' ') || 'Unknown buyer'
+  const payment = (buyer.payment_method || '').toLowerCase()
+  const paymentLabel = payment === 'cash' ? 'Cash buyer' : payment === 'mortgage' ? 'Mortgage buyer' : 'Buyer'
+  const bedrooms = buyer.bedrooms || buyer.preferred_bedrooms
+  const bedroomStr = bedrooms ? `${bedrooms}-bed` : ''
+  const location = buyer.location || buyer.area || ''
+  const purpose = buyer.purpose || buyer.purchase_purpose || ''
+  const budget = buyer.budget || buyer.budget_range || ''
+
+  const parts: string[] = []
+
+  // Opening: "Cash buyer looking for 3-bed in London for primary residence."
+  const lookingFor = [bedroomStr, location ? `in ${location}` : '', purpose ? `for ${purpose}` : ''].filter(Boolean).join(' ')
+  parts.push(`${paymentLabel}${lookingFor ? ` looking for ${lookingFor}` : ''}.`)
+
+  if (budget) {
+    parts.push(`Budget ${budget}.`)
+  }
+
+  if (result.is28DayBuyer) {
+    parts.push('Ready to purchase within 28 days.')
+  } else {
+    const timeline = buyer.timeline || buyer.timeline_to_purchase
+    if (timeline) {
+      parts.push(`Timeline: ${timeline}.`)
+    }
+  }
+
+  if (result.fakeLeadCheck.isFake) {
+    parts.push('Flagged as potential fake lead.')
+  } else if (result.classification === 'Hot Lead') {
+    parts.push('High proceedability.')
+  } else if (result.classification === 'Qualified') {
+    parts.push('Good proceedability - qualified lead.')
+  } else if (result.classification === 'Needs Qualification') {
+    parts.push('Missing key data - needs qualification.')
+  } else if (result.classification === 'Low Priority') {
+    parts.push('Low urgency or insufficient quality signals.')
+  }
+
+  return `${name}: ${parts.join(' ')}`
+}
+
+function generateAiRecommendations(buyer: Buyer, result: NaybourhoodScoreResult): string[] {
+  const classification = result.classification
+  const recs: string[] = []
+
+  const primaryRec: Record<NaybourhoodClassification, string> = {
+    'Hot Lead': 'Schedule viewing within 24 hours',
+    'Qualified': 'Send development brochure + follow up in 48 hours',
+    'Needs Qualification': 'WhatsApp to confirm budget, timeline, and bedroom requirements',
+    'Nurture': 'Add to 3-month email sequence',
+    'Low Priority': 'No immediate action - monitor for re-engagement',
+    'Disqualified': 'Archive - do not pursue',
+  }
+  recs.push(primaryRec[classification])
+
+  if (classification === 'Disqualified') return recs
+
+  const bedrooms = buyer.bedrooms || buyer.preferred_bedrooms
+  const budget = buyer.budget || buyer.budget_range || ''
+  const payment = (buyer.payment_method || '').toLowerCase()
+
+  if (budget && bedrooms) {
+    recs.push(`Prepare ${bedrooms}-bed options in ${budget} range`)
+  }
+
+  if (payment === 'mortgage') {
+    const broker = (buyer.uk_broker || '').toLowerCase()
+    if (!broker || broker === 'no' || broker === 'unknown') {
+      recs.push('Introduce to partner mortgage broker')
+    }
+    if (!buyer.proof_of_funds) {
+      recs.push('Request mortgage AIP or proof of funds')
+    }
+  }
+
+  if (payment === 'cash' && !buyer.proof_of_funds) {
+    recs.push('Request proof of funds before viewing')
+  }
+
+  const solicitor = (buyer.uk_solicitor || '').toLowerCase()
+  if (solicitor === 'no' || solicitor === 'unknown') {
+    recs.push('Recommend conveyancing solicitor')
+  }
+
+  if (result.is28DayBuyer && classification !== 'Hot Lead') {
+    recs.unshift('Immediate call required - 28-day purchase intent')
+  }
+
+  return recs.slice(0, 5)
+}
 
 function getAdminClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -135,6 +231,8 @@ export async function POST(request: NextRequest) {
       fake_lead_flags: result.fakeLeadCheck.flags,
       risk_flags: result.riskFlags,
       low_urgency: result.lowUrgencyFlag,
+      ai_summary: generateAiSummary(buyerData, result),
+      ai_recommendations: generateAiRecommendations(buyerData, result),
       score_breakdown: {
         quality: {
           total: result.qualityScore.total,
