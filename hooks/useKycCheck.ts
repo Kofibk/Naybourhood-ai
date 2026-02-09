@@ -13,20 +13,26 @@ async function fetchKycCheck(buyerId: string): Promise<KycCheck | null> {
   const supabase = createClient()
   if (!supabase) return null
 
-  const { data, error } = await supabase
-    .from('kyc_checks')
-    .select(KYC_SELECT_COLUMNS)
-    .eq('buyer_id', buyerId)
-    .order('created_at', { ascending: false })
-    .range(0, 0)
+  try {
+    const { data, error } = await supabase
+      .from('kyc_checks')
+      .select(KYC_SELECT_COLUMNS)
+      .eq('buyer_id', buyerId)
+      .order('created_at', { ascending: false })
+      .limit(1)
 
-  if (error) {
-    // Table may not exist yet - return null gracefully
-    console.warn('[useKycCheck] Fetch error:', error.message)
+    if (error) {
+      // Table may not exist yet - return null gracefully
+      console.warn('[useKycCheck] Fetch error:', error.message)
+      return null
+    }
+
+    return data?.[0] ?? null
+  } catch (err) {
+    // Network error or table doesn't exist - return null gracefully
+    console.warn('[useKycCheck] Exception:', err)
     return null
   }
-
-  return data?.[0] ?? null
 }
 
 export function useKycCheck(buyerId: string) {
@@ -40,6 +46,7 @@ export function useKycCheck(buyerId: string) {
     queryKey: ['kyc-check', buyerId],
     queryFn: () => fetchKycCheck(buyerId),
     enabled: !!buyerId,
+    retry: false,
     staleTime: 5 * 60 * 1000,
     gcTime: 30 * 60 * 1000,
   })

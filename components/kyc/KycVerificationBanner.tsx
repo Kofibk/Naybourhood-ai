@@ -101,7 +101,7 @@ const STATUS_CONFIG: Record<KycStatus, StatusConfig> = {
 }
 
 export function KycVerificationBanner({ buyerId, className }: KycVerificationBannerProps) {
-  const { kycCheck, isLoading, initiateCheck, isInitiating } = useKycCheck(buyerId)
+  const { kycCheck, initiateCheck, isInitiating } = useKycCheck(buyerId)
 
   const status: KycStatus = kycCheck?.status ?? 'not_started'
   const config = STATUS_CONFIG[status]
@@ -109,19 +109,6 @@ export function KycVerificationBanner({ buyerId, className }: KycVerificationBan
 
   const showVerifyButton = status === 'not_started' || status === 'not_available'
   const isComingSoon = status === 'not_available'
-
-  if (isLoading) {
-    return (
-      <Card className={className}>
-        <CardContent className="py-4">
-          <div className="flex items-center gap-3">
-            <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Loading verification status...</span>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
 
   return (
     <Card className={`${config.borderColor} ${config.bgColor} ${className ?? ''}`}>
