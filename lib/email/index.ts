@@ -85,6 +85,31 @@ async function sendEmail(
  * Send user invite email
  */
 export async function sendInviteEmail(params: InviteEmailParams): Promise<SendEmailResult> {
+  console.log('[Email Service] 📧 Preparing invite email:', {
+    recipientEmail: params.recipientEmail,
+    recipientName: params.recipientName,
+    role: params.role,
+    companyName: params.companyName,
+    inviterName: params.inviterName,
+    inviteLink: params.inviteLink,
+    inviteLinkPreview: params.inviteLink?.substring(0, 100) + '...',
+  })
+  
+  // Parse and log the invite link structure
+  try {
+    const linkUrl = new URL(params.inviteLink)
+    console.log('[Email Service] 🔗 Invite link being sent:', {
+      origin: linkUrl.origin,
+      pathname: linkUrl.pathname,
+      hasSearchParams: linkUrl.search.length > 1,
+      searchParamsKeys: Array.from(linkUrl.searchParams.keys()),
+      hasHash: linkUrl.hash.length > 1,
+      hashPreview: linkUrl.hash ? `${linkUrl.hash.substring(0, 50)}...` : '(none)',
+    })
+  } catch (e) {
+    console.log('[Email Service] ⚠️ Could not parse invite link as URL')
+  }
+  
   const { subject, html } = generateInviteEmail(params)
   return sendEmail(params.recipientEmail, subject, html)
 }

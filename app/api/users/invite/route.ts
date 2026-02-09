@@ -236,12 +236,39 @@ export async function POST(request: NextRequest) {
       }
 
       const inviteLink = data?.properties?.action_link
+      console.log('[Invite API] 📧 Supabase generateLink response:', {
+        hasUser: !!data?.user,
+        userId: data?.user?.id,
+        userEmail: data?.user?.email,
+        hasProperties: !!data?.properties,
+        actionLink: inviteLink ? `${inviteLink.substring(0, 100)}...` : null,
+        actionLinkFull: inviteLink, // Full link for debugging
+        hashedToken: data?.properties?.hashed_token ? 'present' : 'missing',
+        emailOtp: data?.properties?.email_otp ? 'present' : 'missing',
+        verificationType: data?.properties?.verification_type,
+      })
+      
       if (!inviteLink) {
-        console.error('[Invite API] Missing invite link in response:', data)
+        console.error('[Invite API] ❌ Missing invite link in response:', JSON.stringify(data, null, 2))
         return NextResponse.json({
           success: false,
           error: 'Failed to generate invite link.',
         }, { status: 500 })
+      }
+      
+      // Parse the invite link to understand its format
+      try {
+        const linkUrl = new URL(inviteLink)
+        console.log('[Invite API] 🔗 Invite link structure:', {
+          origin: linkUrl.origin,
+          pathname: linkUrl.pathname,
+          search: linkUrl.search,
+          hash: linkUrl.hash ? `${linkUrl.hash.substring(0, 50)}...` : '(none)',
+          hasHash: !!linkUrl.hash,
+          searchParams: Object.fromEntries(linkUrl.searchParams),
+        })
+      } catch (e) {
+        console.log('[Invite API] ⚠️ Could not parse invite link as URL:', e)
       }
 
       // Create profile entry for the invited user with 'pending' status

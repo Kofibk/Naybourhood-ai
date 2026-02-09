@@ -217,8 +217,25 @@ export async function GET(request: Request) {
     return NextResponse.redirect(redirectUrl.toString())
   }
 
+  // Check if this might be a hash-based redirect (tokens in URL fragment)
+  // The server can't see hash fragments, so if we have no code/token_hash but also no error,
+  // we should redirect to login page where the client-side AuthHandler can process the hash
+  if (!code && !token_hash && !authError) {
+    console.log('[Auth Callback] ℹ️ No code or token_hash received, but no error either.')
+    console.log('[Auth Callback] 💡 This might be a hash-based link (#access_token=...) which the server cannot see.')
+    console.log('[Auth Callback] → Redirecting to /login for client-side AuthHandler to process any hash tokens')
+    // Redirect without error - let client-side AuthHandler try to process hash tokens
+    return NextResponse.redirect(`${origin}/login`)
+  }
+
   // Return the user to an error page with instructions
   console.error('[Auth Callback] ❌ Authentication failed:', authError?.message || 'Unknown error')
+  console.error('[Auth Callback] 📋 Debug info:', {
+    hadCode: !!code,
+    hadTokenHash: !!token_hash,
+    authErrorMessage: authError?.message,
+    authErrorCode: authError?.code,
+  })
   const errorMessage = authError?.message || 'Could not authenticate user'
   return NextResponse.redirect(`${origin}/login?error=${encodeURIComponent(errorMessage)}`)
 }
