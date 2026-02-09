@@ -756,3 +756,19 @@ export interface PriorityAction {
   description: string
   urgency: 'now' | 'today' | 'soon'
 }
+
+// KYC/AML Verification Types
+export type KycCheckType = 'aml' | 'kyc' | 'both'
+export type KycStatus = 'not_started' | 'pending' | 'passed' | 'failed' | 'review' | 'not_available'
+
+export interface KycCheck {
+  id: string
+  buyer_id: string
+  check_type: KycCheckType
+  status: KycStatus
+  checkboard_reference?: string
+  result_data?: Record<string, unknown>
+  initiated_by?: string
+  created_at: string
+  completed_at?: string
+}
