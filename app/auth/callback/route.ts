@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
 import { isMasterAdmin, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
@@ -136,15 +136,17 @@ export async function GET(request: Request) {
     // First, get current status
     const { data: currentProfile } = await supabase
       .from('user_profiles')
-      .select('membership_status, onboarding_completed')
+      .select('membership_status, onboarding_completed, is_internal_team')
       .eq('id', authResult.user.id)
       .single()
     
     console.log('[Auth Callback] 📋 Current profile before update:', currentProfile)
     
-    const { data: updateResult, error: updateError } = await supabase
+    // Use admin client to bypass RLS for status update
+    const adminClient = createAdminClient()
+    const { data: updateResult, error: updateError } = await adminClient
       .from('user_profiles')
-      .update({ membership_status: 'active', last_active: new Date().toISOString() })
+      .update({ membership_status: 'active' })
       .eq('id', authResult.user.id)
       .select()
     
@@ -158,7 +160,7 @@ export async function GET(request: Request) {
     console.log('[Auth Callback] 📋 Fetching user profile from database')
     const { data: userProfile, error: profileError } = await supabase
       .from('user_profiles')
-      .select('onboarding_completed, user_type, first_name, last_name, company_id')
+      .select('onboarding_completed, user_type, first_name, last_name, company_id, is_internal_team')
       .eq('id', authResult.user.id)
       .single()
 
@@ -167,10 +169,40 @@ export async function GET(request: Request) {
       onboarding_completed: userProfile?.onboarding_completed,
       user_type: userProfile?.user_type,
       company_id: userProfile?.company_id,
+      is_internal_team: userProfile?.is_internal_team,
       error: profileError?.message 
     })
 
-    // If user hasn't completed onboarding, redirect to onboarding flow
+    // Check if user is internal team (from profile or user metadata)
+    const isInternalTeam = userProfile?.is_internal_team || authResult.user.user_metadata?.is_internal || false
+
+    // Internal team members skip onboarding - mark complete and redirect to admin
+    if (isInternalTeam && !userProfile?.onboarding_completed) {
+      console.log('[Auth Callback] 👥 Internal team member - marking onboarding complete and redirecting to admin')
+      
+      // Update onboarding status for internal team
+      await adminClient
+        .from('user_profiles')
+        .update({ onboarding_completed: true })
+        .eq('id', authResult.user.id)
+      
+      const fullName = buildDisplayName(
+        userProfile?.first_name,
+        userProfile?.last_name,
+        authResult.user.user_metadata?.full_name || email
+      )
+      
+      const redirectUrl = new URL(`${origin}/admin`)
+      redirectUrl.searchParams.set('auth', 'success')
+      redirectUrl.searchParams.set('userId', authResult.user.id)
+      redirectUrl.searchParams.set('email', email)
+      redirectUrl.searchParams.set('name', fullName)
+      redirectUrl.searchParams.set('role', 'admin')
+      
+      return NextResponse.redirect(redirectUrl.toString())
+    }
+
+    // If user hasn't completed onboarding (non-internal), redirect to onboarding flow
     if (!userProfile?.onboarding_completed) {
       console.log('[Auth Callback] ⏭️ Onboarding not complete, redirecting to onboarding')
       // Store basic auth info in URL params for client-side

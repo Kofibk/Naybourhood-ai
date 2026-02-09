@@ -5,17 +5,22 @@ import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import type { AppUser } from '@/types'
 
 function mapProfileToUser(p: any): AppUser {
+  // Determine status from membership_status field
+  // 'pending' = invited but not yet accepted
+  // 'active' = accepted invite and using the platform
+  // 'inactive' = was active but hasn't logged in recently
   let status: 'active' | 'inactive' | 'pending' = 'pending'
-  const emailConfirmed = p.email_confirmed ?? (p.last_active ? true : false)
-
-  if (p.last_active) {
-    const lastActiveDate = new Date(p.last_active)
-    const thirtyDaysAgo = new Date()
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
-    status = lastActiveDate > thirtyDaysAgo ? 'active' : 'inactive'
-  } else if (p.membership_status === 'active') {
+  
+  if (p.membership_status === 'active') {
     status = 'active'
+  } else if (p.membership_status === 'inactive') {
+    status = 'inactive'
+  } else if (p.membership_status === 'pending') {
+    status = 'pending'
   }
+  
+  // Email is confirmed if they've accepted the invite (status is active)
+  const emailConfirmed = p.email_confirmed ?? (status === 'active')
 
   const firstName = p.first_name || ''
   const lastName = p.last_name || ''
@@ -31,7 +36,7 @@ function mapProfileToUser(p: any): AppUser {
     avatar_url: p.avatar_url,
     status,
     email_confirmed: emailConfirmed,
-    last_active: p.last_active,
+    is_internal: p.is_internal_team || false,
     created_at: p.created_at,
     invited_at: p.created_at,
   }
