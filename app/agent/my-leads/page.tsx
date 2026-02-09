@@ -12,6 +12,7 @@ import { PriorityActionsCompact } from '@/components/dashboard/PriorityActions'
 import { EmailComposer } from '@/components/EmailComposer'
 import { fetchMyLeads, fetchPriorityActions, updateLeadStatus } from '@/lib/queries/leads'
 import { Target, ChevronRight, Phone, Mail, MessageCircle, CheckCircle, Calendar, ChevronDown } from 'lucide-react'
+import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { toast } from 'sonner'
 
 const STATUS_OPTIONS = [
@@ -204,6 +205,7 @@ export default function AgentMyLeadsPage() {
                   <tr className="text-left text-xs text-muted-foreground border-b">
                     <th className="pb-2 font-medium">Lead</th>
                     <th className="pb-2 font-medium">Classification</th>
+                    <th className="pb-2 font-medium">Verified</th>
                     <th className="pb-2 font-medium">Status</th>
                     <th className="pb-2 font-medium">Next Action</th>
                     <th className="pb-2 font-medium text-right">Quick Actions</th>
@@ -226,6 +228,9 @@ export default function AgentMyLeadsPage() {
                         <Badge className={`text-xs ${getClassificationColor(lead.classification)}`}>
                           {lead.classification || 'Unscored'}
                         </Badge>
+                      </td>
+                      <td className="py-3">
+                        <KycStatusBadge status={lead.kycStatus ?? 'not_started'} />
                       </td>
                       <td className="py-3" onClick={(e) => e.stopPropagation()}>
                         <select

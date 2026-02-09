@@ -216,6 +216,8 @@ export interface Buyer {
   is_archived?: boolean
   is_duplicate?: boolean
   is_fake?: boolean
+  // KYC/AML Verification
+  kyc_status?: KycStatus
 }
 
 export interface AppUser {
@@ -711,6 +713,9 @@ export interface Lead {
   aiRiskFlags?: string[]
   aiRecommendations?: string[]
 
+  // KYC/AML Verification
+  kycStatus?: KycStatus
+
   // Timestamps
   createdAt?: string
   updatedAt?: string
@@ -727,6 +732,7 @@ export interface LeadFilters {
   search?: string
   minScore?: number
   maxScore?: number
+  kycStatus?: KycStatus
 }
 
 export interface LeadPagination {
@@ -755,4 +761,20 @@ export interface PriorityAction {
   actionType: NextActionType
   description: string
   urgency: 'now' | 'today' | 'soon'
+}
+
+// KYC/AML Verification Types
+export type KycCheckType = 'aml' | 'kyc' | 'both'
+export type KycStatus = 'not_started' | 'pending' | 'passed' | 'failed' | 'review' | 'not_available'
+
+export interface KycCheck {
+  id: string
+  buyer_id: string
+  check_type: KycCheckType
+  status: KycStatus
+  checkboard_reference?: string
+  result_data?: Record<string, unknown>
+  initiated_by?: string
+  created_at: string
+  completed_at?: string
 }

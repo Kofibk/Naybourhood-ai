@@ -28,6 +28,7 @@ import {
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { LeadAIInsights } from '@/components/leads/detail/LeadAIInsights'
 import { LeadSidebar } from '@/components/leads/detail/LeadSidebar'
+import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
 import {
   ArrowLeft,
   Phone,
@@ -242,6 +243,9 @@ export default function LeadDetailPage() {
         onRescore={handleRescore}
         onArchive={handleArchive}
       />
+
+      {/* KYC Verification Banner */}
+      <KycVerificationBanner buyerId={lead.id} />
 
       {/* ═══════════════════════════════════════════════════════════════════
           THREE COLUMN LAYOUT

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { FilterBar } from '@/components/ui/filter-bar'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { LeadFilters as FilterState, LeadClassification, LeadStatus } from '@/types'
+import { LeadFilters as FilterState, LeadClassification, LeadStatus, KycStatus } from '@/types'
 import { Filter, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -71,6 +71,11 @@ export function LeadFilters({
       label: filters.developmentName,
       onRemove: () => clearFilter('developmentName'),
     },
+    filters.kycStatus && {
+      key: 'kycStatus',
+      label: `KYC: ${filters.kycStatus}`,
+      onRemove: () => clearFilter('kycStatus'),
+    },
   ].filter(Boolean) as Array<{ key: string; label: string; onRemove: () => void }>
 
   return (
@@ -121,6 +126,23 @@ export function LeadFilters({
             </SelectContent>
           </Select>
         )}
+
+        {/* KYC Status Filter */}
+        <Select
+          value={filters.kycStatus || ''}
+          onValueChange={(val) => (val ? updateFilter('kycStatus', val as KycStatus) : clearFilter('kycStatus'))}
+        >
+          <SelectTrigger className="h-8 w-[140px] text-sm">
+            <SelectValue placeholder="KYC Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All KYC</SelectItem>
+            <SelectItem value="passed">Verified</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="failed">Failed</SelectItem>
+            <SelectItem value="not_started">Not Started</SelectItem>
+          </SelectContent>
+        </Select>
       </FilterBar>
 
       {/* Advanced Filters (Status Grid) */}

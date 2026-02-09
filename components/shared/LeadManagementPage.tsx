@@ -15,6 +15,7 @@ import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import { LoadingState } from '@/components/ui/loading-state'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
+import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import {
   Search, Phone, Mail, MessageCircle, Eye, Flame, Users,
   ChevronRight, Target, TrendingUp, CheckCircle, Clock,
@@ -546,6 +547,9 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                     {isPropertyMode && (
                       <th className="pb-3 font-medium min-w-[130px]">Classification</th>
                     )}
+                    {isPropertyMode && (
+                      <th className="pb-3 font-medium min-w-[90px]">Verified</th>
+                    )}
                     <th className="pb-3 font-medium min-w-[160px]">Status</th>
                     <th className="pb-3 font-medium min-w-[120px]">
                       {isPropertyMode ? 'Budget' : 'Loan Amount'}
@@ -602,6 +606,11 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                           <Badge className={`text-xs ${getPropertyClassificationColor(lead.ai_classification)}`}>
                             {lead.ai_classification || 'Unscored'}
                           </Badge>
+                        </td>
+                      )}
+                      {isPropertyMode && (
+                        <td className="py-3">
+                          <KycStatusBadge status={lead.kyc_status || 'not_started'} />
                         </td>
                       )}
                       <td className="py-3" onClick={(e) => e.stopPropagation()}>
