@@ -135,7 +135,7 @@ Respond ONLY with valid JSON:
 }
 
 // Generate fallback summary without Claude
-function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult): { summary: string; next_action: string; recommendations: string[] } {
+function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycStatus?: string): { summary: string; next_action: string; recommendations: string[] } {
   const name = buyer.full_name || buyer.first_name || 'This lead'
   const paymentType = buyer.payment_method || 'potential'
   const locationInfo = buyer.location || buyer.area || 'the area'
@@ -147,6 +147,13 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult): { s
     summary += ' URGENT: Ready to purchase within 28 days - immediate priority.'
   } else if (score.classification === 'Hot Lead') {
     summary += ' High-quality lead with strong purchase intent.'
+  }
+
+  // Add KYC context to summary
+  if (kycStatus === 'passed') {
+    summary += ' Buyer verified - AML/KYC checks passed.'
+  } else if (kycStatus === 'failed') {
+    summary += ' WARNING: AML/KYC verification failed.'
   }
 
   let next_action = 'Contact lead to confirm interest and timeline'
@@ -162,6 +169,15 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult): { s
 
   if (score.fakeLeadCheck.flags.length > 0) {
     recommendations.push('Verify lead authenticity - some red flags detected')
+  }
+
+  // KYC-based recommendations
+  if (!kycStatus || kycStatus === 'not_started') {
+    recommendations.push('Recommend: Run AML/KYC verification')
+  } else if (kycStatus === 'passed') {
+    recommendations.push('Buyer verified - proceed with confidence')
+  } else if (kycStatus === 'failed') {
+    recommendations.push('Review KYC failure details before proceeding')
   }
 
   if (!buyer.proof_of_funds && buyer.payment_method?.toLowerCase() !== 'cash') {
@@ -215,6 +231,20 @@ export async function POST(request: NextRequest) {
     // Convert to legacy format for database storage
     const legacyScores = convertToLegacyFormat(naybourhoodScore)
 
+    // Look up latest KYC status for this buyer
+    let kycStatus: string | undefined
+    try {
+      const { data: kycData } = await supabase
+        .from('kyc_checks')
+        .select('status')
+        .eq('buyer_id', buyerId)
+        .order('created_at', { ascending: false })
+        .range(0, 0)
+      kycStatus = kycData?.[0]?.status
+    } catch {
+      // kyc_checks table may not exist yet - continue without it
+    }
+
     // Get Anthropic client for enhanced summary generation
     const client = getAnthropicClient()
 
@@ -225,7 +255,7 @@ export async function POST(request: NextRequest) {
       summaryData = await generateClaudeSummary(client, buyer, naybourhoodScore)
     } else {
       console.log('[AI Score] Using fallback summary generation')
-      summaryData = generateFallbackSummary(buyer, naybourhoodScore)
+      summaryData = generateFallbackSummary(buyer, naybourhoodScore, kycStatus)
     }
 
     // Update buyer in database with Naybourhood scores
