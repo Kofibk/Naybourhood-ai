@@ -10,6 +10,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { toast } from 'sonner'
+import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
+import { useKycCheck } from '@/hooks/useKycCheck'
 import {
   ArrowLeft,
   Phone,
@@ -146,6 +148,8 @@ export default function DeveloperLeadDetailPage() {
   const [notesValue, setNotesValue] = useState('')
   const [showEmailComposer, setShowEmailComposer] = useState(false)
 
+  const { kycCheck } = useKycCheck(params.id as string)
+
   const lead = useMemo(() => {
     return leads.find((l) => l.id === params.id)
   }, [leads, params.id])
@@ -235,7 +239,10 @@ export default function DeveloperLeadDetailPage() {
           <Link href="/developer/buyers" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-2">
             <ArrowLeft className="w-4 h-4" /> Back to Leads
           </Link>
-          <h1 className="text-2xl font-bold">{lead.full_name || 'Unknown'}</h1>
+          <h1 className="text-2xl font-bold flex items-center gap-2">
+            {lead.full_name || 'Unknown'}
+            {kycCheck && <KycStatusBadge status={kycCheck.status} />}
+          </h1>
           <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mt-1">
             {lead.email && (
               <span className="flex items-center gap-1">
@@ -254,6 +261,9 @@ export default function DeveloperLeadDetailPage() {
           {isRescoring ? 'Scoring...' : 'Re-score'}
         </Button>
       </div>
+
+      {/* KYC Verification Banner */}
+      <KycVerificationBanner buyerId={lead.id} />
 
       {/* Score Cards */}
       <div className="flex gap-4 flex-wrap">
