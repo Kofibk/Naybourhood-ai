@@ -28,6 +28,7 @@ import {
 import { LeadHeader } from '@/components/leads/detail/LeadHeader'
 import { LeadAIInsights } from '@/components/leads/detail/LeadAIInsights'
 import { LeadSidebar } from '@/components/leads/detail/LeadSidebar'
+import { TransactionTimeline } from '@/components/transactions'
 import {
   ArrowLeft,
   Phone,
@@ -241,6 +242,13 @@ export default function LeadDetailPage() {
         isRescoring={isRescoring}
         onRescore={handleRescore}
         onArchive={handleArchive}
+      />
+
+      {/* Transaction Pipeline */}
+      <TransactionTimeline
+        buyerId={lead.id}
+        developmentId={lead.development_id}
+        companyId={lead.company_id}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════

@@ -10,6 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { toast } from 'sonner'
+import { TransactionTimeline } from '@/components/transactions'
 import {
   ArrowLeft,
   Phone,
@@ -302,6 +303,13 @@ export default function DeveloperLeadDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction Pipeline */}
+      <TransactionTimeline
+        buyerId={lead.id}
+        developmentId={lead.development_id}
+        companyId={lead.company_id}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
