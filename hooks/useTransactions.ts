@@ -8,7 +8,6 @@ import type {
   TransactionStage,
   FallThroughReason,
   StageHistoryEntry,
-  TRANSACTION_STAGES,
 } from '@/types/transactions'
 
 const TRANSACTION_COLUMNS =
@@ -16,6 +15,28 @@ const TRANSACTION_COLUMNS =
 
 const STALE_TIME = 5 * 60 * 1000 // 5 minutes
 const GC_TIME = 30 * 60 * 1000 // 30 minutes
+
+// Resolve the authenticated user's company_id from user_profiles
+async function resolveCompanyId(fallbackCompanyId?: string): Promise<string | null> {
+  if (!isSupabaseConfigured()) return fallbackCompanyId || null
+  const supabase = createClient()
+  if (!supabase) return fallbackCompanyId || null
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return fallbackCompanyId || null
+
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('company_id')
+      .eq('id', user.id)
+      .single()
+
+    return profile?.company_id || fallbackCompanyId || null
+  } catch {
+    return fallbackCompanyId || null
+  }
+}
 
 async function fetchTransactionForBuyer(buyerId: string): Promise<BuyerTransaction | null> {
   if (!isSupabaseConfigured()) return null
@@ -30,8 +51,17 @@ async function fetchTransactionForBuyer(buyerId: string): Promise<BuyerTransacti
     .range(0, 0)
 
   if (error) {
+    // Table may not exist yet — return null gracefully
+    if (
+      error.code === '42P01' ||
+      error.message?.includes('does not exist') ||
+      error.message?.includes('relation')
+    ) {
+      console.warn('[useTransactions] Table not found, returning null')
+      return null
+    }
     console.error('[useTransactions] Fetch error:', error.message)
-    throw new Error(`Failed to fetch transaction: ${error.message}`)
+    return null
   }
 
   return data && data.length > 0 ? (data[0] as BuyerTransaction) : null
@@ -50,6 +80,7 @@ export function useTransaction(buyerId: string) {
     enabled: !!buyerId,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
+    retry: false,
   })
 
   // Create a new transaction
@@ -63,6 +94,12 @@ export function useTransaction(buyerId: string) {
       const supabase = createClient()
       if (!supabase) throw new Error('Failed to create Supabase client')
 
+      // Resolve company_id from authenticated user — critical for RLS
+      const companyId = await resolveCompanyId(params.companyId)
+      if (!companyId) {
+        throw new Error('Could not determine company. Please ensure your profile has a company assigned.')
+      }
+
       const now = new Date().toISOString()
       const initialHistory: StageHistoryEntry[] = [
         { stage: 'enquiry', timestamp: now, notes: 'Transaction created' },
@@ -73,7 +110,7 @@ export function useTransaction(buyerId: string) {
         .insert({
           buyer_id: params.buyerId,
           development_id: params.developmentId || null,
-          company_id: params.companyId || null,
+          company_id: companyId,
           current_stage: 'enquiry',
           stage_history: initialHistory,
         })

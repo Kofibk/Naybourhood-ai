@@ -58,9 +58,20 @@ async function fetchOutcomeAnalytics(): Promise<OutcomeAnalyticsData> {
       .select('id', { count: 'exact', head: true }),
   ])
 
+  // If table doesn't exist, return empty analytics
+  const tableNotFound = totalRes.error?.code === '42P01' ||
+    totalRes.error?.message?.includes('does not exist') ||
+    totalRes.error?.message?.includes('relation')
+
+  if (tableNotFound) {
+    console.warn('[useOutcomeAnalytics] Table not found, returning empty')
+    return getEmptyAnalytics()
+  }
+
   // If RPC functions don't exist, fall back to direct queries
   const useFallback = stageCountsRes.error?.message?.includes('function') ||
-    stageCountsRes.error?.code === '42883'
+    stageCountsRes.error?.code === '42883' ||
+    stageCountsRes.error
 
   if (useFallback) {
     return fetchOutcomeAnalyticsFallback()
@@ -86,8 +97,17 @@ async function fetchOutcomeAnalyticsFallback(): Promise<OutcomeAnalyticsData> {
     .range(0, 999)
 
   if (error) {
+    // Table may not exist yet — return empty analytics gracefully
+    if (
+      error.code === '42P01' ||
+      error.message?.includes('does not exist') ||
+      error.message?.includes('relation')
+    ) {
+      console.warn('[useOutcomeAnalytics] Table not found, returning empty')
+      return getEmptyAnalytics()
+    }
     console.error('[useOutcomeAnalytics] Fetch error:', error.message)
-    throw new Error(`Failed to fetch analytics: ${error.message}`)
+    return getEmptyAnalytics()
   }
 
   if (!transactions || transactions.length === 0) {
@@ -247,6 +267,7 @@ export function useOutcomeAnalytics() {
     queryFn: fetchOutcomeAnalytics,
     staleTime: STALE_TIME,
     gcTime: GC_TIME,
+    retry: false,
   })
 
   return {
