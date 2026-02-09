@@ -39,6 +39,7 @@ import {
   Bot,
 } from 'lucide-react'
 import { CSVImport } from '@/components/CSVImport'
+import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 
 type SortField = 'full_name' | 'quality_score' | 'lead_score' | 'ai_confidence' | 'budget' | 'status' | 'created_at' | 'assigned_user_name' | 'source' | 'campaign'
 type SortDirection = 'asc' | 'desc'
@@ -180,6 +181,7 @@ const DEFAULT_COLUMNS: ColumnConfig[] = [
   { key: 'ai_classification', label: 'Classification', visible: true, width: 'min-w-[130px]', editable: false },
   { key: 'status', label: 'Status', visible: true, width: 'min-w-[160px]', editable: true, type: 'select', options: STATUS_OPTIONS },
   { key: 'payment_method', label: 'Payment', visible: true, width: 'min-w-[110px]', editable: true, type: 'select', options: PAYMENT_OPTIONS },
+  { key: 'kyc_status', label: 'Verified', visible: true, width: 'min-w-[90px]', editable: false, type: 'badge' },
   { key: 'created_at', label: 'Date Added', visible: true, width: 'min-w-[110px]', editable: false },
   { key: 'assigned_user_name', label: 'Assigned', visible: true, width: 'min-w-[140px]', editable: true, type: 'text' },
   { key: 'source', label: 'Source', visible: false, width: 'min-w-[120px]', editable: true, type: 'text' },
@@ -1227,6 +1229,14 @@ export default function LeadsPage() {
                                   <option key={opt} value={opt}>{opt}</option>
                                 ))}
                               </select>
+                            </td>
+                          )
+                        }
+
+                        if (col.key === 'kyc_status') {
+                          return (
+                            <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
+                              <KycStatusBadge status={(lead as any).kyc_status ?? 'not_started'} />
                             </td>
                           )
                         }

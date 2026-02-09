@@ -30,6 +30,8 @@ import {
   Building,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
+import { useKycCheck } from '@/hooks/useKycCheck'
 
 interface LeadDetailProps {
   lead: Lead
@@ -62,6 +64,7 @@ export function LeadDetail({
 }: LeadDetailProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [rescoring, setRescoring] = useState(false)
+  const { kycCheck } = useKycCheck(lead.id)
 
   const handleStatusChange = (status: LeadStatus) => {
     onUpdate?.({ status })
@@ -130,7 +133,10 @@ export function LeadDetail({
         <CardContent className="p-4 sm:p-6">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="text-xl sm:text-2xl font-bold truncate">{lead.fullName}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl sm:text-2xl font-bold truncate">{lead.fullName}</h1>
+                <KycStatusBadge status={kycCheck?.status ?? 'not_started'} />
+              </div>
               <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-sm text-muted-foreground mt-1">
                 {lead.email && (
                   <span className="flex items-center gap-1">
@@ -179,6 +185,9 @@ export function LeadDetail({
           </div>
         </CardContent>
       </Card>
+
+      {/* KYC Verification Banner */}
+      <KycVerificationBanner buyerId={lead.id} />
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

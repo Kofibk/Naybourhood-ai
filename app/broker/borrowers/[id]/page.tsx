@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
+import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
 import {
   ArrowLeft,
   Phone,
@@ -389,6 +390,9 @@ export default function BrokerBorrowerDetailPage() {
           </Button>
         </div>
       </div>
+
+      {/* KYC Verification Banner */}
+      <KycVerificationBanner buyerId={lead.id} />
 
       {/* Save Message */}
       {saveMessage && (
