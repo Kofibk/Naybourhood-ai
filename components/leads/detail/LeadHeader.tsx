@@ -3,6 +3,7 @@
 import { Button } from '@/components/ui/button'
 import { PageHeader } from '@/components/ui/page-header'
 import { ScoreIndicator } from '@/components/ui/score-indicator'
+import { NBScoreHero } from '@/components/scoring/NBScoreHero'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import {
@@ -80,10 +81,11 @@ export function LeadHeader({
         </div>
       </PageHeader>
 
-      {/* Score Cards Row */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 items-start">
-        <ScoreIndicator value={qualityScore} label="Quality Score" size="lg" />
-        <ScoreIndicator value={intentScore} label="Intent Score" size="lg" />
+      {/* Score Cards Row - NB Score Hero first */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 sm:gap-4 items-start">
+        <NBScoreHero qualityScore={qualityScore} intentScore={intentScore} size="lg" />
+        <ScoreIndicator value={qualityScore} label="Quality" size="lg" />
+        <ScoreIndicator value={intentScore} label="Intent" size="lg" />
         <ScoreIndicator
           value={confidenceScore !== null ? Math.round(confidenceScore) : null}
           max={100}

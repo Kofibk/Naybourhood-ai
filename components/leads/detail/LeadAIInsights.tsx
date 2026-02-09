@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
 import { ScoreBreakdownSection } from '@/components/leads/detail/LeadDisplayComponents'
+import { RiskFlagList } from '@/components/badges/RiskFlagBadge'
 import {
   Phone,
   Mail,
@@ -13,7 +14,6 @@ import {
   Bot,
   Target,
   Lightbulb,
-  AlertTriangle,
   ArrowRight,
   BarChart3,
 } from 'lucide-react'
@@ -112,24 +112,16 @@ export function LeadAIInsights({
         </Card>
       )}
 
-      {/* Risk Flags */}
+      {/* Risk Flags as inline badges */}
       {riskFlags.length > 0 && (
-        <Card className="border-yellow-500/50 bg-yellow-500/5">
+        <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-yellow-600">
-              <AlertTriangle className="w-4 h-4" />
+            <CardTitle className="text-base">
               Risk Flags ({riskFlags.length})
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ul className="space-y-1">
-              {riskFlags.map((flag, i) => (
-                <li key={i} className="flex items-center gap-2 text-sm">
-                  <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" />
-                  {flag}
-                </li>
-              ))}
-            </ul>
+            <RiskFlagList flags={riskFlags} />
           </CardContent>
         </Card>
       )}

@@ -7,7 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Lead, LeadStatus } from '@/types'
 import { StatusBadge } from '@/components/ui/status-badge'
 import { ScoreIndicator } from '@/components/ui/score-indicator'
-import { ClassificationBadge, PaymentBadge } from '@/components/badges'
+import { ClassificationBadge, PaymentBadge, RiskFlagList } from '@/components/badges'
+import { NBScoreHero } from '@/components/scoring/NBScoreHero'
 import {
   ArrowLeft,
   Edit,
@@ -24,7 +25,6 @@ import {
   User,
   CheckCircle,
   XCircle,
-  AlertTriangle,
   Bot,
   Target,
   Building,
@@ -159,12 +159,11 @@ export function LeadDetail({
               </div>
             </div>
 
-            {/* Score Display */}
+            {/* Score Display - NB Score Hero */}
             <div className="flex flex-col items-start md:items-end gap-2">
               <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                <ScoreIndicator value={lead.qualityScore} label="Quality" size="md" />
-                <ScoreIndicator value={lead.intentScore} label="Intent" size="md" />
-                <ClassificationBadge classification={lead.classification} />
+                <NBScoreHero qualityScore={lead.qualityScore} intentScore={lead.intentScore} size="md" showBreakdown />
+                <ClassificationBadge classification={lead.classification} size="lg" />
                 {lead.aiConfidence !== undefined && (
                   <span className="text-xs text-muted-foreground">
                     {Math.round((lead.aiConfidence ?? 0) * 100)}% conf.
@@ -239,21 +238,13 @@ export function LeadDetail({
                 </div>
               )}
 
-              {/* Risk Flags */}
+              {/* Risk Flags as inline badges */}
               {lead.aiRiskFlags && lead.aiRiskFlags.length > 0 && (
                 <div>
-                  <div className="text-xs font-medium text-warning mb-2 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
+                  <div className="text-xs font-medium text-muted-foreground mb-2">
                     Risk Flags
                   </div>
-                  <ul className="space-y-1">
-                    {lead.aiRiskFlags.map((flag, i) => (
-                      <li key={i} className="text-sm text-warning flex items-start gap-2">
-                        <span>•</span>
-                        {flag}
-                      </li>
-                    ))}
-                  </ul>
+                  <RiskFlagList flags={lead.aiRiskFlags} />
                 </div>
               )}
             </CardContent>

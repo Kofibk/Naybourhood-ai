@@ -7,6 +7,7 @@ import { StatusBadge } from '@/components/ui/status-badge'
 import { Lead, LeadFilters as FilterState, LeadPagination } from '@/types'
 import { ClassificationBadge, PaymentBadge, NextActionChip } from '@/components/badges'
 import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
+import { NBScoreInline } from '@/components/scoring/NBScoreHero'
 import { LeadFilters } from './LeadFilters'
 import { BulkActions } from './BulkActions'
 import { Users } from 'lucide-react'
@@ -53,25 +54,20 @@ const columns: DataTableColumn<Lead>[] = [
     ),
   },
   {
-    id: 'qualityScore',
-    header: 'Q',
+    id: 'nbScore',
+    header: 'NB',
     sortable: true,
     className: 'w-16',
-    cell: (lead) => <span className="font-medium">{lead.qualityScore}</span>,
-  },
-  {
-    id: 'intentScore',
-    header: 'I',
-    sortable: true,
-    className: 'w-16',
-    cell: (lead) => <span className="text-muted-foreground">{lead.intentScore}</span>,
+    cell: (lead) => (
+      <NBScoreInline qualityScore={lead.qualityScore} intentScore={lead.intentScore} />
+    ),
   },
   {
     id: 'classification',
     header: 'Class',
-    className: 'w-20',
+    className: 'w-24',
     cell: (lead) => (
-      <ClassificationBadge classification={lead.classification} showIcon={false} size="sm" />
+      <ClassificationBadge classification={lead.classification} size="sm" />
     ),
   },
   {

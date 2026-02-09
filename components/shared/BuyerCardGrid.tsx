@@ -10,7 +10,10 @@ import { useAuth } from '@/contexts/AuthContext'
 import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Phone, Mail, Eye, FileText, Flame, Heart, Users } from 'lucide-react'
+import { ClassificationBadge } from '@/components/badges/ClassificationBadge'
+import { RiskFlagList } from '@/components/badges/RiskFlagBadge'
+import { NBScoreInline } from '@/components/scoring/NBScoreHero'
+import { Search, Phone, Mail, Eye, FileText, Heart, Users } from 'lucide-react'
 
 type UserType = 'agent' | 'broker'
 
@@ -76,7 +79,7 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
 
   const statsText = useMemo(() => {
     if (userType === 'agent') {
-      const hot = myLeads.filter(l => (l.quality_score || 0) >= 85).length
+      const hot = myLeads.filter(l => l.ai_classification === 'Hot' || (l.quality_score || 0) >= 85).length
       return `${filteredLeads.length} buyers \u2022 ${hot} hot leads`
     }
     const approved = myLeads.filter(l => l.mortgage_status === 'Approved').length
@@ -151,15 +154,17 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
           filteredLeads.map((lead) => (
             <Card key={lead.id} className="hover:border-primary/50 transition-colors">
               <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <div className="flex items-center gap-2">
-                    {(lead.quality_score || 0) >= 85 && (
-                      <Flame className="h-4 w-4 text-orange-500" />
-                    )}
-                    <div>
-                      <h3 className="font-semibold">{lead.full_name}</h3>
-                      <p className="text-sm text-muted-foreground">{lead.email}</p>
-                    </div>
+                {/* NB Score Hero + Classification */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <NBScoreInline
+                      qualityScore={lead.ai_quality_score ?? lead.quality_score}
+                      intentScore={lead.ai_intent_score ?? lead.intent_score}
+                    />
+                    <ClassificationBadge
+                      classification={lead.ai_classification || 'Cold'}
+                      size="sm"
+                    />
                   </div>
                   {userType === 'agent' && (
                     <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -168,7 +173,12 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
                   )}
                 </div>
 
-                <div className="space-y-2 mb-4">
+                <div className="mb-3">
+                  <h3 className="font-semibold">{lead.full_name}</h3>
+                  <p className="text-sm text-muted-foreground">{lead.email}</p>
+                </div>
+
+                <div className="space-y-2 mb-3">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">
                       {userType === 'agent' ? 'Budget:' : 'Required:'}
@@ -196,11 +206,15 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
                   </div>
                 </div>
 
+                {/* Risk Flags as inline badges */}
+                {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
+                  <div className="mb-3">
+                    <RiskFlagList flags={lead.ai_risk_flags.slice(0, 2)} />
+                  </div>
+                )}
+
                 <div className="flex items-center justify-between pt-3 border-t border-border">
                   <div className="flex items-center gap-2">
-                    <Badge variant={(lead.quality_score || 0) >= 85 ? 'warning' : 'secondary'}>
-                      Q: {lead.quality_score || 0}
-                    </Badge>
                     {userType === 'broker' && lead.proof_of_funds && (
                       <Badge variant="success">Verified</Badge>
                     )}

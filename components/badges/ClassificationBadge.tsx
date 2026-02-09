@@ -2,30 +2,81 @@
 
 import { cn } from '@/lib/utils'
 import { LeadClassification } from '@/types'
-import { Flame, Thermometer, Snowflake } from 'lucide-react'
+import { Flame, Thermometer, Snowflake, Sparkles, XCircle } from 'lucide-react'
 
 interface ClassificationBadgeProps {
-  classification: LeadClassification
+  classification: LeadClassification | string
   showIcon?: boolean
   size?: 'sm' | 'md' | 'lg'
   className?: string
 }
 
-const classificationStyles: Record<LeadClassification, { bg: string; text: string; icon: typeof Flame }> = {
+const classificationStyles: Record<string, { bg: string; text: string; icon: typeof Flame; label: string }> = {
   Hot: {
     bg: 'bg-red-500 dark:bg-red-600',
     text: 'text-white',
     icon: Flame,
+    label: 'Hot',
+  },
+  'Warm-Qualified': {
+    bg: 'bg-orange-500 dark:bg-orange-600',
+    text: 'text-white',
+    icon: Thermometer,
+    label: 'Warm-Qualified',
+  },
+  'Warm-Engaged': {
+    bg: 'bg-amber-500 dark:bg-amber-600',
+    text: 'text-white',
+    icon: Thermometer,
+    label: 'Warm-Engaged',
   },
   Warm: {
     bg: 'bg-orange-500 dark:bg-orange-600',
     text: 'text-white',
     icon: Thermometer,
+    label: 'Warm',
+  },
+  Nurture: {
+    bg: 'bg-blue-400 dark:bg-blue-500',
+    text: 'text-white',
+    icon: Sparkles,
+    label: 'Nurture',
+  },
+  'Nurture-Premium': {
+    bg: 'bg-blue-500 dark:bg-blue-600',
+    text: 'text-white',
+    icon: Sparkles,
+    label: 'Nurture-Premium',
+  },
+  'Nurture-Standard': {
+    bg: 'bg-blue-300 dark:bg-blue-400',
+    text: 'text-white',
+    icon: Sparkles,
+    label: 'Nurture-Standard',
+  },
+  Cold: {
+    bg: 'bg-gray-400 dark:bg-gray-600',
+    text: 'text-white',
+    icon: Snowflake,
+    label: 'Cold',
   },
   Low: {
     bg: 'bg-gray-400 dark:bg-gray-600',
     text: 'text-white',
     icon: Snowflake,
+    label: 'Low',
+  },
+  Disqualified: {
+    bg: 'bg-gray-600 dark:bg-gray-700',
+    text: 'text-white',
+    icon: XCircle,
+    label: 'Disqualified',
+  },
+  Spam: {
+    bg: 'bg-gray-600 dark:bg-gray-700',
+    text: 'text-white',
+    icon: XCircle,
+    label: 'Spam',
   },
 }
 
@@ -47,7 +98,7 @@ export function ClassificationBadge({
   size = 'md',
   className,
 }: ClassificationBadgeProps) {
-  const style = classificationStyles[classification]
+  const style = classificationStyles[classification] || classificationStyles['Cold']
   const Icon = style.icon
 
   return (
@@ -61,18 +112,26 @@ export function ClassificationBadge({
       )}
     >
       {showIcon && <Icon className={iconSizes[size]} />}
-      <span>{classification}</span>
+      <span>{style.label}</span>
     </span>
   )
 }
 
 // Emoji-only version for compact display
-export function ClassificationEmoji({ classification }: { classification: LeadClassification }) {
-  const emojis: Record<LeadClassification, string> = {
+export function ClassificationEmoji({ classification }: { classification: LeadClassification | string }) {
+  const emojis: Record<string, string> = {
     Hot: '🔥',
+    'Warm-Qualified': '🌡️',
+    'Warm-Engaged': '🌡️',
     Warm: '🌡️',
+    Nurture: '✨',
+    'Nurture-Premium': '✨',
+    'Nurture-Standard': '✨',
+    Cold: '❄️',
     Low: '❄️',
+    Disqualified: '🚫',
+    Spam: '🚫',
   }
 
-  return <span title={classification}>{emojis[classification]}</span>
+  return <span title={String(classification)}>{emojis[classification] || '❄️'}</span>
 }

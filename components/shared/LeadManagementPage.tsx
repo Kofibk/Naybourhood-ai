@@ -16,6 +16,8 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
+import { RiskFlagList } from '@/components/badges/RiskFlagBadge'
+import { NBScoreInline } from '@/components/scoring/NBScoreHero'
 import {
   Search, Phone, Mail, MessageCircle, Eye, Flame, Users,
   ChevronRight, Target, TrendingUp, CheckCircle, Clock,
@@ -544,6 +546,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                     <th className="pb-3 font-medium min-w-[180px]">
                       {isPropertyMode ? 'Lead' : 'Client'}
                     </th>
+                    <th className="pb-3 font-medium min-w-[60px]">NB</th>
                     {isPropertyMode && (
                       <th className="pb-3 font-medium min-w-[130px]">Classification</th>
                     )}
@@ -600,6 +603,17 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                           {lead.email || ''}
                           {!isPropertyMode && lead.finance_type && ` \u2022 ${lead.finance_type}`}
                         </div>
+                        {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
+                          <div className="mt-1">
+                            <RiskFlagList flags={lead.ai_risk_flags.slice(0, 2)} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-3">
+                        <NBScoreInline
+                          qualityScore={lead.ai_quality_score ?? lead.quality_score}
+                          intentScore={lead.ai_intent_score ?? lead.intent_score}
+                        />
                       </td>
                       {isPropertyMode && (
                         <td className="py-3">

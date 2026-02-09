@@ -3,23 +3,29 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Progress } from '@/components/ui/progress'
+import { ClassificationBadge } from '@/components/badges/ClassificationBadge'
+import { RiskFlagList } from '@/components/badges/RiskFlagBadge'
+import { NBScoreHero } from '@/components/scoring/NBScoreHero'
 import {
   Bot,
   RefreshCw,
-  AlertTriangle,
   Target,
   Lightbulb,
-  Flame,
-  Thermometer,
-  Snowflake
 } from 'lucide-react'
 import type { AIBuyerSummary as AIBuyerSummaryType } from '@/types'
 
 interface AIBuyerSummaryProps {
   buyerId: string
   initialData?: AIBuyerSummaryType
+}
+
+function getClassificationLabel(quality: number, intent: number): string {
+  const combined = (quality + intent) / 2
+  if (combined >= 70) return 'Hot'
+  if (quality >= 70 && intent >= 45) return 'Warm-Qualified'
+  if (quality >= 45 && intent >= 70) return 'Warm-Engaged'
+  if (combined >= 45) return 'Nurture'
+  return 'Cold'
 }
 
 export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
@@ -51,13 +57,6 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
       fetchSummary()
     }
   }, [buyerId, initialData, fetchSummary])
-
-  const getClassification = (quality: number, intent: number) => {
-    const combined = (quality * 0.5) + (intent * 0.5)
-    if (combined >= 70) return { label: 'Hot', icon: Flame, color: 'text-red-500', bg: 'bg-red-500' }
-    if (combined >= 45) return { label: 'Warm', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-500' }
-    return { label: 'Cold', icon: Snowflake, color: 'text-blue-500', bg: 'bg-blue-500' }
-  }
 
   if (loading) {
     return (
@@ -99,8 +98,7 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
     )
   }
 
-  const classification = getClassification(summary.quality_score, summary.intent_score)
-  const ClassIcon = classification.icon
+  const classificationLabel = getClassificationLabel(summary.quality_score, summary.intent_score)
 
   return (
     <Card>
@@ -117,39 +115,25 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* NB Score Hero + Classification */}
+        <div className="flex items-center justify-center gap-6">
+          <NBScoreHero
+            qualityScore={summary.quality_score}
+            intentScore={summary.intent_score}
+            size="lg"
+            showBreakdown
+          />
+          <div className="flex flex-col items-center gap-2">
+            <ClassificationBadge classification={classificationLabel} size="lg" />
+            <span className="text-xs text-muted-foreground">
+              {Math.round(summary.confidence * 100)}% confidence
+            </span>
+          </div>
+        </div>
+
         {/* Summary Text */}
         <div className="p-3 bg-muted/50 rounded-md">
           <p className="text-sm leading-relaxed">{summary.summary}</p>
-        </div>
-
-        {/* Scores */}
-        <div className="grid grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Quality</span>
-              <span className="text-sm font-medium">{summary.quality_score}</span>
-            </div>
-            <Progress value={summary.quality_score} className="h-2" />
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-muted-foreground">Intent</span>
-              <span className="text-sm font-medium">{summary.intent_score}</span>
-            </div>
-            <Progress value={summary.intent_score} className="h-2" />
-          </div>
-          <div className="flex flex-col items-center justify-center">
-            <span className="text-xs text-muted-foreground mb-1">Confidence</span>
-            <span className="text-lg font-bold">{Math.round(summary.confidence * 100)}%</span>
-          </div>
-        </div>
-
-        {/* Classification Badge */}
-        <div className="flex items-center justify-center">
-          <Badge className={`${classification.bg} text-white px-4 py-1`}>
-            <ClassIcon className="h-4 w-4 mr-1" />
-            {classification.label} Lead
-          </Badge>
         </div>
 
         {/* Next Action */}
@@ -163,21 +147,13 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
           </div>
         </div>
 
-        {/* Risk Flags */}
+        {/* Risk Flags as inline badges */}
         {summary.risk_flags.length > 0 && (
           <div className="space-y-2">
-            <div className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-              <AlertTriangle className="h-3 w-3" />
+            <div className="text-xs font-medium text-muted-foreground">
               Risk Flags
             </div>
-            <ul className="space-y-1">
-              {summary.risk_flags.map((flag, index) => (
-                <li key={index} className="text-sm text-yellow-600 dark:text-yellow-500 flex items-start gap-2">
-                  <span>•</span>
-                  <span>{flag}</span>
-                </li>
-              ))}
-            </ul>
+            <RiskFlagList flags={summary.risk_flags} />
           </div>
         )}
 

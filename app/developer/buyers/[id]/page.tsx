@@ -12,6 +12,9 @@ import { EmailComposer } from '@/components/EmailComposer'
 import { toast } from 'sonner'
 import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { useKycCheck } from '@/hooks/useKycCheck'
+import { NBScoreHero } from '@/components/scoring/NBScoreHero'
+import { ClassificationBadge } from '@/components/badges/ClassificationBadge'
+import { RiskFlagList } from '@/components/badges/RiskFlagBadge'
 import {
   ArrowLeft,
   Phone,
@@ -22,7 +25,6 @@ import {
   Bot,
   Target,
   Lightbulb,
-  AlertTriangle,
   User,
   Building,
   DollarSign,
@@ -265,15 +267,12 @@ export default function DeveloperLeadDetailPage() {
       {/* KYC Verification Banner */}
       <KycVerificationBanner buyerId={lead.id} />
 
-      {/* Score Cards */}
-      <div className="flex gap-4 flex-wrap">
-        <ScoreCard label="Quality" score={qualityScore} />
-        <ScoreCard label="Intent" score={intentScore} />
-        <div className="border rounded-lg p-4 min-w-[120px] bg-card">
+      {/* Score Cards - NB Score Hero first */}
+      <div className="flex gap-4 flex-wrap items-start">
+        <NBScoreHero qualityScore={qualityScore} intentScore={intentScore} size="lg" showBreakdown />
+        <div className="border rounded-lg p-4 min-w-[120px] bg-card flex flex-col items-center">
           <div className="text-sm text-muted-foreground mb-1">Classification</div>
-          <Badge className={`${config.bg} ${config.text} text-sm px-3 py-1`}>
-            {config.label}
-          </Badge>
+          <ClassificationBadge classification={classification} size="lg" />
         </div>
       </div>
 
@@ -359,22 +358,16 @@ export default function DeveloperLeadDetailPage() {
             </Card>
           )}
 
-          {/* Risk Flags */}
+          {/* Risk Flags as inline badges */}
           {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
-            <Card className="border-yellow-500/50">
+            <Card>
               <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2 text-yellow-600">
-                  <AlertTriangle className="w-4 h-4" /> Risk Flags
+                <CardTitle className="text-base">
+                  Risk Flags ({lead.ai_risk_flags.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <ul className="space-y-1">
-                  {lead.ai_risk_flags.map((flag: string, i: number) => (
-                    <li key={i} className="text-sm flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> {flag}
-                    </li>
-                  ))}
-                </ul>
+                <RiskFlagList flags={lead.ai_risk_flags} />
               </CardContent>
             </Card>
           )}

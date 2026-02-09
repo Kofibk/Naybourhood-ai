@@ -4,7 +4,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Lead } from '@/types'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { NextActionChip } from '@/components/badges'
+import { NextActionChip, ClassificationBadge } from '@/components/badges'
+import { NBScoreInline } from '@/components/scoring/NBScoreHero'
 import { LoadingState } from '@/components/ui/loading-state'
 import { EmptyState } from '@/components/ui/empty-state'
 import { Flame, ChevronRight, Phone, MessageCircle, Calendar } from 'lucide-react'
@@ -78,7 +79,8 @@ export function HotLeadsWidget({
               <thead>
                 <tr className="text-left text-xs text-muted-foreground border-b">
                   <th className="pb-2 font-medium">Name</th>
-                  <th className="pb-2 font-medium">Score</th>
+                  <th className="pb-2 font-medium">NB</th>
+                  <th className="pb-2 font-medium">Class</th>
                   <th className="pb-2 font-medium">Budget</th>
                   <th className="pb-2 font-medium">Status</th>
                   <th className="pb-2 font-medium">Next</th>
@@ -95,8 +97,10 @@ export function HotLeadsWidget({
                       <div className="font-medium">{lead.fullName}</div>
                     </td>
                     <td className="py-2">
-                      <span className="font-medium">{lead.qualityScore}</span>
-                      <span className="text-muted-foreground">/{lead.intentScore}</span>
+                      <NBScoreInline qualityScore={lead.qualityScore} intentScore={lead.intentScore} />
+                    </td>
+                    <td className="py-2">
+                      <ClassificationBadge classification={lead.classification} size="sm" showIcon={false} />
                     </td>
                     <td className="py-2">
                       <div className="text-xs">{lead.budgetRange || 'N/A'}</div>
@@ -143,7 +147,7 @@ export function HotLeadsMini({
             <div className="text-sm font-medium">{lead.fullName}</div>
             <div className="text-xs text-muted-foreground">{lead.budgetRange}</div>
           </div>
-          <div className="text-sm font-bold text-red-500">{lead.qualityScore}</div>
+          <NBScoreInline qualityScore={lead.qualityScore} intentScore={lead.intentScore} />
         </button>
       ))}
     </div>

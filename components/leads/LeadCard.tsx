@@ -4,8 +4,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Lead } from '@/types'
 import { StatusBadge } from '@/components/ui/status-badge'
-import { ClassificationBadge, PaymentBadge, NextActionChip } from '@/components/badges'
-import { Phone, MessageCircle, Calendar, MoreVertical } from 'lucide-react'
+import { ClassificationBadge, PaymentBadge, NextActionChip, RiskFlagList } from '@/components/badges'
+import { NBScoreInline } from '@/components/scoring/NBScoreHero'
+import { Phone, MessageCircle, Calendar } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface LeadCardProps {
@@ -36,26 +37,24 @@ export function LeadCard({ lead, onClick, onQuickAction, selected, className }: 
       onClick={onClick}
     >
       <CardContent className="p-4">
-        {/* Header */}
+        {/* Header with NB Score Hero + Classification */}
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="font-medium">{lead.fullName}</div>
             <div className="text-xs text-muted-foreground">{lead.phone}</div>
           </div>
-          <ClassificationBadge classification={lead.classification} size="sm" />
+          <div className="flex items-center gap-2">
+            <NBScoreInline qualityScore={lead.qualityScore} intentScore={lead.intentScore} />
+            <ClassificationBadge classification={lead.classification} size="sm" />
+          </div>
         </div>
 
-        {/* Scores */}
-        <div className="flex items-center gap-4 mb-3 text-sm">
-          <div>
-            <span className="text-muted-foreground">Q:</span>{' '}
-            <span className="font-medium">{lead.qualityScore}</span>
+        {/* Risk Flags */}
+        {lead.aiRiskFlags && lead.aiRiskFlags.length > 0 && (
+          <div className="mb-3">
+            <RiskFlagList flags={lead.aiRiskFlags.slice(0, 2)} />
           </div>
-          <div>
-            <span className="text-muted-foreground">I:</span>{' '}
-            <span className="font-medium">{lead.intentScore}</span>
-          </div>
-        </div>
+        )}
 
         {/* Budget & Payment */}
         <div className="flex items-center gap-2 mb-3">
