@@ -13,6 +13,7 @@ import { useLeads } from '@/hooks/useLeads'
 import { useCompanies } from '@/hooks/useCompanies'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { LeadImporter } from '@/components/admin/LeadImporter'
+import { ApiKeysManager } from '@/components/settings/ApiKeysManager'
 import type { UserRole, JobRole } from '@/types'
 import {
   Bell,
@@ -833,6 +834,9 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
       {/* AI Notifications */}
       <AINotificationsCard />
 
+      {/* API Keys */}
+      <ApiKeysManager />
+
       {/* Invite Modal */}
       {isInviteModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -939,6 +943,7 @@ export function SettingsPage({ userType }: SettingsPageProps) {
         <>
           <AdminSystemStats />
           <AINotificationsCard />
+          <ApiKeysManager />
         </>
       ) : (
         <ClientSettings userType={userType} />
