@@ -249,6 +249,9 @@ export default function LeadDetailPage() {
         buyerId={lead.id}
         developmentId={lead.development_id}
         companyId={lead.company_id}
+        qualityScore={qualityScore}
+        intentScore={intentScore}
+        confidence={confidenceScore}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { useTransaction } from '@/hooks/useTransactions'
+import { useScoringFeedback } from '@/hooks/useScoringFeedback'
 import { StagePipeline } from './StagePipeline'
 import { StageHistory } from './StageHistory'
 import { TRANSACTION_STAGES, STAGE_LABELS } from '@/types/transactions'
@@ -16,6 +17,9 @@ interface TransactionTimelineProps {
   buyerId: string
   developmentId?: string
   companyId?: string
+  qualityScore?: number | null
+  intentScore?: number | null
+  confidence?: number | null
   className?: string
 }
 
@@ -31,6 +35,9 @@ export function TransactionTimeline({
   buyerId,
   developmentId,
   companyId,
+  qualityScore,
+  intentScore,
+  confidence,
   className,
 }: TransactionTimelineProps) {
   const {
@@ -43,6 +50,7 @@ export function TransactionTimeline({
     advanceStage,
     markFallThrough,
   } = useTransaction(buyerId)
+  const { recordOutcome } = useScoringFeedback()
 
   const [advanceNotes, setAdvanceNotes] = useState('')
   const [showAdvanceForm, setShowAdvanceForm] = useState(false)
@@ -101,14 +109,36 @@ export function TransactionTimeline({
 
   const handleAdvance = async () => {
     if (!nextStage) return
-    await advanceStage(transaction.id, nextStage, advanceNotes || undefined)
+    const result = await advanceStage(transaction.id, nextStage, advanceNotes || undefined)
+    if (result && nextStage === 'completion') {
+      await recordOutcome({
+        buyerId,
+        companyId,
+        originalQualityScore: qualityScore,
+        originalIntentScore: intentScore,
+        originalConfidence: confidence,
+        actualOutcome: 'completion',
+        stageReached: 'completion',
+      })
+    }
     setAdvanceNotes('')
     setShowAdvanceForm(false)
   }
 
   const handleFallThrough = async () => {
     if (!fallThroughReason) return
-    await markFallThrough(transaction.id, fallThroughReason, fallThroughNotes || undefined)
+    const result = await markFallThrough(transaction.id, fallThroughReason, fallThroughNotes || undefined)
+    if (result) {
+      await recordOutcome({
+        buyerId,
+        companyId,
+        originalQualityScore: qualityScore,
+        originalIntentScore: intentScore,
+        originalConfidence: confidence,
+        actualOutcome: 'fallen_through',
+        stageReached: currentStage,
+      })
+    }
     setFallThroughReason('')
     setFallThroughNotes('')
     setShowFallThrough(false)

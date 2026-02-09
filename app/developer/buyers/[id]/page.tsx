@@ -309,6 +309,9 @@ export default function DeveloperLeadDetailPage() {
         buyerId={lead.id}
         developmentId={lead.development_id}
         companyId={lead.company_id}
+        qualityScore={qualityScore}
+        intentScore={intentScore}
+        confidence={lead.ai_confidence}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
