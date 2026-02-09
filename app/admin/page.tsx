@@ -26,6 +26,7 @@ import {
   Megaphone,
 } from 'lucide-react'
 import { AIInsights } from '@/components/ai'
+import { OutcomeAnalytics } from '@/components/dashboard/OutcomeAnalytics'
 
 const COLORS = {
   hot: '#ef4444',
@@ -674,6 +675,9 @@ export default function AdminDashboard() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Transaction Outcome Analytics */}
+      <OutcomeAnalytics />
     </div>
   )
 }
