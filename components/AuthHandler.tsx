@@ -161,7 +161,6 @@ export function AuthHandler() {
                 .from('user_profiles')
                 .update({ 
                   membership_status: 'active',
-                  last_active: new Date().toISOString()
                 })
                 .eq('id', data.user.id)
               
@@ -186,11 +185,20 @@ export function AuthHandler() {
               profile: userProfile,
             })
 
+            // Check if user is internal team (from profile or user metadata)
+            const isInternalTeam = userProfile?.is_internal_team || data.user.user_metadata?.is_internal || false
+            console.log('[AuthHandler] 👥 Internal team check:', {
+              fromProfile: userProfile?.is_internal_team,
+              fromMetadata: data.user.user_metadata?.is_internal,
+              isInternalTeam,
+            })
+
             // If no profile exists, create one from user metadata
             if (profileError || !userProfile) {
               console.log('[AuthHandler] ⚠️ No profile found, creating from user metadata...')
               const metadata = data.user.user_metadata || {}
               const { firstName, lastName } = parseFullName(metadata.full_name)
+              const userIsInternal = metadata.is_internal || false
               
               const { error: createError } = await supabase
                 .from('user_profiles')
@@ -201,22 +209,58 @@ export function AuthHandler() {
                   last_name: lastName,
                   user_type: metadata.role || 'developer',
                   company_id: metadata.company_id || null,
-                  is_internal_team: metadata.is_internal || false,
+                  is_internal_team: userIsInternal,
                   membership_status: 'active',
-                  onboarding_completed: false,
+                  // Internal team members skip onboarding
+                  onboarding_completed: userIsInternal,
                 })
               
               if (createError) {
                 console.error('[AuthHandler] ❌ Failed to create profile:', createError)
               } else {
-                console.log('[AuthHandler] ✅ Profile created, redirecting to onboarding')
+                console.log('[AuthHandler] ✅ Profile created')
               }
               
-              router.push('/onboarding')
+              // Internal team members go to admin, others go to onboarding
+              if (userIsInternal) {
+                console.log('[AuthHandler] 👥 Internal team member - skipping onboarding, going to /admin')
+                router.push('/admin')
+              } else {
+                console.log('[AuthHandler] ⏭️ Redirecting to onboarding')
+                router.push('/onboarding')
+              }
               return
             }
 
-            // If onboarding not complete, redirect there
+            // Internal team members should skip onboarding and go directly to admin
+            if (isInternalTeam && !userProfile?.onboarding_completed) {
+              console.log('[AuthHandler] 👥 Internal team member with incomplete onboarding - marking complete and redirecting to admin')
+              
+              // Update profile to mark onboarding complete for internal team
+              const { error: updateOnboardingError } = await supabase
+                .from('user_profiles')
+                .update({ onboarding_completed: true })
+                .eq('id', data.user.id)
+              
+              if (updateOnboardingError) {
+                console.error('[AuthHandler] ⚠️ Failed to update onboarding status:', updateOnboardingError)
+              }
+              
+              // Store user info and redirect to admin
+              localStorage.setItem('naybourhood_user', JSON.stringify({
+                id: data.user.id,
+                email: data.user.email,
+                name: `${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || data.user.email?.split('@')[0],
+                role: userProfile?.user_type || 'admin',
+                company_id: userProfile?.company_id,
+                is_internal_team: true,
+              }))
+              
+              router.push('/admin')
+              return
+            }
+
+            // If onboarding not complete (for non-internal users), redirect there
             if (!userProfile?.onboarding_completed) {
               console.log('[AuthHandler] ⏭️ Onboarding not complete, redirecting to /onboarding')
               router.push('/onboarding')

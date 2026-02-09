@@ -205,6 +205,8 @@ export async function POST(request: NextRequest) {
 
         // If invite fails, try to just create the profile as fallback
         const { firstName, lastName } = parseFullName(name)
+        // Internal team members skip onboarding
+        const fallbackSkipOnboarding = is_internal || false
         const { error: profileError } = await adminClient
           .from('user_profiles')
           .insert({
@@ -217,6 +219,7 @@ export async function POST(request: NextRequest) {
             company_id: company_id || null,
             is_internal_team: is_internal || false,
             membership_status: 'pending',
+            onboarding_completed: fallbackSkipOnboarding,
           })
 
         if (profileError) {
@@ -276,6 +279,9 @@ export async function POST(request: NextRequest) {
         // Parse full name into first_name and last_name
         const { firstName, lastName } = parseFullName(name)
 
+        // Internal team members skip onboarding
+        const skipOnboarding = is_internal || false
+
         console.log('[Invite API] 📝 Creating user profile with pending status:', {
           userId: data.user.id,
           email,
@@ -284,6 +290,8 @@ export async function POST(request: NextRequest) {
           role: role || 'developer',
           company_id: company_id || null,
           membership_status: 'pending',
+          is_internal: is_internal || false,
+          onboarding_completed: skipOnboarding,
         })
 
         const { data: profileData, error: profileError } = await adminClient
@@ -298,6 +306,8 @@ export async function POST(request: NextRequest) {
             company_id: company_id || null,
             is_internal_team: is_internal || false,
             membership_status: 'pending',
+            // Internal team members skip onboarding - they go directly to admin dashboard
+            onboarding_completed: skipOnboarding,
           })
           .select()
 
