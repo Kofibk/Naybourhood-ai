@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -11,15 +11,15 @@ import { createClient } from '@/lib/supabase/client'
  */
 export function AuthHandler() {
   const router = useRouter()
-  const searchParams = useSearchParams()
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingMessage, setProcessingMessage] = useState('Signing you in...')
 
   useEffect(() => {
     const handleAuth = async () => {
-      // Get URL params for context
-      const urlError = searchParams.get('error')
-      const urlErrorType = searchParams.get('error_type')
+      // Get URL params for context (use window.location directly to avoid useSearchParams SSR issues)
+      const urlParams = new URLSearchParams(window.location.search)
+      const urlError = urlParams.get('error')
+      const urlErrorType = urlParams.get('error_type')
       
       // Log full URL for debugging
       console.log('[AuthHandler] 🔍 Starting auth check:', {
@@ -280,7 +280,7 @@ export function AuthHandler() {
     }
 
     handleAuth()
-  }, [router, searchParams])
+  }, [router])
 
   if (isProcessing) {
     return (
