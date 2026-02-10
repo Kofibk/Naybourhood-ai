@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@supabase/ssr'
 
 /**
  * Client-side auth handler that catches authentication tokens from URL hash
@@ -105,10 +106,27 @@ export function AuthHandler() {
         setProcessingMessage(type === 'invite' ? 'Accepting your invitation...' : 'Signing you in...')
 
         try {
-          const supabase = createClient()
+          // IMPORTANT: Create a dedicated client with detectSessionInUrl DISABLED
+          // The default client has detectSessionInUrl: true, which tries to auto-process
+          // the hash fragment. This conflicts with our manual setSession call and causes hangs.
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+          const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+          
+          // CRITICAL: Clear the hash from URL BEFORE creating any Supabase client
+          // This prevents the default Supabase client (with detectSessionInUrl: true)
+          // from trying to auto-process the hash tokens and hanging
+          window.history.replaceState(null, '', window.location.pathname)
+          console.log('[AuthHandler] 🧹 Cleared hash from URL to prevent auto-detection conflicts')
+          
+          console.log('[AuthHandler] 🔄 Creating dedicated auth client (detectSessionInUrl: false)...')
+          const supabase = createBrowserClient(supabaseUrl, supabaseKey, {
+            auth: {
+              flowType: 'implicit',
+              detectSessionInUrl: false, // We handle hash tokens manually
+              autoRefreshToken: true,
+            }
+          })
 
-          // Skip getSession check - go directly to setSession with the tokens we have
-          // This avoids potential hangs from getSession when there's no existing session
           console.log('[AuthHandler] 🔄 Setting session from hash tokens...')
           
           // Add timeout to prevent infinite loading
@@ -145,8 +163,7 @@ export function AuthHandler() {
               fullError: JSON.stringify(error),
             })
             
-            // Clear hash from URL
-            window.history.replaceState(null, '', window.location.pathname)
+            // Hash already cleared above
             
             // For invite flows, try to extract email and show resend option
             if (type === 'invite') {
@@ -191,8 +208,7 @@ export function AuthHandler() {
               appMetadata: data.user.app_metadata,
             })
             
-            // Clear the hash and any error params from URL
-            window.history.replaceState(null, '', window.location.pathname)
+            // Hash already cleared above before setSession
 
             // Handle password recovery - redirect to reset password page
             if (type === 'recovery') {
@@ -358,7 +374,6 @@ export function AuthHandler() {
             router.push(redirectPath)
           } else {
             console.error('[AuthHandler] ❌ No user returned after setSession')
-            window.history.replaceState(null, '', window.location.pathname)
             router.push('/login?error=' + encodeURIComponent('Authentication failed - no user returned'))
           }
         } catch (err: any) {
@@ -369,7 +384,6 @@ export function AuthHandler() {
             name: err?.name,
             stack: err?.stack,
           })
-          window.history.replaceState(null, '', window.location.pathname)
           setIsProcessing(false)
           router.push('/login?error=' + encodeURIComponent(errorMessage))
         }
