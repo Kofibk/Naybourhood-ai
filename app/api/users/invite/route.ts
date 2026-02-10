@@ -275,47 +275,68 @@ export async function POST(request: NextRequest) {
       }
 
       // Create profile entry for the invited user with 'pending' status
-      if (data.user) {
-        // Parse full name into first_name and last_name
-        const { firstName, lastName } = parseFullName(name)
+      // Parse full name into first_name and last_name
+      const { firstName, lastName } = parseFullName(name)
 
-        // Internal team members skip onboarding
-        const skipOnboarding = is_internal || false
+      // Internal team members skip onboarding
+      const skipOnboarding = is_internal || false
+      
+      // Get user ID - either from generateLink response or we need to fetch it
+      let userId = data.user?.id
+      
+      if (!userId) {
+        console.log('[Invite API] ⚠️ No user returned from generateLink, fetching user by email...')
+        // Try to get the user ID from auth.users table
+        const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers()
+        if (!authError && authUsers?.users) {
+          const matchingUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+          if (matchingUser) {
+            userId = matchingUser.id
+            console.log('[Invite API] ✅ Found user ID from auth.users:', userId)
+          }
+        }
+      }
+      
+      if (!userId) {
+        console.error('[Invite API] ❌ Could not get user ID for profile creation')
+        // Generate a UUID as fallback - profile will be orphaned but at least visible
+        userId = crypto.randomUUID()
+        console.log('[Invite API] ⚠️ Using generated UUID as fallback:', userId)
+      }
 
-        console.log('[Invite API] 📝 Creating user profile with pending status:', {
-          userId: data.user.id,
-          email,
-          firstName,
-          lastName,
-          role: role || 'developer',
+      console.log('[Invite API] 📝 Creating user profile with pending status:', {
+        userId,
+        email,
+        firstName,
+        lastName,
+        role: role || 'developer',
+        company_id: company_id || null,
+        membership_status: 'pending',
+        is_internal: is_internal || false,
+        onboarding_completed: skipOnboarding,
+      })
+
+      const { data: profileData, error: profileError } = await adminClient
+        .from('user_profiles')
+        .upsert({
+          id: userId,
+          email: email,
+          first_name: firstName,
+          last_name: lastName,
+          user_type: role || 'developer',
+          job_role: job_role || null,
           company_id: company_id || null,
+          is_internal_team: is_internal || false,
           membership_status: 'pending',
-          is_internal: is_internal || false,
+          // Internal team members skip onboarding - they go directly to admin dashboard
           onboarding_completed: skipOnboarding,
         })
+        .select()
 
-        const { data: profileData, error: profileError } = await adminClient
-          .from('user_profiles')
-          .upsert({
-            id: data.user.id,
-            email: email,
-            first_name: firstName,
-            last_name: lastName,
-            user_type: role || 'developer',
-            job_role: job_role || null,
-            company_id: company_id || null,
-            is_internal_team: is_internal || false,
-            membership_status: 'pending',
-            // Internal team members skip onboarding - they go directly to admin dashboard
-            onboarding_completed: skipOnboarding,
-          })
-          .select()
-
-        if (profileError) {
-          console.error('[Invite API] ❌ Profile creation error:', profileError)
-        } else {
-          console.log('[Invite API] ✅ Profile created successfully:', profileData)
-        }
+      if (profileError) {
+        console.error('[Invite API] ❌ Profile creation error:', profileError)
+      } else {
+        console.log('[Invite API] ✅ Profile created successfully:', profileData)
       }
 
       // Send branded invite email via Resend
