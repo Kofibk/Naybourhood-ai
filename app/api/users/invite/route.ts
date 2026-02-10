@@ -9,6 +9,9 @@ import {
   buildDisplayName,
 } from '@/lib/auth'
 
+// Force dynamic rendering - this route uses cookies and admin operations
+export const dynamic = 'force-dynamic'
+
 // Check if service role key is configured (required for invites)
 function isServiceRoleConfigured(): boolean {
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -20,6 +23,17 @@ export async function POST(request: NextRequest) {
     // Get invitation details from request body
     const body = await request.json()
     const { email, name, role, job_role, company_id, is_internal, inviter_role } = body
+
+    console.log('[Invite API] 📨 Received invite request:', {
+      email,
+      name,
+      role,
+      job_role,
+      company_id,
+      is_internal,
+      inviter_role,
+      timestamp: new Date().toISOString(),
+    })
 
     if (!email) {
       return NextResponse.json(
@@ -283,22 +297,63 @@ export async function POST(request: NextRequest) {
       
       // Get user ID - either from generateLink response or we need to fetch it
       let userId = data.user?.id
+      console.log('[Invite API] 🔍 User ID from generateLink response:', userId || 'NOT RETURNED')
       
       if (!userId) {
-        console.log('[Invite API] ⚠️ No user returned from generateLink, fetching user by email...')
-        // Try to get the user ID from auth.users table
-        const { data: authUsers, error: authError } = await adminClient.auth.admin.listUsers()
-        if (!authError && authUsers?.users) {
-          const matchingUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-          if (matchingUser) {
-            userId = matchingUser.id
-            console.log('[Invite API] ✅ Found user ID from auth.users:', userId)
+        console.log('[Invite API] ⚠️ No user returned from generateLink, searching auth.users by email...')
+        // Try to find user by listing users (Supabase doesn't have getUserByEmail)
+        // We'll search through the list - this happens after generateLink so user should exist
+        try {
+          // First try listing with a small page to find the user
+          const { data: authUsers, error: searchError } = await adminClient.auth.admin.listUsers({
+            perPage: 50,
+            page: 1,
+          })
+          console.log('[Invite API] 🔍 Initial listUsers result:', {
+            totalUsers: authUsers?.users?.length || 0,
+            error: searchError?.message,
+          })
+          if (!searchError && authUsers?.users) {
+            const matchingUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+            if (matchingUser) {
+              userId = matchingUser.id
+              console.log('[Invite API] ✅ Found user ID in initial search:', userId)
+            }
           }
+        } catch (e: any) {
+          console.error('[Invite API] ❌ Initial search exception:', e.message)
+        }
+      }
+      
+      // If still no user ID, try with a larger page size
+      if (!userId) {
+        console.log('[Invite API] ⚠️ Still no user ID, trying extended listUsers...')
+        try {
+          const { data: authUsers, error: listError } = await adminClient.auth.admin.listUsers({ perPage: 500 })
+          console.log('[Invite API] 🔍 Extended listUsers result:', {
+            totalUsers: authUsers?.users?.length || 0,
+            error: listError?.message,
+          })
+          if (!listError && authUsers?.users) {
+            const matchingUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
+            if (matchingUser) {
+              userId = matchingUser.id
+              console.log('[Invite API] ✅ Found user ID from extended listUsers:', userId)
+            } else {
+              console.log('[Invite API] ⚠️ User not found in extended listUsers with email:', email.toLowerCase())
+              // Log first 5 user emails to help debug
+              const sampleEmails = authUsers.users.slice(0, 5).map(u => u.email)
+              console.log('[Invite API] 🔍 Sample user emails in auth.users:', sampleEmails)
+            }
+          }
+        } catch (e: any) {
+          console.error('[Invite API] ❌ Extended listUsers exception:', e.message)
         }
       }
       
       if (!userId) {
-        console.error('[Invite API] ❌ Could not get user ID for profile creation')
+        console.error('[Invite API] ❌ Could not get user ID for profile creation - this is unexpected!')
+        console.error('[Invite API] ❌ generateLink should have created a user in auth.users')
         // Generate a UUID as fallback - profile will be orphaned but at least visible
         userId = crypto.randomUUID()
         console.log('[Invite API] ⚠️ Using generated UUID as fallback:', userId)
@@ -306,7 +361,7 @@ export async function POST(request: NextRequest) {
 
       console.log('[Invite API] 📝 Creating user profile with pending status:', {
         userId,
-        email,
+        email: email.toLowerCase(),
         firstName,
         lastName,
         role: role || 'developer',
@@ -316,11 +371,30 @@ export async function POST(request: NextRequest) {
         onboarding_completed: skipOnboarding,
       })
 
+      // Check if profile already exists
+      const { data: existingProfile, error: existingError } = await adminClient
+        .from('user_profiles')
+        .select('id, email, membership_status')
+        .eq('email', email.toLowerCase())
+        .single()
+      
+      console.log('[Invite API] 🔍 Existing profile check:', {
+        found: !!existingProfile,
+        existingId: existingProfile?.id,
+        existingStatus: existingProfile?.membership_status,
+        error: existingError?.message,
+      })
+
+      // If profile exists with different ID, update it to use the auth user ID
+      if (existingProfile && existingProfile.id !== userId && userId !== existingProfile.id) {
+        console.log('[Invite API] ⚠️ Profile exists with different ID, will update to match auth user ID')
+      }
+
       const { data: profileData, error: profileError } = await adminClient
         .from('user_profiles')
         .upsert({
           id: userId,
-          email: email,
+          email: email.toLowerCase(),
           first_name: firstName,
           last_name: lastName,
           user_type: role || 'developer',
@@ -330,14 +404,70 @@ export async function POST(request: NextRequest) {
           membership_status: 'pending',
           // Internal team members skip onboarding - they go directly to admin dashboard
           onboarding_completed: skipOnboarding,
+        }, {
+          onConflict: 'id', // Upsert based on ID
         })
         .select()
 
+      console.log('[Invite API] 📝 Upsert result:', {
+        success: !profileError,
+        profileData: profileData,
+        error: profileError?.message,
+        errorCode: profileError?.code,
+        errorDetails: profileError?.details,
+      })
+
       if (profileError) {
-        console.error('[Invite API] ❌ Profile creation error:', profileError)
+        console.error('[Invite API] ❌ Profile upsert error:', {
+          message: profileError.message,
+          code: profileError.code,
+          details: profileError.details,
+          hint: profileError.hint,
+        })
+        
+        // Try insert instead of upsert as fallback
+        console.log('[Invite API] 🔄 Trying direct insert as fallback...')
+        const { data: insertData, error: insertError } = await adminClient
+          .from('user_profiles')
+          .insert({
+            id: userId,
+            email: email.toLowerCase(),
+            first_name: firstName,
+            last_name: lastName,
+            user_type: role || 'developer',
+            job_role: job_role || null,
+            company_id: company_id || null,
+            is_internal_team: is_internal || false,
+            membership_status: 'pending',
+            onboarding_completed: skipOnboarding,
+          })
+          .select()
+        
+        console.log('[Invite API] 📝 Insert fallback result:', {
+          success: !insertError,
+          insertData: insertData,
+          error: insertError?.message,
+        })
       } else {
-        console.log('[Invite API] ✅ Profile created successfully:', profileData)
+        console.log('[Invite API] ✅ Profile created/updated successfully:', {
+          id: profileData?.[0]?.id,
+          email: profileData?.[0]?.email,
+          membership_status: profileData?.[0]?.membership_status,
+        })
       }
+
+      // Verify the profile was actually created
+      const { data: verifyProfile, error: verifyError } = await adminClient
+        .from('user_profiles')
+        .select('id, email, membership_status, is_internal_team')
+        .eq('email', email.toLowerCase())
+        .single()
+      
+      console.log('[Invite API] ✅ Final verification:', {
+        found: !!verifyProfile,
+        profile: verifyProfile,
+        error: verifyError?.message,
+      })
 
       // Send branded invite email via Resend
       if (!isEmailConfigured()) {
@@ -389,14 +519,30 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({
           success: false,
           error: `Failed to send invite email: ${emailResult.error || 'Unknown error'}`,
+          profileCreated: !!verifyProfile,
         }, { status: 502 })
       }
+
+      console.log('[Invite API] ✅ Invitation complete:', {
+        email: email.toLowerCase(),
+        profileCreated: !!verifyProfile,
+        profileId: verifyProfile?.id,
+        membershipStatus: verifyProfile?.membership_status,
+        emailSent: true,
+      })
 
       return NextResponse.json({
         success: true,
         message: `Invitation email sent to ${email}`,
         emailSent: true,
         user: data.user,
+        profileCreated: !!verifyProfile,
+        profile: verifyProfile ? {
+          id: verifyProfile.id,
+          email: verifyProfile.email,
+          membership_status: verifyProfile.membership_status,
+          is_internal_team: verifyProfile.is_internal_team,
+        } : null,
       })
     } catch (adminError: any) {
       console.error('[Invite API] Admin client error:', adminError)
