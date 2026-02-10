@@ -18,7 +18,7 @@ async function fetchCampaignSummaries(): Promise<{ company_id: string; status: s
     .from('campaigns')
     .select('company_id, delivery_status, status, total_spent, spend, number_of_leads, leads')
   if (error) return []
-  return (data || []).map(c => {
+  return (data || []).map((c: any) => {
     const spent = parseFloat(c.total_spent ?? c.spend ?? 0) || 0
     const numLeads = parseFloat(c.number_of_leads ?? c.leads ?? 0) || 0
     return {
