@@ -87,22 +87,22 @@ export function AuthHandler() {
         try {
           const supabase = createClient()
 
-          // First, check if there's already a valid session
-          console.log('[AuthHandler] 🔄 Checking for existing session...')
-          const { data: existingSession } = await supabase.auth.getSession()
-          console.log('[AuthHandler] 📋 Existing session check:', {
-            hasSession: !!existingSession?.session,
-            existingUserId: existingSession?.session?.user?.id,
-            existingUserEmail: existingSession?.session?.user?.email,
-          })
-
+          // Skip getSession check - go directly to setSession with the tokens we have
+          // This avoids potential hangs from getSession when there's no existing session
           console.log('[AuthHandler] 🔄 Setting session from hash tokens...')
           
-          // Set the session from the tokens
-          const { data, error } = await supabase.auth.setSession({
+          // Add timeout to prevent infinite loading
+          const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Authentication timed out. Please try again.')), 15000)
+          })
+          
+          // Set the session from the tokens with timeout
+          const sessionPromise = supabase.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken || '',
           })
+          
+          const { data, error } = await Promise.race([sessionPromise, timeoutPromise]) as Awaited<typeof sessionPromise>
 
           console.log('[AuthHandler] 📋 setSession result:', {
             hasUser: !!data?.user,
@@ -312,10 +312,17 @@ export function AuthHandler() {
             window.history.replaceState(null, '', window.location.pathname)
             router.push('/login?error=' + encodeURIComponent('Authentication failed - no user returned'))
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('[AuthHandler] ❌ Unexpected error:', err)
+          const errorMessage = err?.message || 'Authentication failed'
+          console.error('[AuthHandler] 📋 Error details:', {
+            message: errorMessage,
+            name: err?.name,
+            stack: err?.stack,
+          })
           window.history.replaceState(null, '', window.location.pathname)
-          router.push('/login?error=' + encodeURIComponent('Authentication failed'))
+          setIsProcessing(false)
+          router.push('/login?error=' + encodeURIComponent(errorMessage))
         }
       } else {
         console.log('[AuthHandler] ℹ️ Hash exists but no access_token found')
@@ -326,6 +333,18 @@ export function AuthHandler() {
     handleAuth()
   }, [router])
 
+  const handleRetry = () => {
+    // Reload the page to retry the auth flow
+    window.location.reload()
+  }
+
+  const handleCancel = () => {
+    // Clear hash and go to login
+    window.history.replaceState(null, '', '/login')
+    setIsProcessing(false)
+    router.push('/login')
+  }
+
   if (isProcessing) {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
@@ -333,6 +352,21 @@ export function AuthHandler() {
           <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-muted-foreground">{processingMessage}</p>
           <p className="text-xs text-muted-foreground/60 mt-2">Check browser console for detailed logs</p>
+          <div className="mt-4 flex gap-2 justify-center">
+            <button 
+              onClick={handleRetry}
+              className="text-xs text-primary hover:underline"
+            >
+              Taking too long? Retry
+            </button>
+            <span className="text-xs text-muted-foreground">|</span>
+            <button 
+              onClick={handleCancel}
+              className="text-xs text-muted-foreground hover:text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     )
