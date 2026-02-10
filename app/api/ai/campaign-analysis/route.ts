@@ -169,7 +169,7 @@ export async function GET() {
 
     const { data: campaigns, error } = await supabase
       .from('campaigns')
-      .select('id, name, ai_health_score, ai_performance_summary, ai_recommendations')
+      .select('id, campaign_name, ai_health_score, ai_performance_summary, ai_recommendations')
       .order('ai_health_score', { ascending: false, nullsFirst: false })
 
     if (error) {
