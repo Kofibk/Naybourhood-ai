@@ -70,8 +70,25 @@ export function AuthHandler() {
       // Handle errors in hash
       if (errorCode || errorDescription) {
         console.error('[AuthHandler] ❌ Error in hash fragment:', { errorCode, errorDescription })
-        // Clear hash and redirect with error
+        // Clear hash from URL
         window.history.replaceState(null, '', window.location.pathname)
+        
+        // Check if this is an expired/invalid invite link
+        const isInviteExpired = errorCode === 'otp_expired' || 
+          errorCode === 'access_denied' ||
+          errorDescription?.toLowerCase().includes('expired') ||
+          errorDescription?.toLowerCase().includes('invalid')
+        
+        if (isInviteExpired) {
+          // Show the expired invite UI with email input
+          setInviteError({
+            email: '', // Empty - user will need to enter their email
+            message: errorDescription || 'This invitation link has expired or is invalid.',
+          })
+          return
+        }
+        
+        // For other errors, redirect to login
         router.push(`/login?error=${encodeURIComponent(errorDescription || 'Authentication failed')}&error_type=${errorCode}`)
         return
       }
@@ -378,27 +395,43 @@ export function AuthHandler() {
     router.push('/login')
   }
 
-  const handleResendInvite = async () => {
-    if (!inviteError?.email) return
+  const [emailInput, setEmailInput] = useState('')
+  const [resendError, setResendError] = useState('')
+
+  const handleResendInvite = async (emailToUse?: string) => {
+    const email = emailToUse || inviteError?.email || emailInput
+    if (!email) {
+      setResendError('Please enter your email address')
+      return
+    }
     
+    // Basic email validation
+    if (!email.includes('@') || !email.includes('.')) {
+      setResendError('Please enter a valid email address')
+      return
+    }
+    
+    setResendError('')
     setIsResending(true)
     try {
       const response = await fetch('/api/auth/resend-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: inviteError.email }),
+        body: JSON.stringify({ email: email.toLowerCase().trim() }),
       })
       
       const data = await response.json()
       
       if (response.ok && data.success) {
+        // Update inviteError with the email for the success message
+        setInviteError({ email: email.toLowerCase().trim(), message: inviteError?.message || '' })
         setResendSuccess(true)
       } else {
-        alert(data.error || 'Failed to resend invite. Please contact support.')
+        setResendError(data.error || 'Failed to resend invite. Please contact support.')
       }
     } catch (err) {
       console.error('[AuthHandler] Failed to resend invite:', err)
-      alert('Failed to resend invite. Please try again.')
+      setResendError('Failed to resend invite. Please try again.')
     } finally {
       setIsResending(false)
     }
@@ -431,6 +464,10 @@ export function AuthHandler() {
       )
     }
     
+    // If we have the email, show simple resend button
+    // If we don't have the email, show an input field
+    const hasEmail = !!inviteError.email
+    
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
         <div className="text-center max-w-md px-4">
@@ -440,27 +477,71 @@ export function AuthHandler() {
             </svg>
           </div>
           <h2 className="text-xl font-semibold mb-2">Invitation Link Expired</h2>
-          <p className="text-muted-foreground mb-2">
+          <p className="text-muted-foreground mb-4">
             This invitation link has expired or has already been used.
           </p>
-          <p className="text-sm text-muted-foreground mb-6">
-            Invitation for: <strong>{inviteError.email}</strong>
-          </p>
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={handleResendInvite}
-              disabled={isResending}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
-            >
-              {isResending ? 'Sending...' : 'Send New Invitation'}
-            </button>
-            <button
-              onClick={handleCancel}
-              className="px-4 py-2 text-muted-foreground hover:text-foreground"
-            >
-              Back to Login
-            </button>
-          </div>
+          
+          {hasEmail ? (
+            <>
+              <p className="text-sm text-muted-foreground mb-4">
+                Invitation for: <strong>{inviteError.email}</strong>
+              </p>
+              {resendError && (
+                <p className="text-sm text-red-500 mb-4">{resendError}</p>
+              )}
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={() => handleResendInvite()}
+                  disabled={isResending}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isResending ? 'Sending...' : 'Send New Invitation'}
+                </button>
+                <button
+                  onClick={handleCancel}
+                  className="px-4 py-2 text-muted-foreground hover:text-foreground"
+                >
+                  Back to Login
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-muted-foreground mb-4">
+                Enter your email address to request a new invitation link.
+              </p>
+              <form 
+                onSubmit={(e) => { e.preventDefault(); handleResendInvite(); }}
+                className="flex flex-col gap-3"
+              >
+                <input
+                  type="email"
+                  placeholder="your@email.com"
+                  value={emailInput}
+                  onChange={(e) => setEmailInput(e.target.value)}
+                  className="px-4 py-2 border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
+                />
+                {resendError && (
+                  <p className="text-sm text-red-500">{resendError}</p>
+                )}
+                <button
+                  type="submit"
+                  disabled={isResending || !emailInput}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+                >
+                  {isResending ? 'Sending...' : 'Request New Invitation'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-4 py-2 text-muted-foreground hover:text-foreground"
+                >
+                  Back to Login
+                </button>
+              </form>
+            </>
+          )}
         </div>
       </div>
     )
