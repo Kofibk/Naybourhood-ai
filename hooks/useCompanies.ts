@@ -113,16 +113,14 @@ export function useCompanies() {
 
   const deleteCompanyMutation = useMutation({
     mutationFn: async (id: string) => {
-      if (!isSupabaseConfigured()) throw new Error('Supabase not configured')
-      const supabase = createClient()
-      if (!supabase) throw new Error('Failed to create Supabase client')
+      // Use server API route to handle foreign key cleanup with admin privileges
+      const res = await fetch(`/api/companies/${id}`, { method: 'DELETE' })
+      const result = await res.json()
 
-      const { error } = await supabase
-        .from('companies')
-        .delete()
-        .eq('id', id)
+      if (!res.ok) {
+        throw new Error(result.error || 'Failed to delete company')
+      }
 
-      if (error) throw error
       return id
     },
     onSuccess: (id) => {
