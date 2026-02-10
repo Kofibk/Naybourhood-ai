@@ -219,20 +219,29 @@ export function AuthHandler() {
 
             setProcessingMessage('Loading your profile...')
 
-            // For invite type, update membership status to active
+            // For invite type, update membership status to active via server API
+            // We MUST use a server-side API with admin client because the browser client
+            // is subject to RLS which silently blocks the update (returns success but 0 rows)
             if (type === 'invite') {
-              console.log('[AuthHandler] 📧 Invite flow - updating membership status to active')
-              const { error: updateError } = await supabase
-                .from('user_profiles')
-                .update({ 
-                  membership_status: 'active',
+              console.log('[AuthHandler] 📧 Invite flow - activating user via server API...')
+              try {
+                const activateResponse = await fetch('/api/auth/activate', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ 
+                    userId: data.user.id, 
+                    email: data.user.email,
+                  }),
                 })
-                .eq('id', data.user.id)
-              
-              if (updateError) {
-                console.error('[AuthHandler] ⚠️ Failed to update membership status:', updateError)
-              } else {
-                console.log('[AuthHandler] ✅ Membership status updated to active')
+                const activateResult = await activateResponse.json()
+                
+                if (activateResponse.ok && activateResult.success) {
+                  console.log('[AuthHandler] ✅ Membership status updated to active:', activateResult.profile)
+                } else {
+                  console.error('[AuthHandler] ⚠️ Failed to activate user:', activateResult.error)
+                }
+              } catch (activateErr) {
+                console.error('[AuthHandler] ⚠️ Error calling activate API:', activateErr)
               }
             }
 
