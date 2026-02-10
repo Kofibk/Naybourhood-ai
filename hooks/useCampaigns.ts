@@ -25,7 +25,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   // Fetch all with pagination (data is at ad-level)
   // Select only the columns we need for aggregation to minimize payload
   const selectColumns = [
-    'id', 'campaign_name', 'name', 'company_id', 'development_id',
+    'id', 'campaign_name', 'company_id', 'development_id',
     'platform', 'delivery_status', 'status',
     'total_spent', 'spend', 'number_of_leads', 'leads',
     'impressions', 'link_clicks', 'clicks', 'reach',
