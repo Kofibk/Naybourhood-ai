@@ -16,7 +16,7 @@ async function fetchCampaignSummaries(): Promise<{ company_id: string; status: s
   if (!supabase) return []
   const { data, error } = await supabase
     .from('campaigns')
-    .select('company_id, delivery_status, status, total_spent, spend, number_of_leads, leads')
+    .select('*')
   if (error) return []
   return (data || []).map((c: any) => {
     const spent = parseFloat(c.total_spent ?? c.spend ?? 0) || 0

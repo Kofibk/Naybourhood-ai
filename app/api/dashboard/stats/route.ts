@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
       const campaignsStart = Date.now()
       const { data: topCampaigns } = await supabase
         .from('campaigns')
-        .select('campaign_name, development_name, total_spent, number_of_leads, impressions, clicks, ctr, company_id')
+        .select('*')
         .order('number_of_leads', { ascending: false })
         .limit(10)
       timings.top_campaigns = logTiming('top_campaigns', campaignsStart, { count: topCampaigns?.length || 0 })
@@ -133,14 +133,14 @@ export async function GET(request: NextRequest) {
           campaigns: campaignStatsResult.data || {}
         },
         recentLeads: recentBuyers || [],
-        topCampaigns: (topCampaigns || []).map(c => ({
-          campaign_name: c.campaign_name,
-          development_name: c.development_name,
-          spend: c.total_spent || 0,
-          leads: c.number_of_leads || 0,
-          cpl: c.number_of_leads > 0 ? (c.total_spent || 0) / c.number_of_leads : 0,
+        topCampaigns: (topCampaigns || []).map((c: any) => ({
+          campaign_name: c.campaign_name || c.name,
+          development_name: c.development_name || c.development,
+          spend: c.total_spent ?? c.spend ?? 0,
+          leads: c.number_of_leads ?? c.leads ?? 0,
+          cpl: (c.number_of_leads ?? c.leads ?? 0) > 0 ? (c.total_spent ?? c.spend ?? 0) / (c.number_of_leads ?? c.leads ?? 0) : 0,
           impressions: c.impressions || 0,
-          clicks: c.clicks || 0,
+          clicks: c.link_clicks ?? c.clicks ?? 0,
           ctr: c.ctr || 0,
           company_id: c.company_id
         })),
