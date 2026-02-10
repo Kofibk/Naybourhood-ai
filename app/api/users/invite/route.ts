@@ -288,186 +288,205 @@ export async function POST(request: NextRequest) {
         console.log('[Invite API] ⚠️ Could not parse invite link as URL:', e)
       }
 
-      // Create profile entry for the invited user with 'pending' status
-      // Parse full name into first_name and last_name
+      // =============================================
+      // PROFILE CREATION / UPDATE
+      // =============================================
+      // IMPORTANT: There's a database trigger `handle_new_user_profile()` that fires
+      // when generateLink creates a user in auth.users. This trigger creates a profile
+      // row with ONLY the user ID - all other fields are NULL.
+      // We need to UPDATE that trigger-created row with the actual invite data.
+      // =============================================
+      
       const { firstName, lastName } = parseFullName(name)
-
-      // Internal team members skip onboarding
       const skipOnboarding = is_internal || false
       
-      // Get user ID - either from generateLink response or we need to fetch it
-      let userId = data.user?.id
-      console.log('[Invite API] 🔍 User ID from generateLink response:', userId || 'NOT RETURNED')
-      
+      // generateLink always returns the user object for new users
+      const userId = data.user?.id
+      console.log('[Invite API] 🔍 User ID from generateLink:', userId || 'NOT RETURNED')
+      console.log('[Invite API] 🔍 User email from generateLink:', data.user?.email)
+
       if (!userId) {
-        console.log('[Invite API] ⚠️ No user returned from generateLink, searching auth.users by email...')
-        // Try to find user by listing users (Supabase doesn't have getUserByEmail)
-        // We'll search through the list - this happens after generateLink so user should exist
-        try {
-          // First try listing with a small page to find the user
-          const { data: authUsers, error: searchError } = await adminClient.auth.admin.listUsers({
-            perPage: 50,
-            page: 1,
-          })
-          console.log('[Invite API] 🔍 Initial listUsers result:', {
-            totalUsers: authUsers?.users?.length || 0,
-            error: searchError?.message,
-          })
-          if (!searchError && authUsers?.users) {
-            const matchingUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-            if (matchingUser) {
-              userId = matchingUser.id
-              console.log('[Invite API] ✅ Found user ID in initial search:', userId)
-            }
-          }
-        } catch (e: any) {
-          console.error('[Invite API] ❌ Initial search exception:', e.message)
-        }
-      }
-      
-      // If still no user ID, try with a larger page size
-      if (!userId) {
-        console.log('[Invite API] ⚠️ Still no user ID, trying extended listUsers...')
-        try {
-          const { data: authUsers, error: listError } = await adminClient.auth.admin.listUsers({ perPage: 500 })
-          console.log('[Invite API] 🔍 Extended listUsers result:', {
-            totalUsers: authUsers?.users?.length || 0,
-            error: listError?.message,
-          })
-          if (!listError && authUsers?.users) {
-            const matchingUser = authUsers.users.find(u => u.email?.toLowerCase() === email.toLowerCase())
-            if (matchingUser) {
-              userId = matchingUser.id
-              console.log('[Invite API] ✅ Found user ID from extended listUsers:', userId)
-            } else {
-              console.log('[Invite API] ⚠️ User not found in extended listUsers with email:', email.toLowerCase())
-              // Log first 5 user emails to help debug
-              const sampleEmails = authUsers.users.slice(0, 5).map(u => u.email)
-              console.log('[Invite API] 🔍 Sample user emails in auth.users:', sampleEmails)
-            }
-          }
-        } catch (e: any) {
-          console.error('[Invite API] ❌ Extended listUsers exception:', e.message)
-        }
-      }
-      
-      if (!userId) {
-        console.error('[Invite API] ❌ Could not get user ID for profile creation - this is unexpected!')
-        console.error('[Invite API] ❌ generateLink should have created a user in auth.users')
-        // Generate a UUID as fallback - profile will be orphaned but at least visible
-        userId = crypto.randomUUID()
-        console.log('[Invite API] ⚠️ Using generated UUID as fallback:', userId)
+        console.error('[Invite API] ❌ CRITICAL: generateLink did not return a user ID!')
+        console.error('[Invite API] ❌ Full generateLink data:', JSON.stringify(data, null, 2))
       }
 
-      console.log('[Invite API] 📝 Creating user profile with pending status:', {
-        userId,
+      // The profile data we want to set
+      const profileFields = {
         email: email.toLowerCase(),
-        firstName,
-        lastName,
-        role: role || 'developer',
+        first_name: firstName,
+        last_name: lastName,
+        user_type: role || 'developer',
+        job_role: job_role || null,
         company_id: company_id || null,
+        is_internal_team: is_internal || false,
         membership_status: 'pending',
-        is_internal: is_internal || false,
         onboarding_completed: skipOnboarding,
-      })
-
-      // Check if profile already exists
-      const { data: existingProfile, error: existingError } = await adminClient
-        .from('user_profiles')
-        .select('id, email, membership_status')
-        .eq('email', email.toLowerCase())
-        .single()
-      
-      console.log('[Invite API] 🔍 Existing profile check:', {
-        found: !!existingProfile,
-        existingId: existingProfile?.id,
-        existingStatus: existingProfile?.membership_status,
-        error: existingError?.message,
-      })
-
-      // If profile exists with different ID, update it to use the auth user ID
-      if (existingProfile && existingProfile.id !== userId && userId !== existingProfile.id) {
-        console.log('[Invite API] ⚠️ Profile exists with different ID, will update to match auth user ID')
       }
 
-      const { data: profileData, error: profileError } = await adminClient
-        .from('user_profiles')
-        .upsert({
-          id: userId,
-          email: email.toLowerCase(),
-          first_name: firstName,
-          last_name: lastName,
-          user_type: role || 'developer',
-          job_role: job_role || null,
-          company_id: company_id || null,
-          is_internal_team: is_internal || false,
-          membership_status: 'pending',
-          // Internal team members skip onboarding - they go directly to admin dashboard
-          onboarding_completed: skipOnboarding,
-        }, {
-          onConflict: 'id', // Upsert based on ID
-        })
-        .select()
+      console.log('[Invite API] 📝 Profile data to set:', { userId, ...profileFields })
 
-      console.log('[Invite API] 📝 Upsert result:', {
-        success: !profileError,
-        profileData: profileData,
-        error: profileError?.message,
-        errorCode: profileError?.code,
-        errorDetails: profileError?.details,
-      })
+      // Small delay to ensure the database trigger has completed
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-      if (profileError) {
-        console.error('[Invite API] ❌ Profile upsert error:', {
-          message: profileError.message,
-          code: profileError.code,
-          details: profileError.details,
-          hint: profileError.hint,
-        })
-        
-        // Try insert instead of upsert as fallback
-        console.log('[Invite API] 🔄 Trying direct insert as fallback...')
-        const { data: insertData, error: insertError } = await adminClient
+      // Strategy: Try UPDATE first (trigger already created the row), then INSERT as fallback
+      let profileCreated = false
+
+      if (userId) {
+        // STEP 1: Check if trigger created a profile with this ID
+        const { data: triggerProfile, error: checkError } = await adminClient
           .from('user_profiles')
-          .insert({
-            id: userId,
-            email: email.toLowerCase(),
-            first_name: firstName,
-            last_name: lastName,
-            user_type: role || 'developer',
-            job_role: job_role || null,
-            company_id: company_id || null,
-            is_internal_team: is_internal || false,
-            membership_status: 'pending',
-            onboarding_completed: skipOnboarding,
+          .select('id, email, first_name, membership_status')
+          .eq('id', userId)
+          .single()
+
+        console.log('[Invite API] 🔍 Trigger-created profile check (by ID):', {
+          found: !!triggerProfile,
+          profile: triggerProfile,
+          error: checkError?.message,
+        })
+
+        if (triggerProfile) {
+          // STEP 2a: Profile exists from trigger - UPDATE it with our data
+          console.log('[Invite API] 🔄 Updating trigger-created profile with invite data...')
+          const { data: updateData, error: updateError } = await adminClient
+            .from('user_profiles')
+            .update(profileFields)
+            .eq('id', userId)
+            .select()
+
+          console.log('[Invite API] 📝 Update result:', {
+            success: !updateError,
+            data: updateData,
+            error: updateError ? {
+              message: updateError.message,
+              code: updateError.code,
+              details: updateError.details,
+              hint: updateError.hint,
+            } : null,
           })
-          .select()
-        
-        console.log('[Invite API] 📝 Insert fallback result:', {
-          success: !insertError,
-          insertData: insertData,
-          error: insertError?.message,
-        })
-      } else {
-        console.log('[Invite API] ✅ Profile created/updated successfully:', {
-          id: profileData?.[0]?.id,
-          email: profileData?.[0]?.email,
-          membership_status: profileData?.[0]?.membership_status,
-        })
+
+          if (!updateError && updateData && updateData.length > 0) {
+            profileCreated = true
+            console.log('[Invite API] ✅ Profile updated successfully:', {
+              id: updateData[0].id,
+              email: updateData[0].email,
+              first_name: updateData[0].first_name,
+              membership_status: updateData[0].membership_status,
+            })
+          } else if (updateError) {
+            console.error('[Invite API] ❌ Update failed, will try upsert...')
+          }
+        }
+
+        if (!profileCreated) {
+          // STEP 2b: No trigger profile found or update failed - try upsert
+          console.log('[Invite API] 🔄 Trying upsert (profile may not exist yet)...')
+          const { data: upsertData, error: upsertError } = await adminClient
+            .from('user_profiles')
+            .upsert({
+              id: userId,
+              ...profileFields,
+            }, {
+              onConflict: 'id',
+              ignoreDuplicates: false, // We want to UPDATE on conflict, not ignore
+            })
+            .select()
+
+          console.log('[Invite API] 📝 Upsert result:', {
+            success: !upsertError,
+            data: upsertData,
+            error: upsertError ? {
+              message: upsertError.message,
+              code: upsertError.code,
+              details: upsertError.details,
+            } : null,
+          })
+
+          if (!upsertError && upsertData && upsertData.length > 0) {
+            profileCreated = true
+          }
+        }
       }
 
-      // Verify the profile was actually created
+      // STEP 3: If nothing worked above (no userId or all operations failed), try by email
+      if (!profileCreated) {
+        console.log('[Invite API] ⚠️ Profile not created yet, checking by email...')
+        
+        // Check if there's already a profile with this email (maybe from a previous invite)
+        const { data: emailProfile } = await adminClient
+          .from('user_profiles')
+          .select('id')
+          .eq('email', email.toLowerCase())
+          .single()
+
+        if (emailProfile) {
+          console.log('[Invite API] 🔄 Found existing profile by email, updating...')
+          const { data: updateData, error: updateError } = await adminClient
+            .from('user_profiles')
+            .update(profileFields)
+            .eq('email', email.toLowerCase())
+            .select()
+
+          if (!updateError) {
+            profileCreated = true
+            console.log('[Invite API] ✅ Updated profile by email:', updateData)
+          }
+        } else {
+          // Last resort: insert with a generated UUID
+          const fallbackId = userId || crypto.randomUUID()
+          console.log('[Invite API] 🔄 No profile found at all, inserting new profile with ID:', fallbackId)
+          const { data: insertData, error: insertError } = await adminClient
+            .from('user_profiles')
+            .insert({
+              id: fallbackId,
+              ...profileFields,
+            })
+            .select()
+
+          console.log('[Invite API] 📝 Insert result:', {
+            success: !insertError,
+            data: insertData,
+            error: insertError?.message,
+          })
+
+          if (!insertError) {
+            profileCreated = true
+          }
+        }
+      }
+
+      // FINAL VERIFICATION: Query the profile to confirm it exists with correct data
       const { data: verifyProfile, error: verifyError } = await adminClient
         .from('user_profiles')
-        .select('id, email, membership_status, is_internal_team')
-        .eq('email', email.toLowerCase())
+        .select('id, email, first_name, last_name, user_type, membership_status, is_internal_team, company_id, onboarding_completed')
+        .or(`id.eq.${userId},email.eq.${email.toLowerCase()}`)
+        .limit(1)
         .single()
       
       console.log('[Invite API] ✅ Final verification:', {
+        profileCreated,
         found: !!verifyProfile,
         profile: verifyProfile,
         error: verifyError?.message,
+        hasNullEmail: verifyProfile && !verifyProfile.email,
+        hasNullName: verifyProfile && !verifyProfile.first_name,
       })
+
+      if (verifyProfile && !verifyProfile.email) {
+        // Profile exists but email is still null - the update didn't work!
+        // Force one more update attempt
+        console.error('[Invite API] ⚠️ Profile exists but email is NULL - forcing update...')
+        const { error: forceError } = await adminClient
+          .from('user_profiles')
+          .update(profileFields)
+          .eq('id', verifyProfile.id)
+        
+        if (forceError) {
+          console.error('[Invite API] ❌ Force update failed:', forceError.message)
+        } else {
+          console.log('[Invite API] ✅ Force update succeeded')
+        }
+      }
 
       // Send branded invite email via Resend
       if (!isEmailConfigured()) {
