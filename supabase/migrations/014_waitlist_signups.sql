@@ -1,10 +1,16 @@
 -- Waitlist signups from the public landing page
 CREATE TABLE IF NOT EXISTS waitlist_signups (
   id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  full_name text NOT NULL,
+  name text NOT NULL,
   email text NOT NULL,
-  company text,
-  role text,
+  phone text,
+  company text NOT NULL,
+  role text NOT NULL,
+  monthly_lead_volume text NOT NULL,
+  biggest_challenge text NOT NULL,
+  would_pay text NOT NULL,
+  current_spend text NOT NULL,
+  referral_source text NOT NULL,
   created_at timestamptz DEFAULT now()
 );
 
@@ -20,8 +26,8 @@ CREATE POLICY "Allow public inserts on waitlist_signups"
   TO anon
   WITH CHECK (true);
 
--- Only authenticated admins can read waitlist entries
-CREATE POLICY "Admins can read waitlist_signups"
+-- Only authenticated users can read waitlist entries
+CREATE POLICY "Authenticated users can read waitlist_signups"
   ON waitlist_signups
   FOR SELECT
   TO authenticated

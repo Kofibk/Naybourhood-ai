@@ -139,11 +139,18 @@ export default function LandingPage() {
     setFormError('')
 
     const form = e.currentTarget
+    const field = (n: string) => (form.elements.namedItem(n) as HTMLInputElement | HTMLSelectElement).value
     const data = {
-      full_name: (form.elements.namedItem('full_name') as HTMLInputElement).value,
-      email: (form.elements.namedItem('email') as HTMLInputElement).value,
-      company: (form.elements.namedItem('company') as HTMLInputElement).value,
-      role: (form.elements.namedItem('role') as HTMLSelectElement).value,
+      name: field('name'),
+      email: field('email'),
+      phone: field('phone'),
+      company: field('company'),
+      role: field('role'),
+      monthly_lead_volume: field('monthly_lead_volume'),
+      biggest_challenge: field('biggest_challenge'),
+      would_pay: field('would_pay'),
+      current_spend: field('current_spend'),
+      referral_source: field('referral_source'),
     }
 
     try {
@@ -288,142 +295,267 @@ export default function LandingPage() {
       </section>
 
       {/* ============================================
-          WAITLIST MODAL
+          WAITLIST MODAL — Dark mode
           ============================================ */}
       {showModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 animate-in fade-in duration-200"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 animate-in fade-in duration-200"
           onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              setShowModal(false)
-            }
+            if (e.target === e.currentTarget) setShowModal(false)
           }}
         >
-          <div className="relative w-full max-w-md bg-white rounded-xl p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+          <div className="relative w-full max-w-lg bg-[#171717] rounded-2xl shadow-2xl animate-in zoom-in-95 fade-in duration-200 max-h-[90vh] flex flex-col">
             {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 z-10 p-1 text-gray-500 hover:text-gray-700 transition-colors"
+              className="absolute top-4 right-4 z-10 p-1.5 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-colors"
               aria-label="Close modal"
             >
               <X className="w-5 h-5" />
             </button>
 
             {formState === 'success' ? (
-              <div className="text-center py-8">
-                <CheckCircle className="w-12 h-12 text-[#34D399] mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-[#0A0A0A] mb-2">
+              <div className="text-center py-16 px-8">
+                <CheckCircle className="w-14 h-14 text-[#34D399] mx-auto mb-5" />
+                <h3 className="text-2xl font-semibold text-white mb-2">
                   You&apos;re on the list!
                 </h3>
-                <p className="text-[#525252]">
+                <p className="text-white/60">
                   We&apos;ll be in touch soon with early access details.
                 </p>
                 <button
                   onClick={() => setShowModal(false)}
-                  className="mt-6 px-6 py-2.5 bg-[#0A0A0A] text-white font-medium rounded-md hover:bg-[#171717] transition-colors"
+                  className="mt-8 px-8 py-2.5 bg-[#34D399] text-[#0A0A0A] font-medium rounded-lg hover:bg-[#34D399]/90 transition-colors"
                 >
                   Done
                 </button>
               </div>
             ) : (
               <>
-                <div className="mb-6">
+                {/* Header — fixed */}
+                <div className="px-8 pt-8 pb-4">
                   <div className="inline-flex items-center gap-2 mb-3">
                     <span className="w-2 h-2 rounded-full bg-[#34D399]" />
-                    <span className="text-xs font-medium tracking-[0.1em] uppercase text-[#525252]">
+                    <span className="text-xs font-medium tracking-[0.1em] uppercase text-white/50">
                       EARLY ACCESS
                     </span>
                   </div>
-                  <h3 className="text-xl font-semibold text-[#0A0A0A] mb-1">
+                  <h3 className="text-xl font-semibold text-white mb-1">
                     Join the Waitlist
                   </h3>
-                  <p className="text-sm text-[#525252]">
+                  <p className="text-sm text-white/50">
                     Be first to access AI-powered buyer intelligence.
                   </p>
                 </div>
 
-                <form onSubmit={handleWaitlistSubmit} className="space-y-4">
-                  <div>
-                    <label htmlFor="full_name" className="block text-sm font-medium text-[#0A0A0A] mb-1">
-                      Full name *
-                    </label>
-                    <input
-                      id="full_name"
-                      name="full_name"
-                      type="text"
-                      required
-                      placeholder="Jane Smith"
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
-                    />
-                  </div>
+                {/* Scrollable form area */}
+                <form onSubmit={handleWaitlistSubmit} className="overflow-y-auto flex-1 px-8 pb-8">
+                  <div className="space-y-4">
+                    {/* ── Contact details ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="name" className="block text-sm font-medium text-white/70 mb-1">
+                          Name <span className="text-[#34D399]">*</span>
+                        </label>
+                        <input
+                          id="name"
+                          name="name"
+                          type="text"
+                          required
+                          placeholder="Jane Smith"
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="email" className="block text-sm font-medium text-white/70 mb-1">
+                          Email <span className="text-[#34D399]">*</span>
+                        </label>
+                        <input
+                          id="email"
+                          name="email"
+                          type="email"
+                          required
+                          placeholder="jane@company.com"
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
 
-                  <div>
-                    <label htmlFor="email" className="block text-sm font-medium text-[#0A0A0A] mb-1">
-                      Work email *
-                    </label>
-                    <input
-                      id="email"
-                      name="email"
-                      type="email"
-                      required
-                      placeholder="jane@company.com"
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
-                    />
-                  </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="phone" className="block text-sm font-medium text-white/70 mb-1">
+                          Phone
+                        </label>
+                        <input
+                          id="phone"
+                          name="phone"
+                          type="tel"
+                          placeholder="+44 7700 900000"
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label htmlFor="company" className="block text-sm font-medium text-white/70 mb-1">
+                          Company <span className="text-[#34D399]">*</span>
+                        </label>
+                        <input
+                          id="company"
+                          name="company"
+                          type="text"
+                          required
+                          placeholder="Acme Developments"
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
 
-                  <div>
-                    <label htmlFor="company" className="block text-sm font-medium text-[#0A0A0A] mb-1">
-                      Company
-                    </label>
-                    <input
-                      id="company"
-                      name="company"
-                      type="text"
-                      placeholder="Acme Developments"
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
-                    />
-                  </div>
+                    {/* ── Role & volume ── */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="role" className="block text-sm font-medium text-white/70 mb-1">
+                          Role <span className="text-[#34D399]">*</span>
+                        </label>
+                        <select
+                          id="role"
+                          name="role"
+                          required
+                          defaultValue=""
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        >
+                          <option value="" disabled className="text-white/30">Select role</option>
+                          <option value="Developer / Housebuilder">Developer / Housebuilder</option>
+                          <option value="Estate Agent">Estate Agent</option>
+                          <option value="Mortgage Broker">Mortgage Broker</option>
+                          <option value="Conveyancer / Solicitor">Conveyancer / Solicitor</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="monthly_lead_volume" className="block text-sm font-medium text-white/70 mb-1">
+                          Monthly leads <span className="text-[#34D399]">*</span>
+                        </label>
+                        <select
+                          id="monthly_lead_volume"
+                          name="monthly_lead_volume"
+                          required
+                          defaultValue=""
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        >
+                          <option value="" disabled className="text-white/30">Select volume</option>
+                          <option value="Under 50">Under 50</option>
+                          <option value="50–200">50–200</option>
+                          <option value="200–500">200–500</option>
+                          <option value="500+">500+</option>
+                        </select>
+                      </div>
+                    </div>
 
-                  <div>
-                    <label htmlFor="role" className="block text-sm font-medium text-[#0A0A0A] mb-1">
-                      Role
-                    </label>
-                    <select
-                      id="role"
-                      name="role"
-                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent bg-white"
-                    >
-                      <option value="">Select a role</option>
-                      <option value="developer">Developer / Housebuilder</option>
-                      <option value="agent">Estate Agent</option>
-                      <option value="broker">Mortgage Broker</option>
-                      <option value="sales_director">Sales Director</option>
-                      <option value="marketing">Marketing</option>
-                      <option value="other">Other</option>
-                    </select>
-                  </div>
+                    {/* ── Qualifying questions ── */}
+                    <div className="pt-2 border-t border-white/5">
+                      <p className="text-xs font-medium tracking-[0.1em] uppercase text-white/30 mb-3">A few quick questions</p>
+                    </div>
 
-                  {formState === 'error' && formError && (
-                    <p className="text-sm text-red-600">{formError}</p>
-                  )}
+                    <div>
+                      <label htmlFor="biggest_challenge" className="block text-sm font-medium text-white/70 mb-1">
+                        Biggest challenge <span className="text-[#34D399]">*</span>
+                      </label>
+                      <select
+                        id="biggest_challenge"
+                        name="biggest_challenge"
+                        required
+                        defaultValue=""
+                        className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                      >
+                        <option value="" disabled className="text-white/30">Select challenge</option>
+                        <option value="Too many leads falling through">Too many leads falling through</option>
+                        <option value="Can't tell which buyers are serious">Can&apos;t tell which buyers are serious</option>
+                        <option value="Sales team wasting time on unqualified leads">Sales team wasting time on unqualified leads</option>
+                        <option value="No visibility on buyer financial status">No visibility on buyer financial status</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
 
-                  <button
-                    type="submit"
-                    disabled={formState === 'submitting'}
-                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#0A0A0A] text-white font-medium rounded-lg hover:bg-[#171717] transition-colors disabled:opacity-60"
-                  >
-                    {formState === 'submitting' ? (
-                      <>
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Joining...
-                      </>
-                    ) : (
-                      <>
-                        Join Waitlist
-                        <ArrowRight className="w-4 h-4" />
-                      </>
+                    <div>
+                      <label htmlFor="would_pay" className="block text-sm font-medium text-white/70 mb-1">
+                        Would you pay for this? <span className="text-[#34D399]">*</span>
+                      </label>
+                      <select
+                        id="would_pay"
+                        name="would_pay"
+                        required
+                        defaultValue=""
+                        className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                      >
+                        <option value="" disabled className="text-white/30">Select option</option>
+                        <option value="Yes — actively looking for this">Yes — actively looking for this</option>
+                        <option value="Interested — want to see it first">Interested — want to see it first</option>
+                        <option value="Just exploring">Just exploring</option>
+                      </select>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label htmlFor="current_spend" className="block text-sm font-medium text-white/70 mb-1">
+                          Current spend <span className="text-[#34D399]">*</span>
+                        </label>
+                        <select
+                          id="current_spend"
+                          name="current_spend"
+                          required
+                          defaultValue=""
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        >
+                          <option value="" disabled className="text-white/30">Select range</option>
+                          <option value="Nothing — we do it manually">Nothing — manual</option>
+                          <option value="Under £500">Under £500</option>
+                          <option value="£500–£2,000">£500–£2,000</option>
+                          <option value="£2,000+">£2,000+</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label htmlFor="referral_source" className="block text-sm font-medium text-white/70 mb-1">
+                          How did you hear? <span className="text-[#34D399]">*</span>
+                        </label>
+                        <select
+                          id="referral_source"
+                          name="referral_source"
+                          required
+                          defaultValue=""
+                          className="w-full px-3 py-2.5 bg-[#0A0A0A] border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                        >
+                          <option value="" disabled className="text-white/30">Select source</option>
+                          <option value="Referral">Referral</option>
+                          <option value="LinkedIn">LinkedIn</option>
+                          <option value="Social media">Social media</option>
+                          <option value="Event">Event</option>
+                          <option value="Search">Search</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {formState === 'error' && formError && (
+                      <p className="text-sm text-red-400">{formError}</p>
                     )}
-                  </button>
+
+                    <button
+                      type="submit"
+                      disabled={formState === 'submitting'}
+                      className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#34D399] text-[#0A0A0A] font-medium rounded-lg hover:bg-[#34D399]/90 transition-colors disabled:opacity-60 mt-2"
+                    >
+                      {formState === 'submitting' ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Joining...
+                        </>
+                      ) : (
+                        <>
+                          Join Waitlist
+                          <ArrowRight className="w-4 h-4" />
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </form>
               </>
             )}

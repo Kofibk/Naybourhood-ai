@@ -6,11 +6,23 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
 
-    const { full_name, email, company, role } = body
+    const {
+      name,
+      email,
+      phone,
+      company,
+      role,
+      monthly_lead_volume,
+      biggest_challenge,
+      would_pay,
+      current_spend,
+      referral_source,
+    } = body
 
-    if (!full_name || !email) {
+    // Validate required fields
+    if (!name || !email || !company || !role || !monthly_lead_volume || !biggest_challenge || !would_pay || !current_spend || !referral_source) {
       return NextResponse.json(
-        { error: 'Name and email are required' },
+        { error: 'Please fill in all required fields.' },
         { status: 400 }
       )
     }
@@ -18,7 +30,7 @@ export async function POST(request: NextRequest) {
     // Basic email validation
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json(
-        { error: 'Please enter a valid email address' },
+        { error: 'Please enter a valid email address.' },
         { status: 400 }
       )
     }
@@ -28,10 +40,16 @@ export async function POST(request: NextRequest) {
     const { error } = await supabase
       .from('waitlist_signups')
       .insert({
-        full_name: full_name.trim(),
+        name: name.trim(),
         email: email.trim().toLowerCase(),
-        company: company?.trim() || null,
-        role: role?.trim() || null,
+        phone: phone?.trim() || null,
+        company: company.trim(),
+        role: role.trim(),
+        monthly_lead_volume: monthly_lead_volume.trim(),
+        biggest_challenge: biggest_challenge.trim(),
+        would_pay: would_pay.trim(),
+        current_spend: current_spend.trim(),
+        referral_source: referral_source.trim(),
       })
 
     if (error) {
