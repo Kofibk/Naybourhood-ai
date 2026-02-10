@@ -221,15 +221,31 @@ export async function POST(request: NextRequest) {
         const { firstName, lastName } = parseFullName(name)
         // Internal team members skip onboarding
         const fallbackSkipOnboarding = is_internal || false
+        
+        // Validate role against check constraint
+        const validUserTypes = ['developer', 'agent', 'broker', 'admin']
+        const safeRole = validUserTypes.includes(role) ? role : 'developer'
+        
+        // Validate job_role against check constraint  
+        const validJobRoles = ['operations', 'marketing', 'sales', 'management', 'other']
+        const safeJobRole = job_role && validJobRoles.includes(job_role) ? job_role : null
+        
+        console.log('[Invite API] 🔄 Fallback profile creation:', {
+          role: safeRole,
+          job_role: safeJobRole,
+          originalRole: role,
+          originalJobRole: job_role,
+        })
+        
         const { error: profileError } = await adminClient
           .from('user_profiles')
           .insert({
             id: crypto.randomUUID(),
-            email: email,
+            email: email.toLowerCase(),
             first_name: firstName,
             last_name: lastName,
-            user_type: role || 'developer',
-            job_role: job_role || null,
+            user_type: safeRole,
+            job_role: safeJobRole,
             company_id: company_id || null,
             is_internal_team: is_internal || false,
             membership_status: 'pending',
@@ -291,10 +307,11 @@ export async function POST(request: NextRequest) {
       // =============================================
       // PROFILE CREATION / UPDATE
       // =============================================
-      // IMPORTANT: There's a database trigger `handle_new_user_profile()` that fires
-      // when generateLink creates a user in auth.users. This trigger creates a profile
-      // row with ONLY the user ID - all other fields are NULL.
-      // We need to UPDATE that trigger-created row with the actual invite data.
+      // The database trigger `handle_new_user_profile()` fires when generateLink
+      // creates a user in auth.users. The updated trigger now populates basic fields
+      // (email, name, user_type, is_internal_team) from user metadata.
+      // We still UPDATE the profile to ensure company_id and job_role are set
+      // (trigger skips these to avoid FK/constraint issues).
       // =============================================
       
       const { firstName, lastName } = parseFullName(name)
@@ -310,16 +327,22 @@ export async function POST(request: NextRequest) {
         console.error('[Invite API] ❌ Full generateLink data:', JSON.stringify(data, null, 2))
       }
 
+      // Validate values against database check constraints
+      const validUserTypes = ['developer', 'agent', 'broker', 'admin']
+      const safeRole = validUserTypes.includes(role) ? role : 'developer'
+      const validJobRoles = ['operations', 'marketing', 'sales', 'management', 'other']
+      const safeJobRole = job_role && validJobRoles.includes(job_role) ? job_role : null
+      
       // The profile data we want to set
       const profileFields = {
         email: email.toLowerCase(),
         first_name: firstName,
         last_name: lastName,
-        user_type: role || 'developer',
-        job_role: job_role || null,
+        user_type: safeRole,
+        job_role: safeJobRole,
         company_id: company_id || null,
         is_internal_team: is_internal || false,
-        membership_status: 'pending',
+        membership_status: 'pending' as const,
         onboarding_completed: skipOnboarding,
       }
 
