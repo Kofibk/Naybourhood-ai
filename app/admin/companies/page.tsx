@@ -2,14 +2,14 @@
 
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
-import { useCampaigns } from '@/hooks/useCampaigns'
 import { useLeads } from '@/hooks/useLeads'
 import { useCompanies } from '@/hooks/useCompanies'
-import { formatCurrency } from '@/lib/utils'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { useRenderTiming } from '@/lib/performance'
 import { Company } from '@/types'
 import {
@@ -26,7 +26,6 @@ import {
   Users,
   CheckCircle,
   AlertCircle,
-  Megaphone,
   Clock,
 } from 'lucide-react'
 
@@ -44,11 +43,39 @@ interface EditingCompany {
   tier: 'starter' | 'growth' | 'enterprise'
 }
 
+// Lightweight query: only fetches company_id from campaigns to compute counts
+async function fetchCampaignCounts(): Promise<Record<string, number>> {
+  if (!isSupabaseConfigured()) return {}
+  const supabase = createClient()
+  if (!supabase) return {}
+
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('company_id')
+
+  if (error) {
+    console.error('[CompaniesPage] Campaign counts fetch error:', error.message)
+    return {}
+  }
+
+  const counts: Record<string, number> = {}
+  for (const row of data || []) {
+    if (row.company_id) {
+      counts[row.company_id] = (counts[row.company_id] || 0) + 1
+    }
+  }
+  return counts
+}
+
 export default function CompaniesPage() {
   const router = useRouter()
   const { leads } = useLeads()
-  const { companies, createCompany, updateCompany, deleteCompany } = useCompanies()
-  const { campaigns, isLoading } = useCampaigns()
+  const { companies, isLoading: companiesLoading, createCompany, updateCompany, deleteCompany } = useCompanies()
+  const { data: campaignCounts = {}, isLoading: countsLoading } = useQuery({
+    queryKey: ['campaign-counts-by-company'],
+    queryFn: fetchCampaignCounts,
+  })
+  const isLoading = companiesLoading || countsLoading
   const { markInteractive } = useRenderTiming('CompaniesPage')
   const hasMarkedInteractive = useRef(false)
 
@@ -67,13 +94,13 @@ export default function CompaniesPage() {
     const result = companies.map(company => ({
       ...company,
       total_leads: leads.filter(l => l.company_id === company.id).length,
-      campaign_count: campaigns.filter(c => c.company_id === company.id).length,
+      campaign_count: campaignCounts[company.id] || 0,
     }))
     if (typeof performance !== 'undefined' && companies.length > 0) {
       console.log(`[PERF] [CompaniesPage] 🟢 companiesWithCounts computed: ${(performance.now() - computeStart).toFixed(0)}ms for ${companies.length} companies`)
     }
     return result
-  }, [companies, leads, campaigns])
+  }, [companies, leads, campaignCounts])
   const [searchQuery, setSearchQuery] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [isModalOpen, setIsModalOpen] = useState(false)
