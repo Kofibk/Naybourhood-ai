@@ -1,16 +1,40 @@
 'use client'
 
 import { useMemo } from 'react'
+import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useCampaigns } from '@/hooks/useCampaigns'
 import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Sparkles, TrendingUp, Users, Target, Lightbulb, CheckCircle } from 'lucide-react'
+
+// Lightweight query: only fetches the columns needed for insights
+async function fetchCampaignSummaries(): Promise<{ company_id: string; status: string; cpl: number }[]> {
+  if (!isSupabaseConfigured()) return []
+  const supabase = createClient()
+  if (!supabase) return []
+  const { data, error } = await supabase
+    .from('campaigns')
+    .select('company_id, delivery_status, status, total_spent, spend, number_of_leads, leads')
+  if (error) return []
+  return (data || []).map(c => {
+    const spent = parseFloat(c.total_spent ?? c.spend ?? 0) || 0
+    const numLeads = parseFloat(c.number_of_leads ?? c.leads ?? 0) || 0
+    return {
+      company_id: c.company_id,
+      status: c.delivery_status || c.status || 'active',
+      cpl: numLeads > 0 ? spent / numLeads : 0,
+    }
+  })
+}
 
 export default function InsightsPage() {
   const { leads, isLoading: leadsLoading } = useLeads()
-  const { campaigns, isLoading: dataLoading } = useCampaigns()
+  const { data: campaignSummaries = [], isLoading: dataLoading } = useQuery({
+    queryKey: ['campaign-summaries'],
+    queryFn: fetchCampaignSummaries,
+  })
   const isLoading = leadsLoading || dataLoading
   const { user } = useAuth()
 
@@ -22,8 +46,8 @@ export default function InsightsPage() {
 
   const myCampaigns = useMemo(() => {
     if (!user?.company_id) return []
-    return campaigns.filter(c => c.company_id === user.company_id)
-  }, [campaigns, user?.company_id])
+    return campaignSummaries.filter(c => c.company_id === user.company_id)
+  }, [campaignSummaries, user?.company_id])
 
   // Calculate real metrics from filtered data
   const metrics = useMemo(() => {

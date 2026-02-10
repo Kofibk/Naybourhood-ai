@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { useAuth } from '@/contexts/AuthContext'
-import { useCampaigns } from '@/hooks/useCampaigns'
 import { useDevelopments } from '@/hooks/useDevelopments'
 import { useUsers } from '@/hooks/useUsers'
 import { useLeads } from '@/hooks/useLeads'
@@ -58,9 +57,23 @@ interface SettingsPageProps {
 function AdminSystemStats() {
   const { leads, isLoading: leadsLoading } = useLeads()
   const { companies } = useCompanies()
-  const { campaigns, refreshCampaigns } = useCampaigns()
   const { developments } = useDevelopments()
   const isLoading = leadsLoading
+
+  // Lightweight campaign count - only fetches count, not all campaign data
+  const [campaignCount, setCampaignCount] = useState(0)
+  useEffect(() => {
+    async function fetchCampaignCount() {
+      if (!isSupabaseConfigured()) return
+      const supabase = createClient()
+      if (!supabase) return
+      const { count, error } = await supabase
+        .from('campaigns')
+        .select('*', { count: 'exact', head: true })
+      if (!error && count !== null) setCampaignCount(count)
+    }
+    fetchCampaignCount()
+  }, [])
 
   const systemStats = useMemo(() => {
     const activeLeads = leads.filter(l => l.status !== 'Disqualified')
@@ -68,12 +81,12 @@ function AdminSystemStats() {
     return {
       totalLeads: activeLeads.length,
       disqualifiedLeads: disqualifiedCount,
-      totalCampaigns: campaigns.length,
+      totalCampaigns: campaignCount,
       totalCompanies: companies.length,
       totalDevelopments: developments.length,
       dataSource: 'Supabase',
     }
-  }, [leads, campaigns, companies, developments])
+  }, [leads, campaignCount, companies, developments])
 
   const integrations = [
     {
@@ -263,7 +276,7 @@ function AdminSystemStats() {
             <Badge variant="success">Active</Badge>
           </div>
           <button
-            onClick={() => refreshCampaigns()}
+            onClick={() => window.location.reload()}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted transition-colors"
           >
             <RefreshCw className="h-4 w-4" />

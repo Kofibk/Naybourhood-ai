@@ -23,6 +23,16 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   if (!supabase) return []
 
   // Fetch all with pagination (data is at ad-level)
+  // Select only the columns we need for aggregation to minimize payload
+  const selectColumns = [
+    'id', 'campaign_name', 'name', 'company_id', 'development_id',
+    'platform', 'delivery_status', 'status',
+    'total_spent', 'spend', 'number_of_leads', 'leads',
+    'impressions', 'link_clicks', 'clicks', 'reach',
+    'date', 'ad_name', 'ad_set_name',
+    'development', 'client'
+  ].join(',')
+
   let allCampaigns: any[] = []
   let from = 0
   const batchSize = 1000
@@ -31,7 +41,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   while (hasMore) {
     const { data, error } = await supabase
       .from('campaigns')
-      .select('*')
+      .select(selectColumns)
       .range(from, from + batchSize - 1)
 
     if (error) {
