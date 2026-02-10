@@ -151,7 +151,7 @@ export async function GET() {
       insights.push({
         type: 'warning',
         title: `${underperformingCampaigns.length} campaigns with high CPL`,
-        description: `${underperformingCampaigns.map((c: any) => c.campaign_name || c.name).slice(0, 2).join(', ')} have CPL above £100`,
+        description: `${underperformingCampaigns.map(c => c.name).slice(0, 2).join(', ')} have CPL above £100`,
         action: 'Review creative or pause spend'
       })
     }
