@@ -80,8 +80,29 @@ export default function UsersPage() {
 
   // Separate internal team and client users
   const { internalUsers, clientUsers } = useMemo(() => {
+    console.log('[UsersPage] 👥 Filtering users:', {
+      totalUsers: users.length,
+      users: users.map(u => ({
+        id: u.id,
+        email: u.email,
+        role: u.role,
+        is_internal: u.is_internal,
+        status: u.status,
+        isInternalRole: INTERNAL_ROLES.includes(u.role as UserRole),
+        isClientRole: CLIENT_ROLES.includes(u.role as UserRole),
+      })),
+    })
+    
     const internal = users.filter(u => u.is_internal || INTERNAL_ROLES.includes(u.role as UserRole))
     const clients = users.filter(u => !u.is_internal && CLIENT_ROLES.includes(u.role as UserRole))
+    
+    console.log('[UsersPage] 📊 Filter results:', {
+      internalCount: internal.length,
+      clientCount: clients.length,
+      internalEmails: internal.map(u => u.email),
+      clientEmails: clients.map(u => u.email),
+    })
+    
     return { internalUsers: internal, clientUsers: clients }
   }, [users])
 

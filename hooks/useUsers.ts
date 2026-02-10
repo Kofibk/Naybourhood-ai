@@ -53,21 +53,52 @@ async function fetchUsers(): Promise<AppUser[]> {
     .select('*')
     .order('first_name', { ascending: true })
 
+  console.log('[useUsers] 📋 Direct query result:', {
+    hasData: !!data,
+    count: data?.length || 0,
+    error: error?.message,
+    // Log first user to check is_internal_team field
+    sampleUser: data?.[0] ? {
+      id: data[0].id,
+      email: data[0].email,
+      user_type: data[0].user_type,
+      is_internal_team: data[0].is_internal_team,
+      membership_status: data[0].membership_status,
+    } : null,
+  })
+
   if (!error && data && data.length > 0) {
-    return data.map(mapProfileToUser)
+    const mapped = data.map(mapProfileToUser)
+    console.log('[useUsers] 👥 Mapped users:', {
+      total: mapped.length,
+      internalCount: mapped.filter((u: AppUser) => u.is_internal).length,
+      sampleMapped: mapped[0] ? {
+        id: mapped[0].id,
+        email: mapped[0].email,
+        role: mapped[0].role,
+        is_internal: mapped[0].is_internal,
+        status: mapped[0].status,
+      } : null,
+    })
+    return mapped
   }
 
-  // API fallback for Quick Access users
+  // API fallback for Quick Access users or if direct query fails
+  console.log('[useUsers] 🔄 Trying API fallback...')
   try {
     const response = await fetch('/api/users/invite?demo=true')
     if (response.ok) {
       const result = await response.json()
+      console.log('[useUsers] 📋 API fallback result:', {
+        hasUsers: !!result.users,
+        count: result.users?.length || 0,
+      })
       if (result.users && result.users.length > 0) {
         return result.users.map(mapProfileToUser)
       }
     }
-  } catch {
-    // API fallback failed
+  } catch (e) {
+    console.error('[useUsers] ❌ API fallback failed:', e)
   }
 
   return []
