@@ -13,6 +13,9 @@ export function AuthHandler() {
   const router = useRouter()
   const [isProcessing, setIsProcessing] = useState(false)
   const [processingMessage, setProcessingMessage] = useState('Signing you in...')
+  const [inviteError, setInviteError] = useState<{ email: string; message: string } | null>(null)
+  const [isResending, setIsResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
 
   useEffect(() => {
     const handleAuth = async () => {
@@ -124,8 +127,37 @@ export function AuthHandler() {
               name: error.name,
               fullError: JSON.stringify(error),
             })
-            // Clear hash and redirect with error
+            
+            // Clear hash from URL
             window.history.replaceState(null, '', window.location.pathname)
+            
+            // For invite flows, try to extract email and show resend option
+            if (type === 'invite') {
+              // Try to decode email from the JWT token
+              let userEmail = ''
+              try {
+                const tokenParts = accessToken.split('.')
+                if (tokenParts.length === 3) {
+                  const payload = JSON.parse(atob(tokenParts[1]))
+                  userEmail = payload.email || ''
+                  console.log('[AuthHandler] 📧 Extracted email from token:', userEmail)
+                }
+              } catch (e) {
+                console.error('[AuthHandler] Could not decode token:', e)
+              }
+              
+              if (userEmail) {
+                // Show the resend invite UI instead of redirecting
+                setInviteError({
+                  email: userEmail,
+                  message: error.message || 'This invitation link has expired or already been used.',
+                })
+                setIsProcessing(false)
+                return
+              }
+            }
+            
+            // For non-invite flows or if we couldn't get email, redirect with error
             router.push('/login?error=' + encodeURIComponent(error.message))
             return
           }
@@ -342,7 +374,96 @@ export function AuthHandler() {
     // Clear hash and go to login
     window.history.replaceState(null, '', '/login')
     setIsProcessing(false)
+    setInviteError(null)
     router.push('/login')
+  }
+
+  const handleResendInvite = async () => {
+    if (!inviteError?.email) return
+    
+    setIsResending(true)
+    try {
+      const response = await fetch('/api/auth/resend-invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: inviteError.email }),
+      })
+      
+      const data = await response.json()
+      
+      if (response.ok && data.success) {
+        setResendSuccess(true)
+      } else {
+        alert(data.error || 'Failed to resend invite. Please contact support.')
+      }
+    } catch (err) {
+      console.error('[AuthHandler] Failed to resend invite:', err)
+      alert('Failed to resend invite. Please try again.')
+    } finally {
+      setIsResending(false)
+    }
+  }
+
+  // Show invite error UI with resend option
+  if (inviteError) {
+    if (resendSuccess) {
+      return (
+        <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+          <div className="text-center max-w-md px-4">
+            <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600 dark:text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h2 className="text-xl font-semibold mb-2">New Invitation Sent!</h2>
+            <p className="text-muted-foreground mb-4">
+              We&apos;ve sent a new invitation to <strong>{inviteError.email}</strong>. 
+              Please check your inbox and click the link to continue.
+            </p>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      )
+    }
+    
+    return (
+      <div className="fixed inset-0 bg-background flex items-center justify-center z-50">
+        <div className="text-center max-w-md px-4">
+          <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+            <svg className="w-8 h-8 text-amber-600 dark:text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <h2 className="text-xl font-semibold mb-2">Invitation Link Expired</h2>
+          <p className="text-muted-foreground mb-2">
+            This invitation link has expired or has already been used.
+          </p>
+          <p className="text-sm text-muted-foreground mb-6">
+            Invitation for: <strong>{inviteError.email}</strong>
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              onClick={handleResendInvite}
+              disabled={isResending}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50"
+            >
+              {isResending ? 'Sending...' : 'Send New Invitation'}
+            </button>
+            <button
+              onClick={handleCancel}
+              className="px-4 py-2 text-muted-foreground hover:text-foreground"
+            >
+              Back to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   if (isProcessing) {
