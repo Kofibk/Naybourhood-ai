@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, FormEvent } from 'react'
 import Link from 'next/link'
 import { Logo, LogoIcon } from '@/components/Logo'
 import { AuthHandler } from '@/components/AuthHandler'
@@ -15,6 +15,8 @@ import {
   CheckCircle2,
   Zap,
   X,
+  Loader2,
+  CheckCircle,
 } from 'lucide-react'
 
 // Client logos for the trusted by section
@@ -109,6 +111,8 @@ const platformBenefits = [
 
 export default function LandingPage() {
   const [showModal, setShowModal] = useState(false)
+  const [formState, setFormState] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle')
+  const [formError, setFormError] = useState('')
 
   // Handle escape key to close modal
   useEffect(() => {
@@ -120,7 +124,6 @@ export default function LandingPage() {
 
     if (showModal) {
       document.addEventListener('keydown', handleEscape)
-      // Prevent body scroll when modal is open
       document.body.style.overflow = 'hidden'
     }
 
@@ -129,6 +132,47 @@ export default function LandingPage() {
       document.body.style.overflow = 'unset'
     }
   }, [showModal])
+
+  async function handleWaitlistSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    setFormState('submitting')
+    setFormError('')
+
+    const form = e.currentTarget
+    const data = {
+      full_name: (form.elements.namedItem('full_name') as HTMLInputElement).value,
+      email: (form.elements.namedItem('email') as HTMLInputElement).value,
+      company: (form.elements.namedItem('company') as HTMLInputElement).value,
+      role: (form.elements.namedItem('role') as HTMLSelectElement).value,
+    }
+
+    try {
+      const res = await fetch('/api/waitlist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+
+      const result = await res.json()
+
+      if (!res.ok) {
+        setFormState('error')
+        setFormError(result.error || 'Something went wrong.')
+        return
+      }
+
+      setFormState('success')
+    } catch {
+      setFormState('error')
+      setFormError('Network error. Please try again.')
+    }
+  }
+
+  function openModal() {
+    setFormState('idle')
+    setFormError('')
+    setShowModal(true)
+  }
 
   return (
     <div className="min-h-screen">
@@ -217,7 +261,7 @@ export default function LandingPage() {
 
             {/* CTA Button */}
             <button
-              onClick={() => setShowModal(true)}
+              onClick={openModal}
               className="inline-flex items-center gap-2 px-6 py-3 bg-white text-black font-medium rounded-md hover:bg-white/90 hover:shadow-lg transition-all duration-200"
             >
               Join Waitlist
@@ -255,7 +299,7 @@ export default function LandingPage() {
             }
           }}
         >
-          <div className="relative w-full max-w-lg bg-white rounded-xl p-4 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
+          <div className="relative w-full max-w-md bg-white rounded-xl p-8 shadow-2xl animate-in zoom-in-95 fade-in duration-200">
             {/* Close Button */}
             <button
               onClick={() => setShowModal(false)}
@@ -265,15 +309,124 @@ export default function LandingPage() {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Airtable Embed */}
-            <iframe
-              src="https://airtable.com/embed/appvUyGsAfHWOlQtf/pagoI3F8SKAC3pQKd/form"
-              width="100%"
-              height="533"
-              frameBorder="0"
-              style={{ background: 'transparent' }}
-              className="rounded-lg"
-            />
+            {formState === 'success' ? (
+              <div className="text-center py-8">
+                <CheckCircle className="w-12 h-12 text-[#34D399] mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-[#0A0A0A] mb-2">
+                  You&apos;re on the list!
+                </h3>
+                <p className="text-[#525252]">
+                  We&apos;ll be in touch soon with early access details.
+                </p>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="mt-6 px-6 py-2.5 bg-[#0A0A0A] text-white font-medium rounded-md hover:bg-[#171717] transition-colors"
+                >
+                  Done
+                </button>
+              </div>
+            ) : (
+              <>
+                <div className="mb-6">
+                  <div className="inline-flex items-center gap-2 mb-3">
+                    <span className="w-2 h-2 rounded-full bg-[#34D399]" />
+                    <span className="text-xs font-medium tracking-[0.1em] uppercase text-[#525252]">
+                      EARLY ACCESS
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-semibold text-[#0A0A0A] mb-1">
+                    Join the Waitlist
+                  </h3>
+                  <p className="text-sm text-[#525252]">
+                    Be first to access AI-powered buyer intelligence.
+                  </p>
+                </div>
+
+                <form onSubmit={handleWaitlistSubmit} className="space-y-4">
+                  <div>
+                    <label htmlFor="full_name" className="block text-sm font-medium text-[#0A0A0A] mb-1">
+                      Full name *
+                    </label>
+                    <input
+                      id="full_name"
+                      name="full_name"
+                      type="text"
+                      required
+                      placeholder="Jane Smith"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-[#0A0A0A] mb-1">
+                      Work email *
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      placeholder="jane@company.com"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="company" className="block text-sm font-medium text-[#0A0A0A] mb-1">
+                      Company
+                    </label>
+                    <input
+                      id="company"
+                      name="company"
+                      type="text"
+                      placeholder="Acme Developments"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-[#0A0A0A] mb-1">
+                      Role
+                    </label>
+                    <select
+                      id="role"
+                      name="role"
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#34D399] focus:border-transparent bg-white"
+                    >
+                      <option value="">Select a role</option>
+                      <option value="developer">Developer / Housebuilder</option>
+                      <option value="agent">Estate Agent</option>
+                      <option value="broker">Mortgage Broker</option>
+                      <option value="sales_director">Sales Director</option>
+                      <option value="marketing">Marketing</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+
+                  {formState === 'error' && formError && (
+                    <p className="text-sm text-red-600">{formError}</p>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={formState === 'submitting'}
+                    className="w-full flex items-center justify-center gap-2 px-6 py-3 bg-[#0A0A0A] text-white font-medium rounded-lg hover:bg-[#171717] transition-colors disabled:opacity-60"
+                  >
+                    {formState === 'submitting' ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Joining...
+                      </>
+                    ) : (
+                      <>
+                        Join Waitlist
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -577,7 +730,7 @@ export default function LandingPage() {
                     <ArrowRight className="w-4 h-4" />
                   </a>
                   <button
-                    onClick={() => setShowModal(true)}
+                    onClick={openModal}
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white border border-white/30 font-medium rounded-md hover:bg-white/10 transition-colors"
                   >
                     Join Waitlist
