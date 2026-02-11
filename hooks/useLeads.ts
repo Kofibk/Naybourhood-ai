@@ -125,8 +125,6 @@ export function useLeads() {
   } = useQuery<Buyer[], Error>({
     queryKey: ['leads'],
     queryFn: fetchLeads,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
   })
 
   // Update a lead

@@ -43,8 +43,6 @@ export function useCompanies() {
   } = useQuery<Company[], Error>({
     queryKey: ['companies'],
     queryFn: fetchCompanies,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
   })
 
   const createCompanyMutation = useMutation({

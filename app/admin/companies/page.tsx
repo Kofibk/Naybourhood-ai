@@ -74,8 +74,6 @@ export default function CompaniesPage() {
   const { data: campaignCounts = {}, isLoading: countsLoading } = useQuery({
     queryKey: ['campaign-counts-by-company'],
     queryFn: fetchCampaignCounts,
-    staleTime: 5 * 60 * 1000,
-    refetchOnWindowFocus: false,
   })
   const isLoading = companiesLoading || countsLoading
   const { markInteractive } = useRenderTiming('CompaniesPage')

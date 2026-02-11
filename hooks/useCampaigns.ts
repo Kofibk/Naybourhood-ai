@@ -19,42 +19,14 @@ const parseNumber = (val: any): number => {
 async function fetchCampaigns(): Promise<Campaign[]> {
   if (!isSupabaseConfigured()) return []
 
-  const supabase = createClient()
-  if (!supabase) return []
-
-  // Fetch all with pagination (data is at ad-level)
-  // Select only the columns we need for aggregation to minimize payload
-  const selectColumns = [
-    'id', 'campaign_id', 'campaign_name', 'company_id', 'development_id',
-    'platform', 'delivery_status',
-    'total_spent', 'number_of_leads',
-    'impressions', 'link_clicks', 'clicks', 'reach',
-    'date', 'ad_name', 'ad_set_name'
-  ].join(',')
-
-  let allCampaigns: any[] = []
-  let from = 0
-  const batchSize = 1000
-  let hasMore = true
-
-  while (hasMore) {
-    const { data, error } = await supabase
-      .from('campaigns')
-      .select(selectColumns)
-      .range(from, from + batchSize - 1)
-
-    if (error) {
-      console.error('[useCampaigns] Fetch error:', error.message)
-      return []
-    }
-    if (data && data.length > 0) {
-      allCampaigns = [...allCampaigns, ...data]
-      from += batchSize
-      hasMore = data.length === batchSize
-    } else {
-      hasMore = false
-    }
+  // Single API call - pagination happens server-side
+  const res = await fetch('/api/campaigns')
+  if (!res.ok) {
+    console.error('[useCampaigns] Fetch error:', res.statusText)
+    return []
   }
+  const { data: allCampaigns } = await res.json()
+  if (!allCampaigns || allCampaigns.length === 0) return []
 
   // Aggregate ad-level data by campaign_name
   const campaignAggregates = new Map<string, {
@@ -144,8 +116,6 @@ export function useCampaigns() {
   const { data: campaigns = [], isLoading, error, refetch } = useQuery<Campaign[], Error>({
     queryKey: ['campaigns'],
     queryFn: fetchCampaigns,
-    staleTime: 5 * 60 * 1000, // 5 minutes - avoid redundant refetches
-    refetchOnWindowFocus: false,
   })
 
   const updateCampaignMutation = useMutation({
