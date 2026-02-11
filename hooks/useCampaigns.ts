@@ -25,12 +25,11 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   // Fetch all with pagination (data is at ad-level)
   // Select only the columns we need for aggregation to minimize payload
   const selectColumns = [
-    'id', 'campaign_name', 'company_id', 'development_id',
+    'id', 'campaign_id', 'campaign_name', 'company_id', 'development_id',
     'platform', 'delivery_status',
-    'total_spent', 'spend', 'number_of_leads', 'leads',
+    'total_spent', 'number_of_leads',
     'impressions', 'link_clicks', 'clicks', 'reach',
-    'date', 'ad_name', 'ad_set_name',
-    'development', 'client'
+    'date', 'ad_name', 'ad_set_name'
   ].join(',')
 
   let allCampaigns: any[] = []
@@ -69,8 +68,8 @@ async function fetchCampaigns(): Promise<Campaign[]> {
     const campaignName = c.campaign_name || c.name || 'Unnamed Campaign'
     const existing = campaignAggregates.get(campaignName)
 
-    const spend = parseNumber(c.total_spent ?? c.spend ?? 0)
-    const leads = parseNumber(c.number_of_leads ?? c.leads ?? 0)
+    const spend = parseNumber(c.total_spent ?? 0)
+    const leads = parseNumber(c.number_of_leads ?? 0)
     const impressions = parseNumber(c.impressions ?? 0)
     const clicks = parseNumber(c.link_clicks ?? c.clicks ?? 0)
     const reach = parseNumber(c.reach ?? 0)
