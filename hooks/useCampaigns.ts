@@ -26,7 +26,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
   // Select only the columns we need for aggregation to minimize payload
   const selectColumns = [
     'id', 'campaign_name', 'company_id', 'development_id',
-    'platform', 'delivery_status', 'status',
+    'platform', 'delivery_status',
     'total_spent', 'spend', 'number_of_leads', 'leads',
     'impressions', 'link_clicks', 'clicks', 'reach',
     'date', 'ad_name', 'ad_set_name',
@@ -96,7 +96,7 @@ async function fetchCampaigns(): Promise<Campaign[]> {
         company_id: c.company_id ?? undefined,
         development_id: c.development_id ?? undefined,
         platform: c.platform || 'Meta',
-        status: c.delivery_status || c.status || 'active',
+        status: c.delivery_status || 'active',
         totalSpend: spend, totalLeads: leads, totalImpressions: impressions,
         totalClicks: clicks, totalReach: reach, adCount: 1,
         dates: c.date ? [c.date] : [],
@@ -181,7 +181,7 @@ export function useCampaigns() {
           name: updatedData.campaign_name ?? updatedData.name,
           spend: updatedData.total_spent ?? updatedData.spend ?? 0,
           leads: updatedData.number_of_leads ?? updatedData.leads ?? 0,
-          status: updatedData.delivery_status ?? updatedData.status,
+          status: updatedData.delivery_status,
         },
       }
     },
@@ -228,7 +228,7 @@ export function useCampaigns() {
         name: newData.campaign_name ?? newData.name,
         spend: newData.total_spent ?? newData.spend ?? 0,
         leads: newData.number_of_leads ?? newData.leads ?? 0,
-        status: newData.delivery_status ?? newData.status,
+        status: newData.delivery_status,
         created_at: newData.date,
       }
     },
