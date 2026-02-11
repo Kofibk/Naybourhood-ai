@@ -144,6 +144,8 @@ export function useCampaigns() {
   const { data: campaigns = [], isLoading, error, refetch } = useQuery<Campaign[], Error>({
     queryKey: ['campaigns'],
     queryFn: fetchCampaigns,
+    staleTime: 5 * 60 * 1000, // 5 minutes - avoid redundant refetches
+    refetchOnWindowFocus: false,
   })
 
   const updateCampaignMutation = useMutation({
