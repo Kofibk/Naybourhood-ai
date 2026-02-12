@@ -1,7 +1,7 @@
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import { isMasterAdmin, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
+import { isMasterAdmin, hasElevatedPermissions, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
 
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url)
@@ -176,29 +176,37 @@ export async function GET(request: Request) {
     // Check if user is internal team (from profile or user metadata)
     const isInternalTeam = userProfile?.is_internal_team || authResult.user.user_metadata?.is_internal || false
 
-    // Internal team members skip onboarding - mark complete and redirect to admin
-    if (isInternalTeam && !userProfile?.onboarding_completed) {
-      console.log('[Auth Callback] 👥 Internal team member - marking onboarding complete and redirecting to admin')
-      
-      // Update onboarding status for internal team
+    // Check if user has elevated permissions (e.g., kofi@millionpound.homes)
+    const isElevatedAdmin = hasElevatedPermissions(email)
+
+    // Internal team members and elevated admins skip onboarding
+    if ((isInternalTeam || isElevatedAdmin) && !userProfile?.onboarding_completed) {
+      console.log('[Auth Callback] 👥 Privileged user (internal team or elevated admin) - marking onboarding complete:', { isInternalTeam, isElevatedAdmin, email })
+
+      // Update onboarding status
       await adminClient
         .from('user_profiles')
         .update({ onboarding_completed: true })
         .eq('id', authResult.user.id)
-      
+
       const fullName = buildDisplayName(
         userProfile?.first_name,
         userProfile?.last_name,
         authResult.user.user_metadata?.full_name || email
       )
-      
-      const redirectUrl = new URL(`${origin}/admin`)
+
+      // Internal team goes to /admin, elevated admins go to their role-based dashboard
+      let skipRole = isInternalTeam ? 'admin' : (userProfile?.user_type || 'developer')
+      if (isMasterAdmin(email)) skipRole = 'admin'
+      const skipPath = getDashboardPathForRole(skipRole)
+
+      const redirectUrl = new URL(`${origin}${skipPath}`)
       redirectUrl.searchParams.set('auth', 'success')
       redirectUrl.searchParams.set('userId', authResult.user.id)
       redirectUrl.searchParams.set('email', email)
       redirectUrl.searchParams.set('name', fullName)
-      redirectUrl.searchParams.set('role', 'admin')
-      
+      redirectUrl.searchParams.set('role', skipRole)
+
       return NextResponse.redirect(redirectUrl.toString())
     }
 

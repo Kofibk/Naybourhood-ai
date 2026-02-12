@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { createBrowserClient } from '@supabase/ssr'
+import { hasElevatedPermissions } from '@/lib/auth'
 
 /**
  * Client-side auth handler that catches authentication tokens from URL hash
@@ -295,10 +296,13 @@ export function AuthHandler() {
                 console.log('[AuthHandler] ✅ Profile created')
               }
               
-              // Internal team members go to admin, others go to onboarding
+              // Internal team members go to admin, elevated admins go to their dashboard, others go to onboarding
               if (userIsInternal) {
                 console.log('[AuthHandler] 👥 Internal team member - skipping onboarding, going to /admin')
                 router.push('/admin')
+              } else if (hasElevatedPermissions(data.user.email)) {
+                console.log('[AuthHandler] 👥 Elevated admin - skipping onboarding, going to dashboard')
+                router.push('/developer')
               } else {
                 console.log('[AuthHandler] ⏭️ Redirecting to onboarding')
                 router.push('/onboarding')
@@ -306,9 +310,12 @@ export function AuthHandler() {
               return
             }
 
-            // Internal team members should skip onboarding and go directly to admin
-            if (isInternalTeam && !userProfile?.onboarding_completed) {
-              console.log('[AuthHandler] 👥 Internal team member with incomplete onboarding - marking complete and redirecting to admin')
+            // Check if user has elevated permissions (e.g., kofi@millionpound.homes)
+            const isElevatedAdmin = hasElevatedPermissions(data.user.email)
+
+            // Internal team members and elevated admins should skip onboarding
+            if ((isInternalTeam || isElevatedAdmin) && !userProfile?.onboarding_completed) {
+              console.log('[AuthHandler] 👥 Privileged user with incomplete onboarding - marking complete:', { isInternalTeam, isElevatedAdmin })
               
               // Update profile to mark onboarding complete for internal team
               const { error: updateOnboardingError } = await supabase
@@ -320,17 +327,21 @@ export function AuthHandler() {
                 console.error('[AuthHandler] ⚠️ Failed to update onboarding status:', updateOnboardingError)
               }
               
-              // Store user info and redirect to admin
+              // Determine redirect path based on role
+              const skipRole = isInternalTeam ? 'admin' : (userProfile?.user_type || 'developer')
+              const skipPath = skipRole === 'admin' ? '/admin' : skipRole === 'agent' ? '/agent' : skipRole === 'broker' ? '/broker' : '/developer'
+
+              // Store user info and redirect
               localStorage.setItem('naybourhood_user', JSON.stringify({
                 id: data.user.id,
                 email: data.user.email,
                 name: `${userProfile?.first_name || ''} ${userProfile?.last_name || ''}`.trim() || data.user.email?.split('@')[0],
-                role: userProfile?.user_type || 'admin',
+                role: skipRole,
                 company_id: userProfile?.company_id,
-                is_internal_team: true,
+                is_internal_team: isInternalTeam,
               }))
-              
-              router.push('/admin')
+
+              router.push(skipPath)
               return
             }
 

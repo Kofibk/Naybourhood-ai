@@ -5,6 +5,7 @@ import {
   PROTECTED_ROUTES,
   PUBLIC_ROUTES,
   MASTER_ADMIN_EMAILS,
+  ELEVATED_ADMIN_EMAILS,
   INTERNAL_TEAM_DOMAIN,
 } from '@/lib/auth/config'
 
@@ -162,11 +163,12 @@ export async function middleware(request: NextRequest) {
       .eq('id', session.user.id)
       .single()
 
-    // Internal team has full access (using centralized auth config)
+    // Internal team and elevated admins have full access (using centralized auth config)
     const userEmail = session.user.email?.toLowerCase() || ''
     const isInternalTeam = profile?.is_internal_team ||
       userEmail.endsWith(INTERNAL_TEAM_DOMAIN) ||
-      MASTER_ADMIN_EMAILS.includes(userEmail as typeof MASTER_ADMIN_EMAILS[number])
+      MASTER_ADMIN_EMAILS.includes(userEmail as typeof MASTER_ADMIN_EMAILS[number]) ||
+      ELEVATED_ADMIN_EMAILS.includes(userEmail as typeof ELEVATED_ADMIN_EMAILS[number])
 
     if (isInternalTeam) {
       return response

@@ -12,7 +12,7 @@ import { AuthHandler } from '@/components/AuthHandler'
 import { Loader2, Mail, Lock, CheckCircle, Eye, EyeOff, AlertCircle } from 'lucide-react'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { isMasterAdmin, MASTER_ADMIN_EMAILS, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
+import { isMasterAdmin, hasElevatedPermissions, MASTER_ADMIN_EMAILS, getDashboardPathForRole, buildDisplayName } from '@/lib/auth'
 
 function LoginPageInner() {
   const [email, setEmail] = useState('')
@@ -82,6 +82,15 @@ function LoginPageInner() {
             .select('*')
             .eq('id', user.id)
             .single()
+
+          // Elevated admins (e.g., kofi@millionpound.homes) skip onboarding
+          if (!profile?.onboarding_completed && hasElevatedPermissions(user.email)) {
+            await supabase
+              .from('user_profiles')
+              .update({ onboarding_completed: true })
+              .eq('id', user.id)
+            profile.onboarding_completed = true
+          }
 
           if (!profile?.onboarding_completed) {
             router.push('/onboarding')
@@ -239,6 +248,15 @@ function LoginPageInner() {
               .select('*')
               .eq('id', data.user.id)
               .single()
+
+            // Elevated admins (e.g., kofi@millionpound.homes) skip onboarding
+            if (!profile?.onboarding_completed && hasElevatedPermissions(data.user.email)) {
+              await supabase
+                .from('user_profiles')
+                .update({ onboarding_completed: true })
+                .eq('id', data.user.id)
+              profile.onboarding_completed = true
+            }
 
             if (!profile?.onboarding_completed) {
               router.push('/onboarding')
