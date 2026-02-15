@@ -321,12 +321,6 @@ export default function AdminDashboard() {
             <Upload className="h-3.5 w-3.5 mr-1.5" />
             Upload
           </Button>
-          <Button variant="outline" size="sm" className="text-xs" asChild>
-            <a href="/mount-anvil-demo">
-              <Eye className="h-3.5 w-3.5 mr-1.5" />
-              Demo
-            </a>
-          </Button>
         </div>
       </div>
 

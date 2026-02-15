@@ -128,7 +128,20 @@ export function getResetPasswordUrl(requestOrigin?: string): string {
 /**
  * Public routes that don't require authentication
  */
-export const PUBLIC_ROUTES = ['/', '/login', '/auth', '/onboarding', '/signup', '/select-plan', '/api'] as const
+export const PUBLIC_ROUTES = [
+  '/',
+  '/login',
+  '/auth',
+  '/onboarding',
+  '/signup',
+  '/select-plan',
+  '/api/auth',
+  '/api/billing/stripe-webhook',
+  '/api/stripe/webhook',
+  '/api/kyc/webhook',
+  '/api/v1',
+  '/api/waitlist',
+] as const
 
 /**
  * Protected route prefixes that require authentication

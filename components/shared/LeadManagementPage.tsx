@@ -22,6 +22,7 @@ import {
   ArrowUp, ArrowDown, Archive, Copy, AlertTriangle, Settings2,
   FileText, Calendar, PoundSterling, RefreshCw,
 } from 'lucide-react'
+import { LeadIntakeForm } from '@/components/leads/LeadIntakeForm'
 
 type LeadMode = 'property' | 'finance'
 
@@ -377,17 +378,20 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
               : 'Manage and convert your borrowers'}
           </p>
         </div>
-        {!isPropertyMode && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => isPropertyMode ? refreshLeads() : refreshFinanceLeads()}
-            disabled={isLoading}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-            {'Refresh'}
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isPropertyMode && <LeadIntakeForm />}
+          {!isPropertyMode && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => isPropertyMode ? refreshLeads() : refreshFinanceLeads()}
+              disabled={isLoading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              {'Refresh'}
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Conversion Funnel Stats */}

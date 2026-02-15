@@ -26,10 +26,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Fetch user profile from Supabase and build User object
   const fetchUserProfile = async (authUserId: string, email: string): Promise<User | null> => {
-    console.log('[AuthContext] fetchUserProfile called:', { authUserId, email })
-    
     if (!isSupabaseConfigured()) {
-      console.log('[AuthContext] Supabase not configured')
       return null
     }
 
@@ -47,12 +44,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('[AuthContext] Error fetching user_profiles:', error)
         return null
       }
-
-      console.log('[AuthContext] Profile fetched:', { 
-        user_type: userProfile?.user_type, 
-        company_id: userProfile?.company_id,
-        onboarding_completed: userProfile?.onboarding_completed 
-      })
 
       // Build user object from user_profiles
       const fullName = buildDisplayName(
@@ -87,12 +78,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         permission_role: userProfile?.permission_role,
       }
 
-      console.log('[AuthContext] User object built:', { 
-        id: appUser.id, 
-        role: appUser.role, 
-        company_id: appUser.company_id 
-      })
-
       return appUser
     } catch (error) {
       console.error('[AuthContext] Error fetching profile:', error)
@@ -103,19 +88,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Check for existing session on mount
   useEffect(() => {
     const initializeAuth = async () => {
-      console.log('[AuthContext] 🔄 Initializing auth...')
       setIsLoading(true)
 
       if (isSupabaseConfigured()) {
         try {
           const supabase = createClient()
 
-          // Check for existing Supabase session
-          console.log('[AuthContext] Checking for Supabase session...')
           const { data: { session }, error } = await supabase.auth.getSession()
 
           if (session?.user && !error) {
-            console.log('[AuthContext] ✅ Session found:', { userId: session.user.id, email: session.user.email })
             const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
             if (appUser) {
               // Preserve company_id from localStorage if DB didn't return one
@@ -124,55 +105,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 try {
                   const storedUser = JSON.parse(stored)
                   if (storedUser.company_id) {
-                    console.log('[AuthContext] Restoring company_id from localStorage:', storedUser.company_id)
                     appUser.company_id = storedUser.company_id
                     appUser.company = storedUser.company
                   }
                 } catch { /* ignore parse errors */ }
               }
-              console.log('[AuthContext] ✅ User loaded from session:', { id: appUser.id, role: appUser.role, company_id: appUser.company_id })
               setUser(appUser)
               localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
-            } else {
-              console.warn('[AuthContext] ⚠️ Failed to fetch user profile from session')
             }
           } else {
-            console.log('[AuthContext] ❌ No Supabase session found, checking localStorage...')
             // No valid Supabase session - check localStorage for Quick Access / demo mode
             const stored = localStorage.getItem('naybourhood_user')
             if (stored) {
               try {
                 const storedUser = JSON.parse(stored)
-                console.log('[AuthContext] ✅ Using localStorage user:', { id: storedUser.id, role: storedUser.role, company_id: storedUser.company_id })
                 setUser(storedUser)
               } catch {
-                console.error('[AuthContext] ❌ Failed to parse localStorage user')
                 localStorage.removeItem('naybourhood_user')
               }
-            } else {
-              console.log('[AuthContext] ❌ No user in localStorage')
             }
           }
 
-          // Set loading to false after initial session check
-          console.log('[AuthContext] ✅ isLoading = false')
           setIsLoading(false)
 
           // Listen for auth state changes
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event: AuthChangeEvent, session: Session | null) => {
-              console.log('[AuthContext] 🔔 Auth state changed:', event)
-
               if (event === 'SIGNED_IN' && session?.user) {
-                console.log('[AuthContext] User signed in:', session.user.id)
                 const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
                 if (appUser) {
                   setUser(appUser)
                   localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
-                  console.log('[AuthContext] User saved after sign in')
                 }
               } else if (event === 'SIGNED_OUT') {
-                console.log('[AuthContext] User signed out')
                 setUser(null)
                 localStorage.removeItem('naybourhood_user')
               }
@@ -184,25 +149,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             subscription.unsubscribe()
           }
         } catch (error) {
-          console.error('[AuthContext] ❌ Init error:', error)
+          console.error('[AuthContext] Init error:', error)
           localStorage.removeItem('naybourhood_user')
           setIsLoading(false)
         }
       } else {
-        console.log('[AuthContext] Supabase not configured, using localStorage only')
         // Supabase not configured - use localStorage for demo mode
         const stored = localStorage.getItem('naybourhood_user')
         if (stored) {
           try {
             const parsedUser = JSON.parse(stored)
-            console.log('[AuthContext] ✅ Demo mode user loaded:', parsedUser.id)
             setUser(parsedUser)
           } catch {
-            console.error('[AuthContext] ❌ Failed to parse demo mode user')
             localStorage.removeItem('naybourhood_user')
           }
         }
-        console.log('[AuthContext] ✅ isLoading = false (no Supabase)')
         setIsLoading(false)
       }
     }
