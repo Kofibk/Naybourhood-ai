@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { LoadingState } from '@/components/ui/loading-state'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Search, Phone, Mail, Eye, FileText, Flame, Heart, Users } from 'lucide-react'
+import { LeadIntakeForm } from '@/components/leads/LeadIntakeForm'
 
 type UserType = 'agent' | 'broker'
 
@@ -110,6 +111,7 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
           <h2 className="text-2xl font-bold font-display">{cfg.title}</h2>
           <p className="text-sm text-muted-foreground">{statsText}</p>
         </div>
+        <LeadIntakeForm />
       </div>
 
       <div className="flex flex-col sm:flex-row gap-4">

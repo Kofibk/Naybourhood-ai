@@ -25,59 +25,23 @@ const FEATURE_ROUTE_MAP: Record<string, string[]> = {
 
 export async function middleware(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
-  
-  // Log all auth-related requests for debugging
-  const hasAuthParams = searchParams.has('code') || searchParams.has('token_hash') || 
-                        searchParams.has('error_code') || searchParams.has('error_description') ||
-                        searchParams.has('access_token')
-  
-  if (hasAuthParams || pathname.includes('/auth/') || pathname === '/login') {
-    const allCookies = request.cookies.getAll()
-    const supabaseCookies = allCookies.filter(c => c.name.includes('supabase') || c.name.includes('sb-'))
-    
-    console.log('[Middleware] 🔐 Auth-related request:', {
-      pathname,
-      hasCode: searchParams.has('code'),
-      codePreview: searchParams.get('code')?.substring(0, 10),
-      hasTokenHash: searchParams.has('token_hash'),
-      hasErrorCode: searchParams.has('error_code'),
-      errorDescription: searchParams.get('error_description'),
-      type: searchParams.get('type'),
-      supabaseCookieCount: supabaseCookies.length,
-      supabaseCookieNames: supabaseCookies.map(c => c.name),
-      hasCodeVerifier: supabaseCookies.some(c => c.name.includes('code-verifier') || c.name.includes('code_verifier')),
-      userAgent: request.headers.get('user-agent')?.substring(0, 50),
-    })
-  }
 
-  // Handle Supabase auth errors at any path - redirect to login with error
+  // Handle Supabase auth errors at any path - redirect to auth callback
   if (searchParams.has('error_code') || searchParams.has('error_description')) {
-    console.log('[Middleware] ⚠️ Auth error detected, redirecting to /auth/callback')
     const url = request.nextUrl.clone()
     url.pathname = '/auth/callback'
     return NextResponse.redirect(url)
   }
 
-  // Handle Supabase auth tokens - redirect to /auth/callback
-  // This catches both PKCE codes and token_hash from magic links/invites
-  // Handle at ANY path, not just root (links may point to /login, /, etc.)
-  
-  // Handle PKCE code
+  // Handle PKCE code - redirect to auth callback
   if (searchParams.has('code') && !pathname.startsWith('/auth/callback')) {
-    console.log('[Middleware] 📧 PKCE code detected, redirecting to /auth/callback:', { pathname })
     const url = request.nextUrl.clone()
     url.pathname = '/auth/callback'
     return NextResponse.redirect(url)
   }
 
   // Handle token_hash (from admin-generated magic links, invites, etc.)
-  // Note: type parameter is optional for magic links
   if (searchParams.has('token_hash') && !pathname.startsWith('/auth/callback')) {
-    console.log('[Middleware] 🔑 Token hash detected, redirecting to /auth/callback:', { 
-      pathname,
-      hasType: searchParams.has('type'),
-      type: searchParams.get('type'),
-    })
     const url = request.nextUrl.clone()
     url.pathname = '/auth/callback'
     return NextResponse.redirect(url)
@@ -88,7 +52,14 @@ export async function middleware(request: NextRequest) {
 
   // Skip auth check for public routes
   if (isPublicRoute) {
-    // Update Supabase session if configured
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      return await updateSession(request)
+    }
+    return NextResponse.next()
+  }
+
+  // API routes: refresh session cookies but don't redirect (routes check auth internally)
+  if (pathname.startsWith('/api')) {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       return await updateSession(request)
     }
@@ -99,7 +70,6 @@ export async function middleware(request: NextRequest) {
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
 
   if (isProtectedRoute && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    // Create Supabase client for middleware
     let response = NextResponse.next({
       request: {
         headers: request.headers,
@@ -134,20 +104,7 @@ export async function middleware(request: NextRequest) {
     // Get session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession()
 
-    console.log('[Middleware] 🔒 Session check for protected route:', {
-      pathname,
-      hasSession: !!session,
-      sessionError: sessionError?.message,
-      userId: session?.user?.id,
-      userEmail: session?.user?.email,
-      sessionExpiresAt: session?.expires_at,
-    })
-
     if (sessionError || !session) {
-      console.log('[Middleware] ❌ No valid session, redirecting to login:', {
-        pathname,
-        error: sessionError?.message,
-      })
       // No session - redirect to login
       const url = request.nextUrl.clone()
       url.pathname = '/login'
@@ -162,7 +119,7 @@ export async function middleware(request: NextRequest) {
       .eq('id', session.user.id)
       .single()
 
-    // Internal team has full access (using centralized auth config)
+    // Internal team has full access
     const userEmail = session.user.email?.toLowerCase() || ''
     const isInternalTeam = profile?.is_internal_team ||
       userEmail.endsWith(INTERNAL_TEAM_DOMAIN) ||
@@ -176,12 +133,9 @@ export async function middleware(request: NextRequest) {
     const company = profile?.company as unknown as { enabled_features: string[] } | null
     const enabledFeatures = company?.enabled_features || ['leads', 'campaigns', 'developments', 'conversations']
 
-    // Find which feature this route belongs to
     for (const [feature, routes] of Object.entries(FEATURE_ROUTE_MAP)) {
       if (routes.some(route => pathname.startsWith(route))) {
-        // Route belongs to this feature - check if company has it enabled
         if (!enabledFeatures.includes(feature)) {
-          // Feature not enabled - redirect to dashboard with error
           const dashboardPath = pathname.startsWith('/admin') ? '/admin' :
             pathname.startsWith('/developer') ? '/developer' :
             pathname.startsWith('/agent') ? '/agent' :
@@ -210,14 +164,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     * - api routes (handled separately)
-     */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }

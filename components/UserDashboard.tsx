@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { getGreeting, formatCurrency, formatNumber } from '@/lib/utils'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
+import { calculateNBScore } from '@/lib/scoring/nb-score'
+import { NBScoreRing } from '@/components/ui/nb-score-ring'
 import {
   Users,
   Flame,
@@ -358,11 +360,14 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
-              <Target className="w-5 h-5 text-emerald-400" />
+              <Sparkles className="w-5 h-5 text-emerald-400" />
             </div>
           </div>
-          <p className="text-white/50 text-sm">Avg AI Score</p>
-          <p className="text-white text-3xl font-bold mt-1">{metrics.avgScore}</p>
+          <p className="text-white/50 text-sm">NB Score</p>
+          <div className="flex items-center gap-3 mt-1">
+            <NBScoreRing score={calculateNBScore(metrics.avgScore, 0, 0)} size={48} />
+            <p className="text-white text-3xl font-bold">{calculateNBScore(metrics.avgScore, 0, 0)}</p>
+          </div>
         </div>
 
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">

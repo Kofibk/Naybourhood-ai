@@ -32,6 +32,8 @@ import {
 import { cn } from '@/lib/utils'
 import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { useKycCheck } from '@/hooks/useKycCheck'
+import { calculateNBScore } from '@/lib/scoring/nb-score'
+import { NBScoreRing } from '@/components/ui/nb-score-ring'
 
 interface LeadDetailProps {
   lead: Lead
@@ -119,7 +121,15 @@ export function LeadDetail({
                 <Edit className="h-4 w-4 mr-2" />
                 Edit
               </Button>
-              <Button variant="outline" size="sm">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (confirm('Archive this lead? It will be marked as Disqualified.')) {
+                    onUpdate?.({ status: 'Disqualified' as LeadStatus })
+                  }
+                }}
+              >
                 <Archive className="h-4 w-4 mr-2" />
                 Archive
               </Button>
@@ -159,17 +169,26 @@ export function LeadDetail({
               </div>
             </div>
 
-            {/* Score Display */}
+            {/* Score Display — NB Score as hero */}
             <div className="flex flex-col items-start md:items-end gap-2">
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-                <ScoreIndicator value={lead.qualityScore} label="Quality" size="md" />
-                <ScoreIndicator value={lead.intentScore} label="Intent" size="md" />
-                <ClassificationBadge classification={lead.classification} />
-                {lead.aiConfidence !== undefined && (
-                  <span className="text-xs text-muted-foreground">
-                    {Math.round((lead.aiConfidence ?? 0) * 100)}% conf.
-                  </span>
-                )}
+              <div className="flex items-center gap-4">
+                <NBScoreRing
+                  score={calculateNBScore(lead.qualityScore, lead.intentScore, lead.aiConfidence ?? 0)}
+                  size={72}
+                  label="NB Score"
+                />
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-3">
+                    <ScoreIndicator value={lead.qualityScore} label="Quality" size="sm" />
+                    <ScoreIndicator value={lead.intentScore} label="Intent" size="sm" />
+                    <ScoreIndicator
+                      value={lead.aiConfidence !== undefined ? Math.round((lead.aiConfidence ?? 0) * 100) : undefined}
+                      label="Confidence"
+                      size="sm"
+                    />
+                  </div>
+                  <ClassificationBadge classification={lead.classification} />
+                </div>
               </div>
               <Button
                 variant="ghost"
@@ -217,7 +236,25 @@ export function LeadDetail({
                       </div>
                       <div className="text-sm">{lead.aiNextAction}</div>
                     </div>
-                    <Button size="sm">Do It</Button>
+                    <Button
+                      size="sm"
+                      onClick={() => {
+                        const action = (lead.aiNextAction || '').toLowerCase()
+                        if (action.includes('call') && lead.phone) {
+                          window.open(`tel:${lead.phone}`)
+                        } else if (action.includes('email') && lead.email) {
+                          window.open(`mailto:${lead.email}`)
+                        } else if (action.includes('whatsapp') && lead.phone) {
+                          window.open(`https://wa.me/${lead.phone.replace(/\D/g, '')}`)
+                        } else if (action.includes('viewing')) {
+                          onUpdate?.({ status: 'Viewing Booked' as LeadStatus })
+                        } else {
+                          onUpdate?.({ status: 'Follow Up' as LeadStatus })
+                        }
+                      }}
+                    >
+                      Do It
+                    </Button>
                   </div>
                 </div>
               )}
@@ -281,9 +318,13 @@ export function LeadDetail({
                   Date: {new Date(lead.viewingDate).toLocaleDateString()}
                 </div>
               )}
-              <Button className="w-full" disabled={lead.viewingBooked}>
+              <Button
+                className="w-full"
+                disabled={lead.viewingBooked}
+                onClick={() => onUpdate?.({ status: 'Viewing Booked' as LeadStatus, viewingBooked: true })}
+              >
                 <Calendar className="h-4 w-4 mr-2" />
-                Book Viewing
+                {lead.viewingBooked ? 'Viewing Booked' : 'Book Viewing'}
               </Button>
             </CardContent>
           </Card>
@@ -499,8 +540,13 @@ export function LeadDetail({
                 <span className="text-muted-foreground">Proof of Funds</span>
                 <CheckIcon checked={lead.proofOfFunds} />
               </div>
-              <Button variant="outline" className="w-full" disabled={lead.brokerConnected}>
-                Refer to Broker
+              <Button
+                variant="outline"
+                className="w-full"
+                disabled={lead.brokerConnected}
+                onClick={() => onUpdate?.({ brokerConnected: true })}
+              >
+                {lead.brokerConnected ? 'Broker Connected' : 'Refer to Broker'}
               </Button>
             </CardContent>
           </Card>

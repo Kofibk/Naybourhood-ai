@@ -16,6 +16,7 @@ import {
   Zap,
   X,
 } from 'lucide-react'
+import { WaitlistForm } from '@/components/WaitlistForm'
 
 // Client logos for the trusted by section
 const clientLogos = [
@@ -265,15 +266,7 @@ export default function LandingPage() {
               <X className="w-5 h-5" />
             </button>
 
-            {/* Airtable Embed */}
-            <iframe
-              src="https://airtable.com/embed/appvUyGsAfHWOlQtf/pagoI3F8SKAC3pQKd/form"
-              width="100%"
-              height="533"
-              frameBorder="0"
-              style={{ background: 'transparent' }}
-              className="rounded-lg"
-            />
+            <WaitlistForm onSuccess={() => setTimeout(() => setShowModal(false), 2500)} />
           </div>
         </div>
       )}
@@ -598,7 +591,7 @@ export default function LandingPage() {
             <div className="flex items-center gap-4">
               <LogoIcon className="w-8 h-8" variant="light" />
               <span className="text-sm text-white/50">
-                &copy; 2024 Naybourhood. All rights reserved.
+                &copy; {new Date().getFullYear()} Naybourhood. All rights reserved.
               </span>
             </div>
             <div className="flex items-center gap-8">
