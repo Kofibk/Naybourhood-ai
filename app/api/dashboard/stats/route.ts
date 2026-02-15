@@ -1,9 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 
-// Revalidate every 30 seconds
-export const revalidate = 30
-
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
 
@@ -26,15 +23,19 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
+  if (!userProfile?.company_id) {
+    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+  }
+
   const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
 
   const searchParams = request.nextUrl.searchParams
   const userType = searchParams.get('user_type') || 'developer'
 
-  // Derive effective company ID: admins can specify one, others get their own
+  // Admins can specify a company_id; others always get their own
   const effectiveCompanyId = isAdmin
-    ? (searchParams.get('company_id') || null)
-    : (userProfile?.company_id || null)
+    ? (searchParams.get('company_id') || userProfile.company_id)
+    : userProfile.company_id
 
   try {
     const isBroker = userType === 'broker'
@@ -47,17 +48,12 @@ export async function GET(request: NextRequest) {
       })
 
       // Fetch recent borrowers with company scoping
-      let borrowersQuery = supabase
+      const { data: recentBorrowers } = await supabase
         .from('borrowers')
         .select('id, full_name, first_name, last_name, email, phone, status, finance_type, loan_amount, company_id, date_added, created_at')
+        .eq('company_id', effectiveCompanyId)
         .order('created_at', { ascending: false })
         .limit(50)
-
-      if (effectiveCompanyId) {
-        borrowersQuery = borrowersQuery.eq('company_id', effectiveCompanyId)
-      }
-
-      const { data: recentBorrowers } = await borrowersQuery
 
       const loadTime = Date.now() - startTime
       return NextResponse.json({
@@ -68,7 +64,7 @@ export async function GET(request: NextRequest) {
         loadTimeMs: loadTime,
       }, {
         headers: {
-          'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60',
+          'Cache-Control': 'private, no-store',
           'X-Load-Time': `${loadTime}ms`
         }
       })
@@ -83,31 +79,20 @@ export async function GET(request: NextRequest) {
         })
       ])
 
-      // Fetch recent buyers with company scoping
-      let buyersQuery = supabase
-        .from('buyers')
-        .select('id, full_name, first_name, last_name, email, phone, status, ai_quality_score, ai_intent_score, ai_confidence, ai_classification, ai_summary, budget_range, development_name, source_platform, company_id, created_at')
-        .order('created_at', { ascending: false })
-        .limit(50)
-
-      if (effectiveCompanyId) {
-        buyersQuery = buyersQuery.eq('company_id', effectiveCompanyId)
-      }
-
-      // Fetch top campaigns with company scoping
-      let campaignsQuery = supabase
-        .from('campaigns')
-        .select('campaign_name, development_name, total_spent, number_of_leads, impressions, clicks, ctr, company_id')
-        .order('number_of_leads', { ascending: false })
-        .limit(10)
-
-      if (effectiveCompanyId) {
-        campaignsQuery = campaignsQuery.eq('company_id', effectiveCompanyId)
-      }
-
+      // Fetch recent buyers and top campaigns with company scoping
       const [{ data: recentBuyers }, { data: topCampaigns }] = await Promise.all([
-        buyersQuery,
-        campaignsQuery
+        supabase
+          .from('buyers')
+          .select('id, full_name, first_name, last_name, email, phone, status, ai_quality_score, ai_intent_score, ai_confidence, ai_classification, ai_summary, budget_range, development_name, source_platform, company_id, created_at')
+          .eq('company_id', effectiveCompanyId)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('campaigns')
+          .select('campaign_name, development_name, total_spent, number_of_leads, impressions, clicks, ctr, company_id')
+          .eq('company_id', effectiveCompanyId)
+          .order('number_of_leads', { ascending: false })
+          .limit(10)
       ])
 
       const loadTime = Date.now() - startTime
@@ -131,7 +116,7 @@ export async function GET(request: NextRequest) {
         loadTimeMs: loadTime,
       }, {
         headers: {
-          'Cache-Control': 'private, s-maxage=30, stale-while-revalidate=60',
+          'Cache-Control': 'private, no-store',
           'X-Load-Time': `${loadTime}ms`
         }
       })

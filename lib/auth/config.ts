@@ -126,7 +126,8 @@ export function getResetPasswordUrl(requestOrigin?: string): string {
 // ============================================================================
 
 /**
- * Public routes that don't require authentication
+ * Public routes that don't require authentication.
+ * Only specific API endpoints that need external/unauthenticated access are listed.
  */
 export const PUBLIC_ROUTES = [
   '/',

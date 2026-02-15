@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
@@ -12,14 +12,28 @@ const SELECT_COLUMNS = [
 ].join(',')
 
 export async function GET() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+  if (!isSupabaseConfigured()) {
+    return NextResponse.json({ data: [] })
   }
 
-  const supabase = createClient(supabaseUrl, supabaseKey)
+  const supabase = createClient()
+
+  // Authentication check
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  // Get user's company_id
+  const { data: userProfile } = await supabase
+    .from('user_profiles')
+    .select('company_id, is_internal_team')
+    .eq('id', user.id)
+    .single()
+
+  if (!userProfile?.company_id) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
 
   // Paginate server-side so client makes only 1 request
   let allRows: any[] = []
@@ -31,6 +45,7 @@ export async function GET() {
     const { data, error } = await supabase
       .from('campaigns')
       .select(SELECT_COLUMNS)
+      .eq('company_id', userProfile.company_id)
       .range(from, from + batchSize - 1)
 
     if (error) {
