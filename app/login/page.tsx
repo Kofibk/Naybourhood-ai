@@ -85,6 +85,7 @@ function LoginPageInner() {
 
           if (!profile?.onboarding_completed) {
             router.push('/onboarding')
+            router.refresh()
           } else {
             // Save user to localStorage before redirecting
             let role = profile.user_type || 'developer'
@@ -107,6 +108,7 @@ function LoginPageInner() {
             }))
 
             redirectBasedOnRole(role)
+            router.refresh()
           }
         }
       }
@@ -242,6 +244,7 @@ function LoginPageInner() {
 
             if (!profile?.onboarding_completed) {
               router.push('/onboarding')
+              router.refresh()
             } else {
               // Save user to localStorage before redirecting
               let role = profile.user_type || 'developer'
@@ -264,6 +267,7 @@ function LoginPageInner() {
               }))
 
               redirectBasedOnRole(role)
+              router.refresh()
             }
           }
         }

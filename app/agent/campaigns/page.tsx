@@ -12,10 +12,11 @@ export default function CampaignsPage() {
   const { campaigns } = useCampaigns()
   const { user } = useAuth()
 
-  // Filter campaigns by company_id - strict filtering for multi-tenant
+  // API already filters by company_id server-side; client-side filter as safety net
   const myCampaigns = useMemo(() => {
     if (!user?.company_id) {
-      return []
+      // If company_id not yet loaded, show all campaigns from API (already filtered server-side)
+      return campaigns
     }
     return campaigns.filter(c => c.company_id === user.company_id)
   }, [campaigns, user?.company_id])

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useEffect, useCallback } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -9,7 +9,6 @@ import { Input } from '@/components/ui/input'
 import { useFinanceLeads } from '@/hooks/useFinanceLeads'
 import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { EmailComposer } from '@/components/EmailComposer'
 import { WhatsAppTemplateSelector } from '@/components/WhatsAppTemplateSelector'
 import { LoadingState } from '@/components/ui/loading-state'
@@ -112,38 +111,10 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
   const [showArchived, setShowArchived] = useState(false)
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
 
-  // Finance mode: company initialization
-  const [companyId, setCompanyId] = useState<string | undefined>(undefined)
-  const [companyName, setCompanyName] = useState<string | undefined>(undefined)
-  const [isReady, setIsReady] = useState(isPropertyMode)
-
-  useEffect(() => {
-    if (isPropertyMode) return
-    const initializeCompany = async () => {
-      let currentUser = user
-      if (!currentUser) {
-        try {
-          const stored = localStorage.getItem('naybourhood_user')
-          if (stored) currentUser = JSON.parse(stored)
-        } catch { /* ignore */ }
-      }
-      if (!currentUser?.id) { setIsReady(true); return }
-      if (currentUser.company_id) {
-        setCompanyId(currentUser.company_id)
-        if (currentUser.company) setCompanyName(currentUser.company)
-        setIsReady(true)
-        return
-      }
-      if (isSupabaseConfigured()) {
-        const supabase = createClient()
-        const { data: profile } = await supabase
-          .from('user_profiles').select('company_id').eq('id', currentUser.id).single()
-        if (profile?.company_id) setCompanyId(profile.company_id)
-      }
-      setIsReady(true)
-    }
-    initializeCompany()
-  }, [user, isPropertyMode])
+  // Finance mode: company from AuthContext (DB source of truth)
+  const companyId = user?.company_id
+  const companyName = user?.company
+  const isReady = isPropertyMode || !!(user !== undefined)
 
   // Data source - use React Query for both property leads and finance leads
   const rawLeads = isPropertyMode ? rqLeads : financeLeads

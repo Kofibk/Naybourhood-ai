@@ -37,6 +37,10 @@ async function fetchFinanceLeads(): Promise<FinanceLead[]> {
   const supabase = createClient()
   if (!supabase) return []
 
+  // Ensure we have an authenticated session before querying (RLS requires it)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return []
+
   const { data, error } = await supabase
     .from('borrowers')
     .select('*')

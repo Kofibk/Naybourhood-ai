@@ -7,15 +7,24 @@ import { ConversationsView, ConversationsEmptyCompany } from '@/components/Conve
 
 export default function DeveloperConversationsPage() {
   const { leads, isLoading } = useLeads()
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
 
   // Filter leads by company_id
   const myLeads = useMemo(() => {
-    if (!user?.company_id) return []
+    if (!user?.company_id) return leads // Already filtered server-side by RLS
     return leads.filter(lead => lead.company_id === user.company_id)
   }, [leads, user?.company_id])
 
-  // Show message if not assigned to company
+  // Show loading while auth initializes
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    )
+  }
+
+  // Show message if not assigned to company (only after auth loaded)
   if (!user?.company_id) {
     return (
       <ConversationsEmptyCompany
