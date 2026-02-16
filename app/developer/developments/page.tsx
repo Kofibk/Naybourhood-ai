@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -17,10 +18,12 @@ import {
   ExternalLink,
   FileText,
   Image as ImageIcon,
+  Plus,
 } from 'lucide-react'
 import Image from 'next/image'
 
 export default function DeveloperDevelopmentsPage() {
+  const router = useRouter()
   const { developments, isLoading, refreshDevelopments } = useDevelopments()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
@@ -102,16 +105,26 @@ export default function DeveloperDevelopmentsPage() {
             {totals.developments} developments · {totals.totalUnits.toLocaleString()} total units
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => refreshDevelopments()}
-          disabled={isLoading}
-          className="border-white/10 text-white hover:bg-white/5"
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => refreshDevelopments()}
+            disabled={isLoading}
+            className="border-white/10 text-white hover:bg-white/5"
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button
+            size="sm"
+            onClick={() => router.push('/developer/developments/new')}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Development
+          </Button>
+        </div>
       </div>
 
       {/* Summary Stats */}

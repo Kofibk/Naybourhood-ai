@@ -36,10 +36,10 @@ export function LeadIntakeForm({ onCreated }: LeadIntakeFormProps) {
         if (!supabase) return
         const { data } = await supabase
           .from('developments')
-          .select('id, name')
+          .select('id, development_name')
           .eq('company_id', companyId)
-          .order('name')
-        if (data) setDevelopments(data.map((d: any) => ({ id: d.id, name: d.name || 'Unnamed' })))
+          .order('development_name')
+        if (data) setDevelopments(data.map((d: any) => ({ id: d.id, name: d.development_name || 'Unnamed' })))
       } catch { /* ignore */ }
       finally { setIsLoadingDevs(false) }
     }

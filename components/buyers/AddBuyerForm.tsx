@@ -221,14 +221,14 @@ export function AddBuyerForm() {
       const supabase = createClient()
       const { data, error } = await supabase
         .from('developments')
-        .select('id, name')
+        .select('id, development_name')
         .eq('company_id', companyId)
-        .order('name')
+        .order('development_name')
 
       if (error) {
         console.error('[AddBuyerForm] Error fetching developments:', error)
       } else {
-        setDevelopments(data || [])
+        setDevelopments((data || []).map((d: any) => ({ ...d, name: d.development_name || d.name || 'Unnamed' })))
       }
       setIsLoadingDevs(false)
     }

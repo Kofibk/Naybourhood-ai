@@ -27,6 +27,15 @@ import {
   Shield,
   Briefcase,
   HardHat,
+  Upload,
+  Plug,
+  Clock,
+  UserPlus,
+  Plus,
+  ChevronDown,
+  ChevronRight,
+  KeyRound,
+  Receipt,
 } from 'lucide-react'
 import { useState, useMemo, useCallback } from 'react'
 import { usePermissions } from '@/hooks/useCanAccess'
@@ -39,6 +48,12 @@ interface NavItem {
   href: string
   badge?: number
   feature?: Feature  // Feature required for this nav item
+  comingSoon?: boolean  // Phase 5/6 placeholder
+}
+
+interface NavSection {
+  label?: string  // Section heading (omit for ungrouped items)
+  items: NavItem[]
 }
 
 export type UserType = 'admin' | 'developer' | 'agent' | 'broker'
@@ -77,7 +92,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
     return permissions.permissions[feature]?.canRead ?? false
   }, [permissions, permissionsLoading])
 
-  const getNavItems = useCallback((): NavItem[] => {
+  const getNavSections = useCallback((): NavSection[] => {
     if (userType === 'admin') {
       const adminItems: NavItem[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
@@ -90,7 +105,6 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'Users', icon: UserCog, href: '/admin/users', feature: 'team_management' },
       ]
 
-      // Only show billing for authorized admins
       if (userHasBillingAccess) {
         adminItems.push({ name: 'Billing', icon: CreditCard, href: '/admin/billing', feature: 'billing' })
       }
@@ -100,37 +114,70 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'Settings', icon: Settings, href: '/admin/settings', feature: 'settings' }
       )
 
-      return adminItems
+      return [{ items: adminItems }]
     }
-    // Broker gets Borrowers (finance leads) - dedicated to mortgages/finance
+
     if (userType === 'broker') {
       return [
+        { items: [
+          { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
+        ]},
+        { label: 'Manage', items: [
+          { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers`, feature: 'borrowers' },
+          { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
+          { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
+        ]},
+        { label: 'Engage', items: [
+          { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
+          { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
+        ]},
+        { label: 'Settings', items: [
+          { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
+        ]},
+      ]
+    }
+
+    // Developer and Agent — grouped sections with Coming Soon items
+    return [
+      { items: [
         { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-        { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers`, feature: 'borrowers' },
+      ]},
+      { label: 'Buyers', items: [
+        { name: 'All Buyers', icon: Users, href: `${basePath}/buyers`, feature: 'leads' },
+        { name: 'Add Buyer', icon: UserPlus, href: `${basePath}/buyers/new`, feature: 'leads' },
+        { name: 'Import CSV', icon: Upload, href: '#', feature: 'leads', comingSoon: true },
+      ]},
+      { label: 'Developments', items: [
+        { name: 'All Developments', icon: Home, href: `${basePath}/developments`, feature: 'developments' },
+        { name: 'Add Development', icon: Plus, href: `${basePath}/developments/new`, feature: 'developments' },
+      ]},
+      { label: 'Engage', items: [
         { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
         { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
         { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
         { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
-        { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
-      ]
-    }
-    // Developer and Agent - include Developments
-    return [
-      { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
-      { name: 'Developments', icon: Home, href: `${basePath}/developments`, feature: 'developments' },
-      { name: 'Buyers', icon: Users, href: `${basePath}/buyers`, feature: 'leads' },
-      { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
-      { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
-      { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
-      { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
-      { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
+        { name: 'Integrations', icon: Plug, href: '#', comingSoon: true },
+      ]},
+      { label: 'Settings', items: [
+        { name: 'General', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
+        { name: 'API Keys', icon: KeyRound, href: `${basePath}/settings/api-keys`, feature: 'settings' },
+        { name: 'Billing', icon: Receipt, href: `${basePath}/settings/billing`, feature: 'settings' },
+      ]},
     ]
   }, [userType, basePath, userHasBillingAccess])
 
-  // Filter nav items based on feature access
+  // Filter nav sections based on feature access
+  const navSections = useMemo(() => {
+    return getNavSections().map(section => ({
+      ...section,
+      items: section.items.filter(item => canAccessFeature(item.feature)),
+    })).filter(section => section.items.length > 0)
+  }, [getNavSections, canAccessFeature])
+
+  // Flat list for backward compatibility (used by active check)
   const navItems = useMemo(() => {
-    return getNavItems().filter(item => canAccessFeature(item.feature))
-  }, [getNavItems, canAccessFeature])
+    return navSections.flatMap(s => s.items)
+  }, [navSections])
 
   const isActive = (href: string) => pathname === href
 
@@ -153,34 +200,59 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <ul className="space-y-1">
-          {navItems.map((item) => (
-            <li key={item.name}>
-              <Link
-                href={item.href}
-                onClick={() => setMobileOpen(false)}
-                aria-current={isActive(item.href) ? 'page' : undefined}
-                className={cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200',
-                  isActive(item.href)
-                    ? 'bg-[#34D399]/15 text-[#34D399] shadow-sm'
-                    : 'text-white/70 hover:bg-white/5 hover:text-white'
-                )}
-              >
-                <item.icon className={cn(
-                  'h-5 w-5 flex-shrink-0',
-                  isActive(item.href) ? 'text-[#34D399]' : 'text-white/50'
-                )} aria-hidden="true" />
-                <span className="truncate">{item.name}</span>
-                {item.badge && (
-                  <Badge variant="secondary" className="ml-auto text-[10px] bg-[#34D399]/20 text-[#34D399] border-0 shrink-0">
-                    {item.badge.toLocaleString()}
-                  </Badge>
-                )}
-              </Link>
-            </li>
+        <div className="space-y-4">
+          {navSections.map((section, sIdx) => (
+            <div key={section.label || `section-${sIdx}`}>
+              {section.label && (
+                <div className="px-3 mb-1.5 text-[10px] font-semibold text-white/30 uppercase tracking-wider">
+                  {section.label}
+                </div>
+              )}
+              <ul className="space-y-0.5">
+                {section.items.map((item) => (
+                  <li key={item.name}>
+                    {item.comingSoon ? (
+                      <span
+                        className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium text-white/30 cursor-default"
+                        title="Coming Soon"
+                      >
+                        <item.icon className="h-5 w-5 flex-shrink-0 text-white/20" aria-hidden="true" />
+                        <span className="truncate">{item.name}</span>
+                        <span className="ml-auto flex items-center gap-1 text-[10px] text-white/25">
+                          <Clock className="h-3 w-3" />
+                          Soon
+                        </span>
+                      </span>
+                    ) : (
+                      <Link
+                        href={item.href}
+                        onClick={() => setMobileOpen(false)}
+                        aria-current={isActive(item.href) ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-3 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200',
+                          isActive(item.href)
+                            ? 'bg-[#34D399]/15 text-[#34D399] shadow-sm'
+                            : 'text-white/70 hover:bg-white/5 hover:text-white'
+                        )}
+                      >
+                        <item.icon className={cn(
+                          'h-5 w-5 flex-shrink-0',
+                          isActive(item.href) ? 'text-[#34D399]' : 'text-white/50'
+                        )} aria-hidden="true" />
+                        <span className="truncate">{item.name}</span>
+                        {item.badge && (
+                          <Badge variant="secondary" className="ml-auto text-[10px] bg-[#34D399]/20 text-[#34D399] border-0 shrink-0">
+                            {item.badge.toLocaleString()}
+                          </Badge>
+                        )}
+                      </Link>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       </nav>
 
       {/* Quick Access - Admin Only */}
