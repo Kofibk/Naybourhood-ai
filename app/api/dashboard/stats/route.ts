@@ -1,11 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
+import { getDemoDashboardStats } from '@/lib/demo-data'
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
 
+  // Demo mode: return realistic sample data for presentations
+  const searchParams = request.nextUrl.searchParams
+  if (searchParams.get('demo') === 'true') {
+    return NextResponse.json(getDemoDashboardStats(), {
+      headers: { 'Cache-Control': 'private, no-store' },
+    })
+  }
+
   if (!isSupabaseConfigured()) {
-    return NextResponse.json({ error: 'Supabase not configured' }, { status: 500 })
+    // Fallback to demo data when Supabase is not configured
+    return NextResponse.json(getDemoDashboardStats(), {
+      headers: { 'Cache-Control': 'private, no-store' },
+    })
   }
 
   const supabase = createClient()
@@ -29,7 +41,6 @@ export async function GET(request: NextRequest) {
 
   const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
 
-  const searchParams = request.nextUrl.searchParams
   const userType = searchParams.get('user_type') || 'developer'
 
   // Admins can specify a company_id; others always get their own

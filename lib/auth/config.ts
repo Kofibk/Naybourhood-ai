@@ -136,6 +136,7 @@ export const PUBLIC_ROUTES = [
   '/onboarding',
   '/signup',
   '/select-plan',
+  '/demo',
   '/api/auth',
   '/api/billing/stripe-webhook',
   '/api/stripe/webhook',

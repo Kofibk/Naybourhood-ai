@@ -112,6 +112,17 @@ export function useDashboardStats(
       if (companyId) params.set('company_id', companyId)
       if (companyName) params.set('company_name', companyName)
 
+      // Check if user is in demo/presentation mode
+      try {
+        const stored = localStorage.getItem('naybourhood_user')
+        if (stored) {
+          const user = JSON.parse(stored)
+          if (user.isDemo) {
+            params.set('demo', 'true')
+          }
+        }
+      } catch { /* ignore */ }
+
       const response = await fetch(`/api/dashboard/stats?${params.toString()}`)
 
       if (!response.ok) {
