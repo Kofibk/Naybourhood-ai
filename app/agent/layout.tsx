@@ -44,17 +44,17 @@ function AgentLayoutContent({ children }: { children: React.ReactNode }) {
 
           console.log('[Agent Layout] ✅ Role check passed')
 
-          // Save to localStorage for AuthContext to pick up
-          const userData = {
+          // Save to sessionStorage + localStorage for AuthContext to pick up
+          const userData = JSON.stringify({
             id: userId,
             email,
             name: name || email.split('@')[0],
             role,
             company_id: companyId || undefined,
             is_master_admin: isMasterAdmin(email),
-          }
-          console.log('[Agent Layout] 💾 Saving user data to localStorage:', userData)
-          localStorage.setItem('naybourhood_user', JSON.stringify(userData))
+          })
+          sessionStorage.setItem('naybourhood_user', userData)
+          localStorage.setItem('naybourhood_user', userData)
           
           // Clear URL params
           console.log('[Agent Layout] Clearing URL params')
@@ -76,61 +76,50 @@ function AgentLayoutContent({ children }: { children: React.ReactNode }) {
 
       console.log('[Agent Layout] AuthContext loading complete')
 
-      // No user from AuthContext - check localStorage as fallback
+      // No user from AuthContext - check sessionStorage as fallback
       if (!user) {
-        console.log('[Agent Layout] ❌ No user from AuthContext, checking localStorage...')
-        const stored = localStorage.getItem('naybourhood_user')
+        const stored = sessionStorage.getItem('naybourhood_user') || localStorage.getItem('naybourhood_user')
         if (!stored) {
-          console.log('[Agent Layout] ❌ No user in localStorage, redirecting to login')
           router.push('/login')
           return
         }
 
         try {
           const parsed = JSON.parse(stored)
-          console.log('[Agent Layout] ✅ User found in localStorage:', { id: parsed.id, role: parsed.role })
-          
           // Validate user has agent access
           if (!canAccessDashboard(parsed.role, 'agent') && !isMasterAdmin(parsed.email)) {
-            console.warn('[Agent Layout] ❌ Access denied - user role:', parsed.role)
             router.push('/login')
             return
           }
-          console.log('[Agent Layout] ✅ Role validation passed')
         } catch {
-          console.error('[Agent Layout] ❌ Failed to parse localStorage user')
           router.push('/login')
           return
         }
       } else {
-        console.log('[Agent Layout] ✅ User from AuthContext:', { id: user.id, role: user.role })
         // User exists from AuthContext - verify they have agent access
         if (!canAccessDashboard(user.role, 'agent') && !isMasterAdmin(user.email)) {
-          console.warn('[Agent Layout] ❌ Access denied - user role:', user.role)
           router.push('/login')
           return
         }
-        console.log('[Agent Layout] ✅ Role validation passed')
       }
 
       // Verify Supabase session is still valid (if configured)
       if (isSupabaseConfigured()) {
         try {
-          console.log('[Agent Layout] Verifying Supabase session...')
           const supabase = createClient()
           const { data: { session }, error } = await supabase.auth.getSession()
 
           if (!session && !error) {
-            console.log('[Agent Layout] ℹ️ No Supabase session - using localStorage user (Quick Access mode)')
-          } else if (session) {
-            console.log('[Agent Layout] ✅ Supabase session valid')
+            sessionStorage.removeItem('naybourhood_user')
+            localStorage.removeItem('naybourhood_user')
+            router.push('/login')
+            return
           }
         } catch (err) {
-          console.error('[Agent Layout] ❌ Session verification error:', err)
+          console.error('[Agent Layout] Session verification error:', err)
         }
       }
 
-      console.log('[Agent Layout] ✅ isVerifying = false (verification complete)')
       setIsVerifying(false)
     }
 
@@ -143,7 +132,6 @@ function AgentLayoutContent({ children }: { children: React.ReactNode }) {
 
   // Show loading while verifying access
   if (isLoading || isVerifying) {
-    console.log('[Agent Layout] 🔄 Rendering loading state - isLoading:', isLoading, 'isVerifying:', isVerifying)
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Loading...</div>
@@ -151,29 +139,23 @@ function AgentLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Get user data from AuthContext or localStorage
+  // Get user data from AuthContext or sessionStorage
   const currentUser = user || (() => {
     try {
-      const stored = localStorage.getItem('naybourhood_user')
-      const parsedUser = stored ? JSON.parse(stored) : null
-      console.log('[Agent Layout] Current user:', parsedUser ? { id: parsedUser.id, role: parsedUser.role } : 'null')
-      return parsedUser
+      const stored = sessionStorage.getItem('naybourhood_user') || localStorage.getItem('naybourhood_user')
+      return stored ? JSON.parse(stored) : null
     } catch {
-      console.error('[Agent Layout] ❌ Failed to get current user')
       return null
     }
   })()
 
   if (!currentUser) {
-    console.log('[Agent Layout] ❌ No current user, showing redirecting state')
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-muted-foreground">Redirecting...</div>
       </div>
     )
   }
-
-  console.log('[Agent Layout] ✅ Rendering dashboard for user:', { id: currentUser.id, name: currentUser.name, role: currentUser.role })
 
   return (
     <QueryProvider>

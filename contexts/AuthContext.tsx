@@ -1,11 +1,14 @@
 'use client'
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isMasterAdmin, isInternalTeamEmail, buildDisplayName } from '@/lib/auth'
+import { useInactivityTimeout } from '@/hooks/useInactivityTimeout'
 import type { User, UserRole } from '@/types'
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
+
+const USER_STORAGE_KEY = 'naybourhood_user'
 
 interface AuthContextType {
   user: User | null
@@ -99,22 +102,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (session?.user && !error) {
             const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
             if (appUser) {
-              // Always use DB as source of truth for company_id
-              // Do NOT fall back to localStorage - it may contain stale data
               setUser(appUser)
-              localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+              // Store in sessionStorage (cleared on browser close)
+              sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
+              // Also keep localStorage in sync for admin layout fallback
+              localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
             }
           } else {
-            // No valid Supabase session - check localStorage for Quick Access / demo mode
-            const stored = localStorage.getItem('naybourhood_user')
-            if (stored) {
-              try {
-                const storedUser = JSON.parse(stored)
-                setUser(storedUser)
-              } catch {
-                localStorage.removeItem('naybourhood_user')
-              }
-            }
+            // No valid Supabase session — user must log in again
+            // Clear any stale data
+            sessionStorage.removeItem(USER_STORAGE_KEY)
+            localStorage.removeItem(USER_STORAGE_KEY)
           }
 
           setIsLoading(false)
@@ -126,12 +124,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
                 if (appUser) {
                   setUser(appUser)
-                  localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+                  sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
+                  localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
                   router.refresh()
                 }
               } else if (event === 'SIGNED_OUT') {
                 setUser(null)
-                localStorage.removeItem('naybourhood_user')
+                sessionStorage.removeItem(USER_STORAGE_KEY)
+                localStorage.removeItem(USER_STORAGE_KEY)
               }
             }
           )
@@ -142,20 +142,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error('[AuthContext] Init error:', error)
-          localStorage.removeItem('naybourhood_user')
+          sessionStorage.removeItem(USER_STORAGE_KEY)
+          localStorage.removeItem(USER_STORAGE_KEY)
           setIsLoading(false)
         }
       } else {
-        // Supabase not configured - use localStorage for demo mode
-        const stored = localStorage.getItem('naybourhood_user')
-        if (stored) {
-          try {
-            const parsedUser = JSON.parse(stored)
-            setUser(parsedUser)
-          } catch {
-            localStorage.removeItem('naybourhood_user')
-          }
-        }
         setIsLoading(false)
       }
     }
@@ -174,7 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
       if (appUser) {
         setUser(appUser)
-        localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+        sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
+        localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
       }
     }
   }
@@ -196,7 +188,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
           if (appUser) {
             setUser(appUser)
-            localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+            sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
+            localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(appUser))
             setIsLoading(false)
             router.refresh()
             return true
@@ -213,10 +206,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const logout = async () => {
-    // Clear local state and redirect immediately — never block on network
+  const logout = useCallback(async () => {
+    // Clear ALL session data and redirect immediately
     setUser(null)
-    localStorage.removeItem('naybourhood_user')
+    sessionStorage.removeItem(USER_STORAGE_KEY)
+    localStorage.removeItem(USER_STORAGE_KEY)
+    sessionStorage.removeItem('naybourhood_last_activity')
     router.push('/login')
     router.refresh()
 
@@ -231,13 +226,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         console.error('Supabase signOut error:', error)
       }
     }
-  }
+  }, [router])
+
+  // Auto-logout after 30 minutes of inactivity
+  useInactivityTimeout(logout)
 
   const setUserRole = (role: UserRole) => {
     if (user) {
       const updated = { ...user, role }
       setUser(updated)
-      localStorage.setItem('naybourhood_user', JSON.stringify(updated))
+      sessionStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated))
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated))
     }
   }
 

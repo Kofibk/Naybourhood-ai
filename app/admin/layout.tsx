@@ -34,16 +34,17 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
             return
           }
 
-          // Save to localStorage for AuthContext to pick up
-          const userData = {
+          // Save to sessionStorage + localStorage for AuthContext to pick up
+          const userData = JSON.stringify({
             id: userId,
             email,
             name: name || email.split('@')[0],
             role: isMasterAdmin(email) ? 'admin' : role,
             company_id: companyId || undefined,
             is_master_admin: isMasterAdmin(email),
-          }
-          localStorage.setItem('naybourhood_user', JSON.stringify(userData))
+          })
+          sessionStorage.setItem('naybourhood_user', userData)
+          localStorage.setItem('naybourhood_user', userData)
           // Clear URL params
           window.history.replaceState({}, '', '/admin')
           setIsVerifying(false)
@@ -56,9 +57,9 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // No user from AuthContext - check localStorage as fallback
+      // No user from AuthContext - check sessionStorage as fallback
       if (!user) {
-        const stored = localStorage.getItem('naybourhood_user')
+        const stored = sessionStorage.getItem('naybourhood_user') || localStorage.getItem('naybourhood_user')
         if (!stored) {
           router.push('/login')
           return
@@ -91,10 +92,13 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
           const supabase = createClient()
           const { data: { session }, error } = await supabase.auth.getSession()
 
-          // If no valid session but we have localStorage user, allow access (Quick Access mode)
-          // But log a warning for debugging
+          // No valid Supabase session = not authenticated, redirect to login
           if (!session && !error) {
-            console.log('[Admin Layout] No Supabase session - using localStorage user (Quick Access mode)')
+            console.warn('[Admin Layout] No Supabase session - redirecting to login')
+            sessionStorage.removeItem('naybourhood_user')
+            localStorage.removeItem('naybourhood_user')
+            router.push('/login')
+            return
           }
         } catch (err) {
           console.error('[Admin Layout] Session verification error:', err)
@@ -120,10 +124,10 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Get user data from AuthContext or localStorage
+  // Get user data from AuthContext or sessionStorage
   const currentUser = user || (() => {
     try {
-      const stored = localStorage.getItem('naybourhood_user')
+      const stored = sessionStorage.getItem('naybourhood_user') || localStorage.getItem('naybourhood_user')
       return stored ? JSON.parse(stored) : null
     } catch {
       return null

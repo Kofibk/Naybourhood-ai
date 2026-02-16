@@ -100,13 +100,15 @@ function LoginPageInner() {
               ? `${profile.first_name} ${profile.last_name || ''}`.trim()
               : user.email?.split('@')[0] || 'User'
 
-            localStorage.setItem('naybourhood_user', JSON.stringify({
+            const userData = JSON.stringify({
               id: user.id,
               email: user.email,
               name: fullName,
               role: role,
               company_id: profile?.company_id,
-            }))
+            })
+            sessionStorage.setItem('naybourhood_user', userData)
+            localStorage.setItem('naybourhood_user', userData)
 
             redirectBasedOnRole(role)
             router.refresh()
@@ -265,13 +267,15 @@ function LoginPageInner() {
                 ? `${profile.first_name} ${profile.last_name || ''}`.trim()
                 : data.user.email?.split('@')[0] || 'User'
 
-              localStorage.setItem('naybourhood_user', JSON.stringify({
+              const userData = JSON.stringify({
                 id: data.user.id,
                 email: data.user.email,
                 name: fullName,
                 role: role,
                 company_id: profile?.company_id,
-              }))
+              })
+              sessionStorage.setItem('naybourhood_user', userData)
+              localStorage.setItem('naybourhood_user', userData)
 
               redirectBasedOnRole(role)
               router.refresh()

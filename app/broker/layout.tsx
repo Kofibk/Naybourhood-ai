@@ -34,16 +34,17 @@ function BrokerLayoutContent({ children }: { children: React.ReactNode }) {
             return
           }
 
-          // Save to localStorage for AuthContext to pick up
-          const userData = {
+          // Save to sessionStorage + localStorage for AuthContext to pick up
+          const userData = JSON.stringify({
             id: userId,
             email,
             name: name || email.split('@')[0],
             role,
             company_id: companyId || undefined,
             is_master_admin: isMasterAdmin(email),
-          }
-          localStorage.setItem('naybourhood_user', JSON.stringify(userData))
+          })
+          sessionStorage.setItem('naybourhood_user', userData)
+          localStorage.setItem('naybourhood_user', userData)
           // Clear URL params
           window.history.replaceState({}, '', '/broker')
           setIsVerifying(false)
@@ -56,9 +57,9 @@ function BrokerLayoutContent({ children }: { children: React.ReactNode }) {
         return
       }
 
-      // No user from AuthContext - check localStorage as fallback
+      // No user from AuthContext - check sessionStorage as fallback
       if (!user) {
-        const stored = localStorage.getItem('naybourhood_user')
+        const stored = sessionStorage.getItem('naybourhood_user') || localStorage.getItem('naybourhood_user')
         if (!stored) {
           router.push('/login')
           return
@@ -92,7 +93,10 @@ function BrokerLayoutContent({ children }: { children: React.ReactNode }) {
           const { data: { session }, error } = await supabase.auth.getSession()
 
           if (!session && !error) {
-            console.log('[Broker Layout] No Supabase session - using localStorage user (Quick Access mode)')
+            sessionStorage.removeItem('naybourhood_user')
+            localStorage.removeItem('naybourhood_user')
+            router.push('/login')
+            return
           }
         } catch (err) {
           console.error('[Broker Layout] Session verification error:', err)
@@ -118,10 +122,10 @@ function BrokerLayoutContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  // Get user data from AuthContext or localStorage
+  // Get user data from AuthContext or sessionStorage
   const currentUser = user || (() => {
     try {
-      const stored = localStorage.getItem('naybourhood_user')
+      const stored = sessionStorage.getItem('naybourhood_user') || localStorage.getItem('naybourhood_user')
       return stored ? JSON.parse(stored) : null
     } catch {
       return null
