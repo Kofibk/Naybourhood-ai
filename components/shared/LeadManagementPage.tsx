@@ -16,6 +16,7 @@ import { LoadingState } from '@/components/ui/loading-state'
 import { formatCurrency } from '@/lib/utils'
 import { toast } from 'sonner'
 import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
+import { getNBScoreColor } from '@/lib/scoring/nb-score'
 import {
   Search, Phone, Mail, MessageCircle, Eye, Flame, Users,
   ChevronRight, Target, TrendingUp, CheckCircle, Clock,
@@ -107,7 +108,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
   const [emailLead, setEmailLead] = useState<any>(null)
   const [whatsappLead, setWhatsappLead] = useState<any>(null)
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
-  const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest')
+  const [sortOrder, setSortOrder] = useState<'score' | 'newest' | 'oldest'>('score')
   const [showArchived, setShowArchived] = useState(false)
   const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null)
 
@@ -188,13 +189,18 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
     })
 
     return filtered.sort((a: any, b: any) => {
+      if (sortOrder === 'score') {
+        const scoreA = a.final_score ?? a.ai_quality_score ?? 0
+        const scoreB = b.final_score ?? b.ai_quality_score ?? 0
+        return scoreB - scoreA
+      }
       const dateA = new Date(a.date_added || a.created_at || 0).getTime()
       const dateB = new Date(b.date_added || b.created_at || 0).getTime()
       return sortOrder === 'newest' ? dateB - dateA : dateA - dateB
     })
   }, [myLeads, search, statusFilter, classificationFilter, sortOrder, showArchived, isPropertyMode])
 
-  const toggleSortOrder = useCallback(() => {
+  const toggleDateSort = useCallback(() => {
     setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest')
   }, [])
 
@@ -481,6 +487,31 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
         </div>
       )}
 
+      {/* Classification Filter Tabs (property mode only) */}
+      {isPropertyMode && (
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          {[
+            { value: 'all', label: 'All' },
+            { value: 'Hot', label: 'Hot Leads' },
+            { value: 'Warm-Qualified', label: 'Qualified' },
+            { value: 'Warm-Engaged', label: 'Needs Qualification' },
+            { value: 'Nurture', label: 'Nurture' },
+          ].map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => setClassificationFilter(tab.value)}
+              className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
+                classificationFilter === tab.value
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -492,20 +523,6 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        {isPropertyMode && (
-          <select
-            className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[160px]"
-            value={classificationFilter}
-            onChange={(e) => setClassificationFilter(e.target.value)}
-          >
-            <option value="all">All Classifications</option>
-            <option value="Hot">Hot</option>
-            <option value="Warm-Qualified">Warm-Qualified</option>
-            <option value="Warm-Engaged">Warm-Engaged</option>
-            <option value="Nurture">Nurture</option>
-            <option value="Cold">Cold</option>
-          </select>
-        )}
         <select
           className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[150px]"
           value={statusFilter}
@@ -559,31 +576,47 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                       {isPropertyMode ? 'Lead' : 'Client'}
                     </th>
                     {isPropertyMode && (
-                      <th className="pb-3 font-medium min-w-[130px]">Classification</th>
+                      <th
+                        className="pb-3 font-medium cursor-pointer hover:text-foreground transition-colors min-w-[90px]"
+                        onClick={() => setSortOrder(sortOrder === 'score' ? 'newest' : 'score')}
+                      >
+                        <div className="flex items-center gap-1">
+                          NB Score
+                          {sortOrder === 'score' && <ArrowDown className="h-3 w-3" />}
+                        </div>
+                      </th>
                     )}
                     {isPropertyMode && (
-                      <th className="pb-3 font-medium min-w-[90px]">Verified</th>
+                      <th className="pb-3 font-medium min-w-[120px]">Classification</th>
                     )}
-                    <th className="pb-3 font-medium min-w-[160px]">Status</th>
+                    {isPropertyMode && (
+                      <th className="pb-3 font-medium min-w-[130px]">Development</th>
+                    )}
                     <th className="pb-3 font-medium min-w-[120px]">
                       {isPropertyMode ? 'Budget' : 'Loan Amount'}
                     </th>
+                    {isPropertyMode && (
+                      <th className="pb-3 font-medium min-w-[100px]">Timeline</th>
+                    )}
+                    {isPropertyMode ? (
+                      <th className="pb-3 font-medium min-w-[180px]">Next Action</th>
+                    ) : (
+                      <th className="pb-3 font-medium min-w-[160px]">Status</th>
+                    )}
                     <th
-                      className="pb-3 font-medium cursor-pointer hover:text-foreground transition-colors min-w-[110px]"
-                      onClick={toggleSortOrder}
+                      className="pb-3 font-medium cursor-pointer hover:text-foreground transition-colors min-w-[100px]"
+                      onClick={toggleDateSort}
                     >
                       <div className="flex items-center gap-1">
                         Date Added
                         {sortOrder === 'newest' ? (
                           <ArrowDown className="h-3 w-3" />
-                        ) : (
+                        ) : sortOrder === 'oldest' ? (
                           <ArrowUp className="h-3 w-3" />
-                        )}
+                        ) : null}
                       </div>
                     </th>
-                    {isPropertyMode ? (
-                      <th className="pb-3 font-medium min-w-[200px]">AI Next Action</th>
-                    ) : (
+                    {!isPropertyMode && (
                       <th className="pb-3 font-medium min-w-[110px]">Required By</th>
                     )}
                     <th className="pb-3 font-medium text-right min-w-[120px]">Actions</th>
@@ -596,6 +629,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                       onClick={() => router.push(`${detailBasePath}/${lead.id}`)}
                       className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
                     >
+                      {/* Name */}
                       <td className="py-3">
                         <div className="font-medium flex items-center gap-2">
                           {isPropertyMode && lead.ai_classification === 'Hot' && <Flame className="h-4 w-4 text-red-500" />}
@@ -615,6 +649,25 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                           {!isPropertyMode && lead.finance_type && ` \u2022 ${lead.finance_type}`}
                         </div>
                       </td>
+                      {/* NB Score — coloured number/badge */}
+                      {isPropertyMode && (
+                        <td className="py-3">
+                          {(lead.final_score ?? lead.ai_quality_score) != null ? (
+                            <span
+                              className="inline-flex items-center justify-center text-sm font-bold rounded-full w-10 h-10"
+                              style={{
+                                color: getNBScoreColor(lead.final_score ?? lead.ai_quality_score ?? 0),
+                                backgroundColor: `${getNBScoreColor(lead.final_score ?? lead.ai_quality_score ?? 0)}15`,
+                              }}
+                            >
+                              {lead.final_score ?? lead.ai_quality_score}
+                            </span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">-</span>
+                          )}
+                        </td>
+                      )}
+                      {/* Classification badge */}
                       {isPropertyMode && (
                         <td className="py-3">
                           <Badge className={`text-xs ${getPropertyClassificationColor(lead.ai_classification)}`}>
@@ -622,25 +675,15 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                           </Badge>
                         </td>
                       )}
+                      {/* Development name */}
                       {isPropertyMode && (
                         <td className="py-3">
-                          <KycStatusBadge status={lead.kyc_status || 'not_started'} />
+                          <span className="text-sm truncate max-w-[130px] block">
+                            {lead.development_name || lead.campaign || '-'}
+                          </span>
                         </td>
                       )}
-                      <td className="py-3" onClick={(e) => e.stopPropagation()}>
-                        <select
-                          value={lead.status || 'Contact Pending'}
-                          onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
-                          disabled={updatingStatus === lead.id}
-                          className={`text-xs px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors min-w-[140px] font-medium ${
-                            isPropertyMode ? getPropertyStatusColor(lead.status) : getFinanceStatusColor(lead.status)
-                          }`}
-                        >
-                          {statusOptions.map(s => (
-                            <option key={s} value={s}>{s}</option>
-                          ))}
-                        </select>
-                      </td>
+                      {/* Budget / Loan Amount */}
                       <td className="py-3">
                         {isPropertyMode ? (
                           <span className="text-sm">{lead.budget || lead.budget_range || '-'}</span>
@@ -651,18 +694,43 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                           </div>
                         )}
                       </td>
+                      {/* Timeline (property only) */}
+                      {isPropertyMode && (
+                        <td className="py-3">
+                          <span className="text-xs text-muted-foreground">{lead.timeline || lead.timeline_to_purchase || '-'}</span>
+                        </td>
+                      )}
+                      {/* Next Action / Status */}
+                      {isPropertyMode ? (
+                        <td className="py-3">
+                          <span className="text-xs text-muted-foreground line-clamp-2 max-w-[180px]">
+                            {lead.ai_next_action || 'Contact to confirm interest'}
+                          </span>
+                        </td>
+                      ) : (
+                        <td className="py-3" onClick={(e) => e.stopPropagation()}>
+                          <select
+                            value={lead.status || 'Contact Pending'}
+                            onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
+                            disabled={updatingStatus === lead.id}
+                            className={`text-xs px-2.5 py-1.5 rounded-md border cursor-pointer transition-colors min-w-[140px] font-medium ${
+                              getFinanceStatusColor(lead.status)
+                            }`}
+                          >
+                            {statusOptions.map(s => (
+                              <option key={s} value={s}>{s}</option>
+                            ))}
+                          </select>
+                        </td>
+                      )}
+                      {/* Date Added */}
                       <td className="py-3">
                         <span className="text-xs text-muted-foreground">
                           {formatDate(lead.date_added || lead.created_at)}
                         </span>
                       </td>
-                      {isPropertyMode ? (
-                        <td className="py-3">
-                          <span className="text-xs text-muted-foreground">
-                            {lead.ai_next_action || 'Contact to confirm interest'}
-                          </span>
-                        </td>
-                      ) : (
+                      {/* Required By (finance only) */}
+                      {!isPropertyMode && (
                         <td className="py-3">
                           <div className="flex items-center gap-1 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3" />

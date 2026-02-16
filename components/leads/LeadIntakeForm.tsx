@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Plus, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { calculateNBScore } from '@/lib/scoring/nb-score'
 import { NBScoreRing } from '@/components/ui/nb-score-ring'
+import { useAuth } from '@/contexts/AuthContext'
+import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 
 interface LeadIntakeFormProps {
   onCreated?: () => void
@@ -18,6 +20,31 @@ export function LeadIntakeForm({ onCreated }: LeadIntakeFormProps) {
   const [state, setState] = useState<FormState>('idle')
   const [error, setError] = useState('')
   const [result, setResult] = useState<{ quality: number; intent: number; classification: string } | null>(null)
+  const { user } = useAuth()
+
+  // Developments dropdown data
+  const [developments, setDevelopments] = useState<{ id: string; name: string }[]>([])
+  const [isLoadingDevs, setIsLoadingDevs] = useState(false)
+
+  useEffect(() => {
+    const fetchDevelopments = async () => {
+      const companyId = user?.company_id
+      if (!isSupabaseConfigured() || !companyId) return
+      setIsLoadingDevs(true)
+      try {
+        const supabase = createClient()
+        if (!supabase) return
+        const { data } = await supabase
+          .from('developments')
+          .select('id, name')
+          .eq('company_id', companyId)
+          .order('name')
+        if (data) setDevelopments(data.map((d: any) => ({ id: d.id, name: d.name || 'Unnamed' })))
+      } catch { /* ignore */ }
+      finally { setIsLoadingDevs(false) }
+    }
+    if (open) fetchDevelopments()
+  }, [open, user?.company_id])
 
   const [form, setForm] = useState({
     full_name: '',
@@ -31,7 +58,7 @@ export function LeadIntakeForm({ onCreated }: LeadIntakeFormProps) {
     timeline: '',
     purpose: '',
     source: '',
-    development_name: '',
+    development_id: '',
   })
 
   const update = (field: string, value: string) => {
@@ -42,7 +69,7 @@ export function LeadIntakeForm({ onCreated }: LeadIntakeFormProps) {
     setForm({
       full_name: '', email: '', phone: '', country: '',
       budget_range: '', payment_method: '', bedrooms: '',
-      location: '', timeline: '', purpose: '', source: '', development_name: '',
+      location: '', timeline: '', purpose: '', source: '', development_id: '',
     })
     setState('idle')
     setResult(null)
@@ -55,13 +82,20 @@ export function LeadIntakeForm({ onCreated }: LeadIntakeFormProps) {
     setError('')
 
     try {
+      // Resolve development_name from selected development_id
+      const selectedDev = developments.find(d => d.id === form.development_id)
+      const payload: Record<string, any> = {
+        ...form,
+        bedrooms: form.bedrooms ? parseInt(form.bedrooms) : undefined,
+        development_name: selectedDev?.name || undefined,
+      }
+      // Remove development_id from payload if empty
+      if (!payload.development_id) delete payload.development_id
+
       const res = await fetch('/api/leads', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...form,
-          bedrooms: form.bedrooms ? parseInt(form.bedrooms) : undefined,
-        }),
+        body: JSON.stringify(payload),
       })
 
       const data = await res.json()
@@ -289,13 +323,21 @@ export function LeadIntakeForm({ onCreated }: LeadIntakeFormProps) {
 
             {/* Development */}
             <div>
-              <label className={labelClass}>Development Name</label>
-              <Input
-                placeholder="e.g. River Park Tower"
-                value={form.development_name}
-                onChange={e => update('development_name', e.target.value)}
-                className={inputClass}
-              />
+              <label className={labelClass}>Development</label>
+              <select
+                value={form.development_id}
+                onChange={e => update('development_id', e.target.value)}
+                className="w-full h-9 px-3 bg-background border border-border rounded-md text-sm"
+                disabled={isLoadingDevs}
+              >
+                <option value="">Select development (optional)</option>
+                {developments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+                {developments.length === 0 && !isLoadingDevs && (
+                  <option disabled>No developments found</option>
+                )}
+              </select>
             </div>
 
             {/* Error */}
