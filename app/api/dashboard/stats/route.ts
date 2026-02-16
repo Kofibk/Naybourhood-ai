@@ -35,11 +35,11 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  if (!userProfile?.company_id) {
-    return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-  }
-
   const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+
+  if (!userProfile?.company_id && !isAdmin) {
+    return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
+  }
 
   const userType = searchParams.get('user_type') || 'developer'
 

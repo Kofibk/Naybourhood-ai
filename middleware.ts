@@ -20,7 +20,6 @@ const FEATURE_ROUTE_MAP: Record<string, string[]> = {
   ai_insights: ['/admin/ai-insights', '/developer/ai-insights'],
   billing: ['/admin/billing'],
   team_management: ['/admin/users', '/admin/team'],
-  settings: ['/admin/settings', '/developer/settings', '/agent/settings', '/broker/settings'],
 }
 
 export async function middleware(request: NextRequest) {
@@ -136,7 +135,7 @@ export async function middleware(request: NextRequest) {
 
     // Check feature-based access for the current route
     const company = profile?.company as unknown as { enabled_features: string[] } | null
-    const enabledFeatures = company?.enabled_features || ['leads', 'campaigns', 'developments', 'conversations']
+    const enabledFeatures = company?.enabled_features || ['leads', 'campaigns', 'developments', 'conversations', 'settings']
 
     for (const [feature, routes] of Object.entries(FEATURE_ROUTE_MAP)) {
       if (routes.some(route => pathname.startsWith(route))) {

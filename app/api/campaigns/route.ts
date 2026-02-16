@@ -24,15 +24,17 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  // Get user's company_id
+  // Get user's company_id and role
   const { data: userProfile } = await supabase
     .from('user_profiles')
-    .select('company_id, is_internal_team')
+    .select('company_id, is_internal_team, user_type')
     .eq('id', user.id)
     .single()
 
-  if (!userProfile?.company_id) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+
+  if (!userProfile?.company_id && !isAdmin) {
+    return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
   }
 
   // Paginate server-side so client makes only 1 request
@@ -42,10 +44,16 @@ export async function GET() {
   let hasMore = true
 
   while (hasMore) {
-    const { data, error } = await supabase
+    let query = supabase
       .from('campaigns')
       .select(SELECT_COLUMNS)
-      .eq('company_id', userProfile.company_id)
+
+    // Admin/internal users see all campaigns; others filtered by company
+    if (!isAdmin && userProfile?.company_id) {
+      query = query.eq('company_id', userProfile.company_id)
+    }
+
+    const { data, error } = await query
       .range(from, from + batchSize - 1)
 
     if (error) {

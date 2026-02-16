@@ -1,11 +1,12 @@
 'use client'
 
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { useDevelopments } from '@/hooks/useDevelopments'
+import { useAuth } from '@/contexts/AuthContext'
 import { formatPriceRange } from '@/lib/utils'
 import {
   Search,
@@ -22,20 +23,12 @@ import Image from 'next/image'
 
 export default function DeveloperDevelopmentsPage() {
   const { developments, isLoading, refreshDevelopments } = useDevelopments()
+  const { user } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [companyId, setCompanyId] = useState<string | undefined>()
 
-  // Get company_id from localStorage
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem('naybourhood_user')
-      if (stored) {
-        const user = JSON.parse(stored)
-        setCompanyId(user.company_id)
-      }
-    } catch { /* ignore */ }
-  }, [])
+  // Use company_id from AuthContext (DB source of truth)
+  const companyId = user?.company_id
 
   // Filter developments by company and search
   const filteredDevelopments = useMemo(() => {

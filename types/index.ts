@@ -50,7 +50,7 @@ export const FEATURE_ROUTES: Record<Feature, string[]> = {
   ai_insights: ['/admin/ai-insights', '/developer/ai-insights'],
   billing: ['/admin/billing'],
   team_management: ['/admin/users', '/admin/team'],
-  settings: ['/admin/settings', '/developer/settings', '/agent/settings', '/broker/settings'],
+  settings: [], // Settings routes are always accessible - not feature-gated
 }
 
 // Permission object for a feature

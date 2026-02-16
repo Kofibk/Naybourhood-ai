@@ -88,6 +88,10 @@ async function fetchLeads(): Promise<Buyer[]> {
   const supabase = createClient()
   if (!supabase) return []
 
+  // Ensure we have an authenticated session before querying (RLS requires it)
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) return []
+
   let allBuyers: any[] = []
   let from = 0
   const batchSize = 1000

@@ -50,13 +50,13 @@ const config = {
 
 export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
   const { leads, isLoading } = useLeads()
-  const { user } = useAuth()
+  const { user, isLoading: authLoading } = useAuth()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const cfg = config[userType]
 
   const myLeads = useMemo(() => {
-    if (!user?.company_id) return []
+    if (!user?.company_id) return leads // Already filtered server-side by RLS
     return leads.filter(lead => lead.company_id === user.company_id)
   }, [leads, user?.company_id])
 
@@ -84,7 +84,7 @@ export function BuyerCardGrid({ userType }: BuyerCardGridProps) {
     return `${myLeads.length} clients \u2022 ${approved} approved`
   }, [myLeads, filteredLeads.length, userType])
 
-  if (!user?.company_id) {
+  if (!authLoading && !user?.company_id) {
     return (
       <div className="space-y-6">
         <div>

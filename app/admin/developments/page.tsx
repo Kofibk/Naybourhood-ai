@@ -76,34 +76,12 @@ export default function DevelopmentsPage() {
 
   // Calculate totals from development data only
   const totals = useMemo(() => {
-    // DEBUG: Log what we're receiving
-    console.log('[DEBUG] [DevelopmentsPage] Received developments:', developments.length)
-    console.log('[DEBUG] [DevelopmentsPage] Sample developments (first 5):', developments.slice(0, 5).map(d => ({
-      id: d.id,
-      name: d.name,
-      total_units: d.total_units,
-      units: d.units,
-      available_units: d.available_units,
-      typeof_total_units: typeof d.total_units,
-      typeof_units: typeof d.units,
-      typeof_available_units: typeof d.available_units,
-    })))
-    
     // Only count units from developments that have unit data
     const devsWithUnits = developments.filter(d => d.total_units || d.units)
     const totalUnits = devsWithUnits.reduce((sum, d) => sum + (d.total_units || d.units || 0), 0)
     const devsWithAvailable = developments.filter(d => d.available_units !== undefined && d.available_units !== null)
     const availableUnits = devsWithAvailable.reduce((sum, d) => sum + (d.available_units || 0), 0)
     const soldUnits = totalUnits - availableUnits
-
-    // DEBUG: Log computed values
-    console.log('[DEBUG] [DevelopmentsPage] Computed totals:', {
-      devsWithUnits: devsWithUnits.length,
-      devsWithAvailable: devsWithAvailable.length,
-      totalUnits,
-      availableUnits,
-      soldUnits,
-    })
 
     return {
       developments: developments.length,

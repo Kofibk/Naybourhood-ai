@@ -70,31 +70,33 @@ function LoginPageInner() {
         const supabase = createClient()
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
-          // Update user status to 'active' since they're logged in
-          await supabase
+          // Fire-and-forget: update user status (don't block redirect)
+          supabase
             .from('user_profiles')
             .update({ membership_status: 'active' })
             .eq('id', user.id)
+            .then(() => {})
+            .catch(() => {})
 
-          // Check onboarding status
+          // Fetch profile for role/onboarding check
           const { data: profile } = await supabase
             .from('user_profiles')
-            .select('*')
+            .select('user_type, first_name, last_name, company_id, onboarding_completed')
             .eq('id', user.id)
             .single()
 
-          if (!profile?.onboarding_completed) {
+          // Determine role - master admin override takes priority
+          let role = profile?.user_type || 'developer'
+          if (isMasterAdmin(user.email)) {
+            role = 'admin'
+          }
+
+          // Only redirect to onboarding if profile exists AND onboarding not completed
+          if (profile && !profile.onboarding_completed) {
             router.push('/onboarding')
+            router.refresh()
           } else {
-            // Save user to localStorage before redirecting
-            let role = profile.user_type || 'developer'
-
-            // Master admin email override (using centralized auth config)
-            if (isMasterAdmin(user.email)) {
-              role = 'admin'
-            }
-
-            const fullName = profile.first_name
+            const fullName = profile?.first_name
               ? `${profile.first_name} ${profile.last_name || ''}`.trim()
               : user.email?.split('@')[0] || 'User'
 
@@ -103,10 +105,11 @@ function LoginPageInner() {
               email: user.email,
               name: fullName,
               role: role,
-              company_id: profile.company_id,
+              company_id: profile?.company_id,
             }))
 
             redirectBasedOnRole(role)
+            router.refresh()
           }
         }
       }
@@ -227,31 +230,38 @@ function LoginPageInner() {
               setError(error.message)
             }
           } else if (data.user) {
-            // Update user status to 'active' on successful login
-            await supabase
+            // Fire-and-forget: update user status (don't block login on this)
+            supabase
               .from('user_profiles')
               .update({ membership_status: 'active' })
               .eq('id', data.user.id)
+              .then(() => {})
+              .catch(() => {})
 
-            // Check onboarding status
-            const { data: profile } = await supabase
+            // Fetch profile for role/onboarding check (only needed columns)
+            const { data: profile, error: profileError } = await supabase
               .from('user_profiles')
-              .select('*')
+              .select('user_type, first_name, last_name, company_id, onboarding_completed')
               .eq('id', data.user.id)
               .single()
 
-            if (!profile?.onboarding_completed) {
+            if (profileError) {
+              console.error('[Login] Profile fetch error:', profileError)
+            }
+
+            // Determine role - master admin override takes priority
+            let role = profile?.user_type || 'developer'
+            if (isMasterAdmin(data.user.email)) {
+              role = 'admin'
+            }
+
+            // Only redirect to onboarding if profile exists AND onboarding not completed
+            // If profile is null (fetch failed), proceed to dashboard - AuthContext will handle
+            if (profile && !profile.onboarding_completed) {
               router.push('/onboarding')
+              router.refresh()
             } else {
-              // Save user to localStorage before redirecting
-              let role = profile.user_type || 'developer'
-
-              // Master admin email override (using centralized auth config)
-              if (isMasterAdmin(data.user.email)) {
-                role = 'admin'
-              }
-
-              const fullName = profile.first_name
+              const fullName = profile?.first_name
                 ? `${profile.first_name} ${profile.last_name || ''}`.trim()
                 : data.user.email?.split('@')[0] || 'User'
 
@@ -260,10 +270,11 @@ function LoginPageInner() {
                 email: data.user.email,
                 name: fullName,
                 role: role,
-                company_id: profile.company_id,
+                company_id: profile?.company_id,
               }))
 
               redirectBasedOnRole(role)
+              router.refresh()
             }
           }
         }

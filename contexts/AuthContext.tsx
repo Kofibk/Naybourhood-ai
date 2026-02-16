@@ -99,17 +99,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (session?.user && !error) {
             const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
             if (appUser) {
-              // Preserve company_id from localStorage if DB didn't return one
-              const stored = localStorage.getItem('naybourhood_user')
-              if (stored && !appUser.company_id) {
-                try {
-                  const storedUser = JSON.parse(stored)
-                  if (storedUser.company_id) {
-                    appUser.company_id = storedUser.company_id
-                    appUser.company = storedUser.company
-                  }
-                } catch { /* ignore parse errors */ }
-              }
+              // Always use DB as source of truth for company_id
+              // Do NOT fall back to localStorage - it may contain stale data
               setUser(appUser)
               localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
             }
@@ -136,6 +127,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 if (appUser) {
                   setUser(appUser)
                   localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+                  router.refresh()
                 }
               } else if (event === 'SIGNED_OUT') {
                 setUser(null)
@@ -206,6 +198,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             setUser(appUser)
             localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
             setIsLoading(false)
+            router.refresh()
             return true
           }
         }
@@ -225,6 +218,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     localStorage.removeItem('naybourhood_user')
     router.push('/login')
+    router.refresh()
 
     // Fire-and-forget Supabase session cleanup
     if (isSupabaseConfigured()) {
