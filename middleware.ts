@@ -69,6 +69,11 @@ export async function middleware(request: NextRequest) {
   // Check if route is protected
   const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route))
 
+  // Allow protected routes when Supabase is not configured (demo/local mode)
+  if (isProtectedRoute && (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)) {
+    return NextResponse.next()
+  }
+
   if (isProtectedRoute && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
     let response = NextResponse.next({
       request: {
