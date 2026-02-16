@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useMemo, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import Papa from 'papaparse'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -124,6 +124,8 @@ const STEPS: { key: Step; label: string; icon: React.ElementType }[] = [
 
 export default function CSVImportPage() {
   const router = useRouter()
+  const pathname = usePathname()
+  const buyersPath = (pathname.split('/buyers')[0] || '/developer') + '/buyers'
   const { user } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -372,7 +374,7 @@ export default function CSVImportPage() {
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => router.push('/developer/buyers')}
+          onClick={() => router.push(buyersPath)}
           className="text-white/60 hover:text-white hover:bg-white/10"
         >
           <ArrowLeft className="h-5 w-5" />
@@ -801,7 +803,7 @@ export default function CSVImportPage() {
 
             <div className="flex flex-col sm:flex-row items-center gap-3 pt-2">
               <Button
-                onClick={() => router.push('/developer/buyers')}
+                onClick={() => router.push(buyersPath)}
                 className="w-full sm:w-auto bg-[#34D399] hover:bg-[#34D399]/80 text-black font-medium"
               >
                 <Users className="h-4 w-4 mr-2" />

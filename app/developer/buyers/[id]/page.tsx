@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -139,6 +139,8 @@ function DataRow({ label, value, icon: Icon }: { label: string; value: React.Rea
 export default function DeveloperLeadDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const pathname = usePathname()
+  const buyersPath = (pathname.split('/buyers/')[0] || '/developer') + '/buyers'
   const { leads, isLoading, updateLead, refreshLeads } = useLeads()
 
   const [isRescoring, setIsRescoring] = useState(false)
@@ -255,13 +257,13 @@ export default function DeveloperLeadDetailPage() {
   if (!lead) {
     return (
       <div className="space-y-6">
-        <Link href="/developer/buyers" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+        <Link href={buyersPath} className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
           <ArrowLeft className="w-4 h-4" /> Back to Leads
         </Link>
         <Card>
           <CardContent className="py-12 text-center">
             <h3 className="text-lg font-medium mb-2">Lead not found</h3>
-            <Button onClick={() => router.push('/developer/buyers')}>Back to Leads</Button>
+            <Button onClick={() => router.push(buyersPath)}>Back to Leads</Button>
           </CardContent>
         </Card>
       </div>
@@ -281,7 +283,7 @@ export default function DeveloperLeadDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <Link href="/developer/buyers" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-2">
+          <Link href={buyersPath} className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-2">
             <ArrowLeft className="w-4 h-4" /> Back to Leads
           </Link>
           <h1 className="text-2xl font-bold flex items-center gap-2">

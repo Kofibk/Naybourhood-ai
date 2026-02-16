@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -144,6 +144,8 @@ interface ScoreResult {
 
 export function AddBuyerForm() {
   const router = useRouter()
+  const pathname = usePathname()
+  const buyersPath = (pathname.split('/buyers')[0] || '/developer') + '/buyers'
   const { user } = useAuth()
 
   // Form state
@@ -447,7 +449,7 @@ export function AddBuyerForm() {
       <div className="max-w-2xl mx-auto space-y-6">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/developer/buyers')}>
+          <Button variant="ghost" size="icon" onClick={() => router.push(buyersPath)}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div>
@@ -593,7 +595,7 @@ export function AddBuyerForm() {
             Add Another Buyer
           </Button>
           <Button
-            onClick={() => router.push(`/developer/buyers/${scoreResult.buyerId}`)}
+            onClick={() => router.push(`${buyersPath}/${scoreResult.buyerId}`)}
             variant="success"
             className="flex-1"
           >
@@ -611,7 +613,7 @@ export function AddBuyerForm() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
-        <Button variant="ghost" size="icon" onClick={() => router.push('/developer/buyers')}>
+        <Button variant="ghost" size="icon" onClick={() => router.push(buyersPath)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
