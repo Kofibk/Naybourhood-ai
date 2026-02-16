@@ -8,6 +8,8 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isMasterAdmin, canAccessDashboard } from '@/lib/auth'
 import { Toaster } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { UserPlus } from 'lucide-react'
 
 function DeveloperLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth()
@@ -145,6 +147,16 @@ function DeveloperLayoutContent({ children }: { children: React.ReactNode }) {
           userName={currentUser.name}
           userEmail={currentUser.email}
           onLogout={handleLogout}
+          headerAction={
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => router.push('/developer/buyers/new')}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Buyer
+            </Button>
+          }
         >
           {children}
         </DashboardLayout>

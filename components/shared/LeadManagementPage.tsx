@@ -20,7 +20,7 @@ import {
   Search, Phone, Mail, MessageCircle, Eye, Flame, Users,
   ChevronRight, Target, TrendingUp, CheckCircle, Clock,
   ArrowUp, ArrowDown, Archive, Copy, AlertTriangle, Settings2,
-  FileText, Calendar, PoundSterling, RefreshCw,
+  FileText, Calendar, PoundSterling, RefreshCw, UserPlus,
 } from 'lucide-react'
 import { LeadIntakeForm } from '@/components/leads/LeadIntakeForm'
 
@@ -379,6 +379,16 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {isPropertyMode && (
+            <Button
+              variant="success"
+              size="sm"
+              onClick={() => router.push('/developer/buyers/new')}
+            >
+              <UserPlus className="h-4 w-4 mr-2" />
+              Add Buyer
+            </Button>
+          )}
           {isPropertyMode && <LeadIntakeForm />}
           {!isPropertyMode && (
             <Button
