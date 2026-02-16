@@ -146,7 +146,7 @@ export function usePermissions(): UsePermissionsResult {
       setPermissions({
         role,
         companyId: user.company_id || null,
-        enabledFeatures: ['leads', 'campaigns', 'developments', 'conversations'],
+        enabledFeatures: ['leads', 'campaigns', 'developments', 'conversations', 'settings'],
         permissions: DEFAULT_ROLE_PERMISSIONS[role],
         isInternalTeam: false,
         isMasterAdmin: false,
