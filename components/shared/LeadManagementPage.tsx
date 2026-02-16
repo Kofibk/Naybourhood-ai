@@ -332,9 +332,41 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
   const getLeadName = (lead: any) =>
     lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'
 
-  // Loading states
-  if (!isReady) {
-    return <LoadingState text="Loading leads..." className="h-64" />
+  // Loading states — show skeleton loaders instead of blank screen
+  if (!isReady || isLoading) {
+    return (
+      <div className="space-y-6">
+        <div>
+          <div className="h-7 w-48 bg-white/10 rounded animate-pulse" />
+          <div className="h-4 w-64 bg-white/5 rounded animate-pulse mt-2" />
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
+          {Array.from({ length: 7 }).map((_, i) => (
+            <div key={i} className="bg-[#111111] border border-white/10 rounded-xl p-3">
+              <div className="animate-pulse">
+                <div className="h-3 w-16 bg-white/10 rounded mb-2" />
+                <div className="h-7 w-10 bg-white/10 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-[#111111] border border-white/10 rounded-xl p-4">
+              <div className="animate-pulse flex items-center gap-4">
+                <div className="h-10 w-10 bg-white/10 rounded-full flex-shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-36 bg-white/10 rounded" />
+                  <div className="h-3 w-48 bg-white/5 rounded" />
+                </div>
+                <div className="h-6 w-20 bg-white/10 rounded-full" />
+                <div className="h-8 w-16 bg-white/10 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
   }
 
   // No company state
@@ -412,7 +444,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
 
       {/* Conversion Funnel Stats */}
       {isPropertyMode ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
           <Card className="p-3">
             <div className="text-xs text-muted-foreground">Total Leads</div>
             <div className="text-2xl font-bold">{(stats as any).total}</div>

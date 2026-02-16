@@ -27,6 +27,7 @@ import {
   Shield,
   Briefcase,
   HardHat,
+  FileSpreadsheet,
 } from 'lucide-react'
 import { useState, useMemo, useCallback } from 'react'
 import { usePermissions } from '@/hooks/useCanAccess'
@@ -39,6 +40,7 @@ interface NavItem {
   href: string
   badge?: number
   feature?: Feature  // Feature required for this nav item
+  subItems?: { name: string; icon: React.ElementType; href: string }[]
 }
 
 export type UserType = 'admin' | 'developer' | 'agent' | 'broker'
@@ -118,7 +120,15 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
     return [
       { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
       { name: 'Developments', icon: Home, href: `${basePath}/developments`, feature: 'developments' },
-      { name: 'Buyers', icon: Users, href: `${basePath}/buyers`, feature: 'leads' },
+      {
+        name: 'Buyers',
+        icon: Users,
+        href: `${basePath}/buyers`,
+        feature: 'leads',
+        subItems: [
+          { name: 'CSV Import', icon: FileSpreadsheet, href: `${basePath}/buyers/import` },
+        ],
+      },
       { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
       { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
       { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
@@ -133,6 +143,8 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
   }, [getNavItems, canAccessFeature])
 
   const isActive = (href: string) => pathname === href
+  const isActiveParent = (item: NavItem) =>
+    pathname === item.href || (item.subItems?.some(sub => pathname === sub.href) ?? false)
 
   // Quick Access dashboards for admins
   const quickAccessDashboards = [
@@ -178,6 +190,32 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
                   </Badge>
                 )}
               </Link>
+              {/* Sub-items */}
+              {item.subItems && isActiveParent(item) && (
+                <ul className="ml-8 mt-1 space-y-0.5">
+                  {item.subItems.map((sub) => (
+                    <li key={sub.name}>
+                      <Link
+                        href={sub.href}
+                        onClick={() => setMobileOpen(false)}
+                        aria-current={isActive(sub.href) ? 'page' : undefined}
+                        className={cn(
+                          'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200',
+                          isActive(sub.href)
+                            ? 'bg-[#34D399]/10 text-[#34D399]'
+                            : 'text-white/50 hover:bg-white/5 hover:text-white/70'
+                        )}
+                      >
+                        <sub.icon className={cn(
+                          'h-3.5 w-3.5 flex-shrink-0',
+                          isActive(sub.href) ? 'text-[#34D399]' : 'text-white/40'
+                        )} aria-hidden="true" />
+                        <span className="truncate">{sub.name}</span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </li>
           ))}
         </ul>

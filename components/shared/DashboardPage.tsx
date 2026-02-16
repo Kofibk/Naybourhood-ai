@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { UserDashboard } from '@/components/UserDashboard'
+import { WelcomeOnboarding } from '@/components/onboarding/WelcomeOnboarding'
 import { LoadingState } from '@/components/ui/loading-state'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
@@ -23,6 +24,8 @@ export function DashboardPage({ userType }: DashboardPageProps) {
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [userName, setUserName] = useState<string>(defaultNames[userType])
   const [isReady, setIsReady] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingChecked, setOnboardingChecked] = useState(false)
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -38,18 +41,15 @@ export function DashboardPage({ userType }: DashboardPageProps) {
 
       if (!currentUser?.id) {
         setIsReady(true)
+        setOnboardingChecked(true)
         return
       }
 
       setUserName(currentUser.name?.split(' ')[0] || defaultNames[userType])
 
-      if (currentUser.company_id) {
-        setCompanyId(currentUser.company_id)
-        setIsReady(true)
-        return
-      }
+      let resolvedCompanyId = currentUser.company_id
 
-      if (isSupabaseConfigured()) {
+      if (!resolvedCompanyId && isSupabaseConfigured()) {
         const supabase = createClient()
         const { data: profile } = await supabase
           .from('user_profiles')
@@ -58,18 +58,56 @@ export function DashboardPage({ userType }: DashboardPageProps) {
           .single()
 
         if (profile?.company_id) {
-          setCompanyId(profile.company_id)
+          resolvedCompanyId = profile.company_id
+        }
+      }
+
+      if (resolvedCompanyId) {
+        setCompanyId(resolvedCompanyId)
+
+        // Check if user skipped onboarding this session
+        const skipped = sessionStorage.getItem('naybourhood_skip_onboarding')
+        if (!skipped && isSupabaseConfigured()) {
+          try {
+            const supabase = createClient()
+            const { count: buyerCount } = await supabase
+              .from('buyers')
+              .select('id', { count: 'exact', head: true })
+              .eq('company_id', resolvedCompanyId)
+
+            const { count: devCount } = await supabase
+              .from('developments')
+              .select('id', { count: 'exact', head: true })
+              .eq('company_id', resolvedCompanyId)
+
+            if ((buyerCount ?? 0) === 0 && (devCount ?? 0) === 0) {
+              setShowOnboarding(true)
+            }
+          } catch (err) {
+            console.error('Error checking onboarding status:', err)
+          }
         }
       }
 
       setIsReady(true)
+      setOnboardingChecked(true)
     }
 
     initializeDashboard()
   }, [user, userType])
 
-  if (!isReady) {
+  if (!isReady || !onboardingChecked) {
     return <LoadingState text="Loading dashboard..." className="h-64" />
+  }
+
+  if (showOnboarding && companyId) {
+    return (
+      <WelcomeOnboarding
+        companyId={companyId}
+        userName={userName}
+        userType={userType}
+      />
+    )
   }
 
   return <UserDashboard userType={userType} userName={userName} companyId={companyId} />

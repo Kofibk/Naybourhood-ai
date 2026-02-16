@@ -181,9 +181,22 @@ export default function DeveloperDevelopmentsPage() {
       {/* Developments Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading && filteredDevelopments.length === 0 ? (
-          <div className="col-span-full text-center py-12 text-white/40">
-            Loading developments...
-          </div>
+          <>
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden">
+                <div className="h-40 bg-white/5 animate-pulse" />
+                <div className="p-4 space-y-3 animate-pulse">
+                  <div className="h-5 w-3/4 bg-white/10 rounded" />
+                  <div className="h-3 w-1/2 bg-white/5 rounded" />
+                  <div className="grid grid-cols-3 gap-2 pt-2">
+                    <div className="h-8 bg-white/5 rounded" />
+                    <div className="h-8 bg-white/5 rounded" />
+                    <div className="h-8 bg-white/5 rounded" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </>
         ) : filteredDevelopments.length === 0 ? (
           <div className="col-span-full text-center py-12 text-white/40">
             {developments.length === 0
