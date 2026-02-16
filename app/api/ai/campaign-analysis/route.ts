@@ -16,6 +16,12 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient()
 
+    // Authentication check
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     // Fetch campaign data
     const { data: campaign, error: campaignError } = await supabase
       .from('campaigns')
@@ -166,6 +172,12 @@ export async function POST(request: NextRequest) {
 export async function GET() {
   try {
     const supabase = createClient()
+
+    // Authentication check
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
 
     const { data: campaigns, error } = await supabase
       .from('campaigns')
