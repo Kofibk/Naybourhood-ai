@@ -671,8 +671,8 @@ export default function DevelopmentDetailPage() {
                         <p className="text-xs text-muted-foreground">Score</p>
                       </div>
                     )}
-                    <Badge variant={lead.status === 'New' ? 'warning' : 'secondary'}>
-                      {lead.status || 'New'}
+                    <Badge variant={lead.status === 'Contact Pending' ? 'warning' : 'secondary'}>
+                      {lead.status || 'Contact Pending'}
                     </Badge>
                   </div>
                 </div>

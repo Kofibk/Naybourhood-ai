@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
     healthScore += (avgScore - 50) * 0.4
 
     // Conversion rate component (+/- 15)
-    const viewingsBooked = buyersList.filter(b => b.status === 'Viewing Booked' || b.status === 'Offer Made').length
+    const viewingsBooked = buyersList.filter(b => b.status === 'Viewing Booked' || b.status === 'Negotiating').length
     const conversionRate = buyersList.length > 0 ? viewingsBooked / buyersList.length : 0
     if (conversionRate > 0.1) healthScore += 15
     else if (conversionRate < 0.03 && buyersList.length > 10) healthScore -= 15

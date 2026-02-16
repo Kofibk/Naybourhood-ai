@@ -24,6 +24,7 @@ const STATUS_OPTIONS = [
   'Exchanged',
   'Completed',
   'Not Proceeding',
+  'Disqualified',
 ]
 
 const getClassificationColor = (classification: string | undefined) => {

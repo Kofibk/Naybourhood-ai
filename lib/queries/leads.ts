@@ -25,7 +25,8 @@ export function transformBuyerToLead(buyer: Record<string, unknown>): Lead {
     'Exchanged': 'Exchanged',
     'Completed': 'Completed',
     'Not Proceeding': 'Not Proceeding',
-    'Duplicate': 'Duplicate',
+    'Disqualified': 'Disqualified',
+    'Duplicate': 'Disqualified',
     'Follow Up': 'Follow Up',
     'Contact Pending': 'Contact Pending',
   }
@@ -318,7 +319,7 @@ export async function fetchStaleLeads(daysThreshold: number = 5): Promise<Lead[]
   const { data, error } = await supabase
     .from('buyers')
     .select('*')
-    .in('status', ['Follow Up', 'Contacted', 'Qualified'])
+    .in('status', ['Follow Up', 'Contact Pending'])
     .lt('updated_at', thresholdDate.toISOString())
     .order('updated_at', { ascending: true })
 

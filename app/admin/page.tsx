@@ -262,18 +262,18 @@ export default function AdminDashboard() {
     const activeLeads = leads.filter(l => !STATUS_CATEGORIES.disqualified.includes(l.status || ''))
     const total = activeLeads.length
     const contacted = activeLeads.filter(l => l.status && l.status !== 'Contact Pending').length
-    const interested = activeLeads.filter(l => ['Interested', 'Follow Up', 'Viewing Booked', 'Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
-    const viewing = activeLeads.filter(l => ['Viewing Booked', 'Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
-    const offer = activeLeads.filter(l => ['Offer Made', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const interested = activeLeads.filter(l => ['Follow Up', 'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const viewing = activeLeads.filter(l => ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
+    const offer = activeLeads.filter(l => ['Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
     const reserved = activeLeads.filter(l => ['Reserved', 'Exchanged', 'Completed'].includes(l.status || '')).length
     const completed = activeLeads.filter(l => l.status === 'Completed').length
 
     return [
       { name: 'Total', value: total, color: '#ffffff' },
-      { name: 'Contacted', value: contacted, color: '#3b82f6' },
-      { name: 'Interested', value: interested, color: '#f59e0b' },
+      { name: 'Follow Up', value: contacted, color: '#3b82f6' },
+      { name: 'Engaged', value: interested, color: '#f59e0b' },
       { name: 'Viewing', value: viewing, color: '#a855f7' },
-      { name: 'Offer Made', value: offer, color: '#22c55e' },
+      { name: 'Negotiating', value: offer, color: '#22c55e' },
       { name: 'Reserved', value: reserved, color: '#10b981' },
     ]
   }, [leads])

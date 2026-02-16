@@ -36,7 +36,7 @@ function mapBuyerRow(b: any): Buyer {
     development_id: b.development_id,
     development_name: b.development_name || b.development || b['Development'] || b['development'],
     company_id: b.company_id,
-    status: b.status || b['Status'] || 'New',
+    status: b.status || b['Status'] || 'Contact Pending',
     // Scores - use ?? to preserve 0 values, null means unscored
     quality_score: b.quality_score ?? b.ai_quality_score ?? b['Quality Score'] ?? b['quality score'] ?? null,
     intent_score: b.intent_score ?? b.ai_intent_score ?? b['Intent Score'] ?? b['intent score'] ?? null,

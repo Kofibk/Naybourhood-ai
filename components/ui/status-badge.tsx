@@ -16,7 +16,6 @@ const statusVariantMap: Record<string, StatusVariant> = {
   'Completed': 'success',
   'Not Proceeding': 'destructive',
   'Disqualified': 'muted',
-  'Duplicate': 'muted',
   // Generic statuses
   'active': 'success',
   'inactive': 'muted',

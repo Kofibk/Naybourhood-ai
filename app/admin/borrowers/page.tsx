@@ -87,7 +87,7 @@ const FILTER_FIELDS: FilterField[] = [
   { key: 'loan_amount', label: 'Loan Amount', type: 'currency' },
   { key: 'required_by_date', label: 'Required By', type: 'date' },
   { key: 'message', label: 'Message', type: 'text' },
-  { key: 'status', label: 'Status', type: 'select', options: ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed'] },
+  { key: 'status', label: 'Status', type: 'select', options: ['Contact Pending', 'Follow Up', 'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed', 'Not Proceeding', 'Disqualified'] },
   { key: 'notes', label: 'Notes', type: 'text' },
   { key: 'assigned_agent', label: 'Assigned Agent', type: 'text' },
   { key: 'date_added', label: 'Date Added', type: 'date' },
@@ -437,9 +437,9 @@ export default function FinanceLeadsPage() {
       total: financeLeads.length,
       filtered: filteredLeads.length,
       contactPending: financeLeads.filter((l) => l.status === 'Contact Pending').length,
-      followUp: financeLeads.filter((l) => l.status === 'Follow-up').length,
-      awaitingDocs: financeLeads.filter((l) => l.status === 'Awaiting Documents').length,
-      notProceeding: financeLeads.filter((l) => l.status === 'Not Proceeding' || l.status === 'Duplicate').length,
+      followUp: financeLeads.filter((l) => l.status === 'Follow Up').length,
+      awaitingDocs: financeLeads.filter((l) => l.status === 'Viewing Booked' || l.status === 'Negotiating').length,
+      notProceeding: financeLeads.filter((l) => l.status === 'Not Proceeding' || l.status === 'Disqualified').length,
     }
   }, [financeLeads, filteredLeads])
 
@@ -461,11 +461,14 @@ export default function FinanceLeadsPage() {
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'Contact Pending': return 'warning'
-      case 'Follow-up': return 'default'
-      case 'Awaiting Documents': return 'secondary'
-      case 'Not Proceeding': return 'destructive'
-      case 'Duplicate': return 'muted'
+      case 'Follow Up': return 'default'
+      case 'Viewing Booked': return 'secondary'
+      case 'Negotiating': return 'warning'
+      case 'Reserved':
+      case 'Exchanged':
       case 'Completed': return 'success'
+      case 'Not Proceeding': return 'destructive'
+      case 'Disqualified': return 'muted'
       default: return 'outline'
     }
   }

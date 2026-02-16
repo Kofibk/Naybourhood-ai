@@ -52,7 +52,7 @@ export default function AnalyticsPage() {
 
     // Status breakdown
     const statusCounts = leads.reduce((acc, l) => {
-      const status = l.status || 'New'
+      const status = l.status || 'Contact Pending'
       acc[status] = (acc[status] || 0) + 1
       return acc
     }, {} as Record<string, number>)
@@ -114,10 +114,10 @@ export default function AnalyticsPage() {
     // Conversion funnel
     const funnel = {
       total: leads.length,
-      contacted: leads.filter(l => l.status !== 'New').length,
-      qualified: leads.filter(l => l.status === 'Qualified' || l.status === 'Viewing Booked').length,
+      contacted: leads.filter(l => l.status !== 'Contact Pending').length,
+      qualified: leads.filter(l => l.status === 'Viewing Booked' || l.status === 'Negotiating').length,
       viewing: leads.filter(l => l.status === 'Viewing Booked').length,
-      offer: leads.filter(l => l.status === 'Offer Made' || l.status === 'Completed').length,
+      offer: leads.filter(l => l.status === 'Negotiating' || l.status === 'Reserved' || l.status === 'Exchanged' || l.status === 'Completed').length,
       completed: leads.filter(l => l.status === 'Completed').length,
     }
 
@@ -328,10 +328,10 @@ export default function AnalyticsPage() {
           <CardContent className="space-y-3">
             {[
               { label: 'Total Leads', value: analytics.funnel.total, color: '#ffffff' },
-              { label: 'Contacted', value: analytics.funnel.contacted, color: '#3b82f6' },
-              { label: 'Qualified', value: analytics.funnel.qualified, color: '#22c55e' },
-              { label: 'Viewing Booked', value: analytics.funnel.viewing, color: '#f59e0b' },
-              { label: 'Offer Made', value: analytics.funnel.offer, color: '#a855f7' },
+              { label: 'Follow Up', value: analytics.funnel.contacted, color: '#3b82f6' },
+              { label: 'Viewing Booked', value: analytics.funnel.qualified, color: '#22c55e' },
+              { label: 'Negotiating', value: analytics.funnel.viewing, color: '#f59e0b' },
+              { label: 'Reserved', value: analytics.funnel.offer, color: '#a855f7' },
               { label: 'Completed', value: analytics.funnel.completed, color: '#10b981' },
             ].map((stage, i, arr) => {
               const maxValue = arr[0].value || 1

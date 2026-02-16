@@ -230,21 +230,22 @@ export function EditableStatus({
 }: Omit<EditableCellProps, 'type'>) {
   const getStatusVariant = (status?: string) => {
     switch (status) {
-      case 'New':
       case 'Contact Pending':
         return 'warning'
-      case 'Contacted':
       case 'Follow Up':
         return 'secondary'
-      case 'Qualified':
       case 'Viewing Booked':
         return 'default'
+      case 'Negotiating':
+        return 'warning'
       case 'Reserved':
+      case 'Exchanged':
       case 'Completed':
         return 'success'
-      case 'Lost':
       case 'Not Proceeding':
         return 'destructive'
+      case 'Disqualified':
+        return 'muted'
       default:
         return 'muted'
     }

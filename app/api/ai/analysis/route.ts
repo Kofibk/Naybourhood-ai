@@ -79,7 +79,7 @@ export async function GET() {
     const totalLeads = buyersList.length
     const hotLeads = buyersList.filter(b => (b.ai_quality_score || b.quality_score || 0) >= 70).length
     const viewingsBooked = buyersList.filter(b => b.status === 'Viewing Booked').length
-    const completed = buyersList.filter(b => b.status === 'Completed' || b.status === 'Offer Made').length
+    const completed = buyersList.filter(b => b.status === 'Completed' || b.status === 'Exchanged').length
 
     let pipelineScore = 50
 
@@ -93,7 +93,7 @@ export async function GET() {
     else if (conversionRate < 0.03) pipelineScore -= 10
 
     // Pipeline balance (+/- 15)
-    const earlyStage = (statusGroups['New'] || 0) + (statusGroups['Contacted'] || 0) + (statusGroups['Follow Up'] || 0)
+    const earlyStage = (statusGroups['Contact Pending'] || 0) + (statusGroups['Follow Up'] || 0)
     const earlyStageRatio = totalLeads > 0 ? earlyStage / totalLeads : 0
     if (earlyStageRatio > 0.7) pipelineScore -= 10 // Too top-heavy
     if (earlyStageRatio < 0.3 && totalLeads > 20) pipelineScore += 10 // Good balance
@@ -161,7 +161,7 @@ export async function GET() {
     const recentLeads = buyersList.filter(b => new Date(b.created_at || now) >= oneMonthAgo).length
     const recentViewings = buyersList.filter(b =>
       new Date(b.created_at || now) >= oneMonthAgo &&
-      (b.status === 'Viewing Booked' || b.status === 'Offer Made' || b.status === 'Completed')
+      (b.status === 'Viewing Booked' || b.status === 'Negotiating' || b.status === 'Completed')
     ).length
 
     const predictedViewings = Math.round(recentViewings * 1.1)
@@ -175,7 +175,7 @@ export async function GET() {
     const atRiskLeads = buyersList.filter(b => {
       const updatedAt = new Date(b.updated_at || b.created_at || now)
       const daysSinceUpdate = Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24))
-      return daysSinceUpdate >= 5 && b.status !== 'Completed' && b.status !== 'Lost'
+      return daysSinceUpdate >= 5 && b.status !== 'Completed' && b.status !== 'Not Proceeding'
     }).length
 
     // Top recommendations

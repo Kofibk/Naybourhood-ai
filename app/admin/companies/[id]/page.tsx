@@ -448,7 +448,7 @@ export default function CompanyDetailPage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-medium">Q: {lead.quality_score || 0}</span>
-                    <Badge variant="outline">{lead.status || 'New'}</Badge>
+                    <Badge variant="outline">{lead.status || 'Contact Pending'}</Badge>
                   </div>
                 </div>
               ))}
@@ -485,7 +485,7 @@ export default function CompanyDetailPage() {
                         {borrower.finance_type} · {borrower.loan_amount_display || `£${(borrower.loan_amount || 0).toLocaleString()}`}
                       </p>
                     </div>
-                    <Badge variant="outline">{borrower.status || 'New'}</Badge>
+                    <Badge variant="outline">{borrower.status || 'Contact Pending'}</Badge>
                   </div>
                 ))}
               </div>

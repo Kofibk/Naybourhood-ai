@@ -39,16 +39,19 @@ const PROPERTY_STATUS_OPTIONS = [
   'Exchanged',
   'Completed',
   'Not Proceeding',
+  'Disqualified',
 ]
 
 const FINANCE_STATUS_OPTIONS = [
   'Contact Pending',
-  'Follow-up',
-  'Awaiting Documents',
-  'Processing',
-  'Approved',
+  'Follow Up',
+  'Viewing Booked',
+  'Negotiating',
+  'Reserved',
+  'Exchanged',
   'Completed',
   'Not Proceeding',
+  'Disqualified',
 ]
 
 const getPropertyClassificationColor = (classification: string | undefined) => {

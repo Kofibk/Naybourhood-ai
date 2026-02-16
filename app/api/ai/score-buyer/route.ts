@@ -87,7 +87,7 @@ BUYER DATA:
 - Ready in 28 Days: ${buyer.ready_within_28_days || buyer.ready_in_28_days ? 'Yes' : 'No'}
 - Location Preference: ${buyer.location || buyer.area || 'Not specified'}
 - Bedrooms: ${buyer.bedrooms || buyer.preferred_bedrooms || 'Not specified'}
-- Status: ${buyer.status || 'New'}
+- Status: ${buyer.status || 'Contact Pending'}
 - UK Broker: ${buyer.uk_broker || 'Unknown'}
 - UK Solicitor: ${buyer.uk_solicitor || 'Unknown'}
 - Source: ${buyer.source || 'Unknown'}

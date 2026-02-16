@@ -74,7 +74,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
     // Find stale leads (in Follow Up status for 5+ days)
     const now = new Date()
     const staleLeads = activeLeads.filter(b => {
-      if (b.status !== 'Follow Up' && b.status !== 'Contacted' && b.status !== 'Contact Pending') return false
+      if (b.status !== 'Follow Up' && b.status !== 'Contact Pending') return false
       const createdAt = new Date(b.created_at || now)
       const daysDiff = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
       return daysDiff >= 5

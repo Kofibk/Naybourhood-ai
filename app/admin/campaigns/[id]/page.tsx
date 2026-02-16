@@ -155,7 +155,7 @@ export default function CampaignDetailPage() {
   const leadCount = campaign.leads || campaign.lead_count || leads.length
   const cpl = campaign.cpl || campaign.cost_per_lead || (leadCount > 0 ? Math.round(spend / leadCount) : 0)
   const hotLeads = leads.filter(l => (l.quality_score || 0) >= 85).length
-  const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+  const qualifiedLeads = leads.filter(l => ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '') || (l.quality_score || 0) >= 70).length
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -471,7 +471,7 @@ export default function CampaignDetailPage() {
                         </span>
                       </td>
                       <td className="p-3">
-                        <Badge variant="outline">{lead.status || 'New'}</Badge>
+                        <Badge variant="outline">{lead.status || 'Contact Pending'}</Badge>
                       </td>
                       <td className="p-3 text-sm text-muted-foreground">
                         {formatDate(lead.created_at)}

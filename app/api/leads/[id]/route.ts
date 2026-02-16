@@ -197,11 +197,11 @@ export async function DELETE(
         message: 'Lead permanently deleted'
       })
     } else {
-      // Soft delete - mark as Duplicate
+      // Soft delete - mark as Disqualified
       const { data: lead, error } = await supabase
         .from('buyers')
         .update({
-          status: 'Duplicate',
+          status: 'Disqualified',
           updated_at: new Date().toISOString()
         })
         .eq('id', leadId)

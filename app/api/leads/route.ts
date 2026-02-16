@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
       query = query.or(`full_name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`)
     }
 
-    // Exclude duplicates from counts (show them but don't count)
-    query = query.neq('status', 'Duplicate')
+    // Exclude disqualified from counts (show them but don't count)
+    query = query.neq('status', 'Disqualified')
 
     // Apply sorting
     query = query.order(sortBy, { ascending: sortOrder === 'asc' })

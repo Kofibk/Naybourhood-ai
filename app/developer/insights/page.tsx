@@ -56,11 +56,11 @@ export default function InsightsPage() {
       ? (myLeads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads / 10).toFixed(1)
       : '0'
 
-    const qualifiedLeads = myLeads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+    const qualifiedLeads = myLeads.filter(l => ['Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed'].includes(l.status || '') || (l.quality_score || 0) >= 70).length
     const conversionRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
     // Calculate response rate from contacted leads
-    const contactedLeads = myLeads.filter(l => l.status === 'Contacted' || l.status === 'Qualified' || l.status === 'Viewing Booked' || l.last_contact).length
+    const contactedLeads = myLeads.filter(l => l.status === 'Follow Up' || l.status === 'Viewing Booked' || l.status === 'Negotiating' || l.last_contact).length
     const responseRate = totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0
 
     return {
@@ -86,7 +86,7 @@ export default function InsightsPage() {
     }
 
     // Check for new leads needing follow-up
-    const newLeadsCount = myLeads.filter(l => l.status === 'New').length
+    const newLeadsCount = myLeads.filter(l => l.status === 'Contact Pending').length
     if (newLeadsCount > 0) {
       generatedInsights.push({
         title: 'New Leads Awaiting',

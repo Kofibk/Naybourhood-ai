@@ -49,6 +49,7 @@ const STATUS_OPTIONS = [
   'Exchanged',
   'Completed',
   'Not Proceeding',
+  'Disqualified',
 ]
 
 const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string; ringBg: string }> = {

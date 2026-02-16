@@ -37,7 +37,7 @@ BUYER DATA:
 - Timeline: ${lead.timeline || 'Not specified'}
 - Location Preference: ${lead.location || lead.area || 'Not specified'}
 - Bedrooms: ${lead.bedrooms || lead.preferred_bedrooms || 'Not specified'}
-- Status: ${lead.status || 'New'}
+- Status: ${lead.status || 'Contact Pending'}
 - Proof of Funds: ${lead.proof_of_funds ? 'Yes' : 'No'}
 - UK Broker: ${lead.uk_broker ? 'Yes' : 'No'}
 - UK Solicitor: ${lead.uk_solicitor ? 'Yes' : 'No'}
@@ -173,7 +173,7 @@ async function generateNextAction(client: Anthropic, lead: any): Promise<string>
   const prompt = `You are a real estate sales assistant. Based on this lead's current status, recommend the single most important next action.
 
 Lead: ${lead.full_name || lead.first_name || 'Unknown'}
-Status: ${lead.status || 'New'}
+Status: ${lead.status || 'Contact Pending'}
 Payment: ${lead.payment_method || 'Unknown'}
 Budget: ${lead.budget || lead.budget_range || 'Unknown'}
 Timeline: ${lead.timeline || 'Unknown'}

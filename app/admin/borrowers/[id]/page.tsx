@@ -138,16 +138,19 @@ export default function FinanceLeadDetailPage() {
   const getStatusColor = (status?: string) => {
     switch (status) {
       case 'Contact Pending': return 'warning'
-      case 'Follow-up': return 'default'
-      case 'Awaiting Documents': return 'secondary'
-      case 'Not Proceeding': return 'destructive'
-      case 'Duplicate': return 'muted'
+      case 'Follow Up': return 'default'
+      case 'Viewing Booked': return 'secondary'
+      case 'Negotiating': return 'warning'
+      case 'Reserved':
+      case 'Exchanged':
       case 'Completed': return 'success'
+      case 'Not Proceeding': return 'destructive'
+      case 'Disqualified': return 'muted'
       default: return 'outline'
     }
   }
 
-  const STATUS_OPTIONS = ['Contact Pending', 'Follow-up', 'Awaiting Documents', 'Not Proceeding', 'Duplicate', 'Completed']
+  const STATUS_OPTIONS = ['Contact Pending', 'Follow Up', 'Viewing Booked', 'Negotiating', 'Reserved', 'Exchanged', 'Completed', 'Not Proceeding', 'Disqualified']
   const FINANCE_TYPE_OPTIONS = ['Bridging Finance', 'Development Finance', 'Residential', 'Buy to let', 'Other']
 
   // Calculate days until required

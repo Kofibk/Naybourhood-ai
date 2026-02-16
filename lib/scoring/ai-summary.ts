@@ -371,7 +371,7 @@ BUYER DATA:
 - Timeline: ${buyer.timeline || 'Not specified'}
 - Location Preference: ${buyer.location || buyer.area || 'Not specified'}
 - Bedrooms: ${buyer.bedrooms || buyer.preferred_bedrooms || 'Not specified'}
-- Status: ${buyer.status || 'New'}
+- Status: ${buyer.status || 'Contact Pending'}
 - Proof of Funds: ${buyer.proof_of_funds ? 'Yes' : 'No'}
 - UK Broker: ${getConnectionDisplay(buyer.uk_broker)}
 - UK Solicitor: ${getConnectionDisplay(buyer.uk_solicitor)}

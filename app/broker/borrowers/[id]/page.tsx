@@ -36,13 +36,14 @@ import {
 
 const STATUS_OPTIONS = [
   'Contact Pending',
-  'Follow-up',
-  'Awaiting Documents',
-  'Processing',
-  'Approved',
-  'Not Proceeding',
-  'Duplicate',
+  'Follow Up',
+  'Viewing Booked',
+  'Negotiating',
+  'Reserved',
+  'Exchanged',
   'Completed',
+  'Not Proceeding',
+  'Disqualified',
 ]
 
 const FINANCE_TYPE_OPTIONS = [
@@ -293,20 +294,20 @@ export default function BrokerBorrowerDetailPage() {
     switch (status) {
       case 'Contact Pending':
         return 'warning'
-      case 'Follow-up':
+      case 'Follow Up':
         return 'default'
-      case 'Awaiting Documents':
+      case 'Viewing Booked':
         return 'secondary'
-      case 'Processing':
-        return 'default'
-      case 'Approved':
+      case 'Negotiating':
+        return 'warning'
+      case 'Reserved':
+      case 'Exchanged':
+      case 'Completed':
         return 'success'
       case 'Not Proceeding':
         return 'destructive'
-      case 'Duplicate':
+      case 'Disqualified':
         return 'muted'
-      case 'Completed':
-        return 'success'
       default:
         return 'outline'
     }

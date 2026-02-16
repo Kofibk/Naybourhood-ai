@@ -124,7 +124,7 @@ export default function MatchesPage() {
                     </div>
                   </div>
                 </div>
-                <Badge variant="success">{borrower.status || 'New'}</Badge>
+                <Badge variant="success">{borrower.status || 'Contact Pending'}</Badge>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4">

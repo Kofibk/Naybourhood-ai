@@ -568,7 +568,7 @@ export default function LeadsPage() {
   // Use local scores if available (fresh from API), otherwise database values, then heuristic
   const leadCounts = useMemo(() => {
     // Filter out duplicates for stats
-    const activeLeads = leads.filter((l) => l.status !== 'Duplicate')
+    const activeLeads = leads.filter((l) => l.status !== 'Disqualified')
     const getScore = (lead: Buyer): number => {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
@@ -580,7 +580,7 @@ export default function LeadsPage() {
     const hot = activeLeads.filter((l) => getScore(l) >= 70).length
     const warm = activeLeads.filter((l) => { const s = getScore(l); return s >= 45 && s < 70 }).length
     const low = activeLeads.filter((l) => getScore(l) < 45).length
-    const duplicates = leads.filter((l) => l.status === 'Duplicate').length
+    const duplicates = leads.filter((l) => l.status === 'Disqualified').length
     return { hot, warm, low, total: activeLeads.length, duplicates }
   }, [leads, localScores])
 
