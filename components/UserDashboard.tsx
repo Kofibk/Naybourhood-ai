@@ -6,14 +6,12 @@ import Link from 'next/link'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { getGreeting, formatCurrency, formatNumber } from '@/lib/utils'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
-import { calculateNBScore } from '@/lib/scoring/nb-score'
+import { getNBScoreColor } from '@/lib/scoring/nb-score'
 import { NBScoreRing } from '@/components/ui/nb-score-ring'
 import {
   Users,
   Flame,
   Target,
-  Wallet,
-  BarChart3,
   ChevronRight,
   Sparkles,
   CheckCircle,
@@ -32,13 +30,14 @@ interface UserDashboardProps {
   companyId?: string
 }
 
-// Classification colors matching the demo
-const CLASSIFICATION_COLORS = {
+// Classification colors — 6 categories for breakdown
+const CLASSIFICATION_COLORS: Record<string, { bg: string; text: string; fill: string }> = {
   'Hot Lead': { bg: 'bg-red-500', text: 'text-red-400', fill: '#EF4444' },
   'Qualified': { bg: 'bg-emerald-500', text: 'text-emerald-400', fill: '#10B981' },
-  'Needs Qualification': { bg: 'bg-amber-500', text: 'text-amber-400', fill: '#F59E0B' },
+  'Warm': { bg: 'bg-amber-500', text: 'text-amber-400', fill: '#F59E0B' },
   'Nurture': { bg: 'bg-blue-500', text: 'text-blue-400', fill: '#3B82F6' },
-  'Low Priority': { bg: 'bg-slate-500', text: 'text-slate-400', fill: '#64748B' },
+  'Cold': { bg: 'bg-slate-400', text: 'text-slate-400', fill: '#94A3B8' },
+  'Disqualified': { bg: 'bg-red-900', text: 'text-red-300', fill: '#7F1D1D' },
 }
 
 const config = {
@@ -127,15 +126,16 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
     }
   }, [userType, buyerStats, borrowerStats, campaignStats])
 
-  // Classification counts from pre-aggregated stats
+  // Classification counts — 6 categories for breakdown
   const classificationCounts = useMemo(() => {
     if (userType === 'broker' && borrowerStats) {
       return {
         hotLead: borrowerStats.contact_pending || 0,
         qualified: borrowerStats.completed || 0,
-        needsQualification: borrowerStats.awaiting_docs || 0,
+        warm: borrowerStats.awaiting_docs || 0,
         nurture: borrowerStats.follow_up || 0,
-        lowPriority: borrowerStats.not_proceeding || 0,
+        cold: borrowerStats.not_proceeding || 0,
+        disqualified: 0,
       }
     }
 
@@ -143,18 +143,20 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
       return {
         hotLead: buyerStats.hot_leads || 0,
         qualified: buyerStats.qualified || 0,
-        needsQualification: buyerStats.needs_qualification || 0,
+        warm: buyerStats.needs_qualification || 0,
         nurture: buyerStats.nurture || 0,
-        lowPriority: buyerStats.low_priority || 0,
+        cold: buyerStats.low_priority || 0,
+        disqualified: 0,
       }
     }
 
     return {
       hotLead: 0,
       qualified: 0,
-      needsQualification: 0,
+      warm: 0,
       nurture: 0,
-      lowPriority: 0,
+      cold: 0,
+      disqualified: 0,
     }
   }, [userType, buyerStats, borrowerStats])
 
@@ -215,14 +217,15 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
 
   const dismissEmailBanner = () => setShowEmailBanner(false)
 
-  // Donut chart
+  // Donut chart — 6 classification segments
   const total = Object.values(classificationCounts).reduce((a, b) => a + b, 0)
   const segments = [
     { name: 'Hot Lead', value: classificationCounts.hotLead, color: CLASSIFICATION_COLORS['Hot Lead'].fill },
     { name: 'Qualified', value: classificationCounts.qualified, color: CLASSIFICATION_COLORS['Qualified'].fill },
-    { name: 'Needs Qualification', value: classificationCounts.needsQualification, color: CLASSIFICATION_COLORS['Needs Qualification'].fill },
+    { name: 'Warm', value: classificationCounts.warm, color: CLASSIFICATION_COLORS['Warm'].fill },
     { name: 'Nurture', value: classificationCounts.nurture, color: CLASSIFICATION_COLORS['Nurture'].fill },
-    { name: 'Low Priority', value: classificationCounts.lowPriority, color: CLASSIFICATION_COLORS['Low Priority'].fill },
+    { name: 'Cold', value: classificationCounts.cold, color: CLASSIFICATION_COLORS['Cold'].fill },
+    { name: 'Disqualified', value: classificationCounts.disqualified, color: CLASSIFICATION_COLORS['Disqualified'].fill },
   ]
 
   const generateDonutPaths = () => {
@@ -263,8 +266,8 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
           <h2 className="text-2xl font-bold text-white">{getGreeting()}, {userName}</h2>
           <p className="text-sm text-white/50 mt-1">Here&apos;s your buyer intelligence overview</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[1, 2, 3, 4, 5].map((i) => (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
             <div key={i} className="bg-[#111111] border border-white/10 rounded-2xl p-5">
               <div className="animate-pulse">
                 <div className="h-10 w-10 bg-white/10 rounded-xl mb-3" />
@@ -331,8 +334,9 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
         </div>
       )}
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+      {/* KPI Cards — 4 hero metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Total Buyers */}
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center">
@@ -344,6 +348,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
           <p className="text-white text-3xl font-bold mt-1">{formatNumber(metrics.totalLeads)}</p>
         </div>
 
+        {/* Hot Leads */}
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 bg-red-500/10 rounded-xl flex items-center justify-center">
@@ -353,37 +358,31 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               <span className="text-red-400 text-xs font-medium bg-red-500/10 px-2 py-1 rounded-full">Priority</span>
             )}
           </div>
-          <p className="text-white/50 text-sm">Hot {typeConfig.title}</p>
+          <p className="text-white/50 text-sm">Hot Leads</p>
           <p className="text-white text-3xl font-bold mt-1">{metrics.hotLeads}</p>
         </div>
 
+        {/* Average NB Score — hero metric with colour coding */}
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-emerald-400" />
             </div>
           </div>
-          <p className="text-white/50 text-sm">NB Score</p>
+          <p className="text-white/50 text-sm">Average NB Score</p>
           <div className="flex items-center gap-3 mt-1">
-            <NBScoreRing score={calculateNBScore(metrics.avgScore, 0, 0)} size={48} />
-            <p className="text-white text-3xl font-bold">{calculateNBScore(metrics.avgScore, 0, 0)}</p>
+            <NBScoreRing score={Math.round(metrics.avgScore)} size={48} />
+            <p className="text-3xl font-bold" style={{ color: getNBScoreColor(Math.round(metrics.avgScore)) }}>
+              {Math.round(metrics.avgScore)}
+            </p>
           </div>
         </div>
 
-        <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-purple-400" />
-            </div>
-          </div>
-          <p className="text-white/50 text-sm">Total Spend</p>
-          <p className="text-white text-3xl font-bold mt-1">{formatCurrency(metrics.totalSpend)}</p>
-        </div>
-
+        {/* Qualified Rate */}
         <div className="bg-[#111111] border border-white/10 rounded-2xl p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-amber-400" />
+              <Target className="w-5 h-5 text-amber-400" />
             </div>
           </div>
           <p className="text-white/50 text-sm">Qualified Rate</p>
@@ -461,9 +460,11 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
                     ) : (
                       <>
                         <div className="flex items-center gap-1.5">
-                          <span className="text-emerald-400 font-semibold text-sm">{lead.ai_quality_score ?? '-'}</span>
+                          <span className="font-semibold text-sm" style={{ color: getNBScoreColor(lead.final_score ?? lead.ai_quality_score ?? 0) }}>
+                            {lead.final_score ?? lead.ai_quality_score ?? '-'}
+                          </span>
                           <div className="w-12 h-1 bg-white/10 rounded-full overflow-hidden">
-                            <div className="h-full bg-emerald-400 rounded-full" style={{ width: `${lead.ai_quality_score ?? 0}%` }} />
+                            <div className="h-full rounded-full" style={{ width: `${lead.final_score ?? lead.ai_quality_score ?? 0}%`, backgroundColor: getNBScoreColor(lead.final_score ?? lead.ai_quality_score ?? 0) }} />
                           </div>
                         </div>
                         <p className="text-white/40 text-[10px] mt-0.5 truncate max-w-[80px]">{lead.development_name || lead.source_platform || '-'}</p>
@@ -552,7 +553,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               <span className="text-white font-medium text-sm">Qualification Gap</span>
             </div>
             <p className="text-white/60 text-sm">
-              {classificationCounts.needsQualification} {typeConfig.title.toLowerCase()} need qualification. Consider WhatsApp outreach.
+              {classificationCounts.warm} {typeConfig.title.toLowerCase()} need qualification. Consider WhatsApp outreach.
             </p>
           </div>
           <div className="bg-white/5 rounded-xl p-4">

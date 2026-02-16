@@ -182,6 +182,9 @@ export interface Buyer {
   ai_classification?: string
   ai_priority?: string
   ai_scored_at?: string
+  // NB Score (hero metric) — pre-computed weighted score
+  final_score?: number
+  conversion_probability_pct?: number
   // Engagement & Viewing
   viewing_intent_confirmed?: boolean
   viewing_booked?: boolean

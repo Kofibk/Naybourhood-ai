@@ -12,6 +12,8 @@ import { EmailComposer } from '@/components/EmailComposer'
 import { toast } from 'sonner'
 import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { useKycCheck } from '@/hooks/useKycCheck'
+import { NBScoreRing } from '@/components/ui/nb-score-ring'
+import { getNBScoreColor } from '@/lib/scoring/nb-score'
 import {
   ArrowLeft,
   Phone,
@@ -32,6 +34,10 @@ import {
   Edit,
   CheckCircle,
   XCircle,
+  Zap,
+  ShieldAlert,
+  TrendingUp,
+  Sparkles,
 } from 'lucide-react'
 
 const STATUS_OPTIONS = [
@@ -45,13 +51,16 @@ const STATUS_OPTIONS = [
   'Not Proceeding',
 ]
 
-const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string }> = {
-  'Hot': { bg: 'bg-red-500', text: 'text-white', label: 'Hot' },
-  'Warm-Qualified': { bg: 'bg-orange-500', text: 'text-white', label: 'Warm (Qualified)' },
-  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm (Engaged)' },
-  'Nurture': { bg: 'bg-blue-400', text: 'text-white', label: 'Nurture' },
-  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold' },
-  'Disqualified': { bg: 'bg-gray-600', text: 'text-white', label: 'Disqualified' },
+const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string; ringBg: string }> = {
+  'Hot': { bg: 'bg-red-600', text: 'text-white', label: 'Hot Lead', ringBg: 'bg-red-500/10 border-red-500/30' },
+  'Hot Lead': { bg: 'bg-red-600', text: 'text-white', label: 'Hot Lead', ringBg: 'bg-red-500/10 border-red-500/30' },
+  'Warm-Qualified': { bg: 'bg-emerald-600', text: 'text-white', label: 'Qualified', ringBg: 'bg-emerald-500/10 border-emerald-500/30' },
+  'Qualified': { bg: 'bg-emerald-600', text: 'text-white', label: 'Qualified', ringBg: 'bg-emerald-500/10 border-emerald-500/30' },
+  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm', ringBg: 'bg-amber-500/10 border-amber-500/30' },
+  'Needs Qualification': { bg: 'bg-amber-500', text: 'text-white', label: 'Needs Qualification', ringBg: 'bg-amber-500/10 border-amber-500/30' },
+  'Nurture': { bg: 'bg-blue-500', text: 'text-white', label: 'Nurture', ringBg: 'bg-blue-500/10 border-blue-500/30' },
+  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold', ringBg: 'bg-gray-400/10 border-gray-400/30' },
+  'Disqualified': { bg: 'bg-red-900', text: 'text-white', label: 'Disqualified', ringBg: 'bg-red-900/10 border-red-900/30' },
 }
 
 function BooleanIndicator({ value }: { value: boolean | undefined | null }) {
@@ -94,32 +103,21 @@ function ConnectionStatusDisplay({ value }: { value: string | boolean | undefine
   )
 }
 
-function ScoreCard({ label, score, maxScore = 100 }: { label: string; score: number | null | undefined; maxScore?: number }) {
-  if (score === null || score === undefined) {
-    return (
-      <div className="border rounded-lg p-4 min-w-[120px] bg-card">
-        <div className="text-sm text-muted-foreground mb-1">{label}</div>
-        <div className="text-2xl font-bold text-muted-foreground">-</div>
-        <div className="w-full h-2 bg-muted rounded-full mt-2" />
-      </div>
-    )
-  }
-
-  const percentage = (score / maxScore) * 100
-  const getColor = (p: number) => {
-    if (p >= 70) return 'bg-green-500'
-    if (p >= 45) return 'bg-orange-500'
-    return 'bg-gray-400'
-  }
+function SubScoreBar({ label, score, maxScore = 100 }: { label: string; score: number | null | undefined; maxScore?: number }) {
+  const value = score ?? 0
+  const percentage = Math.min((value / maxScore) * 100, 100)
+  const color = getNBScoreColor(value)
 
   return (
-    <div className="border rounded-lg p-4 min-w-[120px] bg-card">
-      <div className="text-sm text-muted-foreground mb-1">{label}</div>
-      <div className="text-2xl font-bold">{score}</div>
-      <div className="w-full h-2 bg-muted rounded-full mt-2">
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="text-sm font-semibold" style={{ color }}>{score ?? '-'}</span>
+      </div>
+      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
         <div
-          className={`h-2 rounded-full transition-all ${getColor(percentage)}`}
-          style={{ width: `${Math.min(percentage, 100)}%` }}
+          className="h-full rounded-full transition-all duration-500"
+          style={{ width: `${percentage}%`, backgroundColor: color }}
         />
       </div>
     </div>
@@ -228,8 +226,11 @@ export default function DeveloperLeadDetailPage() {
 
   const qualityScore = lead.ai_quality_score ?? lead.quality_score
   const intentScore = lead.ai_intent_score ?? lead.intent_score
+  const nbScore = lead.final_score ?? qualityScore ?? 0
+  const confidence = lead.ai_confidence ?? 0
+  const confidencePercent = confidence <= 1 ? Math.round(confidence * 100) : Math.round(confidence)
   const classification = lead.ai_classification ?? 'Cold'
-  const config = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Cold']
+  const classConfig = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Cold']
 
   return (
     <div className="max-w-6xl mx-auto space-y-6">
@@ -265,53 +266,124 @@ export default function DeveloperLeadDetailPage() {
       {/* KYC Verification Banner */}
       <KycVerificationBanner buyerId={lead.id} />
 
-      {/* Score Cards */}
-      <div className="flex gap-4 flex-wrap">
-        <ScoreCard label="Quality" score={qualityScore} />
-        <ScoreCard label="Intent" score={intentScore} />
-        <div className="border rounded-lg p-4 min-w-[120px] bg-card">
-          <div className="text-sm text-muted-foreground mb-1">Classification</div>
-          <Badge className={`${config.bg} ${config.text} text-sm px-3 py-1`}>
-            {config.label}
-          </Badge>
-        </div>
-      </div>
+      {/* ═══ NB SCORE HERO SECTION ═══ */}
+      <Card className={`border ${classConfig.ringBg}`}>
+        <CardContent className="pt-6">
+          <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+            {/* Large NB Score Ring */}
+            <div className="flex flex-col items-center flex-shrink-0">
+              <NBScoreRing score={nbScore} size={120} strokeWidth={10} label="NB Score" />
+            </div>
 
-      {/* Quick Actions - CRITICAL FOR CONVERSION */}
-      <Card className="border-primary/50 bg-primary/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Target className="w-4 h-4 text-primary" />
-            Take Action
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-muted-foreground mb-4">
-            {lead.ai_next_action || 'Contact this lead to confirm interest and timeline'}
-          </p>
-          <div className="flex gap-2 flex-wrap">
-            {lead.phone && (
-              <Button size="sm" asChild>
-                <a href={`tel:${lead.phone}`}>
-                  <Phone className="w-4 h-4 mr-1" /> Call
-                </a>
-              </Button>
-            )}
-            {lead.email && (
-              <Button size="sm" variant="outline" onClick={() => setShowEmailComposer(true)}>
-                <Mail className="w-4 h-4 mr-1" /> Send Email
-              </Button>
-            )}
-            {lead.phone && (
-              <Button size="sm" variant="outline" asChild>
-                <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
-                  <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
-                </a>
-              </Button>
-            )}
+            {/* Classification Badge + Sub-scores */}
+            <div className="flex-1 space-y-5 w-full">
+              {/* Classification */}
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge className={`${classConfig.bg} ${classConfig.text} text-base px-4 py-1.5`}>
+                  {classConfig.label}
+                </Badge>
+                {lead.ai_priority && (
+                  <Badge variant="outline" className="text-xs">
+                    <Zap className="w-3 h-3 mr-1" /> Priority: {lead.ai_priority}
+                  </Badge>
+                )}
+                {lead.conversion_probability_pct != null && (
+                  <Badge variant="outline" className="text-xs">
+                    <TrendingUp className="w-3 h-3 mr-1" /> {lead.conversion_probability_pct}% conversion
+                  </Badge>
+                )}
+              </div>
+
+              {/* Three sub-score bars */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <SubScoreBar label="Quality" score={qualityScore} />
+                <SubScoreBar label="Intent" score={intentScore} />
+                <SubScoreBar label="Confidence" score={confidencePercent} />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* AI Summary */}
+      {lead.ai_summary && (
+        <Card className="border-blue-200 bg-blue-50/50">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4 text-blue-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900 mb-1">AI Summary</h4>
+                <p className="text-sm text-blue-800/80 leading-relaxed">{lead.ai_summary}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recommended Next Action */}
+      <Card className="border-primary/50 bg-primary/5">
+        <CardContent className="pt-5 pb-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Target className="w-4 h-4 text-primary" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold mb-1">Recommended Next Action</h4>
+              <p className="text-sm text-muted-foreground mb-3">
+                {lead.ai_next_action || 'Contact this lead to confirm interest and timeline'}
+              </p>
+              <div className="flex gap-2 flex-wrap">
+                {lead.phone && (
+                  <Button size="sm" asChild>
+                    <a href={`tel:${lead.phone}`}>
+                      <Phone className="w-4 h-4 mr-1" /> Call
+                    </a>
+                  </Button>
+                )}
+                {lead.email && (
+                  <Button size="sm" variant="outline" onClick={() => setShowEmailComposer(true)}>
+                    <Mail className="w-4 h-4 mr-1" /> Send Email
+                  </Button>
+                )}
+                {lead.phone && (
+                  <Button size="sm" variant="outline" asChild>
+                    <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
+                      <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
+                    </a>
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Risk Flags — shown as warning badges if non-empty */}
+      {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
+        <Card className="border-orange-300 bg-orange-50/50">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <ShieldAlert className="w-4 h-4 text-orange-600" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-orange-900 mb-2">Risk Flags</h4>
+                <div className="flex flex-wrap gap-2">
+                  {lead.ai_risk_flags.map((flag: string, i: number) => (
+                    <Badge key={i} variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
+                      <AlertTriangle className="w-3 h-3 mr-1" /> {flag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ═══ END NB SCORE HERO SECTION ═══ */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
@@ -352,26 +424,6 @@ export default function DeveloperLeadDetailPage() {
                   {lead.ai_recommendations.map((rec: string, i: number) => (
                     <li key={i} className="flex items-start gap-2 text-sm">
                       <span className="text-primary">•</span> {rec}
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Risk Flags */}
-          {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
-            <Card className="border-yellow-500/50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2 text-yellow-600">
-                  <AlertTriangle className="w-4 h-4" /> Risk Flags
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ul className="space-y-1">
-                  {lead.ai_risk_flags.map((flag: string, i: number) => (
-                    <li key={i} className="text-sm flex items-center gap-2">
-                      <span className="w-1.5 h-1.5 rounded-full bg-yellow-500" /> {flag}
                     </li>
                   ))}
                 </ul>

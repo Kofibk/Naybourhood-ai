@@ -50,6 +50,8 @@ function mapBuyerRow(b: any): Buyer {
     ai_classification: b.ai_classification,
     ai_priority: b.ai_priority,
     ai_scored_at: b.ai_scored_at,
+    final_score: b.final_score ?? null,
+    conversion_probability_pct: b.conversion_probability_pct ?? null,
     payment_method: b.payment_method || b['cash or mortgage'] || b['Cash or Mortgage'],
     mortgage_status: b.mortgage_status || b['manual update'] || b['Manual Update'],
     proof_of_funds: b.proof_of_funds,
