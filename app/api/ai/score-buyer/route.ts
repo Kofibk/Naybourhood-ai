@@ -214,6 +214,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Buyer ID required' }, { status: 400 })
     }
 
+    // Authentication check
+    const authClient = createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     const supabase = getSupabaseClient()
 
     // Fetch buyer data
@@ -349,6 +356,13 @@ export async function PUT(request: NextRequest) {
 
     if (!buyerIds || !Array.isArray(buyerIds)) {
       return NextResponse.json({ error: 'Buyer IDs array required' }, { status: 400 })
+    }
+
+    // Authentication check
+    const authClient = createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
     const supabase = getSupabaseClient()
