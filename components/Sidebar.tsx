@@ -99,7 +99,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
       adminItems.push(
         { name: 'Analytics', icon: BarChart3, href: '/admin/analytics', feature: 'analytics' },
-        { name: 'Settings', icon: Settings, href: '/admin/settings', feature: 'settings' }
+        { name: 'Settings', icon: Settings, href: '/admin/settings' }
       )
 
       return adminItems
@@ -113,7 +113,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
         { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
         { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
         { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
-        { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
+        { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
       ]
     }
     // Developer and Agent - include Developments
@@ -133,7 +133,7 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
       { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
       { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
-      { name: 'Settings', icon: Settings, href: `${basePath}/settings`, feature: 'settings' },
+      { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
     ]
   }, [userType, basePath, userHasBillingAccess])
 
