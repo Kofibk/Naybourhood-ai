@@ -1,15 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import {
   Building2,
   UserPlus,
   Plug,
   Check,
-  ArrowRight,
   Sparkles,
   ChevronRight,
 } from 'lucide-react'
@@ -19,59 +15,22 @@ interface WelcomeOnboardingProps {
   companyId: string
   userName: string
   userType: 'developer' | 'agent' | 'broker'
+  initialHasDevelopments?: boolean
+  initialHasBuyers?: boolean
 }
 
-export function WelcomeOnboarding({ companyId, userName, userType }: WelcomeOnboardingProps) {
+export function WelcomeOnboarding({
+  companyId,
+  userName,
+  userType,
+  initialHasDevelopments = false,
+  initialHasBuyers = false,
+}: WelcomeOnboardingProps) {
   const router = useRouter()
   const basePath = `/${userType}`
-  const [hasDevelopments, setHasDevelopments] = useState(false)
-  const [hasBuyers, setHasBuyers] = useState(false)
-  const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const checkSetupStatus = async () => {
-      if (!isSupabaseConfigured() || !companyId) {
-        setLoading(false)
-        return
-      }
-
-      try {
-        const supabase = createClient()
-
-        // Check developments count
-        const { count: devCount } = await supabase
-          .from('developments')
-          .select('id', { count: 'exact', head: true })
-          .eq('company_id', companyId)
-
-        // Check buyers count
-        const { count: buyerCount } = await supabase
-          .from('buyers')
-          .select('id', { count: 'exact', head: true })
-          .eq('company_id', companyId)
-
-        setHasDevelopments((devCount ?? 0) > 0)
-        setHasBuyers((buyerCount ?? 0) > 0)
-      } catch (err) {
-        console.error('Error checking setup status:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    checkSetupStatus()
-  }, [companyId])
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-24">
-        <div className="animate-pulse text-white/40">Loading...</div>
-      </div>
-    )
-  }
-
-  // If user has buyers, don't show onboarding
-  if (hasBuyers) return null
+  // If user has buyers, don't show onboarding (shouldn't be rendered but safety check)
+  if (initialHasBuyers) return null
 
   const steps = [
     {
@@ -80,8 +39,8 @@ export function WelcomeOnboarding({ companyId, userName, userType }: WelcomeOnbo
       description: 'Create a property development to start matching buyers.',
       href: `${basePath}/developments`,
       icon: Building2,
-      complete: hasDevelopments,
-      cta: hasDevelopments ? 'Completed' : 'Add Development',
+      complete: initialHasDevelopments,
+      cta: initialHasDevelopments ? 'Completed' : 'Add Development',
     },
     {
       number: 2,
@@ -89,7 +48,7 @@ export function WelcomeOnboarding({ companyId, userName, userType }: WelcomeOnbo
       description: 'Add a buyer manually or import from CSV.',
       href: `${basePath}/buyers/new`,
       icon: UserPlus,
-      complete: hasBuyers,
+      complete: initialHasBuyers,
       cta: 'Add Buyer',
     },
     {

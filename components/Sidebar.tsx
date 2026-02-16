@@ -144,7 +144,9 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
 
   const isActive = (href: string) => pathname === href
   const isActiveParent = (item: NavItem) =>
-    pathname === item.href || (item.subItems?.some(sub => pathname === sub.href) ?? false)
+    pathname === item.href ||
+    pathname.startsWith(item.href + '/') ||
+    (item.subItems?.some(sub => pathname === sub.href) ?? false)
 
   // Quick Access dashboards for admins
   const quickAccessDashboards = [

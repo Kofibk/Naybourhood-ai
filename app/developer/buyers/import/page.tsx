@@ -24,7 +24,6 @@ import {
   CheckCircle,
   AlertCircle,
   Loader2,
-  X,
   Columns,
   Eye,
   Rocket,
@@ -165,6 +164,7 @@ export default function CSVImportPage() {
     setFile(selectedFile)
 
     Papa.parse(selectedFile, {
+      skipEmptyLines: true,
       complete: (result) => {
         if (!result.data || result.data.length < 2) {
           toast.error('CSV file is empty or has no data rows')
@@ -179,12 +179,15 @@ export default function CSVImportPage() {
         setCsvHeaders(headers)
         setCsvData(rows)
 
-        // Auto-match columns
+        // Auto-match columns (first match wins to avoid duplicate target assignments)
         const autoMapping: Record<string, string> = {}
+        const usedTargets = new Set<string>()
         headers.forEach(header => {
           const normalized = header.toLowerCase().trim()
-          if (AUTO_MATCH_MAP[normalized]) {
-            autoMapping[header] = AUTO_MATCH_MAP[normalized]
+          const target = AUTO_MATCH_MAP[normalized]
+          if (target && !usedTargets.has(target)) {
+            autoMapping[header] = target
+            usedTargets.add(target)
           }
         })
         setMapping(autoMapping)
@@ -275,68 +278,65 @@ export default function CSVImportPage() {
     const supabase = createClient()
     let successCount = 0
     let errorCount = 0
+    const insertedIds: string[] = []
 
-    // Process in batches of 25 for individual inserts to trigger auto-scoring
-    const batchSize = 25
-    for (let i = 0; i < csvData.length; i += batchSize) {
-      const batch = csvData.slice(i, i + batchSize)
-
-      const records = batch.map(row => {
-        const record: Record<string, any> = {
-          company_id: companyId,
-          data_source_primary: 'csv_import',
-          channel: 'csv_import',
-          status: 'Contact Pending',
-        }
-
-        csvHeaders.forEach((header, idx) => {
-          const target = mapping[header]
-          if (target && row[idx]?.trim()) {
-            record[target] = row[idx].trim()
-          }
-        })
-
-        // Build full_name
-        if (record.first_name || record.last_name) {
-          record.full_name = `${record.first_name || ''} ${record.last_name || ''}`.trim()
-        }
-
-        return record
-      })
-
-      // Insert individually so the auto-scoring trigger fires per row
-      for (const record of records) {
-        const { error } = await supabase.from('buyers').insert(record)
-        if (error) {
-          console.error('Insert error:', error)
-          errorCount++
-        } else {
-          successCount++
-        }
+    // Insert individually so the auto-scoring trigger fires per row
+    for (let i = 0; i < csvData.length; i++) {
+      const row = csvData[i]
+      const record: Record<string, any> = {
+        company_id: companyId,
+        data_source_primary: 'csv_import',
+        channel: 'csv_import',
+        status: 'Contact Pending',
       }
 
-      setProgress({ done: Math.min(i + batchSize, csvData.length), total: csvData.length })
+      csvHeaders.forEach((header, idx) => {
+        const target = mapping[header]
+        if (target && row[idx]?.trim()) {
+          record[target] = row[idx].trim()
+        }
+      })
+
+      // Build full_name
+      if (record.first_name || record.last_name) {
+        record.full_name = `${record.first_name || ''} ${record.last_name || ''}`.trim()
+      }
+
+      const { data, error } = await supabase.from('buyers').insert(record).select('id').single()
+      if (error) {
+        console.error('Insert error:', error)
+        errorCount++
+      } else {
+        successCount++
+        if (data?.id) insertedIds.push(data.id)
+      }
+
+      // Update progress every row
+      setProgress({ done: i + 1, total: csvData.length })
     }
 
-    // Wait a bit for AI scoring triggers to fire
-    await new Promise(resolve => setTimeout(resolve, 3000))
+    // Wait for AI scoring triggers to fire
+    await new Promise(resolve => setTimeout(resolve, 4000))
 
-    // Fetch classification breakdown from imported buyers
+    // Fetch classification breakdown from the specific imported buyers
     const classifications: Record<string, number> = {}
     try {
-      const { data: importedBuyers } = await supabase
-        .from('buyers')
-        .select('ai_classification')
-        .eq('company_id', companyId)
-        .eq('channel', 'csv_import')
-        .order('created_at', { ascending: false })
-        .limit(successCount)
+      if (insertedIds.length > 0) {
+        // Query in batches of 100 IDs to avoid URL length limits
+        for (let i = 0; i < insertedIds.length; i += 100) {
+          const idBatch = insertedIds.slice(i, i + 100)
+          const { data: importedBuyers } = await supabase
+            .from('buyers')
+            .select('ai_classification')
+            .in('id', idBatch)
 
-      if (importedBuyers) {
-        importedBuyers.forEach((b: { ai_classification: string | null }) => {
-          const cls = b.ai_classification || 'Unscored'
-          classifications[cls] = (classifications[cls] || 0) + 1
-        })
+          if (importedBuyers) {
+            importedBuyers.forEach((b: { ai_classification: string | null }) => {
+              const cls = b.ai_classification || 'Unscored'
+              classifications[cls] = (classifications[cls] || 0) + 1
+            })
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching classifications:', err)

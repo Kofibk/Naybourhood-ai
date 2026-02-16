@@ -25,6 +25,7 @@ export function DashboardPage({ userType }: DashboardPageProps) {
   const [userName, setUserName] = useState<string>(defaultNames[userType])
   const [isReady, setIsReady] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
+  const [hasDevelopments, setHasDevelopments] = useState(false)
   const [onboardingChecked, setOnboardingChecked] = useState(false)
 
   useEffect(() => {
@@ -80,7 +81,10 @@ export function DashboardPage({ userType }: DashboardPageProps) {
               .select('id', { count: 'exact', head: true })
               .eq('company_id', resolvedCompanyId)
 
-            if ((buyerCount ?? 0) === 0 && (devCount ?? 0) === 0) {
+            const hasDevs = (devCount ?? 0) > 0
+            setHasDevelopments(hasDevs)
+
+            if ((buyerCount ?? 0) === 0 && !hasDevs) {
               setShowOnboarding(true)
             }
           } catch (err) {
@@ -106,6 +110,8 @@ export function DashboardPage({ userType }: DashboardPageProps) {
         companyId={companyId}
         userName={userName}
         userType={userType}
+        initialHasDevelopments={hasDevelopments}
+        initialHasBuyers={false}
       />
     )
   }
