@@ -22,6 +22,9 @@ import {
   X,
   ArrowUpRight,
   Loader2,
+  BarChart3,
+  Clock,
+  Zap,
 } from 'lucide-react'
 
 interface UserDashboardProps {
@@ -565,6 +568,44 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
               {metrics.qualifiedRate}% qualification rate. {metrics.qualifiedRate >= 50 ? 'Great performance!' : 'Consider optimizing your targeting.'}
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Coming Soon — Phase 5 & 6 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 opacity-60">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-purple-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-semibold text-sm">NB Score Trends</h3>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Clock className="w-3 h-3 text-white/40" />
+                <span className="text-white/40 text-xs">Coming Soon</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-white/40 text-sm">
+            Track how your average NB Score changes over time. Identify trends and measure the impact of your outreach.
+          </p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-2xl p-6 opacity-60">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-cyan-500/10 rounded-xl flex items-center justify-center">
+              <Zap className="w-5 h-5 text-cyan-400" />
+            </div>
+            <div>
+              <h3 className="text-white font-semibold text-sm">Automated Follow-ups</h3>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <Clock className="w-3 h-3 text-white/40" />
+                <span className="text-white/40 text-xs">Coming Soon</span>
+              </div>
+            </div>
+          </div>
+          <p className="text-white/40 text-sm">
+            AI-powered sequences that automatically nurture leads based on their NB Score and classification.
+          </p>
         </div>
       </div>
     </div>

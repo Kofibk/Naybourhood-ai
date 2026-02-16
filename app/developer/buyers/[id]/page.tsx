@@ -266,7 +266,7 @@ export default function DeveloperLeadDetailPage() {
       {/* KYC Verification Banner */}
       <KycVerificationBanner buyerId={lead.id} />
 
-      {/* ═══ NB SCORE HERO SECTION ═══ */}
+      {/* NB Score Hero Section */}
       <Card className={`border ${classConfig.ringBg}`}>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
@@ -383,7 +383,7 @@ export default function DeveloperLeadDetailPage() {
         </Card>
       )}
 
-      {/* ═══ END NB SCORE HERO SECTION ═══ */}
+      {/* End NB Score Hero Section */}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column */}
@@ -534,6 +534,44 @@ export default function DeveloperLeadDetailPage() {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      {/* Coming Soon — Phase 5 & 6 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card className="opacity-60">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <TrendingUp className="w-4 h-4 text-purple-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-0.5">NB Score History</h4>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Coming Soon</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Track how this buyer&apos;s score changes after each interaction.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="opacity-60">
+          <CardContent className="pt-5 pb-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Zap className="w-4 h-4 text-cyan-400" />
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold mb-0.5">Engagement Timeline</h4>
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Clock className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs text-muted-foreground">Coming Soon</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Full activity log of calls, emails, viewings, and score changes.</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Email Composer Modal */}
