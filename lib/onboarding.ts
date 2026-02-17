@@ -29,18 +29,45 @@ export interface UserProfile {
   company?: Company | null
 }
 
-// Simplified form data for 2-step onboarding
+// Expanded form data for multi-step onboarding
 export interface OnboardingFormData {
-  // Step 1: You
+  // Step 1: Profile & Company
   userType: 'developer' | 'agent' | 'broker' | ''
   jobRole: 'operations' | 'marketing' | 'sales' | ''
   firstName: string
   lastName: string
   phone: string
   jobTitle: string
-  // Step 2: Company
   companyName: string
   website: string
+  // Step 2: Business Configuration
+  // Developer-specific
+  developments: DevelopmentFormData[]
+  // Agent-specific
+  geographicCoverage: string
+  propertyTypes: string[]
+  // Broker-specific
+  specialisms: string[]
+  // Step 3: Team Invites
+  teamInvites: TeamInviteData[]
+  // Step 4: CSV Import (handled separately via file upload)
+  // Step 5: Lead Sources (handled separately)
+}
+
+export interface DevelopmentFormData {
+  name: string
+  city: string
+  postcode: string
+  priceFrom: string
+  priceTo: string
+  totalUnits: string
+  bedroomMix: string
+  completionStatus: string
+}
+
+export interface TeamInviteData {
+  email: string
+  role: 'sales' | 'marketing' | 'viewer'
 }
 
 export const defaultFormData: OnboardingFormData = {
@@ -52,7 +79,23 @@ export const defaultFormData: OnboardingFormData = {
   jobTitle: '',
   companyName: '',
   website: '',
+  developments: [],
+  geographicCoverage: '',
+  propertyTypes: [],
+  specialisms: [],
+  teamInvites: [],
 }
+
+export const TOTAL_ONBOARDING_STEPS = 6
+
+export const STEP_LABELS = [
+  'Profile & Company',
+  'Business Setup',
+  'Team Invites',
+  'Import Pipeline',
+  'Lead Sources',
+  'Complete',
+]
 
 export async function getUserProfile(): Promise<UserProfile | null> {
   const supabase = createClient()
@@ -67,7 +110,9 @@ export async function getUserProfile(): Promise<UserProfile | null> {
     .single()
 
   if (error) {
-    console.error('[Onboarding] Error fetching profile:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error fetching profile:', error)
+    }
     return null
   }
 
@@ -80,22 +125,22 @@ export async function createUserProfile(): Promise<UserProfile | null> {
 
   if (!user) return null
 
-  // First upsert the profile - include email for proper sync
   const { error } = await supabase
     .from('user_profiles')
     .upsert({
       id: user.id,
-      email: user.email,  // Ensure email is always synced
+      email: user.email,
       onboarding_step: 1,
       onboarding_completed: false,
     })
 
   if (error) {
-    console.error('[Onboarding] Error creating profile:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error creating profile:', error)
+    }
     return null
   }
 
-  // Fetch the profile with company data
   const { data, error: fetchError } = await supabase
     .from('user_profiles')
     .select('*, company:companies(*)')
@@ -103,7 +148,9 @@ export async function createUserProfile(): Promise<UserProfile | null> {
     .single()
 
   if (fetchError) {
-    console.error('[Onboarding] Error fetching created profile:', fetchError)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error fetching created profile:', fetchError)
+    }
     return null
   }
 
@@ -137,21 +184,18 @@ export async function saveOnboardingProgress(
     .eq('id', user.id)
 
   if (error) {
-    console.error('[Onboarding] Error saving progress:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error saving progress:', error)
+    }
     return false
   }
 
   return true
 }
 
-/**
- * Check if a company with similar name exists
- * Called when user clicks "Next" on step 2
- */
 export async function checkCompanyMatch(companyName: string): Promise<Company | null> {
   const supabase = createClient()
 
-  // Case-insensitive search for exact or very similar match
   const { data: companies, error } = await supabase
     .from('companies')
     .select('id, name, website, logo_url')
@@ -159,14 +203,15 @@ export async function checkCompanyMatch(companyName: string): Promise<Company | 
     .limit(1)
 
   if (error) {
-    console.error('[Onboarding] Error checking company match:', error)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error checking company match:', error)
+    }
     return null
   }
 
   if (companies && companies.length > 0) {
     const company = companies[0]
 
-    // Get development count for the company
     const { count } = await supabase
       .from('developments')
       .select('*', { count: 'exact', head: true })
@@ -184,41 +229,19 @@ export async function checkCompanyMatch(companyName: string): Promise<Company | 
   return null
 }
 
-/**
- * Complete onboarding by joining an existing company
- * User gets pending_approval status - needs company admin approval
- */
 export async function completeOnboardingWithExistingCompany(
   formData: OnboardingFormData,
   companyId: string
 ): Promise<string | null> {
-  console.log('[Onboarding] 🔄 Completing onboarding with existing company:', { 
-    userType: formData.userType, 
-    companyId 
-  })
-  
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    console.error('[Onboarding] ❌ Not authenticated')
-    return null
-  }
+  if (!user) return null
 
-  console.log('[Onboarding] 💾 Updating user profile:', {
-    userId: user.id,
-    email: user.email,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    userType: formData.userType,
-    companyId
-  })
-
-  // Update user profile - pending approval
   const { error: profileError } = await supabase
     .from('user_profiles')
     .update({
-      email: user.email,  // Ensure email is always synced
+      email: user.email,
       first_name: formData.firstName,
       last_name: formData.lastName,
       phone: formData.phone,
@@ -235,61 +258,32 @@ export async function completeOnboardingWithExistingCompany(
     .eq('id', user.id)
 
   if (profileError) {
-    console.error('[Onboarding] ❌ Error updating profile:', profileError)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error updating profile:', profileError)
+    }
     return null
   }
 
-  console.log('[Onboarding] ✅ Profile updated successfully')
-
-  // Verify the update worked
-  const { data: verifyProfile } = await supabase
-    .from('user_profiles')
-    .select('membership_status, onboarding_completed')
-    .eq('id', user.id)
-    .single()
-  console.log('[Onboarding] 📋 Profile after update (existing company):', verifyProfile)
-
-  // Send verification email (non-blocking)
   try {
-    console.log('[Onboarding] 📧 Sending verification email')
     await supabase.auth.resend({
       type: 'signup',
       email: user.email!,
     })
-    console.log('[Onboarding] ✅ Verification email sent')
-  } catch (e) {
-    console.warn('[Onboarding] ⚠️ Could not resend verification email:', e)
+  } catch {
+    // Non-blocking email resend
   }
 
-  // Return dashboard path based on role
-  const dashboardPath = getDashboardPath(formData.userType)
-  console.log('[Onboarding] ✅ Onboarding complete, returning path:', dashboardPath)
-  return dashboardPath
+  return getDashboardPath(formData.userType)
 }
 
-/**
- * Complete onboarding by creating a new company
- * User becomes company admin with active status immediately
- */
 export async function completeOnboardingWithNewCompany(
   formData: OnboardingFormData
 ): Promise<string | null> {
-  console.log('[Onboarding] 🆕 Completing onboarding with new company:', { 
-    userType: formData.userType,
-    companyName: formData.companyName 
-  })
-  
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
-  if (!user) {
-    console.error('[Onboarding] ❌ Not authenticated')
-    return null
-  }
+  if (!user) return null
 
-  console.log('[Onboarding] 🏢 Creating new company:', formData.companyName)
-
-  // Create new company
   const { data: newCompany, error: companyError } = await supabase
     .from('companies')
     .insert({
@@ -299,24 +293,23 @@ export async function completeOnboardingWithNewCompany(
             ? formData.website
             : `https://${formData.website}`)
         : null,
+      tier: 'TRIAL',
       created_by: user.id,
     })
     .select('id')
     .single()
 
   if (companyError) {
-    console.error('[Onboarding] ❌ Error creating company:', companyError)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error creating company:', companyError)
+    }
     return null
   }
 
-  console.log('[Onboarding] ✅ Company created:', { companyId: newCompany.id })
-  console.log('[Onboarding] 💾 Updating user profile as company admin')
-
-  // Update user profile - active immediately as company admin
   const { error: profileError } = await supabase
     .from('user_profiles')
     .update({
-      email: user.email,  // Ensure email is always synced
+      email: user.email,
       first_name: formData.firstName,
       last_name: formData.lastName,
       phone: formData.phone,
@@ -325,6 +318,7 @@ export async function completeOnboardingWithNewCompany(
       job_role: formData.jobRole || null,
       company_id: newCompany.id,
       is_company_admin: true,
+      permission_role: 'owner',
       membership_status: 'active',
       onboarding_completed: true,
       onboarding_completed_at: new Date().toISOString(),
@@ -333,41 +327,142 @@ export async function completeOnboardingWithNewCompany(
     .eq('id', user.id)
 
   if (profileError) {
-    console.error('[Onboarding] ❌ Error updating profile:', profileError)
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error updating profile:', profileError)
+    }
     return null
   }
 
-  console.log('[Onboarding] ✅ Profile updated successfully')
-
-  // Verify the update worked
-  const { data: verifyProfile } = await supabase
-    .from('user_profiles')
-    .select('membership_status, onboarding_completed')
-    .eq('id', user.id)
-    .single()
-  console.log('[Onboarding] 📋 Profile after update (new company):', verifyProfile)
-
-  // Send verification email (non-blocking)
   try {
-    console.log('[Onboarding] 📧 Sending verification email')
     await supabase.auth.resend({
       type: 'signup',
       email: user.email!,
     })
-    console.log('[Onboarding] ✅ Verification email sent')
-  } catch (e) {
-    console.warn('[Onboarding] ⚠️ Could not resend verification email:', e)
+  } catch {
+    // Non-blocking email resend
   }
 
-  // Return dashboard path based on role
-  const dashboardPath = getDashboardPath(formData.userType)
-  console.log('[Onboarding] ✅ Onboarding complete, returning path:', dashboardPath)
-  return dashboardPath
+  return getDashboardPath(formData.userType)
 }
 
-/**
- * Get dashboard path based on user role
- */
+export async function createDevelopment(
+  companyId: string,
+  dev: DevelopmentFormData
+): Promise<boolean> {
+  const supabase = createClient()
+
+  const priceFrom = dev.priceFrom ? parseFloat(dev.priceFrom.replace(/[^0-9.]/g, '')) : null
+  const priceTo = dev.priceTo ? parseFloat(dev.priceTo.replace(/[^0-9.]/g, '')) : null
+  const totalUnits = dev.totalUnits ? parseInt(dev.totalUnits, 10) : null
+
+  const { error } = await supabase
+    .from('developments')
+    .insert({
+      name: dev.name.trim(),
+      location: dev.city.trim(),
+      address: dev.postcode.trim(),
+      company_id: companyId,
+      price_from: priceFrom ? String(priceFrom) : null,
+      price_to: priceTo ? String(priceTo) : null,
+      total_units: totalUnits,
+      units: totalUnits,
+      description: dev.bedroomMix ? `Bedroom mix: ${dev.bedroomMix}` : null,
+      status: dev.completionStatus || 'Active',
+      availability_status: dev.completionStatus || 'Active',
+    })
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error creating development:', error)
+    }
+    return false
+  }
+
+  return true
+}
+
+export async function sendTeamInvite(
+  companyId: string,
+  invite: TeamInviteData
+): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return false
+
+  const { error } = await supabase
+    .from('company_invites')
+    .insert({
+      company_id: companyId,
+      email: invite.email.trim().toLowerCase(),
+      role: invite.role,
+      invited_by: user.id,
+      status: 'pending',
+    })
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error sending invite:', error)
+    }
+    return false
+  }
+
+  return true
+}
+
+export async function generateApiKey(companyId: string): Promise<string | null> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return null
+
+  const apiKey = `nb_${crypto.randomUUID().replace(/-/g, '')}`
+
+  const { error } = await supabase
+    .from('crm_integrations')
+    .insert({
+      company_id: companyId,
+      integration_type: 'api_key',
+      api_key: apiKey,
+      status: 'active',
+      created_by: user.id,
+    })
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error generating API key:', error)
+    }
+    return null
+  }
+
+  return apiKey
+}
+
+export async function completeOnboarding(): Promise<boolean> {
+  const supabase = createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+
+  if (!user) return false
+
+  const { error } = await supabase
+    .from('user_profiles')
+    .update({
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', user.id)
+
+  if (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[Onboarding] Error completing onboarding:', error)
+    }
+    return false
+  }
+
+  return true
+}
+
 export function getDashboardPath(role: string): string {
   const paths: Record<string, string> = {
     developer: '/developer',
@@ -389,5 +484,10 @@ export function profileToFormData(profile: UserProfile): OnboardingFormData {
     jobTitle: profile.job_title || '',
     companyName: profile.company?.name || '',
     website: profile.company?.website || '',
+    developments: [],
+    geographicCoverage: '',
+    propertyTypes: [],
+    specialisms: [],
+    teamInvites: [],
   }
 }

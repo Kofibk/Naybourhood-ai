@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,24 +8,24 @@ import {
   OnboardingFormData,
   Company,
   checkCompanyMatch,
-  completeOnboardingWithExistingCompany,
-  completeOnboardingWithNewCompany,
 } from '@/lib/onboarding'
+import { createClient } from '@/lib/supabase/client'
 import { ArrowLeft, Building2, Loader2, Lightbulb } from 'lucide-react'
 import CompanyConfirmModal from './CompanyConfirmModal'
 
 interface CompanyStepProps {
   data: OnboardingFormData
   onBack: () => void
+  onCompanyComplete: (companyId: string) => void
   isSaving: boolean
 }
 
 export default function CompanyStep({
   data,
   onBack,
+  onCompanyComplete,
   isSaving,
 }: CompanyStepProps) {
-  const router = useRouter()
   const [companyName, setCompanyName] = useState(data.companyName)
   const [website, setWebsite] = useState(data.website)
   const [errors, setErrors] = useState<Record<string, string>>({})
@@ -51,19 +50,18 @@ export default function CompanyStep({
     setIsLoading(true)
 
     try {
-      // Check for existing company match
       const match = await checkCompanyMatch(companyName.trim())
 
       if (match) {
-        // Found a match - show confirmation modal
         setMatchedCompany(match)
         setShowConfirmModal(true)
       } else {
-        // No match - create new company directly
         await handleCreateNewCompany()
       }
     } catch (error) {
-      console.error('Error checking company:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error checking company:', error)
+      }
       setErrors({ companyName: 'Something went wrong. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -77,21 +75,44 @@ export default function CompanyStep({
     setShowConfirmModal(false)
 
     try {
-      const formData: OnboardingFormData = {
-        ...data,
-        companyName: matchedCompany.name,
-        website: matchedCompany.website || website,
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        setErrors({ companyName: 'Not authenticated. Please try again.' })
+        setIsLoading(false)
+        return
       }
 
-      const redirectPath = await completeOnboardingWithExistingCompany(formData, matchedCompany.id)
+      // Update profile to join existing company
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .update({
+          email: user.email,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          phone: data.phone,
+          job_title: data.jobTitle || null,
+          user_type: data.userType,
+          job_role: data.jobRole || null,
+          company_id: matchedCompany.id,
+          is_company_admin: false,
+          membership_status: 'pending_approval',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
 
-      if (redirectPath) {
-        router.push(redirectPath)
-      } else {
-        setErrors({ companyName: 'Failed to complete setup. Please try again.' })
+      if (profileError) {
+        setErrors({ companyName: 'Failed to join company. Please try again.' })
+        setIsLoading(false)
+        return
       }
+
+      onCompanyComplete(matchedCompany.id)
     } catch (error) {
-      console.error('Error joining company:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error joining company:', error)
+      }
       setErrors({ companyName: 'Something went wrong. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -103,21 +124,65 @@ export default function CompanyStep({
     setShowConfirmModal(false)
 
     try {
-      const formData: OnboardingFormData = {
-        ...data,
-        companyName: companyName.trim(),
-        website: website.trim(),
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        setErrors({ companyName: 'Not authenticated. Please try again.' })
+        setIsLoading(false)
+        return
       }
 
-      const redirectPath = await completeOnboardingWithNewCompany(formData)
+      // Create new company
+      const { data: newCompany, error: companyError } = await supabase
+        .from('companies')
+        .insert({
+          name: companyName.trim(),
+          website: website.trim()
+            ? (website.startsWith('http') ? website : `https://${website}`)
+            : null,
+          tier: 'TRIAL',
+          created_by: user.id,
+        })
+        .select('id')
+        .single()
 
-      if (redirectPath) {
-        router.push(redirectPath)
-      } else {
+      if (companyError) {
+        setErrors({ companyName: 'Failed to create company. Please try again.' })
+        setIsLoading(false)
+        return
+      }
+
+      // Update profile as company admin
+      const { error: profileError } = await supabase
+        .from('user_profiles')
+        .update({
+          email: user.email,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          phone: data.phone,
+          job_title: data.jobTitle || null,
+          user_type: data.userType,
+          job_role: data.jobRole || null,
+          company_id: newCompany.id,
+          is_company_admin: true,
+          permission_role: 'owner',
+          membership_status: 'active',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', user.id)
+
+      if (profileError) {
         setErrors({ companyName: 'Failed to complete setup. Please try again.' })
+        setIsLoading(false)
+        return
       }
+
+      onCompanyComplete(newCompany.id)
     } catch (error) {
-      console.error('Error creating company:', error)
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error creating company:', error)
+      }
       setErrors({ companyName: 'Something went wrong. Please try again.' })
     } finally {
       setIsLoading(false)
@@ -126,7 +191,6 @@ export default function CompanyStep({
 
   return (
     <div className="space-y-6">
-      {/* Back button */}
       <Button
         variant="ghost"
         onClick={onBack}
@@ -137,7 +201,6 @@ export default function CompanyStep({
         Back
       </Button>
 
-      {/* Header */}
       <div className="text-center">
         <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
           <Building2 className="w-7 h-7 text-primary" />
@@ -150,7 +213,6 @@ export default function CompanyStep({
         </p>
       </div>
 
-      {/* Company Name - SIMPLE INPUT, NO AUTOCOMPLETE */}
       <div className="space-y-2">
         <Label htmlFor="companyName">
           Company name <span className="text-destructive">*</span>
@@ -168,7 +230,6 @@ export default function CompanyStep({
         )}
       </div>
 
-      {/* Website (optional) */}
       <div className="space-y-2">
         <Label htmlFor="website">Website</Label>
         <div className="flex">
@@ -186,13 +247,11 @@ export default function CompanyStep({
         </div>
       </div>
 
-      {/* Info note */}
       <div className="flex items-start gap-2 text-sm text-muted-foreground">
         <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0" />
         <p>Logo and address can be added later in settings</p>
       </div>
 
-      {/* Next Button */}
       <div className="flex justify-end pt-2">
         <Button
           onClick={handleNext}
@@ -202,15 +261,14 @@ export default function CompanyStep({
           {isLoading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Checking...
+              Setting up...
             </>
           ) : (
-            'Get Started'
+            'Continue'
           )}
         </Button>
       </div>
 
-      {/* Company Confirmation Modal */}
       <CompanyConfirmModal
         isOpen={showConfirmModal}
         company={matchedCompany}
