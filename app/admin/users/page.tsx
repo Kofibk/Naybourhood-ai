@@ -236,6 +236,63 @@ export default function UsersPage() {
     }
   }
 
+  const handleApproveUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': currentUser?.role || '',
+        },
+        body: JSON.stringify({ membership_status: 'active', status: 'active' }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to approve user')
+      }
+
+      setMessage({ type: 'success', text: 'User approved successfully!' })
+      refreshUsers()
+    } catch (e) {
+      setMessage({
+        type: 'error',
+        text: e instanceof Error ? e.message : 'Failed to approve user',
+      })
+    }
+  }
+
+  const handleRejectUser = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': currentUser?.role || '',
+        },
+        body: JSON.stringify({ membership_status: 'rejected', status: 'inactive' }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || 'Failed to reject user')
+      }
+
+      setMessage({ type: 'success', text: 'User membership rejected.' })
+      refreshUsers()
+    } catch (e) {
+      setMessage({
+        type: 'error',
+        text: e instanceof Error ? e.message : 'Failed to reject user',
+      })
+    }
+  }
+
+  // Count pending approval users
+  const pendingApprovalCount = useMemo(() => {
+    return users.filter(u => u.status === 'pending').length
+  }, [users])
+
   const getRoleBadge = (role: string, isInternal?: boolean) => {
     switch (role) {
       case 'super_admin':
@@ -410,6 +467,35 @@ export default function UsersPage() {
         </select>
       </div>
 
+      {/* Pending Approval Banner */}
+      {pendingApprovalCount > 0 && userTypeFilter !== 'internal' && (
+        <Card className="border-amber-500/30 bg-amber-500/5">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
+                  <Clock className="h-5 w-5 text-amber-500" />
+                </div>
+                <div>
+                  <p className="font-medium">{pendingApprovalCount} user{pendingApprovalCount !== 1 ? 's' : ''} awaiting approval</p>
+                  <p className="text-sm text-muted-foreground">
+                    These users signed up and requested to join an existing company
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setStatusFilter('pending')}
+                className="border-amber-500/30 text-amber-600 hover:bg-amber-500/10"
+              >
+                Review
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Internal Team Section - Only show when viewing internal */}
       {userTypeFilter === 'internal' && (
         <Card className="border-purple-500/30 bg-purple-500/5">
@@ -531,6 +617,29 @@ export default function UsersPage() {
                       </td>
                       <td className="p-4 text-right">
                         <div className="flex items-center justify-end gap-1">
+                          {/* Approve/Reject for pending users */}
+                          {user.status === 'pending' && (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-500/10"
+                                onClick={() => handleApproveUser(user.id)}
+                                title="Approve user"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                                onClick={() => handleRejectUser(user.id)}
+                                title="Reject user"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </Button>
+                            </>
+                          )}
                           <Link href={`/admin/users/${user.id}`}>
                             <Button variant="ghost" size="icon" className="h-8 w-8">
                               <Eye className="h-4 w-4" />

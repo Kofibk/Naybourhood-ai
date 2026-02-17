@@ -1,5 +1,9 @@
 'use client'
 
+// NOTE: This hook is used by the ALTERNATIVE setup flow (SetupWizard at /onboarding/setup).
+// The MAIN onboarding flow (OnboardingWizard at /onboarding) uses user_profiles.onboarding_step instead.
+// Both flows coexist — the main wizard is the primary path, SetupWizard is a simplified 3-step variant.
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'

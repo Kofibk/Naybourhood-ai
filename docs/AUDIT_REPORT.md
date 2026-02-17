@@ -1,12 +1,12 @@
 # Codebase Audit Report — Naybourhood AI
 
-**Date:** 2026-02-17
+**Date:** 2026-02-17 (updated)
 **Branch:** claude/audit-codebase-agents-UafiK
-**Purpose:** Audit existing codebase before building new features
+**Purpose:** Audit existing codebase, identify issues, and fix them
 
 ---
 
-## 1. Design System Confirmed
+## 1. Design System — Confirmed
 
 Reference docs: `AGENTS.md`, `UI_STANDARDS.md`, `docs/coding-standards.md`
 
@@ -15,182 +15,230 @@ Reference docs: `AGENTS.md`, `UI_STANDARDS.md`, `docs/coding-standards.md`
 - **Font:** Inter, weights 300-700
 - **Framework:** Next.js 14 App Router, TypeScript, Tailwind CSS, shadcn/ui
 - **Database:** Supabase (PostgreSQL) with RLS
-- **Auth:** Supabase Auth (implicit flow, magic links)
+- **Auth:** Supabase Auth (PKCE flow, magic links) — **FIXED: migrated from deprecated implicit flow**
 - **Hosting:** Vercel
 
 ---
 
-## 2. Route Map
+## 2. Route Map (CORRECTED)
 
-### Working Pages (~15)
+Initial audit incorrectly classified ~55 routes as "skeletons". Deep analysis revealed most are either full implementations or proper delegates to shared components.
 
-| Route | Description |
-|-------|-------------|
-| `/` | Marketing landing page with waitlist |
+### Auth & Public Pages (11 routes) — All Working
+
+| Route | Status |
+|-------|--------|
+| `/` | Full marketing landing page with waitlist |
 | `/login` | Password + magic link auth |
 | `/signup` | Account creation |
 | `/onboarding` | 6-step OnboardingWizard |
-| `/onboarding/setup` | SetupWizard |
+| `/onboarding/setup` | SetupWizard (alternative 3-step flow) |
 | `/select-plan` | Stripe plan selection |
 | `/reset-password` | Password reset |
 | `/demo` | Demo mode entry |
-| `/auth/expired` | Expired link error |
+| `/auth/expired` | Expired link error page |
 | `/terms` | Terms of service |
 | `/privacy` | Privacy policy |
-| `/admin` | Full admin dashboard with KPIs |
-| `/admin/leads` | Advanced lead management table |
-| `/admin/campaigns` | Campaign management |
-| `/admin/analytics` | Analytics dashboard |
-| `/admin/users` | User management with invites |
 
-### Template Pages (~5)
+### Admin Dashboard (22 routes) — All Implemented
 
-| Route | Description |
-|-------|-------------|
-| `/agent` | Shared DashboardPage template |
+| Route | Implementation |
+|-------|---------------|
+| `/admin` | Full dashboard: KPI cards, pie chart, funnel, AI insights |
+| `/admin/leads` | Advanced table with filters, sorting, pagination, CSV import |
+| `/admin/leads/[id]` | Full lead detail (503 lines): AI scoring, editable fields, conversations |
+| `/admin/leads-new` | Pipeline overview with priority actions, grid toggle (243 lines) |
+| `/admin/leads-new/[id]` | Delegates to LeadDetail component |
+| `/admin/campaigns` | Campaign management with inline editing |
+| `/admin/campaigns/[id]` | Campaign detail view |
+| `/admin/analytics` | Quality breakdown, funnel, source/dev performance |
+| `/admin/users` | User management with invites, approve/reject, search, filters |
+| `/admin/users/[id]` | Full user profile with inline editing (650 lines) |
+| `/admin/companies` | Company grid with CRUD, search, status filters (575 lines) |
+| `/admin/companies/[id]` | Company detail page |
+| `/admin/developments` | Development management |
+| `/admin/developments/[id]` | Development detail |
+| `/admin/borrowers` | Borrower management |
+| `/admin/borrowers/[id]` | Borrower detail |
+| `/admin/ai-analysis` | Full AI pipeline analysis (427 lines) |
+| `/admin/billing` | MRR/ARR dashboard, tier breakdown, subscriber list (471 lines) |
+| `/admin/conversations` | Conversations with buyer/borrower tabs, company filter |
+| `/admin/settings` | Delegates to SettingsPage component |
+| `/admin/settings/api-keys` | Delegates to ApiKeysSettingsPage component |
+| `/admin/settings/billing` | Delegates to BillingPanel component |
+
+### Agent Dashboard (13 routes) — All Implemented
+
+| Route | Implementation |
+|-------|---------------|
+| `/agent` | Delegates to DashboardPage (shared) |
 | `/agent/insights` | Company-filtered AI insights |
-| `/developer` | Shared DashboardPage template |
+| `/agent/pipeline` | Delegates to PipelineBoard with userType="agent" |
+| `/agent/outcomes` | Delegates to OutcomeSummary with userType="agent" |
+| `/agent/campaigns` | Full campaign list with company filtering (112 lines) |
+| `/agent/buyers` | Delegates to BuyerCardGrid component |
+| `/agent/matches` | Full matches display (105 lines) |
+| `/agent/conversations` | Delegates to ConversationsView |
+| `/agent/my-leads` | Full leads table with actions (324 lines) |
+| `/agent/my-leads/[id]` | Delegates to LeadDetail component |
+| `/agent/developments` | Full development grid with search/filters (311 lines) |
+| `/agent/settings` | Delegates to SettingsPage |
+| `/agent/settings/billing` | Delegates to BillingPanel |
+
+### Developer Dashboard (16 routes) — All Implemented
+
+| Route | Implementation |
+|-------|---------------|
+| `/developer` | Delegates to DashboardPage (shared) |
 | `/developer/insights` | Company-filtered AI insights |
 | `/developer/buyers` | LeadManagementPage in property mode |
+| `/developer/buyers/[id]` | Full lead detail with NB Score ring (635 lines) |
+| `/developer/buyers/import` | Complete CSV import wizard (830 lines) |
+| `/developer/buyers/new` | Delegates to AddBuyerForm |
+| `/developer/leads` | Redirect to /developer/buyers |
+| `/developer/pipeline` | Full pipeline with development filter (68 lines) |
+| `/developer/outcomes` | Delegates to OutcomeSummary |
+| `/developer/campaigns` | Full campaign management (153 lines) |
+| `/developer/conversations` | Delegates to ConversationsView |
+| `/developer/developments` | Full development grid (317 lines) |
+| `/developer/matches` | Full matches display with demo data (255 lines) |
+| `/developer/settings` | Delegates to SettingsPage |
+| `/developer/settings/api-keys` | Delegates to ApiKeysSettingsPage |
+| `/developer/settings/billing` | Delegates to BillingPanel |
 
-### Skeleton/Placeholder Pages (~55)
+### Broker Dashboard (12 routes) — All Implemented
 
-All remaining routes under `/admin/*`, `/agent/*`, `/broker/*`, `/developer/*` exist as files but have minimal or no implementation.
+| Route | Implementation |
+|-------|---------------|
+| `/broker` | Delegates to DashboardPage (shared) |
+| `/broker/borrowers` | Delegates to LeadManagementPage (finance mode) |
+| `/broker/borrowers/[id]` | Full borrower detail with inline editing (701 lines) |
+| `/broker/buyers` | Delegates to BuyerCardGrid |
+| `/broker/campaigns` | Campaign list with company filtering (87 lines) |
+| `/broker/conversations` | Delegates to ConversationsView |
+| `/broker/insights` | Full insights with metrics (259 lines) |
+| `/broker/matches` | Full matches display (160 lines) |
+| `/broker/outcomes` | Delegates to OutcomeSummary |
+| `/broker/pipeline` | Delegates to PipelineBoard |
+| `/broker/settings` | Delegates to SettingsPage |
+| `/broker/settings/billing` | Delegates to BillingPanel |
+
+### Summary: ~74 routes total. ALL have implementations (full or shared component delegate).
 
 ---
 
-## 3. Supabase Connection
+## 3. Supabase Connection — Solid
 
 ### Client Setup
 
 | File | Type | Notes |
 |------|------|-------|
-| `lib/supabase/client.ts` | Browser | `@supabase/ssr`, implicit flow |
-| `lib/supabase/server.ts` | Server + Admin | Cookie-based sessions, service role for RLS bypass |
-| `lib/supabase/middleware.ts` | Middleware | Session refresh via `getUser()` |
+| `lib/supabase/client.ts` | Browser | `@supabase/ssr`, **PKCE flow** (migrated from implicit) |
+| `lib/supabase/server.ts` | Server + Admin | Cookie-based sessions, **PKCE flow** |
+| `lib/supabase/middleware.ts` | Middleware | Session refresh via `getUser()`, **PKCE flow** |
 
-### Environment Variables
+### Auth Callback
 
-- `NEXT_PUBLIC_SUPABASE_URL` — Project URL (public)
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Anon key (public)
-- `SUPABASE_SERVICE_ROLE_KEY` — Service role key (server-only)
-- `NEXT_PUBLIC_APP_URL` — App URL for callbacks
-
-### RLS
-
-- Standard queries use authenticated client (RLS enforced)
-- Admin operations use `createAdminClient()` to bypass RLS
-- Company scoping via `company_id` on all non-admin queries
-- Middleware checks `user_profiles.user_type` and `companies.enabled_features`
-
-**Status: Solid implementation, follows best practices.**
+`app/auth/callback/route.ts` — Handles PKCE code exchange, OTP verification, internal team routing, onboarding redirect, and role-based dashboard routing.
 
 ---
 
 ## 4. Onboarding Flow
 
-### Current 6-Step Wizard
+### Current Implementation
 
-| Step | Component | Covers |
-|------|-----------|--------|
-| 1 | WelcomeStep | User type, job role, personal info |
-| 2 | CompanyStep | Company name/website, match or create |
-| 3 | BusinessConfigStep | Role-specific business setup |
-| 4 | TeamInvitesStep | Email invites with role assignment |
-| 5 | PipelineImportStep | CSV lead import |
-| 6 | LeadSourcesStep / CompleteStep | Lead sources + success redirect |
+Two parallel onboarding flows exist:
+1. **Main Wizard** (`/onboarding`) — 6-step OnboardingWizard using `user_profiles.onboarding_step`
+2. **Setup Wizard** (`/onboarding/setup`) — 3-step simplified flow using `onboarding_progress` table
 
-### Database Fields
+The `onboarding_progress` table is NOT dead code — it's used by the alternative setup flow.
 
-- `user_profiles.onboarding_step` (INTEGER, default 1)
-- `user_profiles.onboarding_completed` (BOOLEAN, default false)
-- `user_profiles.onboarding_completed_at` (TIMESTAMPTZ)
+### Fixes Applied
 
-### Missing
+- **T&C acceptance checkbox** added to WelcomeStep (Step 1) with links to /terms and /privacy
+- **Admin approval flow** added for users who join existing companies with `pending_approval` status
+- **Dual-flow documented** in `useOnboardingProgress.ts` to prevent confusion
 
-1. No email verification step
-2. No KYC/AML integration (table exists, not wired)
-3. No billing/payment step
-4. No document upload
-5. No T&C acceptance
-6. No avatar upload
-7. No admin approval flow for pending members
-8. `onboarding_progress` table exists but is unused (dead code)
-9. No post-completion checklist or reminder emails
-10. No onboarding analytics/tracking
+### Remaining Gaps (by design, not bugs)
+
+1. No email verification step in wizard (handled by Supabase auth email confirmation)
+2. No KYC/AML in onboarding (separate feature, `kyc_checks` table exists)
+3. No billing step (trial starts automatically, card collection deferred)
+4. No document upload in onboarding (available in development detail pages)
+5. No avatar upload in onboarding (available in settings)
 
 ---
 
-## 5. Existing Dashboard Components
+## 5. Dashboard Components — Comprehensive
 
 ### Dashboard Widgets (14 complete)
 
-- ScoreBadge, LeadCard, ClassificationPill, RiskFlagBadge
-- AgentStats, HotLeadsWidget, PriorityActions, PipelineOverview
-- DevelopmentCard, MorningPriority, DevelopmentPerformance
-- PipelineBoard (drag-drop Kanban), NextActionButton, NotificationBell
+ScoreBadge, LeadCard, ClassificationPill, RiskFlagBadge, AgentStats, HotLeadsWidget, PriorityActions, PipelineOverview, DevelopmentCard, MorningPriority, DevelopmentPerformance, PipelineBoard, NextActionButton, NotificationBell
+
+### Shared Page Components (4)
+
+- `DashboardPage` — Shared dashboard homepage for all roles
+- `SettingsPage` — Shared settings page for all roles
+- `BuyerCardGrid` — Shared buyer card grid for agents/brokers
+- `LeadManagementPage` — Shared lead management for all roles
+
+### Specialised Components
+
+- `ApiKeysSettingsPage` + `ApiKeysManager` — API key CRUD
+- `BillingPanel` + `PlanCard` — Billing management
+- `ConversationsView` — Conversation/messaging interface
+- `OutcomeSummary` — Outcome tracking for all roles
 
 ### Base UI Components (25+)
 
-Full shadcn/ui library: Button (9 variants), Card, Badge (8 variants), Input, Label, Checkbox, DataTable, Table, Select, Dialog, Sheet, Tabs, Textarea, Alert, Progress, Avatar, Skeleton, ScrollArea, FilterBar, EmptyState, LoadingState, ConfirmDialog, PageHeader, EditableCell, NBScoreRing, ScoreIndicator, StatusBadge
-
-### Needs Building
-
-- BorrowerCard, MatchCard, ConversationThread, CompanyCard
-- DevelopmentDetail, CampaignDetail, BillingDashboard
-- SettingsForm, APIKeyManager, OutcomeTracker, ApprovalQueue
+Full shadcn/ui library with custom variants for the Giga design system.
 
 ---
 
-## 6. Phased Build Plan
+## 6. Issues Found & Fixed
 
-### Phase A — Fix/Improve Existing (~40 file touches)
+| # | Issue | Status | Fix Applied |
+|---|-------|--------|-------------|
+| A2 | `onboarding_progress` table appeared unused | **Clarified** | Documented dual-flow in useOnboardingProgress.ts — NOT dead code |
+| A3 | No T&C acceptance in onboarding | **Fixed** | Added checkbox with links to /terms and /privacy in WelcomeStep |
+| A4 | No admin approval flow for pending members | **Fixed** | Added approve/reject buttons + pending banner in admin users page |
+| A8 | Implicit auth flow deprecated by Supabase | **Fixed** | Migrated all 3 Supabase clients to PKCE flow |
 
-| # | Task | Complexity |
-|---|------|-----------|
-| A1 | Flesh out admin skeleton pages (users/[id], companies, developments, etc.) | Medium |
-| A2 | Wire up or remove unused `onboarding_progress` table | Low |
-| A3 | Add T&C acceptance to onboarding | Low |
-| A4 | Add admin approval flow for pending company members | Medium |
-| A5 | Complete developer dashboard | Medium |
-| A6 | Complete agent dashboard | Medium |
-| A7 | Add missing loading/error states | Low |
-| A8 | Consider PKCE migration (implicit flow deprecated) | Medium |
+### Issues NOT Actually Present (Corrected from initial audit)
 
-### Phase B — Build New (~50-60 new files)
+| Initial Claim | Reality |
+|---------------|---------|
+| ~55 skeleton routes | All routes have implementations (full or shared delegates) |
+| A1: Admin skeleton pages need fleshing out | All admin pages are full implementations |
+| A5: Developer dashboard incomplete | All developer pages are implemented |
+| A6: Agent dashboard incomplete | All agent pages are implemented |
+| B1: Broker dashboard needs building | All broker pages are implemented |
+| B2: Conversation system needs building | ConversationsView component exists and is used |
+| B3: Property-buyer matching needs building | Matches pages exist for all roles |
+| B4: Billing management needs building | BillingPanel + admin billing page exist |
+| B5: API key management needs building | ApiKeysSettingsPage exists |
+| B6: Settings pages need building | SettingsPage shared component exists |
+| B7: Campaign detail needs building | Campaign pages exist for all roles |
+| B8: Development detail needs building | Development pages exist for all roles |
+| B9: Outcome tracking needs building | OutcomeSummary component exists |
+| B10: Admin AI analysis needs building | Full AI analysis page exists (427 lines) |
 
-| # | Task | Complexity |
-|---|------|-----------|
-| B1 | Broker dashboard (all routes skeletal) | High |
-| B2 | Conversation/messaging system | High |
-| B3 | Property-buyer matching UI | Medium |
-| B4 | Billing/subscription management | Medium |
-| B5 | API key management UI | Low |
-| B6 | Settings pages (profile, notifications) | Medium |
-| B7 | Campaign detail page with analytics | Medium |
-| B8 | Development detail page | Medium |
-| B9 | Outcome tracking system | Medium |
-| B10 | Admin AI analysis page | Medium |
-| B11 | Onboarding analytics/tracking | Low |
+### Remaining Genuine Gaps
 
-### Phase C — Scope Estimate
+1. **Zero automated tests** — No test files in the codebase
+2. **No onboarding analytics** — No drop-off tracking or conversion metrics
+3. **No post-onboarding checklist** — No guided first-use experience after signup
 
-| Category | Files to Modify | New Files | Total |
-|----------|----------------|-----------|-------|
-| Phase A | 25-35 | 5-10 | ~40 |
-| Phase B | ~5 | 40-55 | ~50-60 |
-| **Total** | **30-40** | **50-65** | **~90-100** |
+---
 
-### Recommended Order
+## 7. Files Modified in This PR
 
-1. Phase A — stabilise existing code
-2. Phase B1-B2 — broker dashboard + conversations (highest impact)
-3. Phase B3-B6 — matching, billing, API keys, settings
-4. Phase B7-B11 — detail pages, outcomes, analytics
-
-### Key Risks
-
-- Implicit auth flow is deprecated by Supabase
-- ~55 skeleton routes show empty pages to users
-- Zero automated tests in the codebase
-- `onboarding_progress` table is dead code
+| File | Change |
+|------|--------|
+| `components/onboarding/steps/WelcomeStep.tsx` | Added T&C acceptance checkbox |
+| `lib/supabase/client.ts` | Migrated from implicit to PKCE flow |
+| `lib/supabase/server.ts` | Migrated from implicit to PKCE flow |
+| `lib/supabase/middleware.ts` | Migrated from implicit to PKCE flow |
+| `app/admin/users/page.tsx` | Added approve/reject flow for pending members |
+| `hooks/useOnboardingProgress.ts` | Documented dual onboarding flow |
+| `docs/AUDIT_REPORT.md` | Corrected initial audit inaccuracies |
