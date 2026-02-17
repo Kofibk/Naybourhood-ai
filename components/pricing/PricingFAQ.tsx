@@ -24,14 +24,6 @@ const faqs = [
     q: 'Do you offer custom enterprise pricing?',
     a: 'Yes. For 5+ developments or 10,000+ leads/month, contact us for volume discounts.',
   },
-  {
-    q: 'What CRM integrations do you support?',
-    a: 'Reapit, Rex, Salesforce, HubSpot, Zoho, Pipedrive, and custom webhooks.',
-  },
-  {
-    q: 'Is there a setup fee?',
-    a: 'No setup fees. Self-serve onboarding takes minutes.',
-  },
 ]
 
 export default function PricingFAQ() {

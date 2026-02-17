@@ -135,7 +135,7 @@ export default function PricingPageContent() {
                     href="/signup"
                     className="inline-flex items-center justify-center gap-2 px-6 py-3 text-white border border-white/30 font-medium rounded-lg hover:bg-white/10 transition-colors"
                   >
-                    Or start your free trial
+                    Get Started
                   </Link>
                 </div>
               </div>
