@@ -281,10 +281,28 @@ export function MorningPriority({
               />
             ))
           ) : (
-            <div className="text-center py-12 text-white/40">
-              <Users className="w-10 h-10 mx-auto mb-3 opacity-50" />
-              <p>No {typeConfig.title.toLowerCase()} yet</p>
-              <p className="text-sm mt-1">Import leads or connect a lead source to get started</p>
+            <div className="text-center py-10">
+              <div className="w-14 h-14 bg-emerald-500/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Users className="w-7 h-7 text-emerald-400" />
+              </div>
+              <p className="text-white font-medium mb-1">No {typeConfig.title.toLowerCase()} yet</p>
+              <p className="text-white/40 text-sm mb-5 max-w-xs mx-auto">
+                Import your existing leads and we&apos;ll score and classify them automatically.
+              </p>
+              <div className="flex items-center justify-center gap-3">
+                <Link
+                  href={`/${userType}/buyers/import`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  Import Leads
+                </Link>
+                <Link
+                  href={`/${userType}/settings`}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 text-sm font-medium rounded-lg border border-white/10 transition-colors"
+                >
+                  Connect Source
+                </Link>
+              </div>
             </div>
           )}
         </div>

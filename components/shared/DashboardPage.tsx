@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { MorningPriority } from '@/components/dashboard/MorningPriority'
+import { OnboardingChecklist } from '@/components/dashboard/OnboardingChecklist'
 import { WelcomeOnboarding } from '@/components/onboarding/WelcomeOnboarding'
 import { LoadingState } from '@/components/ui/loading-state'
 import { useAuth } from '@/contexts/AuthContext'
@@ -24,11 +25,13 @@ export function DashboardPage({ userType }: DashboardPageProps) {
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
   const [companyName, setCompanyName] = useState<string | undefined>(undefined)
   const [userName, setUserName] = useState<string>(defaultNames[userType])
+  const [userId, setUserId] = useState<string | undefined>(undefined)
   const [planBadge, setPlanBadge] = useState<string>('Trial')
   const [isReady, setIsReady] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [hasDevelopments, setHasDevelopments] = useState(false)
   const [onboardingChecked, setOnboardingChecked] = useState(false)
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false)
 
   useEffect(() => {
     const initializeDashboard = async () => {
@@ -48,21 +51,26 @@ export function DashboardPage({ userType }: DashboardPageProps) {
         return
       }
 
+      setUserId(currentUser.id)
       setUserName(currentUser.name?.split(' ')[0] || defaultNames[userType])
       setCompanyName(currentUser.company)
 
       let resolvedCompanyId = currentUser.company_id
 
-      if (!resolvedCompanyId && isSupabaseConfigured()) {
+      if (isSupabaseConfigured()) {
         const supabase = createClient()
         const { data: profile } = await supabase
           .from('user_profiles')
-          .select('company_id')
+          .select('company_id, onboarding_completed')
           .eq('id', currentUser.id)
           .single()
 
-        if (profile?.company_id) {
+        if (profile?.company_id && !resolvedCompanyId) {
           resolvedCompanyId = profile.company_id
+        }
+
+        if (profile?.onboarding_completed) {
+          setOnboardingCompleted(true)
         }
       }
 
@@ -141,12 +149,23 @@ export function DashboardPage({ userType }: DashboardPageProps) {
   }
 
   return (
-    <MorningPriority
-      userType={userType}
-      userName={userName}
-      companyId={companyId}
-      companyName={companyName}
-      planBadge={planBadge}
-    />
+    <div className="space-y-6">
+      {/* Post-onboarding checklist - shown above dashboard until dismissed */}
+      {onboardingCompleted && userId && companyId && (
+        <OnboardingChecklist
+          userId={userId}
+          companyId={companyId}
+          userType={userType}
+        />
+      )}
+
+      <MorningPriority
+        userType={userType}
+        userName={userName}
+        companyId={companyId}
+        companyName={companyName}
+        planBadge={planBadge}
+      />
+    </div>
   )
 }

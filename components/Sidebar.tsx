@@ -30,6 +30,7 @@ import {
   FileSpreadsheet,
   GitBranch,
   Target,
+  Rocket,
 } from 'lucide-react'
 import { useState, useMemo, useCallback } from 'react'
 import { usePermissions } from '@/hooks/useCanAccess'
@@ -52,9 +53,11 @@ interface SidebarProps {
   userName?: string
   userEmail?: string
   onLogout?: () => void
+  showSetupGuide?: boolean
+  onReopenChecklist?: () => void
 }
 
-export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: SidebarProps) {
+export function Sidebar({ userType, userName = 'User', userEmail, onLogout, showSetupGuide, onReopenChecklist }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
   const basePath = `/${userType}`
@@ -254,6 +257,19 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
           </div>
         </div>
       )} */}
+
+      {/* Setup Guide - shown when checklist is dismissed */}
+      {showSetupGuide && (
+        <div className="px-3 py-2 border-t border-white/10">
+          <button
+            onClick={onReopenChecklist}
+            className="flex items-center gap-2 px-3 py-2 w-full rounded-lg text-xs font-medium text-emerald-400/70 hover:text-emerald-400 hover:bg-emerald-500/5 transition-all duration-200"
+          >
+            <Rocket className="h-3.5 w-3.5 flex-shrink-0" />
+            <span>Setup Guide</span>
+          </button>
+        </div>
+      )}
 
       {/* User Profile */}
       <div className="px-3 py-4 border-t border-white/10 space-y-3">

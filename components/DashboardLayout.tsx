@@ -12,6 +12,8 @@ interface DashboardLayoutProps {
   userEmail?: string
   onLogout?: () => void
   headerAction?: ReactNode
+  showSetupGuide?: boolean
+  onReopenChecklist?: () => void
 }
 
 export function DashboardLayout({
@@ -22,10 +24,19 @@ export function DashboardLayout({
   userEmail,
   onLogout,
   headerAction,
+  showSetupGuide,
+  onReopenChecklist,
 }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-[#0A0A0A]">
-      <Sidebar userType={userType} userName={userName} userEmail={userEmail} onLogout={onLogout} />
+      <Sidebar
+        userType={userType}
+        userName={userName}
+        userEmail={userEmail}
+        onLogout={onLogout}
+        showSetupGuide={showSetupGuide}
+        onReopenChecklist={onReopenChecklist}
+      />
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-[#171717] border-b border-white/10 px-4 py-4 lg:px-6 flex items-center gap-4 flex-shrink-0">
           <div className="lg:hidden w-10" />
