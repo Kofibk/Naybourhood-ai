@@ -166,6 +166,12 @@ export default function LandingPage() {
                   Product
                 </Link>
                 <Link
+                  href="/pricing"
+                  className="text-sm text-white/70 hover:text-white transition-colors"
+                >
+                  Pricing
+                </Link>
+                <Link
                   href="#company"
                   className="text-sm text-white/70 hover:text-white transition-colors"
                 >
