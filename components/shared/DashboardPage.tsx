@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { UserDashboard } from '@/components/UserDashboard'
+import { MorningPriority } from '@/components/dashboard/MorningPriority'
 import { WelcomeOnboarding } from '@/components/onboarding/WelcomeOnboarding'
 import { LoadingState } from '@/components/ui/loading-state'
 import { useAuth } from '@/contexts/AuthContext'
@@ -22,7 +22,9 @@ interface DashboardPageProps {
 export function DashboardPage({ userType }: DashboardPageProps) {
   const { user } = useAuth()
   const [companyId, setCompanyId] = useState<string | undefined>(undefined)
+  const [companyName, setCompanyName] = useState<string | undefined>(undefined)
   const [userName, setUserName] = useState<string>(defaultNames[userType])
+  const [planBadge, setPlanBadge] = useState<string>('Trial')
   const [isReady, setIsReady] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [hasDevelopments, setHasDevelopments] = useState(false)
@@ -47,6 +49,7 @@ export function DashboardPage({ userType }: DashboardPageProps) {
       }
 
       setUserName(currentUser.name?.split(' ')[0] || defaultNames[userType])
+      setCompanyName(currentUser.company)
 
       let resolvedCompanyId = currentUser.company_id
 
@@ -65,6 +68,25 @@ export function DashboardPage({ userType }: DashboardPageProps) {
 
       if (resolvedCompanyId) {
         setCompanyId(resolvedCompanyId)
+
+        // Fetch company tier for plan badge
+        if (isSupabaseConfigured()) {
+          try {
+            const supabase = createClient()
+            const { data: company } = await supabase
+              .from('companies')
+              .select('tier, subscription_tier')
+              .eq('id', resolvedCompanyId)
+              .single()
+
+            if (company) {
+              const tier = company.tier || company.subscription_tier || 'TRIAL'
+              setPlanBadge(tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase())
+            }
+          } catch {
+            // Ignore
+          }
+        }
 
         // Check if user skipped onboarding this session
         const skipped = sessionStorage.getItem('naybourhood_skip_onboarding')
@@ -88,7 +110,9 @@ export function DashboardPage({ userType }: DashboardPageProps) {
               setShowOnboarding(true)
             }
           } catch (err) {
-            console.error('Error checking onboarding status:', err)
+            if (process.env.NODE_ENV === 'development') {
+              console.error('Error checking onboarding status:', err)
+            }
           }
         }
       }
@@ -116,5 +140,13 @@ export function DashboardPage({ userType }: DashboardPageProps) {
     )
   }
 
-  return <UserDashboard userType={userType} userName={userName} companyId={companyId} />
+  return (
+    <MorningPriority
+      userType={userType}
+      userName={userName}
+      companyId={companyId}
+      companyName={companyName}
+      planBadge={planBadge}
+    />
+  )
 }

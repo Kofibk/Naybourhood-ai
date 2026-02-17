@@ -28,6 +28,8 @@ import {
   Briefcase,
   HardHat,
   FileSpreadsheet,
+  GitBranch,
+  Target,
 } from 'lucide-react'
 import { useState, useMemo, useCallback } from 'react'
 import { usePermissions } from '@/hooks/useCanAccess'
@@ -109,8 +111,9 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
       return [
         { name: 'Dashboard', icon: LayoutDashboard, href: basePath },
         { name: 'Borrowers', icon: Landmark, href: `${basePath}/borrowers`, feature: 'borrowers' },
+        { name: 'Pipeline', icon: GitBranch, href: `${basePath}/pipeline`, feature: 'leads' },
+        { name: 'Outcomes', icon: Target, href: `${basePath}/outcomes`, feature: 'leads' },
         { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
-        { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
         { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
         { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
         { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
@@ -129,8 +132,9 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout }: Si
           { name: 'CSV Import', icon: FileSpreadsheet, href: `${basePath}/buyers/import` },
         ],
       },
+      { name: 'Pipeline', icon: GitBranch, href: `${basePath}/pipeline`, feature: 'leads' },
+      { name: 'Outcomes', icon: Target, href: `${basePath}/outcomes`, feature: 'leads' },
       { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
-      { name: 'My Matches', icon: Heart, href: `${basePath}/matches`, feature: 'leads' },
       { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
       { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
       { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
