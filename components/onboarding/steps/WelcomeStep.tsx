@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { OnboardingFormData } from '@/lib/onboarding'
-import { Building2, Home, Landmark, Loader2, Settings, Megaphone, TrendingUp } from 'lucide-react'
+import { Building2, Home, Landmark, Loader2, Settings, Megaphone, TrendingUp, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import Link from 'next/link'
 
 interface WelcomeStepProps {
   data: OnboardingFormData
@@ -60,6 +61,7 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
   const [lastName, setLastName] = useState(data.lastName)
   const [phone, setPhone] = useState(data.phone)
   const [jobTitle, setJobTitle] = useState(data.jobTitle)
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
   const formatPhone = (value: string) => {
@@ -95,6 +97,8 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
     } else if (phoneDigits.length < 10 || phoneDigits.length > 11) {
       newErrors.phone = 'Please enter a valid UK phone number'
     }
+
+    if (!acceptedTerms) newErrors.terms = 'You must accept the Terms & Conditions'
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -265,6 +269,45 @@ export default function WelcomeStep({ data, onNext, isSaving }: WelcomeStepProps
             placeholder="Optional"
           />
         </div>
+      </div>
+
+      {/* Terms & Conditions */}
+      <div className="space-y-2">
+        <div className="flex items-start gap-3">
+          <button
+            type="button"
+            role="checkbox"
+            aria-checked={acceptedTerms}
+            onClick={() => setAcceptedTerms(!acceptedTerms)}
+            className={cn(
+              'mt-0.5 h-5 w-5 shrink-0 rounded border-2 flex items-center justify-center transition-colors',
+              acceptedTerms
+                ? 'bg-primary border-primary text-primary-foreground'
+                : 'border-border bg-card'
+            )}
+          >
+            {acceptedTerms && (
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
+          </button>
+          <label className="text-sm text-muted-foreground leading-relaxed">
+            I agree to the{' '}
+            <Link href="/terms" target="_blank" className="text-primary hover:underline inline-flex items-center gap-1">
+              Terms & Conditions
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+            {' '}and{' '}
+            <Link href="/privacy" target="_blank" className="text-primary hover:underline inline-flex items-center gap-1">
+              Privacy Policy
+              <ExternalLink className="h-3 w-3" />
+            </Link>
+          </label>
+        </div>
+        {errors.terms && (
+          <p className="text-sm text-destructive">{errors.terms}</p>
+        )}
       </div>
 
       {/* Continue Button */}

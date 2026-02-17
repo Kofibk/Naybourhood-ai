@@ -17,12 +17,12 @@ export function createClient() {
     return null as any
   }
 
-  // Create browser client with IMPLICIT flow to allow cross-browser magic links
-  // PKCE flow (default) requires the magic link to be opened in the SAME browser
-  // Implicit flow uses #access_token in URL which works cross-browser
+  // Create browser client with PKCE flow (Supabase recommended, implicit is deprecated)
+  // PKCE uses code exchange which is more secure than implicit token-in-URL
+  // Magic links will work in same browser; for cross-device, users should log in directly
   return createBrowserClient(url, key, {
     auth: {
-      flowType: 'implicit',
+      flowType: 'pkce',
       detectSessionInUrl: true,
     }
   })
