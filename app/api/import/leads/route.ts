@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { scoreLead } from '@/lib/scoring'
 import { normalizeLead } from '@/lib/lead-normalizer'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 // Import leads data directly (works on Vercel)
 import leadsData from '@/leads_transformed.json'
@@ -36,12 +37,12 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+    const isAdmin = isEffectiveAdmin(user.email, userProfile)
     if (!isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }
 
-    if (!userProfile?.company_id && !userProfile?.is_internal_team) {
+    if (!userProfile?.company_id && !isAdmin) {
       return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
     }
 

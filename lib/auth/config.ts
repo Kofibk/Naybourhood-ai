@@ -66,6 +66,20 @@ export function hasFullAccess(email: string | null | undefined, isInternalTeam?:
   return isMasterAdmin(email) || isInternalTeamEmail(email)
 }
 
+/**
+ * Check if user is an effective admin.
+ * Uses BOTH database flags (user_type, is_internal_team) AND email-based checks
+ * (master admin list, @naybourhood.ai domain) so that internal team members are
+ * recognized even if the DB flag is not yet set.
+ */
+export function isEffectiveAdmin(
+  email: string | null | undefined,
+  userProfile?: { user_type?: string; is_internal_team?: boolean } | null
+): boolean {
+  if (userProfile?.user_type === 'admin') return true
+  return hasFullAccess(email, userProfile?.is_internal_team)
+}
+
 // ============================================================================
 // URL CONFIGURATION
 // ============================================================================

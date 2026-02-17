@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { scoreLead } from '@/lib/scoring'
 import { generateAISummary } from '@/lib/scoring/ai-summary'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 // GET /api/leads/[id] - Get a single lead
 export async function GET(
@@ -168,7 +169,7 @@ export async function DELETE(
       .eq('id', user.id)
       .single()
 
-    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+    const isAdmin = isEffectiveAdmin(user.email, userProfile)
 
     // Check for hard delete parameter (admin only)
     const { searchParams } = new URL(request.url)

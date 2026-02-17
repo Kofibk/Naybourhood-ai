@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 function getSupabaseClient() {
   try {
@@ -50,8 +51,8 @@ export async function POST(request: NextRequest) {
       .select('id, full_name, first_name, last_name, email, phone, country, company_id')
       .eq('id', buyerId)
 
-    // Non-internal-team users can only access their own company's buyers
-    if (!userProfile?.is_internal_team && userProfile?.company_id) {
+    // Non-admin users can only access their own company's buyers
+    if (!isEffectiveAdmin(user.email, userProfile) && userProfile?.company_id) {
       buyerQuery = buyerQuery.eq('company_id', userProfile.company_id)
     }
 

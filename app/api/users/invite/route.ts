@@ -4,6 +4,7 @@ import { sendInviteEmail, isEmailConfigured } from '@/lib/email'
 import {
   isMasterAdmin,
   hasElevatedPermissions,
+  isEffectiveAdmin,
   getAuthCallbackUrl,
   parseFullName,
   buildDisplayName,
@@ -83,8 +84,8 @@ export async function POST(request: NextRequest) {
           isAdmin = true
           canInvite = true
         } else {
-          // Global admin access: user_type = 'admin' OR is_internal_team = true
-          isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+          // Global admin access: user_type = 'admin' OR is_internal_team = true OR email-based
+          isAdmin = isEffectiveAdmin(currentUser.email, profile)
           isCompanyAdmin = profile?.is_company_admin === true
           inviterCompanyId = profile?.company_id || null
 
@@ -656,7 +657,7 @@ export async function GET(request: NextRequest) {
       .eq('id', currentUser.id)
       .single()
 
-    const isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
+    const isAdmin = isEffectiveAdmin(currentUser.email, profile)
     if (!isAdmin) {
       return NextResponse.json(
         { error: 'Only admins can view all users' },

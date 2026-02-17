@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { getDemoDashboardStats } from '@/lib/demo-data'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+  const isAdmin = isEffectiveAdmin(user.email, userProfile)
 
   if (!userProfile?.company_id && !isAdmin) {
     return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
@@ -45,8 +46,8 @@ export async function GET(request: NextRequest) {
 
   // Admins can specify a company_id; others always get their own
   const effectiveCompanyId = isAdmin
-    ? (searchParams.get('company_id') || userProfile.company_id)
-    : userProfile.company_id
+    ? (searchParams.get('company_id') || userProfile?.company_id)
+    : userProfile?.company_id
 
   try {
     const isBroker = userType === 'broker'

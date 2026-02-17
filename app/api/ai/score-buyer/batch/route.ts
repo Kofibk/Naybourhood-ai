@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 // Force dynamic rendering - this route uses cookies
 export const dynamic = 'force-dynamic'
@@ -98,7 +99,7 @@ export async function POST(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+    const isAdmin = isEffectiveAdmin(user.email, userProfile)
     if (!isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
     }

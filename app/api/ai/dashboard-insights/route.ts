@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
+import { isEffectiveAdmin } from '@/lib/auth'
 import type { AIDashboardInsights } from '@/types'
 
 // Force dynamic rendering - this route uses cookies
@@ -34,7 +35,7 @@ export async function GET() {
       )
     }
 
-    const isAdmin = profile.is_internal_team === true
+    const isAdmin = isEffectiveAdmin(user.email, profile)
 
     // Fetch buyers data with company scoping
     let buyersQuery = supabase.from('buyers').select('*').order('created_at', { ascending: false })

@@ -1,5 +1,6 @@
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,7 +32,7 @@ export async function GET() {
     .eq('id', user.id)
     .single()
 
-  const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+  const isAdmin = isEffectiveAdmin(user.email, userProfile)
 
   if (!userProfile?.company_id && !isAdmin) {
     return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { isEffectiveAdmin } from '@/lib/auth'
 import type { Buyer } from '@/types'
 import {
   scoreLeadNaybourhood,
@@ -236,8 +237,8 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('id', buyerId)
 
-    // Non-internal-team users can only score their own company's buyers
-    if (!userProfile?.is_internal_team && userProfile?.company_id) {
+    // Non-admin users can only score their own company's buyers
+    if (!isEffectiveAdmin(user.email, userProfile) && userProfile?.company_id) {
       buyerQuery = buyerQuery.eq('company_id', userProfile.company_id)
     }
 
@@ -394,7 +395,7 @@ export async function PUT(request: NextRequest) {
       .select('*')
       .in('id', buyerIds)
 
-    if (!batchUserProfile?.is_internal_team && batchUserProfile?.company_id) {
+    if (!isEffectiveAdmin(user.email, batchUserProfile) && batchUserProfile?.company_id) {
       buyersQuery = buyersQuery.eq('company_id', batchUserProfile.company_id)
     }
 
