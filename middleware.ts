@@ -57,39 +57,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Non-public API routes: enforce authentication at the middleware level
+  // API routes: refresh session cookies so route handlers receive valid auth tokens.
+  // Auth enforcement is handled by each route handler (they all call supabase.auth.getUser()
+  // and return 401 if unauthenticated). Public API routes (webhooks, v1, etc.) are already
+  // handled above via PUBLIC_ROUTES.
   if (pathname.startsWith('/api')) {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      // Refresh session cookies first
-      const sessionResponse = await updateSession(request)
-
-      // Verify the user has a valid session
-      const supabaseCheck = createServerClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
-        {
-          auth: { flowType: 'pkce', detectSessionInUrl: true },
-          cookies: {
-            getAll() {
-              return request.cookies.getAll()
-            },
-            setAll() {
-              // No-op — only reading cookies for auth check
-            },
-          },
-        }
-      )
-
-      const { data: { user } } = await supabaseCheck.auth.getUser()
-
-      if (!user) {
-        return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
-        )
-      }
-
-      return sessionResponse
+      return await updateSession(request)
     }
     return NextResponse.next()
   }
