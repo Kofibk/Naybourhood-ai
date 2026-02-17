@@ -57,10 +57,39 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // API routes: refresh session cookies but don't redirect (routes check auth internally)
+  // Non-public API routes: enforce authentication at the middleware level
   if (pathname.startsWith('/api')) {
     if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return await updateSession(request)
+      // Refresh session cookies first
+      const sessionResponse = await updateSession(request)
+
+      // Verify the user has a valid session
+      const supabaseCheck = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+        {
+          auth: { flowType: 'pkce', detectSessionInUrl: true },
+          cookies: {
+            getAll() {
+              return request.cookies.getAll()
+            },
+            setAll() {
+              // No-op — only reading cookies for auth check
+            },
+          },
+        }
+      )
+
+      const { data: { user } } = await supabaseCheck.auth.getUser()
+
+      if (!user) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+
+      return sessionResponse
     }
     return NextResponse.next()
   }
@@ -85,7 +114,7 @@ export async function middleware(request: NextRequest) {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
       {
         auth: {
-          flowType: 'implicit',
+          flowType: 'pkce',
           detectSessionInUrl: true,
         },
         cookies: {
@@ -105,11 +134,11 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Get session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession()
+    // Get authenticated user (validates with Supabase server, not just JWT)
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
 
-    if (sessionError || !session) {
-      // No session - redirect to login
+    if (userError || !user) {
+      // No valid session - redirect to login
       const url = request.nextUrl.clone()
       url.pathname = '/login'
       url.searchParams.set('redirect', pathname)
@@ -120,11 +149,11 @@ export async function middleware(request: NextRequest) {
     const { data: profile } = await supabase
       .from('user_profiles')
       .select('permission_role, company_id, is_internal_team, company:companies(enabled_features)')
-      .eq('id', session.user.id)
+      .eq('id', user.id)
       .single()
 
     // Internal team has full access
-    const userEmail = session.user.email?.toLowerCase() || ''
+    const userEmail = user.email?.toLowerCase() || ''
     const isInternalTeam = profile?.is_internal_team ||
       userEmail.endsWith(INTERNAL_TEAM_DOMAIN) ||
       MASTER_ADMIN_EMAILS.includes(userEmail as typeof MASTER_ADMIN_EMAILS[number])

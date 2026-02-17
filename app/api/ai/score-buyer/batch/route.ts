@@ -84,6 +84,25 @@ function getFallbackScores(buyer: any): any {
 // Score unscored leads in batches
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const authClient = createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // Verify user is admin or internal team
+    const { data: userProfile } = await authClient
+      .from('user_profiles')
+      .select('user_type, company_id, is_internal_team')
+      .eq('id', user.id)
+      .single()
+
+    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
     const { limit = 50 } = await request.json().catch(() => ({}))
 
     const supabase = getSupabaseClient()

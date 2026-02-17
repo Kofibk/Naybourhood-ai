@@ -22,29 +22,27 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Check authentication - get user from session
+    // Authentication check
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (authError) {
-      console.error('Auth error:', authError)
-      // Continue anyway for now - the admin layout already protects this page
-    }
-
-    // Require authentication
-    if (!user) {
+    if (authError || !user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Verify user is admin or internal team
+    // Verify user is admin or internal team and get company_id
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('user_type, is_internal_team')
+      .select('user_type, is_internal_team, company_id')
       .eq('id', user.id)
       .single()
 
     const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
     if (!isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
+    }
+
+    if (!userProfile?.company_id && !userProfile?.is_internal_team) {
+      return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -64,12 +62,20 @@ export async function POST(request: NextRequest) {
     let skipped = 0
     let errors: string[] = []
 
-    // If replace mode, delete all existing leads first
+    // If replace mode, delete existing leads for this company only
     if (mode === 'replace') {
-      const { error: deleteError } = await supabase
+      let deleteQuery = supabase
         .from('buyers')
         .delete()
-        .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all (dummy condition)
+
+      if (userProfile?.is_internal_team && !userProfile?.company_id) {
+        // Internal team without company: delete all (dangerous — require explicit company_id)
+        return NextResponse.json({ error: 'Internal team must specify a company_id for replace mode' }, { status: 400 })
+      } else {
+        deleteQuery = deleteQuery.eq('company_id', userProfile!.company_id!)
+      }
+
+      const { error: deleteError } = await deleteQuery
 
       if (deleteError) {
         console.error('Delete error:', deleteError)
@@ -85,6 +91,11 @@ export async function POST(request: NextRequest) {
         // Use the normalizer to ensure consistent data format
         // This handles: field name mapping, status normalization, date parsing, etc.
         const mappedLead: any = normalizeLead(lead)
+
+        // Ensure company_id is set for multi-tenant scoping
+        if (userProfile?.company_id) {
+          mappedLead.company_id = userProfile.company_id
+        }
 
         // Score the lead if not skipping
         if (!skipScoring) {
