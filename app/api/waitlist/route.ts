@@ -1,14 +1,7 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-
-  if (!supabaseUrl || !supabaseKey) {
-    return NextResponse.json({ error: 'Not configured' }, { status: 500 })
-  }
-
   try {
     const body = await request.json()
 
@@ -22,7 +15,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey)
+    // Use admin client for public waitlist insertions (no user session available)
+    const supabase = createAdminClient()
 
     // Check for duplicate email
     const { data: existing } = await supabase

@@ -1,5 +1,5 @@
 import { createHash } from 'crypto'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export interface ApiAuthResult {
   valid: boolean
@@ -9,22 +9,6 @@ export interface ApiAuthResult {
   companyId?: string
   permissions?: Record<string, boolean>
   rateLimitRemaining?: number
-}
-
-function getAdminClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-  if (!supabaseUrl || !serviceRoleKey) {
-    throw new Error('Missing Supabase admin credentials')
-  }
-
-  return createSupabaseClient(supabaseUrl, serviceRoleKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  })
 }
 
 function hashKey(key: string): string {
@@ -57,7 +41,7 @@ export async function validateApiKey(authHeader: string | null): Promise<ApiAuth
   const keyHash = hashKey(token)
 
   try {
-    const supabase = getAdminClient()
+    const supabase = createAdminClient()
 
     // Look up the key by hash
     const { data: apiKey, error } = await supabase
@@ -138,7 +122,7 @@ export async function logApiUsage(params: {
   requestBodySize?: number
 }): Promise<void> {
   try {
-    const supabase = getAdminClient()
+    const supabase = createAdminClient()
 
     await supabase.from('api_usage_log').insert({
       api_key_id: params.apiKeyId,

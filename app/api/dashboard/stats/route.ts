@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { getDemoDashboardStats } from '@/lib/demo-data'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
   const startTime = Date.now()
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
     .eq('id', user.id)
     .single()
 
-  const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+  const isAdmin = isEffectiveAdmin(user.email, userProfile)
 
   if (!userProfile?.company_id && !isAdmin) {
     return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
@@ -45,8 +46,8 @@ export async function GET(request: NextRequest) {
 
   // Admins can specify a company_id; others always get their own
   const effectiveCompanyId = isAdmin
-    ? (searchParams.get('company_id') || userProfile.company_id)
-    : userProfile.company_id
+    ? (searchParams.get('company_id') || userProfile?.company_id)
+    : userProfile?.company_id
 
   try {
     const isBroker = userType === 'broker'
@@ -58,11 +59,16 @@ export async function GET(request: NextRequest) {
         p_company_name: null
       })
 
-      // Fetch recent borrowers with company scoping
-      const { data: recentBorrowers } = await supabase
+      // Fetch recent borrowers — skip company filter for internal team (sees all)
+      let borrowersQuery = supabase
         .from('borrowers')
         .select('id, full_name, first_name, last_name, email, phone, status, finance_type, loan_amount, company_id, date_added, created_at')
-        .eq('company_id', effectiveCompanyId)
+
+      if (effectiveCompanyId) {
+        borrowersQuery = borrowersQuery.eq('company_id', effectiveCompanyId)
+      }
+
+      const { data: recentBorrowers } = await borrowersQuery
         .order('created_at', { ascending: false })
         .limit(50)
 
@@ -90,18 +96,29 @@ export async function GET(request: NextRequest) {
         })
       ])
 
-      // Fetch recent buyers and top campaigns with company scoping
+      // Fetch recent buyers — skip company filter for internal team (sees all)
+      let buyersQuery = supabase
+        .from('buyers')
+        .select('id, full_name, first_name, last_name, email, phone, status, ai_quality_score, ai_intent_score, ai_confidence, ai_classification, ai_summary, budget_range, development_name, source_platform, company_id, created_at')
+
+      if (effectiveCompanyId) {
+        buyersQuery = buyersQuery.eq('company_id', effectiveCompanyId)
+      }
+
+      // Fetch top campaigns — skip company filter for internal team (sees all)
+      let campaignsQuery = supabase
+        .from('campaigns')
+        .select('campaign_name, development_name, total_spent, number_of_leads, impressions, clicks, ctr, company_id')
+
+      if (effectiveCompanyId) {
+        campaignsQuery = campaignsQuery.eq('company_id', effectiveCompanyId)
+      }
+
       const [{ data: recentBuyers }, { data: topCampaigns }] = await Promise.all([
-        supabase
-          .from('buyers')
-          .select('id, full_name, first_name, last_name, email, phone, status, ai_quality_score, ai_intent_score, ai_confidence, ai_classification, ai_summary, budget_range, development_name, source_platform, company_id, created_at')
-          .eq('company_id', effectiveCompanyId)
+        buyersQuery
           .order('created_at', { ascending: false })
           .limit(50),
-        supabase
-          .from('campaigns')
-          .select('campaign_name, development_name, total_spent, number_of_leads, impressions, clicks, ctr, company_id')
-          .eq('company_id', effectiveCompanyId)
+        campaignsQuery
           .order('number_of_leads', { ascending: false })
           .limit(10)
       ])

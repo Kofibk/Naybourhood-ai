@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 function getSupabaseClient() {
   try {
@@ -11,6 +12,20 @@ function getSupabaseClient() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Authentication check
+    const authClient = createClient()
+    const { data: { user }, error: authError } = await authClient.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    // Get user profile for company scoping
+    const { data: userProfile } = await authClient
+      .from('user_profiles')
+      .select('company_id, is_internal_team')
+      .eq('id', user.id)
+      .single()
+
     const { buyerId, checkType = 'both' } = await request.json()
 
     if (!buyerId) {
@@ -30,12 +45,18 @@ export async function POST(request: NextRequest) {
 
     const supabase = getSupabaseClient()
 
-    // Verify buyer exists
-    const { data: buyer, error: buyerError } = await supabase
+    // Verify buyer exists and belongs to user's company
+    let buyerQuery = supabase
       .from('buyers')
       .select('id, full_name, first_name, last_name, email, phone, country, company_id')
       .eq('id', buyerId)
-      .single()
+
+    // Non-admin users can only access their own company's buyers
+    if (!isEffectiveAdmin(user.email, userProfile) && userProfile?.company_id) {
+      buyerQuery = buyerQuery.eq('company_id', userProfile.company_id)
+    }
+
+    const { data: buyer, error: buyerError } = await buyerQuery.single()
 
     if (buyerError || !buyer) {
       return NextResponse.json({ error: 'Buyer not found' }, { status: 404 })
@@ -98,15 +119,8 @@ export async function POST(request: NextRequest) {
       checkboardReference = checkboardPayload.reference
     }
 
-    // Get current user for initiated_by
-    let initiatedBy: string | null = null
-    try {
-      const authClient = createClient()
-      const { data: { user } } = await authClient.auth.getUser()
-      initiatedBy = user?.id ?? null
-    } catch {
-      // Non-critical - proceed without initiated_by
-    }
+    // Use already-authenticated user for initiated_by
+    const initiatedBy = user.id
 
     // Insert kyc_checks record
     const { data: kycCheck, error: insertError } = await supabase

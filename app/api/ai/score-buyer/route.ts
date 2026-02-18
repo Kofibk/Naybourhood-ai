@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import Anthropic from '@anthropic-ai/sdk'
+import { isEffectiveAdmin } from '@/lib/auth'
 import type { Buyer } from '@/types'
 import {
   scoreLeadNaybourhood,
@@ -221,14 +222,27 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
+    // Get user profile for company scoping
+    const { data: userProfile } = await authClient
+      .from('user_profiles')
+      .select('company_id, is_internal_team')
+      .eq('id', user.id)
+      .single()
+
     const supabase = getSupabaseClient()
 
-    // Fetch buyer data
-    const { data: buyer, error } = await supabase
+    // Fetch buyer data with company scoping
+    let buyerQuery = supabase
       .from('buyers')
       .select('*')
       .eq('id', buyerId)
-      .single()
+
+    // Non-admin users can only score their own company's buyers
+    if (!isEffectiveAdmin(user.email, userProfile) && userProfile?.company_id) {
+      buyerQuery = buyerQuery.eq('company_id', userProfile.company_id)
+    }
+
+    const { data: buyer, error } = await buyerQuery.single()
 
     if (error || !buyer) {
       return NextResponse.json({ error: 'Buyer not found' }, { status: 404 })
@@ -365,14 +379,27 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
+    // Get user profile for company scoping
+    const { data: batchUserProfile } = await authClient
+      .from('user_profiles')
+      .select('company_id, is_internal_team')
+      .eq('id', user.id)
+      .single()
+
     const supabase = getSupabaseClient()
     const client = getAnthropicClient()
 
-    // Fetch all buyers
-    const { data: buyers, error } = await supabase
+    // Fetch buyers with company scoping
+    let buyersQuery = supabase
       .from('buyers')
       .select('*')
       .in('id', buyerIds)
+
+    if (!isEffectiveAdmin(user.email, batchUserProfile) && batchUserProfile?.company_id) {
+      buyersQuery = buyersQuery.eq('company_id', batchUserProfile.company_id)
+    }
+
+    const { data: buyers, error } = await buyersQuery
 
     if (error) {
       return NextResponse.json({ error: 'Failed to fetch buyers' }, { status: 500 })

@@ -28,27 +28,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Authentication check - mandatory
+    const supabase = createClient()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    if (authError || !user) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
     // Get sender info from authenticated user
     let senderName = 'Naybourhood Team'
     let senderEmail = process.env.EMAIL_FROM || 'noreply@naybourhood.com'
-    let userId: string | null = null
+    const userId = user.id
 
-    if (isSupabaseConfigured()) {
-      const supabase = createClient()
-      const { data: { user } } = await supabase.auth.getUser()
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('first_name, last_name, email')
+      .eq('id', user.id)
+      .single()
 
-      if (user) {
-        userId = user.id
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('first_name, last_name, email')
-          .eq('id', user.id)
-          .single()
-
-        if (profile?.first_name) {
-          senderName = `${profile.first_name} ${profile.last_name || ''}`.trim()
-        }
-      }
+    if (profile?.first_name) {
+      senderName = `${profile.first_name} ${profile.last_name || ''}`.trim()
     }
 
     // Prepare email content

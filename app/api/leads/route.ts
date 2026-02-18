@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
 import { scoreLead } from '@/lib/scoring'
 import { generateAISummary } from '@/lib/scoring/ai-summary'
+import { isEffectiveAdmin } from '@/lib/auth'
 
 // GET /api/leads - List leads with filtering, pagination, and search
 export async function GET(request: NextRequest) {
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest) {
       .eq('id', user.id)
       .single()
 
-    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
+    const isAdmin = isEffectiveAdmin(user.email, userProfile)
 
     // Parse query parameters
     const { searchParams } = new URL(request.url)
