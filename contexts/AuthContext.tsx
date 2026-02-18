@@ -99,10 +99,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (session?.user && !error) {
             const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
             if (appUser) {
-              // Always use DB as source of truth for company_id
-              // Do NOT fall back to localStorage - it may contain stale data
               setUser(appUser)
               localStorage.setItem('naybourhood_user', JSON.stringify(appUser))
+            } else {
+              // Profile fetch failed but session is valid — build minimal user from session + localStorage
+              const email = session.user.email || ''
+              const stored = localStorage.getItem('naybourhood_user')
+              const storedUser = stored ? JSON.parse(stored) : null
+              const fallbackUser: User = {
+                id: session.user.id,
+                email,
+                name: storedUser?.name || email.split('@')[0] || 'User',
+                role: isMasterAdmin(email) ? 'admin' : (storedUser?.role || 'developer'),
+                company_id: storedUser?.company_id,
+                company: storedUser?.company,
+                is_internal: isInternalTeamEmail(email),
+                is_master_admin: isMasterAdmin(email),
+              }
+              setUser(fallbackUser)
+              localStorage.setItem('naybourhood_user', JSON.stringify(fallbackUser))
             }
           } else {
             // No valid Supabase session - check localStorage for Quick Access / demo mode

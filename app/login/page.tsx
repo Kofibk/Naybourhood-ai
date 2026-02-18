@@ -230,7 +230,7 @@ function LoginPageInner() {
               setError(error.message)
             }
           } else if (data.user) {
-            // Fire-and-forget: update user status (don't block login on this)
+            // Fire-and-forget: update user status
             supabase
               .from('user_profiles')
               .update({ membership_status: 'active' })
@@ -238,44 +238,65 @@ function LoginPageInner() {
               .then(() => {})
               .catch(() => {})
 
-            // Fetch profile for role/onboarding check (only needed columns)
-            const { data: profile, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('user_type, first_name, last_name, company_id, onboarding_completed')
-              .eq('id', data.user.id)
-              .single()
-
-            if (profileError) {
-              console.error('[Login] Profile fetch error:', profileError)
-            }
-
-            // Determine role - master admin override takes priority
-            let role = profile?.user_type || 'developer'
+            // Determine role quickly — master admin check is instant (no DB needed)
+            let role = 'developer'
             if (isMasterAdmin(data.user.email)) {
               role = 'admin'
             }
 
-            // Only redirect to onboarding if profile exists AND onboarding not completed
-            // If profile is null (fetch failed), proceed to dashboard - AuthContext will handle
-            if (profile && !profile.onboarding_completed) {
-              router.push('/onboarding')
-              router.refresh()
-            } else {
-              const fullName = profile?.first_name
-                ? `${profile.first_name} ${profile.last_name || ''}`.trim()
-                : data.user.email?.split('@')[0] || 'User'
+            // Try to fetch profile with a timeout so login never gets stuck
+            try {
+              const profilePromise = supabase
+                .from('user_profiles')
+                .select('user_type, first_name, last_name, company_id, onboarding_completed')
+                .eq('id', data.user.id)
+                .single()
 
+              const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('timeout')), 3000)
+              )
+
+              const { data: profile } = await Promise.race([profilePromise, timeoutPromise]) as { data: any }
+
+              if (profile) {
+                if (!isMasterAdmin(data.user.email)) {
+                  role = profile.user_type || 'developer'
+                }
+
+                const fullName = profile.first_name
+                  ? `${profile.first_name} ${profile.last_name || ''}`.trim()
+                  : data.user.email?.split('@')[0] || 'User'
+
+                localStorage.setItem('naybourhood_user', JSON.stringify({
+                  id: data.user.id,
+                  email: data.user.email,
+                  name: fullName,
+                  role,
+                  company_id: profile.company_id,
+                  is_internal: data.user.email?.endsWith('@naybourhood.ai'),
+                  is_master_admin: isMasterAdmin(data.user.email),
+                }))
+
+                // Redirect to onboarding if not completed
+                if (!profile.onboarding_completed) {
+                  router.push('/onboarding')
+                  return
+                }
+              }
+            } catch {
+              // Profile fetch failed or timed out — store minimal user and redirect anyway
               localStorage.setItem('naybourhood_user', JSON.stringify({
                 id: data.user.id,
                 email: data.user.email,
-                name: fullName,
-                role: role,
-                company_id: profile?.company_id,
+                name: data.user.email?.split('@')[0] || 'User',
+                role,
+                is_internal: data.user.email?.endsWith('@naybourhood.ai'),
+                is_master_admin: isMasterAdmin(data.user.email),
               }))
-
-              redirectBasedOnRole(role)
-              router.refresh()
             }
+
+            // Always redirect — never get stuck
+            redirectBasedOnRole(role)
           }
         }
       }

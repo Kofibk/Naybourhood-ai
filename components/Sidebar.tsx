@@ -33,16 +33,13 @@ import {
   Rocket,
 } from 'lucide-react'
 import { useState, useMemo, useCallback } from 'react'
-import { usePermissions } from '@/hooks/useCanAccess'
-import { hasBillingAccess } from '@/lib/auth'
-import type { Feature } from '@/types'
 
 interface NavItem {
   name: string
   icon: React.ElementType
   href: string
   badge?: number
-  feature?: Feature  // Feature required for this nav item
+  feature?: string  // Feature name (kept for reference, not used for filtering)
   subItems?: { name: string; icon: React.ElementType; href: string }[]
 }
 
@@ -62,27 +59,8 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
   const pathname = usePathname()
   const basePath = `/${userType}`
 
-  // Get user permissions for feature-based nav filtering
-  const { permissions, isLoading: permissionsLoading } = usePermissions()
-
-  // Check if user has billing access (using centralized auth config)
-  const userHasBillingAccess = useMemo(() => {
-    return hasBillingAccess(userEmail, permissions ? {
-      isInternalTeam: permissions.isInternalTeam,
-      isMasterAdmin: permissions.isMasterAdmin,
-      permissions: permissions.permissions,
-    } : undefined)
-  }, [userEmail, permissions])
-
-  // Check if a feature is accessible
-  const canAccessFeature = useCallback((feature: Feature | undefined): boolean => {
-    if (!feature) return true // No feature requirement = always show
-    if (permissionsLoading) return true // Show while loading
-    if (!permissions) return false
-    if (permissions.isInternalTeam || permissions.isMasterAdmin) return true
-    if (!permissions.enabledFeatures.includes(feature)) return false
-    return permissions.permissions[feature]?.canRead ?? false
-  }, [permissions, permissionsLoading])
+  // Show all nav items — permission filtering removed so all pages are always accessible
+  const userHasBillingAccess = true
 
   const getNavItems = useCallback((): NavItem[] => {
     if (userType === 'admin') {
@@ -144,10 +122,8 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
     ]
   }, [userType, basePath, userHasBillingAccess])
 
-  // Filter nav items based on feature access
-  const navItems = useMemo(() => {
-    return getNavItems().filter(item => canAccessFeature(item.feature))
-  }, [getNavItems, canAccessFeature])
+  // Show all nav items
+  const navItems = useMemo(() => getNavItems(), [getNavItems])
 
   const isActive = (href: string) => pathname === href
   const isActiveParent = (item: NavItem) =>
