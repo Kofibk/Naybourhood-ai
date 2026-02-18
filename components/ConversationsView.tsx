@@ -59,6 +59,7 @@ interface ConversationItem {
   callStatus?: 'answered' | 'missed' | 'voicemail'
   callDirection?: 'inbound' | 'outbound'
   callDuration?: number
+  agentTranscript?: string
   type: 'lead' | 'borrower'
 }
 
@@ -95,6 +96,87 @@ function formatDuration(seconds?: number): string {
   const mins = Math.floor(seconds / 60)
   const secs = seconds % 60
   return mins > 0 ? `${mins}m ${secs}s` : `${secs}s`
+}
+
+/**
+ * Parses and renders agent_transcript text as a chat-style conversation.
+ * Handles formats like:
+ *   "Agent: Hello, how can I help?\nBuyer: I'm looking for a 2-bed flat..."
+ *   "Agent - Hello...\nClient - I need..."
+ *   Or plain text blocks
+ */
+function TranscriptView({ transcript }: { transcript: string }) {
+  const messages = useMemo(() => {
+    const lines = transcript.split('\n').filter(l => l.trim())
+
+    // Try to detect structured lines like "Agent: ..." or "Buyer: ..." or "Agent - ..."
+    const parsed: { role: 'agent' | 'buyer' | 'system'; text: string }[] = []
+    const rolePattern = /^(agent|ai|assistant|bot|rep|naybourhood)\s*[:\-–—]\s*/i
+    const buyerPattern = /^(buyer|client|customer|user|lead|prospect|caller)\s*[:\-–—]\s*/i
+    let hasStructuredLines = false
+
+    for (const line of lines) {
+      if (rolePattern.test(line)) {
+        hasStructuredLines = true
+        parsed.push({ role: 'agent', text: line.replace(rolePattern, '').trim() })
+      } else if (buyerPattern.test(line)) {
+        hasStructuredLines = true
+        parsed.push({ role: 'buyer', text: line.replace(buyerPattern, '').trim() })
+      } else if (hasStructuredLines && parsed.length > 0) {
+        // Continuation of previous message
+        parsed[parsed.length - 1].text += '\n' + line.trim()
+      } else {
+        parsed.push({ role: 'system', text: line.trim() })
+      }
+    }
+
+    return parsed
+  }, [transcript])
+
+  // If no structured messages detected, show as plain text
+  const isPlainText = messages.every(m => m.role === 'system')
+
+  if (isPlainText) {
+    return (
+      <div className="bg-muted/50 rounded-lg p-4 max-h-[400px] overflow-y-auto">
+        <p className="text-sm whitespace-pre-wrap">{transcript}</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-1">
+      {messages.map((msg, i) => (
+        <div
+          key={i}
+          className={`flex ${msg.role === 'agent' ? 'justify-start' : msg.role === 'buyer' ? 'justify-end' : 'justify-center'}`}
+        >
+          {msg.role === 'system' ? (
+            <div className="bg-muted/50 rounded px-3 py-1.5 max-w-[90%]">
+              <p className="text-xs text-muted-foreground">{msg.text}</p>
+            </div>
+          ) : (
+            <div
+              className={`rounded-lg px-3 py-2 max-w-[85%] ${
+                msg.role === 'agent'
+                  ? 'bg-primary/10 border border-primary/20'
+                  : 'bg-green-100 dark:bg-green-900/50 border border-green-300 dark:border-green-700'
+              }`}
+            >
+              <p className="text-[10px] font-medium uppercase tracking-wide mb-1 text-muted-foreground">
+                {msg.role === 'agent' ? 'Agent' : 'Buyer'}
+              </p>
+              <p className={`text-sm whitespace-pre-wrap ${
+                msg.role === 'agent' ? '' : 'text-green-900 dark:text-green-100'
+              }`}>
+                {msg.text}
+              </p>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export function ConversationsView({
@@ -136,6 +218,7 @@ export function ConversationsView({
           budget: lead.budget_range || lead.budget,
           location: lead.preferred_location || lead.location,
           channel: lead.last_wa_message ? 'whatsapp' : (lead.call_summary ? 'call' : 'all'),
+          agentTranscript: lead.agent_transcript,
           type: 'lead' as const,
         }))
     } else {
@@ -611,23 +694,25 @@ export function ConversationsView({
                   </CardContent>
                 </Card>
 
-                {/* Last WhatsApp Message */}
+                {/* Conversation Transcript */}
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2">
-                      <WhatsAppIcon className="h-4 w-4 text-green-600" />
-                      Last WhatsApp Message
+                      <MessageSquare className="h-4 w-4 text-primary" />
+                      Conversation Transcript
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
-                    {selectedConversation.lastMessage ? (
+                    {selectedConversation.agentTranscript ? (
+                      <TranscriptView transcript={selectedConversation.agentTranscript} />
+                    ) : selectedConversation.lastMessage ? (
                       <div className="bg-green-100 dark:bg-green-900/50 rounded-lg p-4 border border-green-300 dark:border-green-700">
                         <p className="text-sm whitespace-pre-wrap text-green-900 dark:text-green-100">{selectedConversation.lastMessage}</p>
                       </div>
                     ) : (
                       <div className="text-center py-6">
                         <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">No WhatsApp messages yet</p>
+                        <p className="text-sm text-muted-foreground">No conversation recorded yet</p>
                         {selectedConversation.phone && (
                           <Button
                             variant="outline"
@@ -643,16 +728,6 @@ export function ConversationsView({
                     )}
                   </CardContent>
                 </Card>
-
-                {/* Info Note */}
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-                  <p className="flex items-start gap-2">
-                    <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span>
-                      This shows the last recorded message. Full conversation history requires WhatsApp Business API integration.
-                    </span>
-                  </p>
-                </div>
               </div>
 
               {/* View Full Profile Link */}
