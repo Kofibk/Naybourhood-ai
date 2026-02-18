@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/server'
-import { isEffectiveAdmin } from '@/lib/auth'
 import type { AIAnalysis } from '@/types'
 
 // Force dynamic rendering - this route uses cookies
@@ -11,49 +10,45 @@ export async function GET() {
   try {
     const supabase = createClient()
 
-    // Authentication check - mandatory
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    // Authentication check - require logged in user
+    if (isSupabaseConfigured()) {
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (authError || !user) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      )
+      if (authError || !user) {
+        return NextResponse.json(
+          { error: 'Authentication required' },
+          { status: 401 }
+        )
+      }
+
+      // Verify user has a profile (internal team or valid client)
+      const { data: profile } = await supabase
+        .from('user_profiles')
+        .select('user_type')
+        .eq('id', user.id)
+        .single()
+
+      if (!profile) {
+        return NextResponse.json(
+          { error: 'User profile not found' },
+          { status: 403 }
+        )
+      }
     }
 
-    // Get user profile for company scoping
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('user_type, company_id, is_internal_team')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return NextResponse.json(
-        { error: 'User profile not found' },
-        { status: 403 }
-      )
-    }
-
-    const isAdmin = isEffectiveAdmin(user.email, profile)
-
-    // Fetch buyers with company scoping
-    let buyersQuery = supabase.from('buyers').select('*')
-    if (!isAdmin && profile.company_id) {
-      buyersQuery = buyersQuery.eq('company_id', profile.company_id)
-    }
-    const { data: buyers, error: buyersError } = await buyersQuery
+    // Fetch all buyers
+    const { data: buyers, error: buyersError } = await supabase
+      .from('buyers')
+      .select('*')
 
     if (buyersError) {
       console.error('[AI Analysis] Buyers error:', buyersError)
     }
 
-    // Fetch campaigns with company scoping
-    let campaignsQuery = supabase.from('campaigns').select('*')
-    if (!isAdmin && profile.company_id) {
-      campaignsQuery = campaignsQuery.eq('company_id', profile.company_id)
-    }
-    const { data: campaigns, error: campaignsError } = await campaignsQuery
+    // Fetch all campaigns
+    const { data: campaigns, error: campaignsError } = await supabase
+      .from('campaigns')
+      .select('*')
 
     if (campaignsError) {
       console.error('[AI Analysis] Campaigns error:', campaignsError)

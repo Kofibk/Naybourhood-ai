@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient, isSupabaseConfigured } from '@/lib/supabase/server'
-import { isEffectiveAdmin } from '@/lib/auth'
 
 // DELETE user by ID
 export async function DELETE(
@@ -36,8 +35,8 @@ export async function DELETE(
           .eq('id', currentUser.id)
           .single()
 
-        isAdmin = isEffectiveAdmin(currentUser.email, profile) || profile?.user_type === 'super_admin'
-        isSuperAdmin = profile?.user_type === 'super_admin' || isEffectiveAdmin(currentUser.email, profile)
+        isAdmin = profile?.user_type === 'admin' || profile?.user_type === 'super_admin' || profile?.is_internal_team === true
+        isSuperAdmin = profile?.user_type === 'super_admin' || profile?.is_internal_team === true
       }
     }
 
@@ -188,8 +187,8 @@ export async function PATCH(
         .eq('id', currentUser.id)
         .single()
 
-      isSuperAdmin = profile?.user_type === 'super_admin' || isEffectiveAdmin(currentUser.email, profile)
-      const isAdmin = isEffectiveAdmin(currentUser.email, profile)
+      isSuperAdmin = profile?.user_type === 'super_admin' || profile?.is_internal_team === true
+      const isAdmin = profile?.user_type === 'admin' || profile?.is_internal_team === true
 
       // Users can update their own profile
       if (currentUser.id === userId) {

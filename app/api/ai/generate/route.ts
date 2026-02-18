@@ -200,11 +200,13 @@ Respond with a single, specific, actionable sentence (max 15 words). Focus on th
 
 export async function POST(request: NextRequest) {
   try {
-    // Authentication check - mandatory
-    const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
+    // Authentication check
+    if (isSupabaseConfigured()) {
+      const supabase = createClient()
+      const { data: { user }, error: authError } = await supabase.auth.getUser()
+      if (authError || !user) {
+        return NextResponse.json({ success: false, error: 'Authentication required' }, { status: 401 })
+      }
     }
 
     const body: GenerateRequest = await request.json()

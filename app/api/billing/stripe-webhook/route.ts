@@ -1,8 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAdminClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 // Disable body parsing - Stripe needs the raw body for signature verification
 export const runtime = 'nodejs'
+
+function getAdminSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!url || !serviceKey) {
+    throw new Error('Missing Supabase admin credentials')
+  }
+
+  return createSupabaseClient(url, serviceKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  })
+}
 
 export async function POST(request: NextRequest) {
   const stripeKey = process.env.STRIPE_SECRET_KEY
@@ -41,7 +54,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const supabase = createAdminClient()
+    const supabase = getAdminSupabase()
 
     switch (event.type) {
       // ---- Checkout completed: create subscription record ----

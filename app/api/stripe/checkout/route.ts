@@ -1,17 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createCheckoutSession, createCustomer, getCustomerByEmail } from '@/lib/stripe'
 import { SUBSCRIPTION_TIERS } from '@/lib/subscriptionTiers'
-import { createClient } from '@/lib/supabase/server'
 
 export async function POST(request: NextRequest) {
   try {
-    // Authentication check
-    const supabase = createClient()
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
-    }
-
     const body = await request.json()
     const { tier, email, userId } = body
 

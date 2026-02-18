@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient, createClient, isSupabaseConfigured } from '@/lib/supabase/server'
-import { isEffectiveAdmin } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -38,8 +37,9 @@ export async function DELETE(
       .eq('id', user.id)
       .single()
 
-    const isAdmin = isEffectiveAdmin(user.email, profile) ||
-                    profile?.user_type === 'super_admin'
+    const isAdmin = profile?.user_type === 'admin' || 
+                    profile?.user_type === 'super_admin' || 
+                    profile?.is_internal_team === true
 
     if (!isAdmin) {
       return NextResponse.json({ error: 'Only admins can delete companies' }, { status: 403 })

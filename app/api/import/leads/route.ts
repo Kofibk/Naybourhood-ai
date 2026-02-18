@@ -2,7 +2,6 @@ import { createClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { scoreLead } from '@/lib/scoring'
 import { normalizeLead } from '@/lib/lead-normalizer'
-import { isEffectiveAdmin } from '@/lib/auth'
 
 // Import leads data directly (works on Vercel)
 import leadsData from '@/leads_transformed.json'
@@ -23,27 +22,29 @@ export async function POST(request: NextRequest) {
   try {
     const supabase = await createClient()
 
-    // Authentication check
+    // Check authentication - get user from session
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
-    if (authError || !user) {
+    if (authError) {
+      console.error('Auth error:', authError)
+      // Continue anyway for now - the admin layout already protects this page
+    }
+
+    // Require authentication
+    if (!user) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    // Verify user is admin or internal team and get company_id
+    // Verify user is admin or internal team
     const { data: userProfile } = await supabase
       .from('user_profiles')
-      .select('user_type, is_internal_team, company_id')
+      .select('user_type, is_internal_team')
       .eq('id', user.id)
       .single()
 
-    const isAdmin = isEffectiveAdmin(user.email, userProfile)
+    const isAdmin = userProfile?.user_type === 'admin' || userProfile?.is_internal_team === true
     if (!isAdmin) {
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 })
-    }
-
-    if (!userProfile?.company_id && !isAdmin) {
-      return NextResponse.json({ error: 'No company associated with your account' }, { status: 403 })
     }
 
     const body = await request.json()
@@ -63,20 +64,12 @@ export async function POST(request: NextRequest) {
     let skipped = 0
     let errors: string[] = []
 
-    // If replace mode, delete existing leads for this company only
+    // If replace mode, delete all existing leads first
     if (mode === 'replace') {
-      let deleteQuery = supabase
+      const { error: deleteError } = await supabase
         .from('buyers')
         .delete()
-
-      if (userProfile?.is_internal_team && !userProfile?.company_id) {
-        // Internal team without company: delete all (dangerous — require explicit company_id)
-        return NextResponse.json({ error: 'Internal team must specify a company_id for replace mode' }, { status: 400 })
-      } else {
-        deleteQuery = deleteQuery.eq('company_id', userProfile!.company_id!)
-      }
-
-      const { error: deleteError } = await deleteQuery
+        .neq('id', '00000000-0000-0000-0000-000000000000') // Delete all (dummy condition)
 
       if (deleteError) {
         console.error('Delete error:', deleteError)
@@ -92,11 +85,6 @@ export async function POST(request: NextRequest) {
         // Use the normalizer to ensure consistent data format
         // This handles: field name mapping, status normalization, date parsing, etc.
         const mappedLead: any = normalizeLead(lead)
-
-        // Ensure company_id is set for multi-tenant scoping
-        if (userProfile?.company_id) {
-          mappedLead.company_id = userProfile.company_id
-        }
 
         // Score the lead if not skipping
         if (!skipScoring) {
