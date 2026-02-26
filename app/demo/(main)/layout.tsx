@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { DashboardLayout } from '@/components/DashboardLayout'
 import { QueryProvider } from '@/contexts/QueryProvider'
 import { AuthProvider } from '@/contexts/AuthContext'
+import { DemoAIChat } from '@/components/demo/DemoAIChat'
 import { DEMO_USER } from '@/lib/demo-data'
 import { Toaster } from 'sonner'
 
@@ -27,7 +28,7 @@ function DemoLayoutContent({ children }: { children: React.ReactNode }) {
       }
     } catch { /* ignore */ }
 
-    // No demo user found — set one up and continue
+    // No demo user found — set one up
     const demoUser = {
       ...DEMO_USER,
       user_type: 'developer',
@@ -60,14 +61,16 @@ function DemoLayoutContent({ children }: { children: React.ReactNode }) {
         userName={userName}
         userEmail={DEMO_USER.email}
         onLogout={handleLogout}
+        basePath="/demo"
       >
         {children}
       </DashboardLayout>
+      <DemoAIChat />
     </QueryProvider>
   )
 }
 
-export default function DemoDashboardLayout({
+export default function DemoMainLayout({
   children,
 }: {
   children: React.ReactNode

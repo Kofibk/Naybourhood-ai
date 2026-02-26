@@ -14,6 +14,7 @@ interface DashboardLayoutProps {
   headerAction?: ReactNode
   showSetupGuide?: boolean
   onReopenChecklist?: () => void
+  basePath?: string
 }
 
 export function DashboardLayout({
@@ -26,6 +27,7 @@ export function DashboardLayout({
   headerAction,
   showSetupGuide,
   onReopenChecklist,
+  basePath,
 }: DashboardLayoutProps) {
   return (
     <div className="flex h-screen overflow-hidden bg-[#0A0A0A]">
@@ -36,6 +38,7 @@ export function DashboardLayout({
         onLogout={onLogout}
         showSetupGuide={showSetupGuide}
         onReopenChecklist={onReopenChecklist}
+        basePath={basePath}
       />
       <main className="flex-1 flex flex-col min-w-0 overflow-hidden">
         <header className="bg-[#171717] border-b border-white/10 px-4 py-4 lg:px-6 flex items-center gap-4 flex-shrink-0">

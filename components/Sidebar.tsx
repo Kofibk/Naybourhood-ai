@@ -55,12 +55,13 @@ interface SidebarProps {
   onLogout?: () => void
   showSetupGuide?: boolean
   onReopenChecklist?: () => void
+  basePath?: string
 }
 
-export function Sidebar({ userType, userName = 'User', userEmail, onLogout, showSetupGuide, onReopenChecklist }: SidebarProps) {
+export function Sidebar({ userType, userName = 'User', userEmail, onLogout, showSetupGuide, onReopenChecklist, basePath: basePathOverride }: SidebarProps) {
   const [mobileOpen, setMobileOpen] = useState(false)
   const pathname = usePathname()
-  const basePath = `/${userType}`
+  const basePath = basePathOverride || `/${userType}`
 
   // Get user permissions for feature-based nav filtering
   const { permissions, isLoading: permissionsLoading } = usePermissions()
