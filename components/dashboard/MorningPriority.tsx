@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { useDashboardStats } from '@/hooks/useDashboardStats'
 import { getGreeting, getDateString, formatNumber } from '@/lib/utils'
 import { getNBScoreColor } from '@/lib/scoring/nb-score'
@@ -109,10 +110,14 @@ export function MorningPriority({
     })
   }, [recentLeads, classificationFilter])
 
+  const pathname = usePathname()
+  const isDemo = pathname.startsWith('/demo')
+  const routeBase = isDemo ? '/demo' : `/${userType}`
+
   const typeConfig = {
-    developer: { title: 'Buyers', path: '/developer/buyers' },
-    agent: { title: 'Leads', path: '/agent/buyers' },
-    broker: { title: 'Clients', path: '/broker/borrowers' },
+    developer: { title: 'Buyers', path: `${routeBase}/buyers` },
+    agent: { title: 'Leads', path: `${routeBase}/buyers` },
+    broker: { title: 'Clients', path: `${routeBase}/borrowers` },
   }[userType]
 
   if (isLoading && !stats) {
@@ -291,13 +296,13 @@ export function MorningPriority({
               </p>
               <div className="flex items-center justify-center gap-3">
                 <Link
-                  href={`/${userType}/buyers/import`}
+                  href={`${routeBase}/buyers/import`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium rounded-lg transition-colors"
                 >
                   Import Leads
                 </Link>
                 <Link
-                  href={`/${userType}/settings`}
+                  href={`${routeBase}/settings`}
                   className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 text-sm font-medium rounded-lg border border-white/10 transition-colors"
                 >
                   Connect Source

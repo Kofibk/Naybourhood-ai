@@ -1,11 +1,12 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { DEMO_RECENT_LEADS, DEMO_BUYER_STATS } from '@/lib/demo-data'
-import { Search, Flame, Users, Eye, Target, ArrowUpDown } from 'lucide-react'
+import { Search, Flame, Users, Eye, Target, ArrowUpDown, ChevronRight } from 'lucide-react'
 
 const statusColors: Record<string, string> = {
   'Viewing Booked': 'text-purple-400 bg-purple-400/10',
@@ -118,7 +119,7 @@ export default function DemoBuyersPage() {
             </thead>
             <tbody>
               {filtered.map((lead) => (
-                <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer">
+                <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => window.location.href = `/demo/buyers/${lead.id}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {(lead.ai_quality_score || 0) >= 85 && <Flame className="h-3.5 w-3.5 text-orange-400" />}
@@ -145,7 +146,12 @@ export default function DemoBuyersPage() {
                       {lead.status}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-sm text-white/50 capitalize">{lead.source_platform}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-white/50 capitalize">{lead.source_platform}</span>
+                      <ChevronRight className="h-4 w-4 text-white/20 group-hover:text-white/50 transition-colors" />
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { ScoreBadge } from './ScoreBadge'
 import { ClassificationPill } from './ClassificationPill'
 import { NextActionButton } from './NextActionButton'
@@ -64,7 +65,11 @@ export function LeadCard({
     : undefined
   const timeAgo = getTimeAgo(mostRecent)
 
-  const basePath = userType === 'broker' ? `/${userType}/borrowers` : `/${userType}/buyers`
+  const pathname = usePathname()
+  const isDemo = pathname.startsWith('/demo')
+  const basePath = isDemo
+    ? (userType === 'broker' ? '/demo/borrowers' : '/demo/buyers')
+    : (userType === 'broker' ? `/${userType}/borrowers` : `/${userType}/buyers`)
 
   return (
     <Link
