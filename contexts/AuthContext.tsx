@@ -90,6 +90,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initializeAuth = async () => {
       setIsLoading(true)
 
+      // Check if user is in demo/presentation mode — skip Supabase entirely
+      const storedRaw = localStorage.getItem('naybourhood_user')
+      if (storedRaw) {
+        try {
+          const parsed = JSON.parse(storedRaw)
+          if (parsed.isDemo) {
+            setUser(parsed)
+            setIsLoading(false)
+            return
+          }
+        } catch { /* ignore */ }
+      }
+
       if (isSupabaseConfigured()) {
         try {
           const supabase = createClient()
@@ -123,6 +136,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const { data: { subscription } } = supabase.auth.onAuthStateChange(
             async (event: AuthChangeEvent, session: Session | null) => {
               if (event === 'SIGNED_IN' && session?.user) {
+                // Don't overwrite demo user with real session
+                const currentStored = localStorage.getItem('naybourhood_user')
+                if (currentStored) {
+                  try {
+                    if (JSON.parse(currentStored).isDemo) return
+                  } catch { /* ignore */ }
+                }
                 const appUser = await fetchUserProfile(session.user.id, session.user.email || '')
                 if (appUser) {
                   setUser(appUser)
@@ -130,6 +150,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                   router.refresh()
                 }
               } else if (event === 'SIGNED_OUT') {
+                // Don't wipe demo user on Supabase sign-out events
+                const currentStored = localStorage.getItem('naybourhood_user')
+                if (currentStored) {
+                  try {
+                    if (JSON.parse(currentStored).isDemo) return
+                  } catch { /* ignore */ }
+                }
                 setUser(null)
                 localStorage.removeItem('naybourhood_user')
               }
@@ -142,6 +169,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
         } catch (error) {
           console.error('[AuthContext] Init error:', error)
+          // Don't wipe demo user on Supabase errors
+          const stored = localStorage.getItem('naybourhood_user')
+          if (stored) {
+            try {
+              const parsed = JSON.parse(stored)
+              if (parsed.isDemo) {
+                setUser(parsed)
+                setIsLoading(false)
+                return
+              }
+            } catch { /* ignore */ }
+          }
           localStorage.removeItem('naybourhood_user')
           setIsLoading(false)
         }

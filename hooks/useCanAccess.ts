@@ -120,6 +120,20 @@ export function usePermissions(): UsePermissionsResult {
       return
     }
 
+    // Demo mode: give full access without querying Supabase
+    if ((user as unknown as Record<string, unknown>).isDemo) {
+      setPermissions({
+        role: 'owner',
+        companyId: user.company_id || null,
+        enabledFeatures: Object.keys(DEFAULT_ROLE_PERMISSIONS.owner) as Feature[],
+        permissions: DEFAULT_ROLE_PERMISSIONS.owner,
+        isInternalTeam: false,
+        isMasterAdmin: false,
+      })
+      setIsLoading(false)
+      return
+    }
+
     // Check if user is internal team or master admin (using centralized auth config)
     const userIsInternalTeam = user.is_internal || isInternalTeamEmail(user.email)
     const userIsMasterAdmin = user.is_master_admin || isMasterAdmin(user.email)
