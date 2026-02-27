@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+// Card imports removed - using inline dark-theme cards
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -148,7 +148,7 @@ function AdminSystemStats() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        <RefreshCw className="h-6 w-6 animate-spin text-white/40" />
       </div>
     )
   }
@@ -158,12 +158,12 @@ function AdminSystemStats() {
       {/* Header with data source badge */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold font-display">Settings</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-2xl font-bold text-white">Settings</h2>
+          <p className="text-sm text-white/50">
             View platform configuration and integration status
           </p>
         </div>
-        <Badge variant="outline" className="flex items-center gap-2">
+        <Badge variant="outline" className="flex items-center gap-2 border-white/10 text-white/50">
           <Database className="h-3 w-3" />
           {systemStats.dataSource}
         </Badge>
@@ -171,71 +171,63 @@ function AdminSystemStats() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
-            </div>
-            <p className="text-2xl font-bold">{systemStats.totalLeads}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <BarChart2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Campaigns</span>
-            </div>
-            <p className="text-2xl font-bold">{systemStats.totalCampaigns}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Companies</span>
-            </div>
-            <p className="text-2xl font-bold">{systemStats.totalCompanies}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Globe className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Developments</span>
-            </div>
-            <p className="text-2xl font-bold">{systemStats.totalDevelopments}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="h-4 w-4 text-blue-400" />
+            <span className="text-xs text-white/50">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{systemStats.totalLeads}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <BarChart2 className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs text-white/50">Campaigns</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{systemStats.totalCampaigns}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="h-4 w-4 text-purple-400" />
+            <span className="text-xs text-white/50">Companies</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{systemStats.totalCompanies}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Globe className="h-4 w-4 text-amber-400" />
+            <span className="text-xs text-white/50">Developments</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{systemStats.totalDevelopments}</p>
+        </div>
       </div>
 
       {/* Lead Import */}
       <LeadImporter />
 
       {/* Integration Status */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <Link className="h-5 w-5" />
             Connected Services
-          </CardTitle>
-          <CardDescription>
+          </h3>
+          <p className="text-sm text-white/40 mt-1">
             Integration status for third-party services. Configure these in their respective dashboards.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </p>
+        </div>
+        <div className="p-5 space-y-4">
           {integrations.map((integration) => (
             <div
               key={integration.name}
-              className="flex items-center justify-between p-4 rounded-lg border border-border"
+              className="flex items-center justify-between p-4 rounded-lg border border-white/5"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                  <integration.icon className="h-5 w-5 text-muted-foreground" />
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center">
+                  <integration.icon className="h-5 w-5 text-white/50" />
                 </div>
                 <div>
-                  <div className="font-medium">{integration.name}</div>
-                  <div className="text-sm text-muted-foreground">
+                  <div className="font-medium text-white">{integration.name}</div>
+                  <div className="text-sm text-white/40">
                     {integration.description}
                   </div>
                 </div>
@@ -246,30 +238,30 @@ function AdminSystemStats() {
                   href={integration.configUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-muted-foreground hover:text-foreground transition-colors"
+                  className="text-white/40 hover:text-white transition-colors"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </a>
               </div>
             </div>
           ))}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Data Sync */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <RefreshCw className="h-5 w-5" />
             Data Synchronization
-          </CardTitle>
-          <CardDescription>Real-time data sync is enabled via Supabase</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
+          </h3>
+          <p className="text-sm text-white/40 mt-1">Real-time data sync is enabled via Supabase</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02]">
             <div>
-              <div className="font-medium">Real-time sync</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="font-medium text-white">Real-time sync</div>
+              <div className="text-sm text-white/40">
                 Data updates automatically when changes occur
               </div>
             </div>
@@ -277,74 +269,70 @@ function AdminSystemStats() {
           </div>
           <button
             onClick={() => window.location.reload()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-input bg-background text-sm font-medium hover:bg-muted transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-md border border-white/10 text-white text-sm font-medium hover:bg-white/5 transition-colors"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh Data Now
           </button>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Security Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <Shield className="h-5 w-5" />
             Security
-          </CardTitle>
-          <CardDescription>Authentication is managed via Supabase Auth</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
+          </h3>
+          <p className="text-sm text-white/40 mt-1">Authentication is managed via Supabase Auth</p>
+        </div>
+        <div className="p-5 space-y-4">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02]">
             <div>
-              <div className="font-medium">Magic Link Authentication</div>
-              <div className="text-sm text-muted-foreground">
-                Passwordless login via email
-              </div>
+              <div className="font-medium text-white">Magic Link Authentication</div>
+              <div className="text-sm text-white/40">Passwordless login via email</div>
             </div>
             <Badge variant="success">Enabled</Badge>
           </div>
-          <div className="flex items-center justify-between p-4 rounded-lg bg-muted/30">
+          <div className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02]">
             <div>
-              <div className="font-medium">Row Level Security</div>
-              <div className="text-sm text-muted-foreground">
-                Data access controlled at database level
-              </div>
+              <div className="font-medium text-white">Row Level Security</div>
+              <div className="text-sm text-white/40">Data access controlled at database level</div>
             </div>
             <Badge variant="success">Enabled</Badge>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Platform Info */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <Settings className="h-5 w-5" />
             Platform Information
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="p-5">
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg bg-muted/30">
-              <p className="text-sm text-muted-foreground">Platform</p>
-              <p className="font-medium">Naybourhood</p>
+            <div className="p-4 rounded-lg bg-white/[0.02]">
+              <p className="text-sm text-white/40">Platform</p>
+              <p className="font-medium text-white">Naybourhood</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/30">
-              <p className="text-sm text-muted-foreground">Framework</p>
-              <p className="font-medium">Next.js 14</p>
+            <div className="p-4 rounded-lg bg-white/[0.02]">
+              <p className="text-sm text-white/40">Framework</p>
+              <p className="font-medium text-white">Next.js 14</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/30">
-              <p className="text-sm text-muted-foreground">Database</p>
-              <p className="font-medium">Supabase PostgreSQL</p>
+            <div className="p-4 rounded-lg bg-white/[0.02]">
+              <p className="text-sm text-white/40">Database</p>
+              <p className="font-medium text-white">Supabase PostgreSQL</p>
             </div>
-            <div className="p-4 rounded-lg bg-muted/30">
-              <p className="text-sm text-muted-foreground">Hosting</p>
-              <p className="font-medium">Vercel</p>
+            <div className="p-4 rounded-lg bg-white/[0.02]">
+              <p className="text-sm text-white/40">Hosting</p>
+              <p className="font-medium text-white">Vercel</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </>
   )
 }
@@ -353,55 +341,55 @@ function AdminSystemStats() {
 
 function AINotificationsCard() {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <div className="bg-[#111111] border border-white/10 rounded-xl">
+      <div className="p-5 border-b border-white/5">
+        <h3 className="font-semibold text-white flex items-center gap-2">
           <Bot className="h-5 w-5" />
           AI Notifications & Tasks
-        </CardTitle>
-        <CardDescription>AI-powered alerts and automated task suggestions</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+        </h3>
+        <p className="text-sm text-white/40 mt-1">AI-powered alerts and automated task suggestions</p>
+      </div>
+      <div className="p-5 space-y-4">
+        <div className="flex items-center justify-between p-4 rounded-lg border border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-red-500/10 flex items-center justify-center">
-              <Flame className="h-5 w-5 text-red-500" />
+              <Flame className="h-5 w-5 text-red-400" />
             </div>
             <div>
-              <div className="font-medium">Hot Lead Alerts</div>
-              <div className="text-sm text-muted-foreground">Get notified when AI identifies high-intent leads</div>
+              <div className="font-medium text-white">Hot Lead Alerts</div>
+              <div className="text-sm text-white/40">Get notified when AI identifies high-intent leads</div>
             </div>
           </div>
-          <Button variant="outline" size="sm">Enabled</Button>
+          <Button variant="outline" size="sm" className="border-white/10 text-white/70">Enabled</Button>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+        <div className="flex items-center justify-between p-4 rounded-lg border border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center">
-              <Clock className="h-5 w-5 text-amber-500" />
+              <Clock className="h-5 w-5 text-amber-400" />
             </div>
             <div>
-              <div className="font-medium">Follow-up Reminders</div>
-              <div className="text-sm text-muted-foreground">AI-suggested follow-up times based on lead activity</div>
+              <div className="font-medium text-white">Follow-up Reminders</div>
+              <div className="text-sm text-white/40">AI-suggested follow-up times based on lead activity</div>
             </div>
           </div>
-          <Button variant="outline" size="sm">Enabled</Button>
+          <Button variant="outline" size="sm" className="border-white/10 text-white/70">Enabled</Button>
         </div>
 
-        <div className="flex items-center justify-between p-4 rounded-lg border border-border">
+        <div className="flex items-center justify-between p-4 rounded-lg border border-white/5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-green-500/10 flex items-center justify-center">
-              <Zap className="h-5 w-5 text-green-500" />
+              <Zap className="h-5 w-5 text-green-400" />
             </div>
             <div>
-              <div className="font-medium">Priority Actions</div>
-              <div className="text-sm text-muted-foreground">AI-recommended next steps for each lead</div>
+              <div className="font-medium text-white">Priority Actions</div>
+              <div className="text-sm text-white/40">AI-recommended next steps for each lead</div>
             </div>
           </div>
-          <Button variant="outline" size="sm">Enabled</Button>
+          <Button variant="outline" size="sm" className="border-white/10 text-white/70">Enabled</Button>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
 
@@ -638,8 +626,8 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
     <>
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold font-display">Settings</h2>
-        <p className="text-sm text-muted-foreground">
+        <h2 className="text-2xl font-bold text-white">Settings</h2>
+        <p className="text-sm text-white/50">
           Manage your account and preferences
         </p>
       </div>
@@ -667,28 +655,28 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
       )}
 
       {/* Profile */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <User className="h-5 w-5" />
             Profile
-          </CardTitle>
-          <CardDescription>Your account information</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h3>
+          <p className="text-sm text-white/40 mt-1">Your account information</p>
+        </div>
+        <div className="p-5 space-y-4">
           <div className="grid md:grid-cols-2 gap-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Name</label>
+              <label className="text-sm font-medium text-white/70">Name</label>
               <Input
                 value={isEditing ? editedName : (user?.name || '')}
                 onChange={(e) => setEditedName(e.target.value)}
                 readOnly={!isEditing}
-                className={!isEditing ? 'bg-muted' : ''}
+                className={`bg-[#111111] border-white/10 text-white ${!isEditing ? 'bg-white/5' : ''}`}
               />
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-medium">Email</label>
-              <Input value={user?.email || ''} readOnly className="bg-muted" />
+              <label className="text-sm font-medium text-white/70">Email</label>
+              <Input value={user?.email || ''} readOnly className="bg-white/5 border-white/10 text-white" />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -715,41 +703,41 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
               <Button onClick={() => setIsEditing(true)}>Edit Profile</Button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Team & Invites */}
-      <Card>
-        <CardHeader>
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="flex items-center gap-2">
+              <h3 className="font-semibold text-white flex items-center gap-2">
                 <Users className="h-5 w-5" />
                 Team & Invites
-              </CardTitle>
-              <CardDescription>Invite team members to your company</CardDescription>
+              </h3>
+              <p className="text-sm text-white/40 mt-1">Invite team members to your company</p>
             </div>
             <Button onClick={() => setIsInviteModalOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
               Invite Team Member
             </Button>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-5">
           {teamMembers.length > 0 ? (
             <div className="space-y-3">
               {teamMembers.map((member) => (
                 <div
                   key={member.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/50"
+                  className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
-                      <UserCircle className="h-5 w-5 text-muted-foreground" />
+                    <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center">
+                      <UserCircle className="h-5 w-5 text-white/40" />
                     </div>
                     <div>
-                      <div className="font-medium text-sm">{member.name}</div>
-                      <div className="text-xs text-muted-foreground">{member.email}</div>
+                      <div className="font-medium text-sm text-white">{member.name}</div>
+                      <div className="text-xs text-white/40">{member.email}</div>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -764,30 +752,30 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
               ))}
             </div>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-white/40">
               <Users className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p>No team members yet</p>
               <p className="text-sm">Invite colleagues to collaborate</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Company & Subscription */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <Building2 className="h-5 w-5" />
             Company & Subscription
-          </CardTitle>
-          <CardDescription>Your organisation&apos;s plan</CardDescription>
-        </CardHeader>
-        <CardContent>
+          </h3>
+          <p className="text-sm text-white/40 mt-1">Your organisation&apos;s plan</p>
+        </div>
+        <div className="p-5">
           {companyData ? (
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+              <div className="flex items-center justify-between p-4 rounded-lg bg-white/[0.02]">
                 <div>
-                  <div className="font-semibold">{companyData.name}</div>
+                  <div className="font-semibold text-white">{companyData.name}</div>
                   <div className="flex items-center gap-2 mt-1">
                     <Badge variant="outline">{getTierDisplayName(companyData.subscription_tier)}</Badge>
                     <Badge variant={companyData.subscription_status === 'active' ? 'success' : 'secondary'}>
@@ -796,53 +784,53 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-2xl font-bold">{getTierPrice(companyData.subscription_tier)}</div>
-                  <div className="text-sm text-muted-foreground">/month</div>
+                  <div className="text-2xl font-bold text-white">{getTierPrice(companyData.subscription_tier)}</div>
+                  <div className="text-sm text-white/40">/month</div>
                 </div>
               </div>
             </div>
           ) : (
-            <div className="p-4 rounded-lg bg-muted/50 text-center">
-              <p className="text-muted-foreground">No company subscription found.</p>
+            <div className="p-4 rounded-lg bg-white/[0.02] text-center">
+              <p className="text-white/40">No company subscription found.</p>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Notifications */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white flex items-center gap-2">
             <Bell className="h-5 w-5" />
             Notifications
-          </CardTitle>
-          <CardDescription>Configure your notification preferences</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
+          </h3>
+          <p className="text-sm text-white/40 mt-1">Configure your notification preferences</p>
+        </div>
+        <div className="p-5 space-y-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium">{leadAlertLabel}</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="font-medium text-white">{leadAlertLabel}</div>
+              <div className="text-sm text-white/40">
                 {leadAlertDescription}
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-white/10 text-white/70">
               Enabled
             </Button>
           </div>
           <div className="flex items-center justify-between">
             <div>
-              <div className="font-medium">Message Notifications</div>
-              <div className="text-sm text-muted-foreground">
+              <div className="font-medium text-white">Message Notifications</div>
+              <div className="text-sm text-white/40">
                 Receive alerts for new messages
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button variant="outline" size="sm" className="border-white/10 text-white/70">
               Enabled
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* AI Notifications */}
       <AINotificationsCard />
@@ -853,10 +841,10 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
       {/* Invite Modal */}
       {isInviteModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-4 border-b border-border">
-              <h3 className="font-semibold flex items-center gap-2">
-                <Users className="h-5 w-5 text-primary" />
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <h3 className="font-semibold text-white flex items-center gap-2">
+                <Users className="h-5 w-5 text-emerald-400" />
                 Invite Team Member
               </h3>
               <Button
@@ -868,12 +856,12 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
               </Button>
             </div>
             <div className="p-4 space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-white/50">
                 Invite a colleague to join {companyData?.name || 'your company'} on Naybourhood.
               </p>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
+                <label className="text-sm font-medium text-white/70 flex items-center gap-2">
                   <Mail className="h-4 w-4" />
                   Email Address *
                 </label>
@@ -882,10 +870,11 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
                   value={inviteData.email}
                   onChange={(e) => setInviteData({ ...inviteData, email: e.target.value })}
                   placeholder="colleague@example.com"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium flex items-center gap-2">
+                <label className="text-sm font-medium text-white/70 flex items-center gap-2">
                   <UserCircle className="h-4 w-4" />
                   Full Name *
                 </label>
@@ -893,18 +882,19 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
                   value={inviteData.name}
                   onChange={(e) => setInviteData({ ...inviteData, name: e.target.value })}
                   placeholder="John Smith"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
+                  <label className="text-sm font-medium text-white/70 flex items-center gap-2">
                     <Shield className="h-4 w-4" />
                     User Type
                   </label>
                   <select
                     value={inviteData.role}
                     onChange={(e) => setInviteData({ ...inviteData, role: e.target.value as UserRole })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
                   >
                     {roleOptions.map(r => (
                       <option key={r} value={r}>{r.charAt(0).toUpperCase() + r.slice(1)}</option>
@@ -912,14 +902,14 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
                   </select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium flex items-center gap-2">
+                  <label className="text-sm font-medium text-white/70 flex items-center gap-2">
                     <Briefcase className="h-4 w-4" />
                     Role
                   </label>
                   <select
                     value={inviteData.job_role}
                     onChange={(e) => setInviteData({ ...inviteData, job_role: e.target.value as JobRole })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
                   >
                     <option value="operations">Operations</option>
                     <option value="marketing">Marketing</option>
@@ -928,7 +918,7 @@ function ClientSettings({ userType }: { userType: 'developer' | 'agent' | 'broke
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-white/10">
               <Button variant="outline" onClick={() => setIsInviteModalOpen(false)}>
                 Cancel
               </Button>

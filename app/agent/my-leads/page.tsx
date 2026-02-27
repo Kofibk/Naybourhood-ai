@@ -1,17 +1,15 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Lead, PriorityAction, LeadStatus } from '@/types'
-import { LeadTable } from '@/components/leads'
 import { AgentStats } from '@/components/dashboard/AgentStats'
 import { PriorityActionsCompact } from '@/components/dashboard/PriorityActions'
 import { EmailComposer } from '@/components/EmailComposer'
 import { fetchMyLeads, fetchPriorityActions, updateLeadStatus } from '@/lib/queries/leads'
-import { Target, ChevronRight, Phone, Mail, MessageCircle, CheckCircle, Calendar, ChevronDown } from 'lucide-react'
+import { Target, ChevronRight, Phone, Mail, MessageCircle } from 'lucide-react'
 import { KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { toast } from 'sonner'
 
@@ -47,7 +45,6 @@ export default function AgentMyLeadsPage() {
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    // Get user from localStorage
     const stored = localStorage.getItem('naybourhood_user')
     if (stored) {
       const user = JSON.parse(stored)
@@ -58,14 +55,12 @@ export default function AgentMyLeadsPage() {
   useEffect(() => {
     const loadData = async () => {
       if (!userName) return
-
       setLoading(true)
       try {
         const [leadsData, actionsData] = await Promise.all([
           fetchMyLeads(userName),
           fetchPriorityActions(userName, 5),
         ])
-
         setLeads(leadsData)
         setPriorityActions(actionsData)
       } catch (error) {
@@ -74,7 +69,6 @@ export default function AgentMyLeadsPage() {
         setLoading(false)
       }
     }
-
     loadData()
   }, [userName])
 
@@ -91,12 +85,10 @@ export default function AgentMyLeadsPage() {
   }
 
   const handleStatusChange = async (leadId: string, newStatus: string, e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent row click
+    e.stopPropagation()
     setUpdatingStatus(leadId)
-
     try {
       await updateLeadStatus(leadId, newStatus)
-      // Update local state
       setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus as LeadStatus } : l))
       toast.success(`Status updated to ${newStatus}`)
     } catch (error) {
@@ -109,20 +101,14 @@ export default function AgentMyLeadsPage() {
 
   const handleQuickCall = (lead: Lead, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (lead.phone) {
-      window.location.href = `tel:${lead.phone}`
-    } else {
-      toast.error('No phone number available')
-    }
+    if (lead.phone) window.location.href = `tel:${lead.phone}`
+    else toast.error('No phone number available')
   }
 
   const handleQuickEmail = (lead: Lead, e: React.MouseEvent) => {
     e.stopPropagation()
-    if (lead.email) {
-      setEmailLead(lead)
-    } else {
-      toast.error('No email address available')
-    }
+    if (lead.email) setEmailLead(lead)
+    else toast.error('No email address available')
   }
 
   const handleQuickWhatsApp = (lead: Lead, e: React.MouseEvent) => {
@@ -137,38 +123,30 @@ export default function AgentMyLeadsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold">My Leads</h1>
-        <p className="text-sm text-muted-foreground">
-          Your assigned leads and priority actions
-        </p>
+        <h1 className="text-2xl font-bold text-white">My Leads</h1>
+        <p className="text-sm text-white/50">Your assigned leads and priority actions</p>
       </div>
 
-      {/* Stats */}
       <AgentStats leads={leads} />
 
       {/* Priority Actions */}
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Target className="h-4 w-4 text-primary" />
-              Today&apos;s Priority
-            </CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
+            <Target className="h-4 w-4 text-emerald-400" />
+            Today&apos;s Priority
+          </h3>
+        </div>
+        <div className="p-5">
           {loading ? (
             <div className="animate-pulse space-y-2">
               {[1, 2, 3].map((i) => (
-                <div key={i} className="h-16 bg-muted rounded-lg" />
+                <div key={i} className="h-16 bg-white/5 rounded-lg" />
               ))}
             </div>
           ) : priorityActions.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              No priority actions for today
-            </p>
+            <p className="text-sm text-white/40 text-center py-4">No priority actions for today</p>
           ) : (
             <PriorityActionsCompact
               actions={priorityActions}
@@ -176,33 +154,31 @@ export default function AgentMyLeadsPage() {
               onAction={handleAction}
             />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Leads Table with Actions */}
-      <Card>
-        <CardHeader className="pb-3">
+      {/* Leads Table */}
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium">My Leads</CardTitle>
-            <span className="text-xs text-muted-foreground">{leads.length} leads</span>
+            <h3 className="text-sm font-medium text-white">My Leads</h3>
+            <span className="text-xs text-white/40">{leads.length} leads</span>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-5">
           {loading ? (
             <div className="animate-pulse space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-12 bg-muted rounded" />
+                <div key={i} className="h-12 bg-white/5 rounded" />
               ))}
             </div>
           ) : leads.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No leads assigned to you yet
-            </p>
+            <p className="text-sm text-white/40 text-center py-8">No leads assigned to you yet</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-muted-foreground border-b">
+                  <tr className="text-left text-xs text-white/40 border-b border-white/5">
                     <th className="pb-2 font-medium">Lead</th>
                     <th className="pb-2 font-medium">Classification</th>
                     <th className="pb-2 font-medium">Verified</th>
@@ -216,13 +192,11 @@ export default function AgentMyLeadsPage() {
                     <tr
                       key={lead.id}
                       onClick={() => handleRowClick(lead)}
-                      className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] cursor-pointer transition-colors"
                     >
                       <td className="py-3">
-                        <div className="font-medium">{lead.fullName}</div>
-                        <div className="text-xs text-muted-foreground">
-                          Q{lead.qualityScore || 0}/I{lead.intentScore || 0}
-                        </div>
+                        <div className="font-medium text-white">{lead.fullName}</div>
+                        <div className="text-xs text-white/40">Q{lead.qualityScore || 0}/I{lead.intentScore || 0}</div>
                       </td>
                       <td className="py-3">
                         <Badge className={`text-xs ${getClassificationColor(lead.classification)}`}>
@@ -237,7 +211,7 @@ export default function AgentMyLeadsPage() {
                           value={lead.status || 'Contact Pending'}
                           onChange={(e) => handleStatusChange(lead.id, e.target.value, e as any)}
                           disabled={updatingStatus === lead.id}
-                          className="text-xs px-2 py-1 rounded border border-input bg-background cursor-pointer hover:bg-muted transition-colors"
+                          className="text-xs px-2 py-1 rounded border border-white/10 bg-[#111111] text-white cursor-pointer hover:bg-white/5 transition-colors"
                         >
                           {STATUS_OPTIONS.map(s => (
                             <option key={s} value={s}>{s}</option>
@@ -245,7 +219,7 @@ export default function AgentMyLeadsPage() {
                         </select>
                       </td>
                       <td className="py-3">
-                        <span className="text-xs text-muted-foreground line-clamp-2 max-w-[150px]">
+                        <span className="text-xs text-white/40 line-clamp-2 max-w-[150px]">
                           {lead.aiNextAction || 'Follow up'}
                         </span>
                       </td>
@@ -253,48 +227,21 @@ export default function AgentMyLeadsPage() {
                         <div className="flex items-center justify-end gap-1">
                           {lead.phone && (
                             <>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={(e) => handleQuickCall(lead, e)}
-                                title="Call"
-                              >
-                                <Phone className="h-3.5 w-3.5 text-green-600" />
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => handleQuickCall(lead, e)} title="Call">
+                                <Phone className="h-3.5 w-3.5 text-green-400" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={(e) => handleQuickWhatsApp(lead, e)}
-                                title="WhatsApp"
-                              >
-                                <MessageCircle className="h-3.5 w-3.5 text-green-600" />
+                              <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => handleQuickWhatsApp(lead, e)} title="WhatsApp">
+                                <MessageCircle className="h-3.5 w-3.5 text-green-400" />
                               </Button>
                             </>
                           )}
                           {lead.email && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                              onClick={(e) => handleQuickEmail(lead, e)}
-                              title="Email"
-                            >
-                              <Mail className="h-3.5 w-3.5 text-blue-600" />
+                            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => handleQuickEmail(lead, e)} title="Email">
+                              <Mail className="h-3.5 w-3.5 text-blue-400" />
                             </Button>
                           )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 w-7 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              router.push(`/agent/my-leads/${lead.id}`)
-                            }}
-                            title="View Details"
-                          >
-                            <ChevronRight className="h-3.5 w-3.5" />
+                          <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={(e) => { e.stopPropagation(); router.push(`/agent/my-leads/${lead.id}`) }} title="View Details">
+                            <ChevronRight className="h-3.5 w-3.5 text-white/40" />
                           </Button>
                         </div>
                       </td>
@@ -304,10 +251,9 @@ export default function AgentMyLeadsPage() {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      {/* Email Composer Modal */}
       {emailLead && (
         <EmailComposer
           open={!!emailLead}

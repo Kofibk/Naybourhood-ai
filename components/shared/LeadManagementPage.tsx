@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+// Card imports removed - using inline dark-theme cards
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -349,26 +349,24 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold font-display">
+          <h2 className="text-2xl font-bold text-white">
             {isPropertyMode ? 'Lead Management' : 'Borrowers'}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             {isPropertyMode ? 'Manage and convert your leads' : 'Manage your assigned borrowers'}
           </p>
         </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">
-              Your account is not linked to a company{!isPropertyMode ? ' yet' : ''}.
-            </p>
-            <p className="text-sm text-muted-foreground mt-2">
-              {isPropertyMode
-                ? 'Contact an administrator to assign you to a company.'
-                : 'Please contact an administrator to assign you to a company.'}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-12 text-center">
+          <Users className="h-12 w-12 text-white/20 mx-auto mb-4" />
+          <p className="text-white/50">
+            Your account is not linked to a company{!isPropertyMode ? ' yet' : ''}.
+          </p>
+          <p className="text-sm text-white/30 mt-2">
+            {isPropertyMode
+              ? 'Contact an administrator to assign you to a company.'
+              : 'Please contact an administrator to assign you to a company.'}
+          </p>
+        </div>
       </div>
     )
   }
@@ -378,10 +376,10 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">
+          <h2 className="text-2xl font-bold text-white">
             {isPropertyMode ? 'Lead Management' : 'Borrowers'}
           </h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             {isPropertyMode
               ? 'Manage and convert your leads to completed sales'
               : 'Manage and convert your borrowers'}
@@ -416,77 +414,77 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
       {/* Conversion Funnel Stats */}
       {isPropertyMode ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <Card className="p-3">
-            <div className="text-xs text-muted-foreground">Total Leads</div>
-            <div className="text-2xl font-bold">{(stats as any).total}</div>
-          </Card>
-          <Card className="p-3 border-red-200 bg-red-50">
-            <div className="text-xs text-red-600 flex items-center gap-1">
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-white/50">Total Leads</div>
+            <div className="text-2xl font-bold text-white">{(stats as any).total}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-red-400 flex items-center gap-1">
               <Flame className="h-3 w-3" /> Hot Leads
             </div>
-            <div className="text-2xl font-bold text-red-600">{(stats as any).hot}</div>
-          </Card>
-          <Card className="p-3 border-purple-200 bg-purple-50">
-            <div className="text-xs text-purple-600">Viewings</div>
-            <div className="text-2xl font-bold text-purple-600">{(stats as any).viewings}</div>
-          </Card>
-          <Card className="p-3 border-blue-200 bg-blue-50">
-            <div className="text-xs text-blue-600">Negotiating</div>
-            <div className="text-2xl font-bold text-blue-600">{(stats as any).negotiating}</div>
-          </Card>
-          <Card className="p-3 border-amber-200 bg-amber-50">
-            <div className="text-xs text-amber-600">Reserved</div>
-            <div className="text-2xl font-bold text-amber-600">{(stats as any).reserved}</div>
-          </Card>
-          <Card className="p-3 border-green-200 bg-green-50">
-            <div className="text-xs text-green-600 flex items-center gap-1">
+            <div className="text-2xl font-bold text-red-400">{(stats as any).hot}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-purple-400">Viewings</div>
+            <div className="text-2xl font-bold text-purple-400">{(stats as any).viewings}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-blue-400">Negotiating</div>
+            <div className="text-2xl font-bold text-blue-400">{(stats as any).negotiating}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-amber-400">Reserved</div>
+            <div className="text-2xl font-bold text-amber-400">{(stats as any).reserved}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-emerald-400 flex items-center gap-1">
               <CheckCircle className="h-3 w-3" /> Completed
             </div>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-          </Card>
-          <Card className="p-3 border-primary/50 bg-primary/5">
-            <div className="text-xs text-primary flex items-center gap-1">
+            <div className="text-2xl font-bold text-emerald-400">{stats.completed}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-emerald-400 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" /> Conv. Rate
             </div>
-            <div className="text-2xl font-bold text-primary">{stats.conversionRate}%</div>
-          </Card>
+            <div className="text-2xl font-bold text-emerald-400">{stats.conversionRate}%</div>
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
-          <Card className="p-3 cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('all')}>
-            <div className="text-xs text-muted-foreground">Total Leads</div>
-            <div className="text-2xl font-bold">{(stats as any).total}</div>
-          </Card>
-          <Card className="p-3 border-yellow-200 bg-yellow-50 cursor-pointer" onClick={() => setStatusFilter('Contact Pending')}>
-            <div className="text-xs text-yellow-600 flex items-center gap-1">
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-white/20" onClick={() => setStatusFilter('all')}>
+            <div className="text-xs text-white/50">Total Leads</div>
+            <div className="text-2xl font-bold text-white">{(stats as any).total}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-amber-500/30" onClick={() => setStatusFilter('Contact Pending')}>
+            <div className="text-xs text-amber-400 flex items-center gap-1">
               <Phone className="h-3 w-3" /> Contact Pending
             </div>
-            <div className="text-2xl font-bold text-yellow-600">{(stats as any).contactPending}</div>
-          </Card>
-          <Card className="p-3 border-blue-200 bg-blue-50 cursor-pointer" onClick={() => setStatusFilter('Follow-up')}>
-            <div className="text-xs text-blue-600 flex items-center gap-1">
+            <div className="text-2xl font-bold text-amber-400">{(stats as any).contactPending}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-blue-500/30" onClick={() => setStatusFilter('Follow-up')}>
+            <div className="text-xs text-blue-400 flex items-center gap-1">
               <Clock className="h-3 w-3" /> Follow-up
             </div>
-            <div className="text-2xl font-bold text-blue-600">{(stats as any).followUp}</div>
-          </Card>
-          <Card className="p-3 border-purple-200 bg-purple-50 cursor-pointer" onClick={() => setStatusFilter('Awaiting Documents')}>
-            <div className="text-xs text-purple-600 flex items-center gap-1">
+            <div className="text-2xl font-bold text-blue-400">{(stats as any).followUp}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-purple-500/30" onClick={() => setStatusFilter('Awaiting Documents')}>
+            <div className="text-xs text-purple-400 flex items-center gap-1">
               <FileText className="h-3 w-3" /> Awaiting Docs
             </div>
-            <div className="text-2xl font-bold text-purple-600">{(stats as any).awaitingDocs}</div>
-          </Card>
-          <Card className="p-3 border-green-200 bg-green-50 cursor-pointer" onClick={() => setStatusFilter('Completed')}>
-            <div className="text-xs text-green-600 flex items-center gap-1">
+            <div className="text-2xl font-bold text-purple-400">{(stats as any).awaitingDocs}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-emerald-500/30" onClick={() => setStatusFilter('Completed')}>
+            <div className="text-xs text-emerald-400 flex items-center gap-1">
               <CheckCircle className="h-3 w-3" /> Completed
             </div>
-            <div className="text-2xl font-bold text-green-600">{stats.completed}</div>
-          </Card>
-          <Card className="p-3 border-primary/50 bg-primary/5">
-            <div className="text-xs text-primary flex items-center gap-1">
+            <div className="text-2xl font-bold text-emerald-400">{stats.completed}</div>
+          </div>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-3">
+            <div className="text-xs text-emerald-400 flex items-center gap-1">
               <TrendingUp className="h-3 w-3" /> Conv. Rate
             </div>
-            <div className="text-2xl font-bold text-primary">{stats.conversionRate}%</div>
-          </Card>
+            <div className="text-2xl font-bold text-emerald-400">{stats.conversionRate}%</div>
+          </div>
         </div>
       )}
 
@@ -505,8 +503,8 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
               onClick={() => setClassificationFilter(tab.value)}
               className={`px-4 py-2 text-sm font-medium rounded-lg whitespace-nowrap transition-colors ${
                 classificationFilter === tab.value
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted text-muted-foreground hover:bg-muted/80'
+                  ? 'bg-white/10 text-white'
+                  : 'text-white/40 hover:text-white/60'
               }`}
             >
               {tab.label}
@@ -518,16 +516,16 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search by name, email, phone..."
-            className="pl-9"
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
         <select
-          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[150px]"
+          className="h-10 px-3 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[150px]"
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -540,7 +538,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
           variant={showArchived ? 'default' : 'outline'}
           size="sm"
           onClick={() => setShowArchived(!showArchived)}
-          className="whitespace-nowrap"
+          className={`whitespace-nowrap ${!showArchived ? 'border-white/10 text-white/70 hover:bg-white/5' : ''}`}
         >
           <Archive className="h-4 w-4 mr-2" />
           {showArchived ? 'Hide Archived' : 'Show Archived'}
@@ -548,24 +546,24 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
       </div>
 
       {/* Leads Table */}
-      <Card>
-        <CardHeader className="pb-3">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              {isPropertyMode && <Target className="h-4 w-4 text-primary" />}
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
+              {isPropertyMode && <Target className="h-4 w-4 text-emerald-400" />}
               {isPropertyMode ? `Your Leads (${filteredLeads.length})` : `Borrowers (${filteredLeads.length})`}
-            </CardTitle>
+            </h3>
           </div>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="p-5">
           {isLoading && rawLeads.length === 0 ? (
             <div className="animate-pulse space-y-2">
               {[1, 2, 3, 4, 5].map((i) => (
-                <div key={i} className="h-14 bg-muted rounded" />
+                <div key={i} className="h-14 bg-white/5 rounded" />
               ))}
             </div>
           ) : filteredLeads.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
+            <p className="text-sm text-white/40 text-center py-8">
               {myLeads.length === 0
                 ? `No ${entityName.toLowerCase()}s assigned yet`
                 : `No ${entityName.toLowerCase()}s match your filters`}
@@ -574,7 +572,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
             <div className="overflow-x-auto -mx-4 sm:-mx-5 px-4 sm:px-5">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="text-left text-xs text-muted-foreground border-b">
+                  <tr className="text-left text-xs text-white/40 border-b border-white/5">
                     <th className="pb-3 font-medium min-w-[180px]">
                       {isPropertyMode ? 'Lead' : 'Client'}
                     </th>
@@ -630,7 +628,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                     <tr
                       key={lead.id}
                       onClick={() => router.push(`${detailBasePath}/${lead.id}`)}
-                      className="border-b last:border-0 hover:bg-muted/50 cursor-pointer transition-colors"
+                      className="border-b border-white/5 last:border-0 hover:bg-white/[0.02] cursor-pointer transition-colors"
                     >
                       {/* Name */}
                       <td className="py-3">
@@ -647,7 +645,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                             <Badge variant="outline" className="text-xs bg-red-100 text-red-600">Fake</Badge>
                           )}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-xs text-white/40">
                           {lead.email || ''}
                           {!isPropertyMode && lead.finance_type && ` \u2022 ${lead.finance_type}`}
                         </div>
@@ -706,7 +704,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                       {/* Next Action / Status */}
                       {isPropertyMode ? (
                         <td className="py-3">
-                          <span className="text-xs text-muted-foreground line-clamp-2 max-w-[180px]">
+                          <span className="text-xs text-white/40 line-clamp-2 max-w-[180px]">
                             {lead.ai_next_action || 'Contact to confirm interest'}
                           </span>
                         </td>
@@ -728,14 +726,14 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                       )}
                       {/* Date Added */}
                       <td className="py-3">
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-xs text-white/40">
                           {formatDate(lead.date_added || lead.created_at)}
                         </span>
                       </td>
                       {/* Required By (finance only) */}
                       {!isPropertyMode && (
                         <td className="py-3">
-                          <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-1 text-xs text-white/40">
                             <Calendar className="h-3 w-3" />
                             {formatDate(lead.required_by_date)}
                           </div>
@@ -772,12 +770,12 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                             </Button>
                             {actionMenuOpen === lead.id && (
                               <div
-                                className="absolute right-0 top-full mt-1 w-48 bg-background border border-border rounded-lg shadow-lg z-50"
+                                className="absolute right-0 top-full mt-1 w-48 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-lg z-50"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 {(lead.is_archived || lead.is_duplicate || lead.is_fake) ? (
                                   <button
-                                    className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-lg"
+                                    className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/5 flex items-center gap-2 rounded-lg"
                                     onClick={(e) => handleRestoreLead(lead.id, e)}
                                   >
                                     <CheckCircle className="h-4 w-4 text-green-500" />
@@ -786,21 +784,21 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
                                 ) : (
                                   <>
                                     <button
-                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-t-lg"
+                                      className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/5 flex items-center gap-2 rounded-t-lg"
                                       onClick={(e) => handleMarkAsArchived(lead.id, e)}
                                     >
-                                      <Archive className="h-4 w-4 text-gray-500" />
+                                      <Archive className="h-4 w-4 text-white/40" />
                                       Archive
                                     </button>
                                     <button
-                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2"
+                                      className="w-full px-3 py-2 text-left text-sm text-white hover:bg-white/5 flex items-center gap-2"
                                       onClick={(e) => handleMarkAsDuplicate(lead.id, e)}
                                     >
-                                      <Copy className="h-4 w-4 text-blue-500" />
+                                      <Copy className="h-4 w-4 text-blue-400" />
                                       Mark as Duplicate
                                     </button>
                                     <button
-                                      className="w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2 rounded-b-lg text-red-600"
+                                      className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-white/5 flex items-center gap-2 rounded-b-lg"
                                       onClick={(e) => handleMarkAsFake(lead.id, e)}
                                     >
                                       <AlertTriangle className="h-4 w-4" />
@@ -826,8 +824,8 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Email Composer Modal */}
       {emailLead && (

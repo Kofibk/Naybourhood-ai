@@ -272,8 +272,8 @@ export function ConversationsView({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">{title}</h2>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
+          <h2 className="text-2xl font-bold text-white">{title}</h2>
+          <p className="text-sm text-white/50">{subtitle}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setShowFilters(!showFilters)}>
@@ -288,50 +288,42 @@ export function ConversationsView({
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => { setChannelFilter('all'); setStatusFilter('all') }}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total</span>
-            </div>
-            <p className="text-xl font-bold">{stats.total}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setStatusFilter('Contact Pending')}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-yellow-500" />
-              <span className="text-xs text-muted-foreground">Pending</span>
-            </div>
-            <p className="text-xl font-bold text-yellow-500">{stats.pending}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setChannelFilter('call')}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <Phone className="h-4 w-4 text-green-500" />
-              <span className="text-xs text-muted-foreground">Calls</span>
-            </div>
-            <p className="text-xl font-bold text-green-500">{stats.calls}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => setChannelFilter('whatsapp')}>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-2">
-              <WhatsAppIcon className="h-4 w-4 text-green-600" />
-              <span className="text-xs text-muted-foreground">WhatsApp</span>
-            </div>
-            <p className="text-xl font-bold text-green-600">{stats.whatsapp}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-white/20" onClick={() => { setChannelFilter('all'); setStatusFilter('all') }}>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-white/40" />
+            <span className="text-xs text-white/50">Total</span>
+          </div>
+          <p className="text-xl font-bold text-white">{stats.total}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-amber-500/30" onClick={() => setStatusFilter('Contact Pending')}>
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-400" />
+            <span className="text-xs text-white/50">Pending</span>
+          </div>
+          <p className="text-xl font-bold text-amber-400">{stats.pending}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-green-500/30" onClick={() => setChannelFilter('call')}>
+          <div className="flex items-center gap-2">
+            <Phone className="h-4 w-4 text-green-400" />
+            <span className="text-xs text-white/50">Calls</span>
+          </div>
+          <p className="text-xl font-bold text-green-400">{stats.calls}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-3 cursor-pointer hover:border-green-500/30" onClick={() => setChannelFilter('whatsapp')}>
+          <div className="flex items-center gap-2">
+            <WhatsAppIcon className="h-4 w-4 text-green-400" />
+            <span className="text-xs text-white/50">WhatsApp</span>
+          </div>
+          <p className="text-xl font-bold text-green-400">{stats.whatsapp}</p>
+        </div>
       </div>
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
         <Input
           placeholder="Search by name, email, phone, or message..."
-          className="pl-9"
+          className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -339,11 +331,10 @@ export function ConversationsView({
 
       {/* Filters Panel */}
       {showFilters && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex flex-wrap gap-4">
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Channel</label>
+                <label className="text-xs text-white/50">Channel</label>
                 <div className="flex gap-1">
                   {(['all', 'call', 'whatsapp', 'email'] as const).map(channel => (
                     <Button
@@ -362,9 +353,9 @@ export function ConversationsView({
               </div>
 
               <div className="space-y-1">
-                <label className="text-xs text-muted-foreground">Status</label>
+                <label className="text-xs text-white/50">Status</label>
                 <select
-                  className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+                  className="px-3 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
                 >
@@ -380,47 +371,41 @@ export function ConversationsView({
                   variant="ghost"
                   size="sm"
                   onClick={() => { setChannelFilter('all'); setStatusFilter('all') }}
-                  className="self-end"
+                  className="self-end text-white/50 hover:text-white"
                 >
                   Clear Filters
                 </Button>
               )}
             </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* Conversations List */}
       <div className="space-y-3">
         {isLoading ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <p className="text-muted-foreground">Loading conversations...</p>
-            </CardContent>
-          </Card>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-8 text-center">
+            <p className="text-white/40">Loading conversations...</p>
+          </div>
         ) : filteredConversations.length === 0 ? (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <MessageSquare className="h-12 w-12 mx-auto text-muted-foreground mb-3" />
-              <p className="text-muted-foreground">{search ? 'No conversations match your search' : emptyMessage}</p>
-              {search && (
-                <Button variant="link" onClick={() => setSearch('')} className="mt-2">
-                  Clear search
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-8 text-center">
+            <MessageSquare className="h-12 w-12 mx-auto text-white/20 mb-3" />
+            <p className="text-white/50">{search ? 'No conversations match your search' : emptyMessage}</p>
+            {search && (
+              <Button variant="link" onClick={() => setSearch('')} className="mt-2">
+                Clear search
+              </Button>
+            )}
+          </div>
         ) : (
           filteredConversations.map((conv) => (
-            <Card
+            <div
               key={conv.id}
-              className="hover:border-primary/50 transition-colors cursor-pointer group"
+              className="bg-[#111111] border border-white/10 rounded-xl p-4 hover:border-emerald-500/30 transition-colors cursor-pointer group"
               onClick={() => handleViewDetail(conv)}
             >
-              <CardContent className="p-4">
                 <div className="flex items-start gap-4">
                   {/* Avatar */}
-                  <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
                     {getChannelIcon(conv.channel)}
                   </div>
 
@@ -428,7 +413,7 @@ export function ConversationsView({
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2 mb-1">
                       <div className="flex items-center gap-2 min-w-0">
-                        <h3 className="font-semibold truncate">{conv.name}</h3>
+                        <h3 className="font-semibold text-white truncate">{conv.name}</h3>
                         {conv.status && (
                           <Badge variant={getStatusVariant(conv.status)} className="text-xs whitespace-nowrap">
                             {conv.status}
@@ -437,17 +422,17 @@ export function ConversationsView({
                       </div>
                       <div className="flex items-center gap-2 flex-shrink-0">
                         {conv.lastContact && (
-                          <span className="text-xs text-muted-foreground">{getTimeAgo(conv.lastContact)}</span>
+                          <span className="text-xs text-white/40">{getTimeAgo(conv.lastContact)}</span>
                         )}
-                        <ChevronRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <ChevronRight className="h-4 w-4 text-white/30 opacity-0 group-hover:opacity-100 transition-opacity" />
                       </div>
                     </div>
 
-                    <p className="text-sm text-muted-foreground truncate mb-2">{conv.lastMessage}</p>
+                    <p className="text-sm text-white/40 truncate mb-2">{conv.lastMessage}</p>
 
                     {/* Contact Info & Quick Actions */}
                     <div className="flex items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-white/40">
                         {conv.phone && (
                           <span className="flex items-center gap-1">
                             <Phone className="h-3 w-3" />
@@ -469,7 +454,7 @@ export function ConversationsView({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                              className="h-8 w-8 hover:bg-green-500/10 text-white/40 hover:text-green-400"
                               onClick={(e) => handleCall(conv.phone, e)}
                               title="Call"
                             >
@@ -478,7 +463,7 @@ export function ConversationsView({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 hover:bg-green-50 hover:text-green-600"
+                              className="h-8 w-8 hover:bg-green-500/10 text-white/40 hover:text-green-400"
                               onClick={(e) => handleWhatsApp(conv.phone, e)}
                               title="WhatsApp"
                             >
@@ -490,7 +475,7 @@ export function ConversationsView({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 hover:bg-blue-50 hover:text-blue-600"
+                            className="h-8 w-8 hover:bg-blue-500/10 text-white/40 hover:text-blue-400"
                             onClick={(e) => handleEmail(conv.email, e)}
                             title="Email"
                           >
@@ -501,15 +486,14 @@ export function ConversationsView({
                     </div>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+            </div>
           ))
         )}
       </div>
 
       {/* Pagination hint */}
       {filteredConversations.length > 0 && (
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-xs text-white/30 text-center">
           Showing {filteredConversations.length} conversation{filteredConversations.length !== 1 ? 's' : ''}
           {search && ` matching "${search}"`}
         </p>
@@ -685,18 +669,16 @@ export function ConversationsEmptyCompany({
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold font-display">{title}</h2>
-        <p className="text-sm text-muted-foreground">{subtitle}</p>
+        <h2 className="text-2xl font-bold text-white">{title}</h2>
+        <p className="text-sm text-white/50">{subtitle}</p>
       </div>
-      <Card>
-        <CardContent className="py-12 text-center">
-          <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Your account is not linked to a company.</p>
-          <p className="text-sm text-muted-foreground mt-2">
-            Contact an administrator to assign you to a company.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="bg-[#111111] border border-white/10 rounded-xl p-12 text-center">
+        <Users className="h-12 w-12 text-white/20 mx-auto mb-4" />
+        <p className="text-white/50">Your account is not linked to a company.</p>
+        <p className="text-sm text-white/30 mt-2">
+          Contact an administrator to assign you to a company.
+        </p>
+      </div>
     </div>
   )
 }

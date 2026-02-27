@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo, useState, useEffect } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useFinanceLeads } from '@/hooks/useFinanceLeads'
@@ -75,7 +74,7 @@ export default function MatchesPage() {
   if (!isReady) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-white/50">Loading...</p>
       </div>
     )
   }
@@ -84,18 +83,18 @@ export default function MatchesPage() {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold font-display">My Matches</h2>
-          <p className="text-sm text-muted-foreground">Borrowers matched to your services</p>
+          <h2 className="text-2xl font-bold font-display text-white">My Matches</h2>
+          <p className="text-sm text-white/50">Borrowers matched to your services</p>
         </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Your account is not linked to a company.</p>
-            <p className="text-sm text-muted-foreground mt-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="py-12 text-center">
+            <Users className="h-12 w-12 text-white/50 mx-auto mb-4" />
+            <p className="text-white/50">Your account is not linked to a company.</p>
+            <p className="text-sm text-white/40 mt-2">
               Contact an administrator to assign you to a company.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -103,22 +102,22 @@ export default function MatchesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold font-display">My Matches</h2>
-        <p className="text-sm text-muted-foreground">Borrowers matched to your services</p>
+        <h2 className="text-2xl font-bold font-display text-white">My Matches</h2>
+        <p className="text-sm text-white/50">Borrowers matched to your services</p>
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
         {matches.map((borrower) => (
-          <Card key={borrower.id}>
-            <CardContent className="p-4">
+          <div key={borrower.id} className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4">
               <div className="flex items-start justify-between gap-2 mb-4">
                 <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Heart className="h-6 w-6 text-primary" />
+                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center">
+                    <Heart className="h-6 w-6 text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">{borrower.full_name || `${borrower.first_name || ''} ${borrower.last_name || ''}`.trim() || 'Unknown'}</h3>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <h3 className="font-semibold text-white">{borrower.full_name || `${borrower.first_name || ''} ${borrower.last_name || ''}`.trim() || 'Unknown'}</h3>
+                    <div className="flex items-center gap-1 text-sm text-white/50">
                       <MapPin className="h-3 w-3" />
                       {borrower.finance_type || 'Finance'}
                     </div>
@@ -128,13 +127,13 @@ export default function MatchesPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-4">
-                <div className="p-2 rounded bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Loan Amount</div>
-                  <div className="font-medium text-sm">{borrower.loan_amount_display || (borrower.loan_amount ? `£${(borrower.loan_amount / 1000).toFixed(0)}k` : 'N/A')}</div>
+                <div className="p-2 rounded bg-white/5">
+                  <div className="text-xs text-white/50">Loan Amount</div>
+                  <div className="font-medium text-sm text-white">{borrower.loan_amount_display || (borrower.loan_amount ? `£${(borrower.loan_amount / 1000).toFixed(0)}k` : 'N/A')}</div>
                 </div>
-                <div className="p-2 rounded bg-muted/50">
-                  <div className="text-xs text-muted-foreground">Required By</div>
-                  <div className="font-medium text-sm">{borrower.required_by_date ? new Date(borrower.required_by_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A'}</div>
+                <div className="p-2 rounded bg-white/5">
+                  <div className="text-xs text-white/50">Required By</div>
+                  <div className="font-medium text-sm text-white">{borrower.required_by_date ? new Date(borrower.required_by_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : 'N/A'}</div>
                 </div>
               </div>
 
@@ -150,8 +149,8 @@ export default function MatchesPage() {
                   <FileText className="h-4 w-4" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </div>

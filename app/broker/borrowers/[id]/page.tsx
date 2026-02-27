@@ -2,7 +2,6 @@
 
 import { useMemo, useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -12,7 +11,8 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
-import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
+import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
+import { useKycCheck } from '@/hooks/useKycCheck'
 import {
   ArrowLeft,
   Phone,
@@ -100,8 +100,8 @@ function EditableField({
   }
 
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-border last:border-0 group">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0 group">
+      <span className="text-sm text-white/40 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
@@ -123,7 +123,7 @@ function EditableField({
         </div>
       ) : (
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-right max-w-[200px] truncate">
+          <span className="text-sm font-medium text-white text-right max-w-[200px] truncate">
             {formatDisplayValue()}
           </span>
           <Button
@@ -157,15 +157,15 @@ function EditableSelectField({
   icon?: any
 }) {
   return (
-    <div className="flex justify-between items-center py-2.5 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0">
+      <span className="text-sm text-white/40 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
       <select
         value={value || ''}
         onChange={(e) => onSave(field, e.target.value)}
-        className="text-sm bg-background border border-input rounded-md px-2 py-1 max-w-[180px]"
+        className="text-sm bg-white/5 border border-white/10 rounded-md px-2 py-1 max-w-[180px] text-white"
       >
         <option value="">Select...</option>
         {options.map((opt) => (
@@ -188,6 +188,8 @@ export default function BrokerBorrowerDetailPage() {
   const [isReady, setIsReady] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [saveMessage, setSaveMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
+  const { kycCheck } = useKycCheck(params.id as string)
 
   // Fetch company_id from localStorage or user_profiles
   useEffect(() => {
@@ -335,8 +337,39 @@ export default function BrokerBorrowerDetailPage() {
   // Loading state
   if (!isReady || isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className="space-y-6">
+        {/* Back button skeleton */}
+        <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
+        {/* Header skeleton */}
+        <div className="flex items-center gap-4">
+          <div className="h-14 w-14 rounded-full bg-white/10 animate-pulse" />
+          <div className="space-y-2">
+            <div className="h-6 w-48 bg-white/10 rounded animate-pulse" />
+            <div className="h-4 w-32 bg-white/5 rounded animate-pulse" />
+          </div>
+        </div>
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-[#111111] border border-white/10 rounded-xl p-4">
+              <div className="animate-pulse space-y-2">
+                <div className="h-3 w-16 bg-white/10 rounded" />
+                <div className="h-6 w-20 bg-white/10 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Content skeleton */}
+        <div className="grid md:grid-cols-2 gap-6">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="bg-[#111111] border border-white/10 rounded-xl p-5">
+              <div className="animate-pulse space-y-2">
+                <div className="h-4 w-28 bg-white/10 rounded" />
+                <div className="h-10 w-full bg-white/5 rounded" />
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     )
   }
@@ -345,18 +378,17 @@ export default function BrokerBorrowerDetailPage() {
   if (!lead) {
     return (
       <div className="space-y-6">
-        <Button variant="ghost" onClick={() => router.back()}>
+        <Button variant="ghost" onClick={() => router.back()} className="text-white/40 hover:text-white">
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Borrower not found or you don&apos;t have access.</p>
-            <Button variant="link" onClick={() => router.push('/broker/borrowers')}>
-              Return to Borrowers
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl py-12 text-center">
+          <h3 className="text-lg font-medium text-white mb-2">Borrower not found</h3>
+          <p className="text-white/50 mb-4">Borrower not found or you don&apos;t have access.</p>
+          <Button variant="link" onClick={() => router.push('/broker/borrowers')} className="text-white/50 hover:text-white">
+            Return to Borrowers
+          </Button>
+        </div>
       </div>
     )
   }
@@ -366,17 +398,17 @@ export default function BrokerBorrowerDetailPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
-          <Button variant="ghost" size="icon" onClick={() => router.push('/broker/borrowers')}>
+          <Button variant="ghost" size="icon" onClick={() => router.push('/broker/borrowers')} className="text-white/40 hover:text-white">
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold font-display">
+              <h1 className="text-2xl font-bold font-display text-white">
                 {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
               </h1>
               <Badge variant={getStatusColor(lead.status) as any}>{lead.status || 'Unknown'}</Badge>
             </div>
-            <p className="text-sm text-muted-foreground">Added {formatDate(lead.date_added || lead.created_at)}</p>
+            <p className="text-sm text-white/50">Added {formatDate(lead.date_added || lead.created_at)}</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -394,11 +426,69 @@ export default function BrokerBorrowerDetailPage() {
       {/* KYC Verification Banner */}
       <KycVerificationBanner buyerId={lead.id} />
 
+      {/* Borrower Profile Summary */}
+      <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
+        <div className="flex items-start gap-4">
+          <div className="h-14 w-14 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-xl font-bold text-emerald-400">
+              {(lead.full_name || lead.first_name || '?').charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <h2 className="text-lg font-semibold text-white">
+                {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
+              </h2>
+              <Badge variant={getStatusColor(lead.status) as any}>{lead.status || 'Unknown'}</Badge>
+              {kycCheck && <KycStatusBadge status={kycCheck.status} />}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm">
+              {lead.email && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">{lead.email}</span>
+                </div>
+              )}
+              {lead.phone && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.phone}</span>
+                </div>
+              )}
+              {lead.finance_type && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.finance_type}</span>
+                </div>
+              )}
+              {(lead.loan_amount || lead.loan_amount_display) && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <PoundSterling className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount) : '')}</span>
+                </div>
+              )}
+              {lead.assigned_agent && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <UserCheck className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.assigned_agent}</span>
+                </div>
+              )}
+              {lead.required_by_date && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Required by {formatDate(lead.required_by_date)}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Save Message */}
       {saveMessage && (
         <div
           className={`p-3 rounded-lg flex items-center gap-2 ${
-            saveMessage.type === 'success' ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
+            saveMessage.type === 'success' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-red-500/10 text-red-300'
           }`}
         >
           {saveMessage.type === 'success' ? <CheckCircle className="h-4 w-4" /> : <AlertCircle className="h-4 w-4" />}
@@ -408,86 +498,86 @@ export default function BrokerBorrowerDetailPage() {
 
       {/* Key Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Finance Type</span>
+              <Briefcase className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Finance Type</span>
             </div>
             <Badge variant="outline" className="text-xs">
               {lead.finance_type || 'N/A'}
             </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Loan Amount</span>
+              <PoundSterling className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Loan Amount</span>
             </div>
-            <p className="text-xl font-bold">
+            <p className="text-xl font-bold text-white">
               {lead.loan_amount_display || (lead.loan_amount ? formatCurrency(lead.loan_amount) : 'N/A')}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Required By</span>
+              <Calendar className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Required By</span>
             </div>
-            <p className="text-sm font-bold">{formatDate(lead.required_by_date)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <p className="text-sm font-bold text-white">{formatDate(lead.required_by_date)}</p>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Days Left</span>
+              <Clock className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Days Left</span>
             </div>
             <p
               className={`text-sm font-bold ${
                 daysUntil !== null && daysUntil < 0
-                  ? 'text-destructive'
+                  ? 'text-red-400'
                   : daysUntil !== null && daysUntil <= 7
-                    ? 'text-warning'
-                    : 'text-success'
+                    ? 'text-amber-400'
+                    : 'text-emerald-400'
               }`}
             >
               {daysUntil !== null ? (daysUntil < 0 ? `${Math.abs(daysUntil)} overdue` : `${daysUntil} days`) : 'N/A'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Assigned To</span>
+              <UserCheck className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Assigned To</span>
             </div>
-            <p className="text-sm font-medium truncate">{lead.assigned_agent || 'Unassigned'}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <p className="text-sm font-medium text-white truncate">{lead.assigned_agent || 'Unassigned'}</p>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Date Added</span>
+              <Calendar className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Date Added</span>
             </div>
-            <p className="text-sm font-medium">{formatDate(lead.date_added)}</p>
-          </CardContent>
-        </Card>
+            <p className="text-sm font-medium text-white">{formatDate(lead.date_added)}</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Contact Information - Inline Editable */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-semibold text-white text-sm flex items-center gap-2">
               <User className="h-4 w-4" />
               Contact Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="p-5">
             <EditableField
               label="Full Name"
               value={lead.full_name}
@@ -518,18 +608,18 @@ export default function BrokerBorrowerDetailPage() {
               options={STATUS_OPTIONS}
               onSave={handleFieldUpdate}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Finance Details - Inline Editable */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-semibold text-white text-sm flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               Finance Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="p-5">
             <EditableSelectField
               label="Finance Type"
               value={lead.finance_type}
@@ -561,45 +651,45 @@ export default function BrokerBorrowerDetailPage() {
               onSave={handleFieldUpdate}
               icon={UserCheck}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Message */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-semibold text-white text-sm flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Lead Message
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+            </h3>
+          </div>
+          <div className="p-5">
+            <p className="text-sm text-white/50 whitespace-pre-wrap">
               {lead.message || 'No message provided.'}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Notes - Editable */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-5 border-b border-white/5">
+            <h3 className="font-semibold text-white text-sm flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Notes
-              <span className="text-xs text-muted-foreground ml-auto">Click to edit</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+              <span className="text-xs text-white/40 ml-auto">Click to edit</span>
+            </h3>
+          </div>
+          <div className="p-5">
             <NotesEditor notes={lead.notes} onSave={handleNotesUpdate} isSaving={isSaving} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/5">
+          <h3 className="font-semibold text-white text-sm">Quick Actions</h3>
+        </div>
+        <div className="p-5">
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => lead.phone && window.open(`tel:${lead.phone}`)}>
               <Phone className="h-4 w-4 mr-2" />
@@ -626,18 +716,18 @@ export default function BrokerBorrowerDetailPage() {
               Request Documents
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Timestamps */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-6 text-xs text-muted-foreground">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4">
+          <div className="flex items-center gap-6 text-xs text-white/40">
             <span>Created: {formatDate(lead.created_at)}</span>
             {lead.updated_at && <span>Last Updated: {formatDate(lead.updated_at)}</span>}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }
@@ -689,10 +779,10 @@ function NotesEditor({
 
   return (
     <div
-      className="min-h-[100px] p-3 rounded-md bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+      className="min-h-[100px] p-3 rounded-md bg-white/5 cursor-pointer hover:bg-white/10 transition-colors"
       onClick={() => setIsEditing(true)}
     >
-      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+      <p className="text-sm text-white/50 whitespace-pre-wrap">
         {notes || 'Click to add notes...'}
       </p>
     </div>

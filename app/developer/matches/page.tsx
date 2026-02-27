@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Heart, Phone, Mail, Eye, MapPin, Building2, Sparkles, TrendingUp } from 'lucide-react'
@@ -119,59 +118,59 @@ export default function MatchesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold font-display">My Matches</h2>
-          <p className="text-sm text-muted-foreground">
+          <h2 className="text-2xl font-bold font-display text-white">My Matches</h2>
+          <p className="text-sm text-white/50">
             AI-powered buyer-development matching
           </p>
         </div>
         <div className="flex gap-3">
-          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-3 flex items-center gap-2">
-              <Heart className="h-5 w-5 text-primary" />
+          <div className="bg-[#111111] border border-emerald-500/20 rounded-xl">
+            <div className="p-3 flex items-center gap-2">
+              <Heart className="h-5 w-5 text-emerald-400" />
               <div>
-                <p className="text-lg font-bold text-primary">{matches.length}</p>
-                <p className="text-[10px] text-muted-foreground">Matches</p>
+                <p className="text-lg font-bold text-emerald-400">{matches.length}</p>
+                <p className="text-[10px] text-white/50">Matches</p>
               </div>
-            </CardContent>
-          </Card>
-          <Card className="bg-gradient-to-r from-orange-500/10 to-orange-500/5 border-orange-500/20">
-            <CardContent className="p-3 flex items-center gap-2">
+            </div>
+          </div>
+          <div className="bg-[#111111] border border-orange-500/20 rounded-xl">
+            <div className="p-3 flex items-center gap-2">
               <TrendingUp className="h-5 w-5 text-orange-500" />
               <div>
                 <p className="text-lg font-bold text-orange-500">{hotMatches}</p>
-                <p className="text-[10px] text-muted-foreground">Hot Leads</p>
+                <p className="text-[10px] text-white/50">Hot Leads</p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Matches Grid */}
       <div className="grid md:grid-cols-2 gap-4">
         {matches.length === 0 && (
-          <Card className="md:col-span-2">
-            <CardContent className="p-8 text-center">
-              <Heart className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="font-semibold mb-2">No matches yet</h3>
-              <p className="text-sm text-muted-foreground">AI-powered buyer matches will appear here</p>
-            </CardContent>
-          </Card>
+          <div className="md:col-span-2 bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-8 text-center">
+              <Heart className="h-12 w-12 mx-auto text-white/50 mb-4" />
+              <h3 className="font-semibold text-white mb-2">No matches yet</h3>
+              <p className="text-sm text-white/50">AI-powered buyer matches will appear here</p>
+            </div>
+          </div>
         )}
         {matches.map((match) => (
-          <Card key={match.id} className="hover:border-primary/50 transition-colors">
-            <CardHeader className="pb-2">
+          <div key={match.id} className="bg-[#111111] border border-white/10 rounded-xl hover:border-emerald-500/30 transition-colors">
+            <div className="p-5 border-b border-white/5">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-3">
                   <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
-                    match.status === 'Hot' ? 'bg-orange-500/20' : match.status === 'Reserved' ? 'bg-green-500/20' : 'bg-primary/10'
+                    match.status === 'Hot' ? 'bg-orange-500/20' : match.status === 'Reserved' ? 'bg-green-500/20' : 'bg-emerald-500/10'
                   }`}>
                     <Heart className={`h-6 w-6 ${
-                      match.status === 'Hot' ? 'text-orange-500' : match.status === 'Reserved' ? 'text-green-500' : 'text-primary'
+                      match.status === 'Hot' ? 'text-orange-500' : match.status === 'Reserved' ? 'text-green-500' : 'text-emerald-400'
                     }`} />
                   </div>
                   <div>
-                    <CardTitle className="text-base">{match.buyerName}</CardTitle>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <h3 className="font-semibold text-white text-base">{match.buyerName}</h3>
+                    <div className="flex items-center gap-1 text-sm text-white/50">
                       <MapPin className="h-3 w-3" />
                       {match.location}
                     </div>
@@ -181,37 +180,37 @@ export default function MatchesPage() {
                   <Badge variant={match.status === 'Hot' ? 'destructive' : match.status === 'Reserved' ? 'success' : 'warning'}>
                     {match.matchScore}% Match
                   </Badge>
-                  <p className="text-[10px] text-muted-foreground mt-1">{match.status}</p>
+                  <p className="text-[10px] text-white/40 mt-1">{match.status}</p>
                 </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
+            </div>
+            <div className="p-5 space-y-4">
               {/* Matched Development */}
-              <div className="p-3 rounded-lg bg-muted/50 border border-border">
+              <div className="p-3 rounded-lg bg-white/5 border border-white/5">
                 <div className="flex items-center gap-2 mb-1">
-                  <Building2 className="h-4 w-4 text-primary" />
-                  <span className="font-medium text-sm">{match.development}</span>
+                  <Building2 className="h-4 w-4 text-emerald-400" />
+                  <span className="font-medium text-sm text-white">{match.development}</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{match.developmentLocation}</p>
+                <p className="text-xs text-white/50">{match.developmentLocation}</p>
               </div>
 
               {/* Buyer Details */}
               <div className="grid grid-cols-2 gap-2">
-                <div className="p-2 rounded bg-muted/30">
-                  <div className="text-[10px] text-muted-foreground uppercase">Budget</div>
-                  <div className="font-medium text-sm">{match.budget}</div>
+                <div className="p-2 rounded bg-white/5">
+                  <div className="text-[10px] text-white/40 uppercase">Budget</div>
+                  <div className="font-medium text-sm text-white">{match.budget}</div>
                 </div>
-                <div className="p-2 rounded bg-muted/30">
-                  <div className="text-[10px] text-muted-foreground uppercase">Timeline</div>
-                  <div className="font-medium text-sm">{match.timeline}</div>
+                <div className="p-2 rounded bg-white/5">
+                  <div className="text-[10px] text-white/40 uppercase">Timeline</div>
+                  <div className="font-medium text-sm text-white">{match.timeline}</div>
                 </div>
-                <div className="p-2 rounded bg-muted/30">
-                  <div className="text-[10px] text-muted-foreground uppercase">Bedrooms</div>
-                  <div className="font-medium text-sm">{match.bedrooms}</div>
+                <div className="p-2 rounded bg-white/5">
+                  <div className="text-[10px] text-white/40 uppercase">Bedrooms</div>
+                  <div className="font-medium text-sm text-white">{match.bedrooms}</div>
                 </div>
-                <div className="p-2 rounded bg-muted/30">
-                  <div className="text-[10px] text-muted-foreground uppercase">Score</div>
-                  <div className="font-medium text-sm">Q: {match.matchScore}</div>
+                <div className="p-2 rounded bg-white/5">
+                  <div className="text-[10px] text-white/40 uppercase">Score</div>
+                  <div className="font-medium text-sm text-white">Q: {match.matchScore}</div>
                 </div>
               </div>
 
@@ -225,8 +224,8 @@ export default function MatchesPage() {
               </div>
 
               {/* AI Insight */}
-              <div className="p-2 rounded-lg bg-primary/5 border border-primary/20">
-                <p className="text-xs text-primary flex items-center gap-1">
+              <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
+                <p className="text-xs text-emerald-400 flex items-center gap-1">
                   <Sparkles className="h-3 w-3" />
                   {match.aiInsight}
                 </p>
@@ -245,8 +244,8 @@ export default function MatchesPage() {
                   <Eye className="h-4 w-4" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         ))}
       </div>
     </div>
