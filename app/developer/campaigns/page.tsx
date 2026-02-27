@@ -1,52 +1,75 @@
 'use client'
 
-import { useMemo } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { useMemo, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
 import { useCampaigns } from '@/hooks/useCampaigns'
 import { useAuth } from '@/contexts/AuthContext'
 import { formatCurrency } from '@/lib/utils'
-import { TrendingUp, TrendingDown, Megaphone } from 'lucide-react'
+import {
+  Search,
+  Megaphone,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  Users,
+  BarChart3,
+} from 'lucide-react'
+
+const statusColors: Record<string, string> = {
+  active: 'text-emerald-400 bg-emerald-400/10',
+  paused: 'text-amber-400 bg-amber-400/10',
+  completed: 'text-blue-400 bg-blue-400/10',
+  draft: 'text-white/40 bg-white/5',
+}
 
 export default function CampaignsPage() {
   const { campaigns } = useCampaigns()
   const { user } = useAuth()
+  const [search, setSearch] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
 
-  // API already filters by company_id server-side; client-side filter as safety net
   const myCampaigns = useMemo(() => {
-    if (!user?.company_id) {
-      // If company_id not yet loaded, show all campaigns from API (already filtered server-side)
-      return campaigns
-    }
+    if (!user?.company_id) return campaigns
     return campaigns.filter(c => c.company_id === user.company_id)
   }, [campaigns, user?.company_id])
 
-  // Stats
-  const stats = useMemo(() => ({
-    total: myCampaigns.length,
-    active: myCampaigns.filter(c => c.status === 'active').length,
-    totalSpend: myCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0),
-    totalLeads: myCampaigns.reduce((sum, c) => sum + (c.leads || 0), 0),
-  }), [myCampaigns])
+  const filtered = useMemo(() => {
+    return myCampaigns.filter(c => {
+      const matchesSearch = !search ||
+        (c.name || '').toLowerCase().includes(search.toLowerCase()) ||
+        (c.platform || '').toLowerCase().includes(search.toLowerCase()) ||
+        (c.development || c.client || '').toLowerCase().includes(search.toLowerCase())
+      const matchesStatus = statusFilter === 'all' || c.status === statusFilter
+      return matchesSearch && matchesStatus
+    })
+  }, [myCampaigns, search, statusFilter])
+
+  const stats = useMemo(() => {
+    const totalLeads = myCampaigns.reduce((sum, c) => sum + (c.leads || 0), 0)
+    const totalSpend = myCampaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
+    return {
+      total: myCampaigns.length,
+      active: myCampaigns.filter(c => c.status === 'active').length,
+      totalSpend,
+      totalLeads,
+      avgCpl: totalLeads > 0 ? totalSpend / totalLeads : 0,
+    }
+  }, [myCampaigns])
 
   if (!user?.company_id) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-2xl font-bold font-display">Campaigns</h2>
-          <p className="text-sm text-muted-foreground">
-            View your marketing campaigns
-          </p>
+          <h2 className="text-2xl font-bold text-white">Campaigns</h2>
+          <p className="text-sm text-white/50">View your marketing campaigns</p>
         </div>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Megaphone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <p className="text-muted-foreground">Your account is not linked to a company.</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Contact an administrator to assign you to a company.
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-12 text-center">
+          <Megaphone className="h-12 w-12 text-white/20 mx-auto mb-4" />
+          <p className="text-white/50">Your account is not linked to a company.</p>
+          <p className="text-sm text-white/30 mt-2">Contact an administrator to assign you to a company.</p>
+        </div>
       </div>
     )
   }
@@ -55,96 +78,141 @@ export default function CampaignsPage() {
     <div className="space-y-6">
       {/* Header */}
       <div>
-        <h2 className="text-2xl font-bold font-display">Campaigns</h2>
-        <p className="text-sm text-muted-foreground">
-          {stats.active} active campaigns • {formatCurrency(stats.totalSpend)} total spend
+        <h2 className="text-2xl font-bold text-white">Campaigns</h2>
+        <p className="text-sm text-white/50">
+          {stats.active} active · {formatCurrency(stats.totalSpend)} total spend
         </p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Campaigns</div>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Active</div>
-            <div className="text-2xl font-bold text-success">{stats.active}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Spend</div>
-            <div className="text-2xl font-bold">{formatCurrency(stats.totalSpend)}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-sm text-muted-foreground">Total Leads</div>
-            <div className="text-2xl font-bold">{stats.totalLeads}</div>
-          </CardContent>
-        </Card>
+      {/* Stats */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Megaphone className="h-4 w-4 text-blue-400" />
+            <span className="text-xs text-white/50">Total</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{stats.total}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <BarChart3 className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs text-white/50">Active</span>
+          </div>
+          <p className="text-2xl font-bold text-emerald-400">{stats.active}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <DollarSign className="h-4 w-4 text-purple-400" />
+            <span className="text-xs text-white/50">Total Spend</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{formatCurrency(stats.totalSpend)}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Users className="h-4 w-4 text-amber-400" />
+            <span className="text-xs text-white/50">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold text-white">{stats.totalLeads.toLocaleString()}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <TrendingDown className="h-4 w-4 text-cyan-400" />
+            <span className="text-xs text-white/50">Avg CPL</span>
+          </div>
+          <p className="text-2xl font-bold text-white">£{Math.round(stats.avgCpl)}</p>
+        </div>
       </div>
 
-      {/* Campaigns */}
-      <div className="space-y-4">
-        {myCampaigns.length === 0 ? (
-          <Card>
-            <CardContent className="py-8 text-center text-muted-foreground">
-              No campaigns found.
-            </CardContent>
-          </Card>
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+          <Input
+            placeholder="Search campaigns..."
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          {['all', 'active', 'paused', 'completed'].map((status) => (
+            <Button
+              key={status}
+              variant={statusFilter === status ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setStatusFilter(status)}
+              className={statusFilter !== status ? 'border-white/10 text-white/70 hover:bg-white/5' : ''}
+            >
+              {status.charAt(0).toUpperCase() + status.slice(1)}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      {/* Campaign Cards */}
+      <div className="space-y-3">
+        {filtered.length === 0 ? (
+          <div className="bg-[#111111] border border-white/10 rounded-xl p-12 text-center">
+            <Megaphone className="h-12 w-12 text-white/20 mx-auto mb-4" />
+            <p className="text-white/50">No campaigns found</p>
+          </div>
         ) : (
-          myCampaigns.map((campaign) => (
-            <Card key={campaign.id}>
-              <CardContent className="p-4">
+          filtered.map((campaign) => {
+            const cpl = campaign.leads && campaign.leads > 0
+              ? (campaign.spend || 0) / campaign.leads
+              : 0
+            const ctr = campaign.ctr || 0
+            const statusColor = statusColors[campaign.status || 'draft'] || statusColors.draft
+
+            return (
+              <div
+                key={campaign.id}
+                className="bg-[#111111] border border-white/10 rounded-xl p-5 hover:border-emerald-500/30 transition-colors"
+              >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{campaign.name}</h3>
-                      <Badge
-                        variant={campaign.status === 'active' ? 'success' : 'secondary'}
-                      >
-                        {campaign.status}
+                      <h3 className="font-semibold text-white truncate">{campaign.name}</h3>
+                      <Badge className={`${statusColor} border-0 text-[10px]`}>
+                        {campaign.status || 'Draft'}
                       </Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      {campaign.platform} • {campaign.client || campaign.development}
+                    <p className="text-sm text-white/40">
+                      {campaign.platform || 'Unknown'} · {campaign.development || campaign.client || 'General'}
                     </p>
                   </div>
 
                   <div className="flex items-center gap-6">
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">
-                        {formatCurrency(campaign.spend || 0)}
-                      </div>
-                      <div className="text-xs text-muted-foreground">Spend</div>
+                    <div className="text-center min-w-[70px]">
+                      <div className="text-lg font-semibold text-white">{formatCurrency(campaign.spend || 0)}</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Spend</div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-lg font-semibold">{campaign.leads || 0}</div>
-                      <div className="text-xs text-muted-foreground">Leads</div>
+                    <div className="text-center min-w-[50px]">
+                      <div className="text-lg font-semibold text-white">{campaign.leads || 0}</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">Leads</div>
                     </div>
-                    <div className="text-center">
+                    <div className="text-center min-w-[60px]">
                       <div className="flex items-center gap-1 justify-center">
-                        <span className="text-lg font-semibold">
-                          £{campaign.cpl || 0}
-                        </span>
-                        {(campaign.cpl || 0) < 50 ? (
-                          <TrendingDown className="h-4 w-4 text-success" />
+                        <span className="text-lg font-semibold text-white">£{Math.round(cpl)}</span>
+                        {cpl > 0 && (cpl < 200 ? (
+                          <TrendingDown className="h-4 w-4 text-emerald-400" />
                         ) : (
-                          <TrendingUp className="h-4 w-4 text-destructive" />
-                        )}
+                          <TrendingUp className="h-4 w-4 text-red-400" />
+                        ))}
                       </div>
-                      <div className="text-xs text-muted-foreground">CPL</div>
+                      <div className="text-[10px] text-white/40 uppercase tracking-wider">CPL</div>
                     </div>
+                    {ctr > 0 && (
+                      <div className="text-center min-w-[50px]">
+                        <div className="text-lg font-semibold text-white">{ctr.toFixed(1)}%</div>
+                        <div className="text-[10px] text-white/40 uppercase tracking-wider">CTR</div>
+                      </div>
+                    )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          ))
+              </div>
+            )
+          })
         )}
       </div>
     </div>

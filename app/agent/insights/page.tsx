@@ -2,14 +2,12 @@
 
 import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { useLeads } from '@/hooks/useLeads'
 import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { Sparkles, TrendingUp, Users, Target, Lightbulb, CheckCircle } from 'lucide-react'
 
-// Lightweight query: only fetches the columns needed for insights
 async function fetchCampaignSummaries(): Promise<{ company_id: string; status: string; cpl: number }[]> {
   if (!isSupabaseConfigured()) return []
   const supabase = createClient()
@@ -38,7 +36,6 @@ export default function InsightsPage() {
   const isLoading = leadsLoading || dataLoading
   const { user } = useAuth()
 
-  // Filter data by company_id for multi-tenant
   const myLeads = useMemo(() => {
     if (!user?.company_id) return []
     return leads.filter(lead => lead.company_id === user.company_id)
@@ -49,32 +46,18 @@ export default function InsightsPage() {
     return campaignSummaries.filter(c => c.company_id === user.company_id)
   }, [campaignSummaries, user?.company_id])
 
-  // Calculate real metrics from filtered data
   const metrics = useMemo(() => {
     const totalLeads = myLeads.length
     const avgScore = totalLeads > 0
       ? (myLeads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads / 10).toFixed(1)
       : '0'
-
     const qualifiedLeads = myLeads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
     const conversionRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
-
-    // Calculate response rate from contacted leads
-    const contactedLeads = myLeads.filter(l => l.status === 'Contacted' || l.status === 'Qualified' || l.status === 'Viewing Booked' || l.last_contact).length
-    const responseRate = totalLeads > 0 ? Math.round((contactedLeads / totalLeads) * 100) : 0
-
-    return {
-      leadQuality: avgScore,
-      responseRate,
-      conversion: conversionRate,
-    }
+    return { leadQuality: avgScore, totalLeads, conversion: conversionRate }
   }, [myLeads])
 
-  // Generate dynamic insights from filtered company data
   const insights = useMemo(() => {
     const generatedInsights: { title: string; description: string; priority: 'high' | 'medium' | 'low' }[] = []
-
-    // Find top scoring lead
     const sortedLeads = [...myLeads].sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
     const topLead = sortedLeads[0]
     if (topLead && (topLead.quality_score || 0) >= 80) {
@@ -84,8 +67,6 @@ export default function InsightsPage() {
         priority: 'high',
       })
     }
-
-    // Check for new leads needing follow-up
     const newLeadsCount = myLeads.filter(l => l.status === 'New').length
     if (newLeadsCount > 0) {
       generatedInsights.push({
@@ -94,8 +75,6 @@ export default function InsightsPage() {
         priority: newLeadsCount > 5 ? 'high' : 'medium',
       })
     }
-
-    // Check campaign performance
     const activeCampaigns = myCampaigns.filter(c => c.status === 'active')
     if (activeCampaigns.length > 0) {
       const avgCPL = activeCampaigns.reduce((sum, c) => sum + (c.cpl || 0), 0) / activeCampaigns.length
@@ -105,8 +84,6 @@ export default function InsightsPage() {
         priority: avgCPL > 50 ? 'medium' : 'low',
       })
     }
-
-    // Add general insight if no specific ones
     if (generatedInsights.length === 0) {
       generatedInsights.push({
         title: 'Getting Started',
@@ -114,78 +91,97 @@ export default function InsightsPage() {
         priority: 'low',
       })
     }
-
     return generatedInsights
   }, [myLeads, myCampaigns])
 
+  const priorityColors: Record<string, string> = {
+    high: 'text-red-400 bg-red-400/10',
+    medium: 'text-amber-400 bg-amber-400/10',
+    low: 'text-emerald-400 bg-emerald-400/10',
+  }
+  const priorityIconColors: Record<string, string> = {
+    high: 'text-red-400',
+    medium: 'text-amber-400',
+    low: 'text-emerald-400',
+  }
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-6 w-6 text-primary" />
+      <div className="flex items-center gap-3">
+        <div className="h-10 w-10 bg-emerald-500/10 rounded-xl flex items-center justify-center">
+          <Sparkles className="h-5 w-5 text-emerald-400" />
+        </div>
         <div>
-          <h2 className="text-2xl font-bold font-display">AI Insights</h2>
-          <p className="text-sm text-muted-foreground">Personalized recommendations</p>
+          <h2 className="text-2xl font-bold text-white">AI Insights</h2>
+          <p className="text-sm text-white/50">Personalised recommendations for your portfolio</p>
         </div>
       </div>
 
       <div className="grid md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Target className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : metrics.leadQuality}</div>
-            <div className="text-xs text-muted-foreground">Lead Quality</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : myLeads.length}</div>
-            <div className="text-xs text-muted-foreground">Total Leads</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-2">
-              <TrendingUp className="h-5 w-5 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">{isLoading ? '...' : `${metrics.conversion}%`}</div>
-            <div className="text-xs text-muted-foreground">Qualified Rate</div>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Target className="h-4 w-4 text-purple-400" />
+            <span className="text-xs text-white/50">Lead Quality</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{isLoading ? '...' : metrics.leadQuality}</p>
+          <p className="text-xs text-white/30 mt-1">Average quality score</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <Users className="h-4 w-4 text-blue-400" />
+            <span className="text-xs text-white/50">Total Leads</span>
+          </div>
+          <p className="text-3xl font-bold text-white">{isLoading ? '...' : metrics.totalLeads}</p>
+          <p className="text-xs text-white/30 mt-1">In your pipeline</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-emerald-400" />
+            <span className="text-xs text-white/50">Qualified Rate</span>
+          </div>
+          <p className="text-3xl font-bold text-emerald-400">{isLoading ? '...' : `${metrics.conversion}%`}</p>
+          <p className="text-xs text-white/30 mt-1">Score 70+ or qualified</p>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Lightbulb className="h-5 w-5 text-yellow-500" />
-            Recommendations
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-5 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-5 w-5 text-amber-400" />
+            <h3 className="font-semibold text-white">Recommendations</h3>
+          </div>
+        </div>
+        <div className="p-5 space-y-4">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading insights...</p>
+            <div className="space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="animate-pulse flex items-start gap-3 p-3">
+                  <div className="h-5 w-5 rounded bg-white/10" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 w-32 bg-white/10 rounded" />
+                    <div className="h-3 w-full bg-white/5 rounded" />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             insights.map((insight, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                <CheckCircle className={`h-5 w-5 mt-0.5 ${insight.priority === 'high' ? 'text-orange-500' : insight.priority === 'medium' ? 'text-yellow-500' : 'text-success'}`} />
-                <div>
+              <div key={i} className="flex items-start gap-3 p-4 rounded-xl bg-white/[0.02] border border-white/5">
+                <CheckCircle className={`h-5 w-5 mt-0.5 flex-shrink-0 ${priorityIconColors[insight.priority]}`} />
+                <div className="flex-1">
                   <div className="flex items-center gap-2 mb-1">
-                    <h4 className="font-medium text-sm">{insight.title}</h4>
-                    <Badge variant={insight.priority === 'high' ? 'destructive' : insight.priority === 'medium' ? 'warning' : 'secondary'} className="text-[10px]">
+                    <h4 className="font-medium text-sm text-white">{insight.title}</h4>
+                    <Badge className={`${priorityColors[insight.priority]} border-0 text-[10px]`}>
                       {insight.priority}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{insight.description}</p>
+                  <p className="text-sm text-white/50">{insight.description}</p>
                 </div>
               </div>
             ))
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

@@ -111,10 +111,10 @@ function SubScoreBar({ label, score, maxScore = 100 }: { label: string; score: n
   return (
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
-        <span className="text-sm text-muted-foreground">{label}</span>
+        <span className="text-sm text-white/50">{label}</span>
         <span className="text-sm font-semibold" style={{ color }}>{score ?? '-'}</span>
       </div>
-      <div className="w-full h-2 bg-muted rounded-full overflow-hidden">
+      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full transition-all duration-500"
           style={{ width: `${percentage}%`, backgroundColor: color }}
@@ -126,12 +126,12 @@ function SubScoreBar({ label, score, maxScore = 100 }: { label: string; score: n
 
 function DataRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
   return (
-    <div className="flex justify-between items-center py-2 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-2.5 border-b border-white/5 last:border-0">
+      <span className="text-sm text-white/40 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
-      <span className="text-sm font-medium text-right max-w-[60%] truncate">{value || '-'}</span>
+      <span className="text-sm font-medium text-white text-right max-w-[60%] truncate">{value || '-'}</span>
     </div>
   )
 }
@@ -255,15 +255,13 @@ export default function DeveloperLeadDetailPage() {
   if (!lead) {
     return (
       <div className="space-y-6">
-        <Link href="/developer/buyers" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft className="w-4 h-4" /> Back to Leads
+        <Link href="/developer/buyers" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to Buyers
         </Link>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <h3 className="text-lg font-medium mb-2">Lead not found</h3>
-            <Button onClick={() => router.push('/developer/buyers')}>Back to Leads</Button>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl py-12 text-center">
+          <h3 className="text-lg font-medium text-white mb-2">Lead not found</h3>
+          <Button onClick={() => router.push('/developer/buyers')}>Back to Buyers</Button>
+        </div>
       </div>
     )
   }
@@ -279,28 +277,10 @@ export default function DeveloperLeadDetailPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-start">
-        <div>
-          <Link href="/developer/buyers" className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-2">
-            <ArrowLeft className="w-4 h-4" /> Back to Leads
-          </Link>
-          <h1 className="text-2xl font-bold flex items-center gap-2">
-            {lead.full_name || 'Unknown'}
-            {kycCheck && <KycStatusBadge status={kycCheck.status} />}
-          </h1>
-          <div className="flex flex-wrap gap-3 text-sm text-muted-foreground mt-1">
-            {lead.email && (
-              <span className="flex items-center gap-1">
-                <Mail className="w-4 h-4" /> {lead.email}
-              </span>
-            )}
-            {lead.phone && (
-              <span className="flex items-center gap-1">
-                <Phone className="w-4 h-4" /> {lead.phone}
-              </span>
-            )}
-          </div>
-        </div>
+      <div className="flex justify-between items-center">
+        <Link href="/developer/buyers" className="flex items-center gap-2 text-white/40 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4" /> Back to Buyers
+        </Link>
         <Button variant="default" onClick={handleRescore} disabled={isRescoring}>
           <RefreshCw className={`w-4 h-4 mr-2 ${isRescoring ? 'animate-spin' : ''}`} />
           {isRescoring ? 'Scoring...' : 'Re-score'}
@@ -349,82 +329,132 @@ export default function DeveloperLeadDetailPage() {
         </CardContent>
       </Card>
 
+      {/* Buyer Profile Summary */}
+      <div className="bg-[#111111] border border-white/10 rounded-xl p-5">
+        <div className="flex items-start gap-4">
+          <div className="h-14 w-14 rounded-full bg-emerald-500/20 flex items-center justify-center flex-shrink-0">
+            <span className="text-xl font-bold text-emerald-400">
+              {(lead.full_name || '?').charAt(0).toUpperCase()}
+            </span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-3 mb-2 flex-wrap">
+              <h2 className="text-lg font-semibold text-white">{lead.full_name || 'Unknown'}</h2>
+              <Badge className={`${classConfig.bg} ${classConfig.text} text-xs`}>{classConfig.label}</Badge>
+              {kycCheck && <KycStatusBadge status={kycCheck.status} />}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-2 text-sm">
+              {lead.email && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span className="truncate">{lead.email}</span>
+                </div>
+              )}
+              {lead.phone && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Phone className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.phone}</span>
+                </div>
+              )}
+              {(lead.budget || lead.budget_range) && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <DollarSign className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.budget || lead.budget_range}</span>
+                </div>
+              )}
+              {lead.country && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <MapPin className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.country}</span>
+                </div>
+              )}
+              {lead.source && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <User className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>Source: {lead.source}</span>
+                </div>
+              )}
+              {lead.timeline && (
+                <div className="flex items-center gap-1.5 text-white/50">
+                  <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                  <span>{lead.timeline}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* AI Summary */}
       {lead.ai_summary && (
-        <Card className="border-blue-200 bg-blue-50/50">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Sparkles className="w-4 h-4 text-blue-600" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-blue-900 mb-1">AI Summary</h4>
-                <p className="text-sm text-blue-800/80 leading-relaxed">{lead.ai_summary}</p>
-              </div>
+        <div className="bg-blue-500/5 border border-blue-500/20 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Sparkles className="w-4 h-4 text-blue-400" />
             </div>
-          </CardContent>
-        </Card>
+            <div>
+              <h4 className="text-sm font-semibold text-blue-300 mb-1">AI Summary</h4>
+              <p className="text-sm text-white/60 leading-relaxed">{lead.ai_summary}</p>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Recommended Next Action */}
-      <Card className="border-primary/50 bg-primary/5">
-        <CardContent className="pt-5 pb-5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Target className="w-4 h-4 text-primary" />
+      <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-5">
+        <div className="flex items-start gap-3">
+          <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+            <Target className="w-4 h-4 text-emerald-400" />
+          </div>
+          <div className="flex-1">
+            <h4 className="text-sm font-semibold text-emerald-300 mb-1">Recommended Next Action</h4>
+            <p className="text-sm text-white/50 mb-3">
+              {lead.ai_next_action || 'Contact this lead to confirm interest and timeline'}
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {lead.phone && (
+                <Button size="sm" asChild>
+                  <a href={`tel:${lead.phone}`}>
+                    <Phone className="w-4 h-4 mr-1" /> Call
+                  </a>
+                </Button>
+              )}
+              {lead.email && (
+                <Button size="sm" variant="outline" onClick={() => setShowEmailComposer(true)}>
+                  <Mail className="w-4 h-4 mr-1" /> Send Email
+                </Button>
+              )}
+              {lead.phone && (
+                <Button size="sm" variant="outline" asChild>
+                  <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
+                    <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
+                  </a>
+                </Button>
+              )}
             </div>
-            <div className="flex-1">
-              <h4 className="text-sm font-semibold mb-1">Recommended Next Action</h4>
-              <p className="text-sm text-muted-foreground mb-3">
-                {lead.ai_next_action || 'Contact this lead to confirm interest and timeline'}
-              </p>
-              <div className="flex gap-2 flex-wrap">
-                {lead.phone && (
-                  <Button size="sm" asChild>
-                    <a href={`tel:${lead.phone}`}>
-                      <Phone className="w-4 h-4 mr-1" /> Call
-                    </a>
-                  </Button>
-                )}
-                {lead.email && (
-                  <Button size="sm" variant="outline" onClick={() => setShowEmailComposer(true)}>
-                    <Mail className="w-4 h-4 mr-1" /> Send Email
-                  </Button>
-                )}
-                {lead.phone && (
-                  <Button size="sm" variant="outline" asChild>
-                    <a href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`} target="_blank">
-                      <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
-                    </a>
-                  </Button>
-                )}
+          </div>
+        </div>
+      </div>
+
+      {/* Risk Flags */}
+      {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
+        <div className="bg-orange-500/5 border border-orange-500/20 rounded-xl p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <ShieldAlert className="w-4 h-4 text-orange-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-orange-300 mb-2">Risk Flags</h4>
+              <div className="flex flex-wrap gap-2">
+                {lead.ai_risk_flags.map((flag: string, i: number) => (
+                  <Badge key={i} variant="outline" className="bg-orange-500/10 text-orange-300 border-orange-500/30">
+                    <AlertTriangle className="w-3 h-3 mr-1" /> {flag}
+                  </Badge>
+                ))}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Risk Flags — shown as warning badges if non-empty */}
-      {lead.ai_risk_flags && lead.ai_risk_flags.length > 0 && (
-        <Card className="border-orange-300 bg-orange-50/50">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <ShieldAlert className="w-4 h-4 text-orange-600" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-orange-900 mb-2">Risk Flags</h4>
-                <div className="flex flex-wrap gap-2">
-                  {lead.ai_risk_flags.map((flag: string, i: number) => (
-                    <Badge key={i} variant="outline" className="bg-orange-100 text-orange-800 border-orange-300">
-                      <AlertTriangle className="w-3 h-3 mr-1" /> {flag}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        </div>
       )}
 
       {/* End NB Score Hero Section */}
@@ -580,42 +610,38 @@ export default function DeveloperLeadDetailPage() {
         </div>
       </div>
 
-      {/* Coming Soon — Phase 5 & 6 */}
+      {/* Coming Soon */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card className="opacity-60">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <TrendingUp className="w-4 h-4 text-purple-400" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold mb-0.5">NB Score History</h4>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Coming Soon</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Track how this buyer&apos;s score changes after each interaction.</p>
-              </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-5 opacity-60">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <TrendingUp className="w-4 h-4 text-purple-400" />
             </div>
-          </CardContent>
-        </Card>
-        <Card className="opacity-60">
-          <CardContent className="pt-5 pb-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Zap className="w-4 h-4 text-cyan-400" />
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-0.5">NB Score History</h4>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Clock className="w-3 h-3 text-white/40" />
+                <span className="text-xs text-white/40">Coming Soon</span>
               </div>
-              <div>
-                <h4 className="text-sm font-semibold mb-0.5">Engagement Timeline</h4>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Clock className="w-3 h-3 text-muted-foreground" />
-                  <span className="text-xs text-muted-foreground">Coming Soon</span>
-                </div>
-                <p className="text-xs text-muted-foreground">Full activity log of calls, emails, viewings, and score changes.</p>
-              </div>
+              <p className="text-xs text-white/30">Track how this buyer&apos;s score changes after each interaction.</p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-5 opacity-60">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-cyan-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Zap className="w-4 h-4 text-cyan-400" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-white mb-0.5">Engagement Timeline</h4>
+              <div className="flex items-center gap-1.5 mb-1">
+                <Clock className="w-3 h-3 text-white/40" />
+                <span className="text-xs text-white/40">Coming Soon</span>
+              </div>
+              <p className="text-xs text-white/30">Full activity log of calls, emails, viewings, and score changes.</p>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Email Composer Modal */}
