@@ -145,10 +145,13 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
     ]
   }, [userType, basePath, userHasBillingAccess])
 
-  // Filter nav items based on feature access
+  // Filter nav items based on feature access (and hide demo-excluded pages)
+  const demoExcluded = basePathOverride === '/demo' ? ['Pipeline', 'Outcomes'] : []
   const navItems = useMemo(() => {
-    return getNavItems().filter(item => canAccessFeature(item.feature))
-  }, [getNavItems, canAccessFeature])
+    return getNavItems()
+      .filter(item => canAccessFeature(item.feature))
+      .filter(item => !demoExcluded.includes(item.name))
+  }, [getNavItems, canAccessFeature, demoExcluded])
 
   const isActive = (href: string) => pathname === href
   const isActiveParent = (item: NavItem) =>
