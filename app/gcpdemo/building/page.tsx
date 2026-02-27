@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { DEMO_PROPERTY, DEMO_AVAILABLE_UNITS, ALL_ENQUIRERS, getEnquirersForUnit } from '@/lib/gcpdemo'
 import type { DemoEnquirer, DemoUnit } from '@/lib/gcpdemo/types'
 import { EnquirerDetailPanel } from '@/components/gcpdemo/EnquirerDetailPanel'
-import { Building2, MapPin, Users, Home, DoorOpen } from 'lucide-react'
+import { MapPin, DoorOpen } from 'lucide-react'
 import { NBScoreRing } from '@/components/ui/nb-score-ring'
 
 function UnitCard({ unit, onSelectLead }: { unit: DemoUnit; onSelectLead: (e: DemoEnquirer) => void }) {

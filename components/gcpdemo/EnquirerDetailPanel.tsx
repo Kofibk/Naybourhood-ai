@@ -1,24 +1,15 @@
 'use client'
 
-import { X, Shield, AlertTriangle, CheckCircle2, XCircle, Clock, MessageSquare, Briefcase, MapPin, Phone, Mail } from 'lucide-react'
+import { X, Shield, AlertTriangle, CheckCircle2, XCircle, Clock, MessageSquare, Briefcase, Phone, Mail } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { NBScoreRing } from '@/components/ui/nb-score-ring'
-import type { DemoEnquirer, DemoConversation } from '@/lib/gcpdemo/types'
+import type { DemoEnquirer } from '@/lib/gcpdemo/types'
 import { getConversationForEnquirer } from '@/lib/gcpdemo'
 import Link from 'next/link'
 
 interface EnquirerDetailPanelProps {
   enquirer: DemoEnquirer
   onClose: () => void
-}
-
-function ScoreBar({ score, maxScore, color }: { score: number; maxScore: number; color: string }) {
-  const pct = (score / maxScore) * 100
-  return (
-    <div className="h-2 bg-white/5 rounded-full overflow-hidden">
-      <div className={`h-full rounded-full ${color}`} style={{ width: `${pct}%` }} />
-    </div>
-  )
 }
 
 function RiskBadge({ level }: { level: string }) {
@@ -153,59 +144,7 @@ export function EnquirerDetailPanel({ enquirer, onClose }: EnquirerDetailPanelPr
           </div>
         )}
 
-        {/* 6. Quality Score Breakdown */}
-        {enquirer.qualityBreakdown && (
-          <div>
-            <div className="inline-flex items-center gap-3 mb-3">
-              <span className="w-2 h-2 rounded-full bg-[#34D399]" />
-              <span className="text-xs font-medium tracking-[0.15em] uppercase text-white/70">QUALITY SCORE BREAKDOWN</span>
-            </div>
-            <div className="space-y-4">
-              {enquirer.qualityBreakdown.map((factor) => (
-                <div key={factor.name}>
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm text-white/80">{factor.name}</span>
-                    <span className="text-xs font-medium text-white/60">{factor.score}/{factor.maxScore}</span>
-                  </div>
-                  <ScoreBar
-                    score={factor.score}
-                    maxScore={factor.maxScore}
-                    color={factor.score / factor.maxScore >= 0.7 ? 'bg-emerald-500' : factor.score / factor.maxScore >= 0.45 ? 'bg-amber-500' : 'bg-red-500'}
-                  />
-                  <p className="text-xs text-white/40 mt-1">{factor.evidence}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 7. Intent Score */}
-        {enquirer.intentTimeline && (
-          <div>
-            <div className="inline-flex items-center gap-3 mb-3">
-              <span className="w-2 h-2 rounded-full bg-[#34D399]" />
-              <span className="text-xs font-medium tracking-[0.15em] uppercase text-white/70">
-                INTENT SCORE — {enquirer.intentScore}/100
-              </span>
-            </div>
-            <div className="space-y-2">
-              {enquirer.intentTimeline.map((event, i) => (
-                <div key={i} className="flex items-start gap-3">
-                  <div className={`w-1.5 h-1.5 rounded-full mt-1.5 flex-shrink-0 ${
-                    event.type === 'positive' ? 'bg-emerald-400' :
-                    event.type === 'negative' ? 'bg-red-400' : 'bg-amber-400'
-                  }`} />
-                  <div>
-                    <p className="text-sm text-white/70">{event.event}</p>
-                    <p className="text-[10px] text-white/30">{new Date(event.timestamp).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* 8. Consistency Checks */}
+        {/* Consistency Checks */}
         {enquirer.consistencyChecks && (
           <div>
             <div className="inline-flex items-center gap-3 mb-3">
