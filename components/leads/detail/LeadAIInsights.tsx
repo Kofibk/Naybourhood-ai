@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
@@ -42,29 +41,29 @@ export function LeadAIInsights({
   return (
     <div className="space-y-4">
       {/* AI Summary */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <Bot className="w-4 h-4 text-primary" />
             AI Summary
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <p className="text-sm leading-relaxed">
             {summary || 'No AI summary available. Click "Re-score with AI" to generate.'}
           </p>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Next Action */}
-      <Card className="border-primary/50 bg-primary/5">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-primary/50 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <Target className="w-4 h-4 text-primary" />
             Recommended Next Action
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <p className="text-sm font-medium mb-3">{nextAction || 'No action recommended'}</p>
           <div className="flex gap-2 flex-wrap">
             {lead.phone && (
@@ -87,19 +86,19 @@ export function LeadAIInsights({
               </Button>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Recommendations */}
       {recommendations.length > 0 && (
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-base flex items-center gap-2 text-white">
               <Lightbulb className="w-4 h-4" />
               AI Recommendations
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <ul className="space-y-2">
               {recommendations.map((rec, i) => (
                 <li key={i} className="flex items-start gap-2 text-sm">
@@ -108,20 +107,20 @@ export function LeadAIInsights({
                 </li>
               ))}
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Risk Flags */}
       {riskFlags.length > 0 && (
-        <Card className="border-yellow-500/50 bg-yellow-500/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2 text-yellow-600">
+        <div className="bg-[#111111] border border-yellow-500/50 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-base flex items-center gap-2 text-yellow-400">
               <AlertTriangle className="w-4 h-4" />
               Risk Flags ({riskFlags.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <ul className="space-y-1">
               {riskFlags.map((flag, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm">
@@ -130,19 +129,19 @@ export function LeadAIInsights({
                 </li>
               ))}
             </ul>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Score Breakdown */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <BarChart3 className="w-4 h-4" />
             Score Breakdown
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+          </h3>
+        </div>
+        <div className="px-4 pb-4 space-y-2">
           {scoreBreakdown ? (
             (() => {
               // Cast to any to handle both Naybourhood (array) and legacy (object) formats
@@ -214,10 +213,10 @@ export function LeadAIInsights({
               )
             })()
           ) : (
-            <p className="text-sm text-muted-foreground">Re-score to see detailed breakdown</p>
+            <p className="text-sm text-white/50">Re-score to see detailed breakdown</p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

@@ -4,7 +4,6 @@ import { useState, useMemo, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -72,8 +71,8 @@ function EditableTextField({
   }
 
   return (
-    <div className="flex justify-between items-center py-3 border-b border-border last:border-0 group">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0 group">
+      <span className="text-sm text-white/50 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
@@ -83,7 +82,7 @@ function EditableTextField({
             type={type}
             value={tempValue}
             onChange={(e) => setTempValue(e.target.value)}
-            className="h-8 w-48"
+            className="h-8 w-48 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
             autoFocus
           />
           <Button size="sm" variant="ghost" onClick={handleSave} className="h-8 w-8 p-0">
@@ -131,8 +130,8 @@ function EditableSelectField({
   disabled?: boolean
 }) {
   return (
-    <div className="flex justify-between items-center py-3 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+      <span className="text-sm text-white/50 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
@@ -142,7 +141,7 @@ function EditableSelectField({
         <select
           value={value || ''}
           onChange={(e) => onSave(field, e.target.value)}
-          className="text-sm bg-background border border-input rounded-md px-2 py-1"
+          className="text-sm bg-[#111111] border border-white/10 text-white rounded-md px-2 py-1"
         >
           <option value="">-</option>
           {options.map(opt => (
@@ -181,9 +180,9 @@ function EditableTextarea({
   }
 
   return (
-    <div className="py-3 border-b border-border last:border-0">
+    <div className="py-3 border-b border-white/5 last:border-0">
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm text-muted-foreground flex items-center gap-2">
+        <span className="text-sm text-white/50 flex items-center gap-2">
           {Icon && <Icon className="w-4 h-4" />}
           {label}
         </span>
@@ -207,11 +206,11 @@ function EditableTextarea({
           value={tempValue}
           onChange={(e) => setTempValue(e.target.value)}
           rows={4}
-          className="text-sm"
+          className="text-sm bg-[#111111] border-white/10 text-white"
         />
       ) : (
-        <p className="text-sm bg-muted/50 rounded-lg p-3 min-h-[80px]">
-          {value || <span className="text-muted-foreground italic">No bio provided</span>}
+        <p className="text-sm bg-white/[0.02] rounded-lg p-3 min-h-[80px]">
+          {value || <span className="text-white/50 italic">No bio provided</span>}
         </p>
       )}
     </div>
@@ -221,8 +220,8 @@ function EditableTextarea({
 // Data Row Component (read-only)
 function DataRow({ label, value, icon: Icon }: { label: string; value: React.ReactNode; icon?: any }) {
   return (
-    <div className="flex justify-between items-center py-3 border-b border-border last:border-0">
-      <span className="text-sm text-muted-foreground flex items-center gap-2">
+    <div className="flex justify-between items-center py-3 border-b border-white/5 last:border-0">
+      <span className="text-sm text-white/50 flex items-center gap-2">
         {Icon && <Icon className="w-4 h-4" />}
         {label}
       </span>
@@ -345,7 +344,7 @@ export default function UserDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+        <RefreshCw className="h-6 w-6 animate-spin text-white/50" />
       </div>
     )
   }
@@ -353,17 +352,17 @@ export default function UserDetailPage() {
   if (!user) {
     return (
       <div className="space-y-6">
-        <Link href="/admin/users" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+        <Link href="/admin/users" className="flex items-center gap-2 text-white/50 hover:text-white">
           <ArrowLeft className="w-4 h-4" />
           Back to Users
         </Link>
-        <Card>
-          <CardContent className="py-12 text-center">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="py-12 text-center px-4">
             <h3 className="text-lg font-medium mb-2">User not found</h3>
-            <p className="text-muted-foreground mb-4">The user you are looking for does not exist.</p>
+            <p className="text-white/50 mb-4">The user you are looking for does not exist.</p>
             <Button onClick={() => router.push('/admin/users')}>Back to Users</Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -389,7 +388,7 @@ export default function UserDetailPage() {
     <div className="max-w-4xl mx-auto space-y-6">
       {/* Navigation */}
       <div className="flex justify-between items-center">
-        <Link href="/admin/users" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+        <Link href="/admin/users" className="flex items-center gap-2 text-white/50 hover:text-white">
           <ArrowLeft className="w-4 h-4" />
           Back to Users
         </Link>
@@ -410,10 +409,10 @@ export default function UserDetailPage() {
       )}
 
       {/* Header */}
-      <Card className={isInternalUser ? 'border-purple-500/30 bg-purple-500/5' : ''}>
-        <CardContent className="pt-6">
+      <div className={`bg-[#111111] border rounded-xl ${isInternalUser ? 'border-purple-500/30' : 'border-white/10'}`}>
+        <div className="pt-6 px-4 pb-4">
           <div className="flex items-start gap-6">
-            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+            <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center flex-shrink-0">
               {user.avatar_url ? (
                 <Image
                   src={user.avatar_url}
@@ -423,7 +422,7 @@ export default function UserDetailPage() {
                   className="w-20 h-20 rounded-full object-cover"
                 />
               ) : (
-                <UserCircle className="h-12 w-12 text-muted-foreground" />
+                <UserCircle className="h-12 w-12 text-white/50" />
               )}
             </div>
             <div className="flex-1">
@@ -431,17 +430,17 @@ export default function UserDetailPage() {
                 <h1 className="text-2xl font-bold">{user.name}</h1>
                 {getRoleBadge(user.role)}
                 {isInternalUser && (
-                  <span className="text-xs bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400 px-2 py-1 rounded">
+                  <span className="text-xs bg-purple-900/30 text-purple-400 px-2 py-1 rounded">
                     Naybourhood Team
                   </span>
                 )}
               </div>
-              <p className="text-muted-foreground flex items-center gap-2">
+              <p className="text-white/50 flex items-center gap-2">
                 <Mail className="w-4 h-4" />
                 {user.email}
               </p>
               {user.phone && (
-                <p className="text-muted-foreground flex items-center gap-2 mt-1">
+                <p className="text-white/50 flex items-center gap-2 mt-1">
                   <Phone className="w-4 h-4" />
                   {user.phone}
                 </p>
@@ -453,7 +452,7 @@ export default function UserDetailPage() {
                     Active
                   </Badge>
                 ) : user.status === 'pending' ? (
-                  <Badge variant="outline" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                  <Badge variant="outline" className="bg-amber-900/30 text-amber-400">
                     <Clock className="h-3 w-3 mr-1" />
                     Pending
                   </Badge>
@@ -464,24 +463,24 @@ export default function UserDetailPage() {
                   </Badge>
                 )}
                 {isOwnProfile && (
-                  <span className="text-xs text-muted-foreground">(This is your profile)</span>
+                  <span className="text-xs text-white/50">(This is your profile)</span>
                 )}
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Personal Information */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-base font-medium text-white flex items-center gap-2">
               <UserCircle className="w-4 h-4" />
               Personal Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <EditableTextField
               label="Full Name"
               value={user.name}
@@ -516,18 +515,18 @@ export default function UserDetailPage() {
               icon={Briefcase}
               disabled={!canEdit}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Role & Permissions */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-base font-medium text-white flex items-center gap-2">
               <Shield className="w-4 h-4" />
               Role & Permissions
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <EditableSelectField
               label="Role"
               value={user.role}
@@ -547,8 +546,8 @@ export default function UserDetailPage() {
               disabled={!isSuperAdmin}
             />
             {!isInternalUser && (
-              <div className="flex justify-between items-center py-3 border-b border-border">
-                <span className="text-sm text-muted-foreground flex items-center gap-2">
+              <div className="flex justify-between items-center py-3 border-b border-white/5">
+                <span className="text-sm text-white/50 flex items-center gap-2">
                   <Building2 className="w-4 h-4" />
                   Company
                 </span>
@@ -569,18 +568,18 @@ export default function UserDetailPage() {
                 </span>
               )}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Bio */}
-        <Card className="md:col-span-2">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl md:col-span-2">
+          <div className="p-4 pb-2">
+            <h3 className="text-base font-medium text-white flex items-center gap-2">
               <FileText className="w-4 h-4" />
               Bio
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <EditableTextarea
               label="About"
               value={user.bio}
@@ -588,34 +587,34 @@ export default function UserDetailPage() {
               onSave={handleFieldSave}
               icon={FileText}
             />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Activity */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-base font-medium text-white flex items-center gap-2">
               <Clock className="w-4 h-4" />
               Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <DataRow label="Last Active" value={formatDateTime(user.last_active)} icon={Clock} />
             <DataRow label="Account Created" value={formatDate(user.created_at)} icon={Calendar} />
             <DataRow label="Invited On" value={formatDate(user.invited_at)} icon={Mail} />
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Billing - Only show to Super Admin */}
         {isSuperAdmin && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 pb-2">
+              <h3 className="text-base font-medium text-white flex items-center gap-2">
                 <CreditCard className="w-4 h-4" />
                 Billing Access
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+              </h3>
+            </div>
+            <div className="px-4 pb-4">
               <DataRow
                 label="Can View Billing"
                 value={user.role === 'super_admin' ? (
@@ -623,28 +622,28 @@ export default function UserDetailPage() {
                     <CheckCircle className="h-4 w-4" /> Yes
                   </span>
                 ) : (
-                  <span className="text-muted-foreground flex items-center gap-1">
+                  <span className="text-white/50 flex items-center gap-1">
                     <XCircle className="h-4 w-4" /> No
                   </span>
                 )}
               />
-              <p className="text-xs text-muted-foreground mt-3 p-3 bg-muted/50 rounded">
+              <p className="text-xs text-white/50 mt-3 p-3 bg-white/[0.02] rounded">
                 Only Super Admins can access billing information and manage subscription settings.
               </p>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
 
       {/* User ID */}
-      <Card>
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="py-3 px-4">
+          <div className="flex items-center justify-between text-xs text-white/50">
             <span>User ID:</span>
-            <code className="bg-muted px-2 py-1 rounded">{user.id}</code>
+            <code className="bg-white/5 px-2 py-1 rounded">{user.id}</code>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

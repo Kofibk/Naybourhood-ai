@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo, useRef } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+// Dark theme inline cards - no Card imports needed
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCampaigns } from '@/hooks/useCampaigns'
@@ -286,9 +286,9 @@ export default function AdminDashboard() {
           <h2 className="text-2xl font-bold font-display">
             {getGreeting()}, {userName}
           </h2>
-          <p className="text-sm text-muted-foreground">{getDateString()}</p>
+          <p className="text-sm text-white/50">{getDateString()}</p>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-white/40">
               Campaigns: {campaigns.length} · Leads: {leads.length} · Companies: {companies.length}
             </p>
             <Badge
@@ -326,98 +326,86 @@ export default function AdminDashboard() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card className="animate-fade-in">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Total Leads</span>
-              <Users className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <AnimatedNumber
-              value={metrics.totalLeads}
-              className="text-2xl font-bold"
-            />
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '100ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Hot Leads</span>
-              <Flame className="h-4 w-4 text-orange-500" />
-            </div>
-            <AnimatedNumber
-              value={metrics.hotLeads}
-              className="text-2xl font-bold text-orange-500"
-            />
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '200ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Avg Score</span>
-              <Target className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <AnimatedNumber
-              value={metrics.avgScore}
-              className="text-2xl font-bold"
-            />
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '300ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Total Spend</span>
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="text-2xl font-bold">
-              {formatCurrency(metrics.totalSpend)}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '400ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Avg CPL</span>
-              <TrendingDown className="h-4 w-4 text-success" />
-            </div>
-            <AnimatedNumber
-              value={metrics.avgCPL}
-              prefix="£"
-              className="text-2xl font-bold text-success"
-            />
-          </CardContent>
-        </Card>
-        <Card className="animate-fade-in" style={{ animationDelay: '500ms' }}>
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs text-muted-foreground">Qualified Rate</span>
-              <CheckCircle className="h-4 w-4 text-success" />
-            </div>
-            <AnimatedNumber
-              value={metrics.qualifiedRate}
-              suffix="%"
-              className="text-2xl font-bold text-success"
-            />
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 animate-fade-in">
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/40">Total Leads</span>
+            <Users className="h-4 w-4 text-white/40" />
+          </div>
+          <AnimatedNumber
+            value={metrics.totalLeads}
+            className="text-2xl font-bold text-white"
+          />
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '100ms' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/40">Hot Leads</span>
+            <Flame className="h-4 w-4 text-orange-500" />
+          </div>
+          <AnimatedNumber
+            value={metrics.hotLeads}
+            className="text-2xl font-bold text-orange-500"
+          />
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '200ms' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/40">Avg Score</span>
+            <Target className="h-4 w-4 text-white/40" />
+          </div>
+          <AnimatedNumber
+            value={metrics.avgScore}
+            className="text-2xl font-bold text-white"
+          />
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '300ms' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/40">Total Spend</span>
+            <PoundSterling className="h-4 w-4 text-white/40" />
+          </div>
+          <div className="text-2xl font-bold text-white">
+            {formatCurrency(metrics.totalSpend)}
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '400ms' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/40">Avg CPL</span>
+            <TrendingDown className="h-4 w-4 text-success" />
+          </div>
+          <AnimatedNumber
+            value={metrics.avgCPL}
+            prefix="£"
+            className="text-2xl font-bold text-success"
+          />
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4 animate-fade-in" style={{ animationDelay: '500ms' }}>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs text-white/40">Qualified Rate</span>
+            <CheckCircle className="h-4 w-4 text-success" />
+          </div>
+          <AnimatedNumber
+            value={metrics.qualifiedRate}
+            suffix="%"
+            className="text-2xl font-bold text-success"
+          />
+        </div>
       </div>
 
       {/* Charts Row 1 */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Lead Classification */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white">
               Lead Classification
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <div className="flex items-center gap-4">
               <div className="w-32 h-32 relative flex items-center justify-center">
                 <div className="text-center">
-                  <div className="text-2xl font-bold">
+                  <div className="text-2xl font-bold text-white">
                     {metrics.totalLeads.toLocaleString()}
                   </div>
-                  <div className="text-xs text-muted-foreground">Total</div>
+                  <div className="text-xs text-white/40">Total</div>
                 </div>
               </div>
               <div className="flex-1 space-y-2">
@@ -431,24 +419,24 @@ export default function AdminDashboard() {
                         className="w-3 h-3 rounded-full"
                         style={{ backgroundColor: item.color }}
                       />
-                      <span>{item.name}</span>
+                      <span className="text-white/70">{item.name}</span>
                     </div>
-                    <span className="font-medium">{item.value}</span>
+                    <span className="font-medium text-white">{item.value}</span>
                   </div>
                 ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Conversion Funnel */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white">
               Conversion Funnel
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            </h3>
+          </div>
+          <div className="px-4 pb-4 space-y-3">
             {funnelData.map((stage, i) => {
               const maxValue = funnelData[0].value || 1
               const widthPercent = Math.max((stage.value / maxValue) * 100, 15)
@@ -459,7 +447,7 @@ export default function AdminDashboard() {
                   : 100
               return (
                 <div key={stage.name} className="flex items-center gap-3">
-                  <span className="text-xs w-16 text-muted-foreground">
+                  <span className="text-xs w-16 text-white/40">
                     {stage.name}
                   </span>
                   <div className="flex-1">
@@ -487,25 +475,25 @@ export default function AdminDashboard() {
                 </div>
               )
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* AI Insights - Powered by AI Analysis */}
       <AIInsights />
 
       {/* Action Required - Real Leads with AI Next Actions */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Flame className="h-4 w-4 text-orange-500" />
             Priority Leads - AI Next Actions
             <Badge variant="destructive">{actionLeads.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+          </h3>
+        </div>
+        <div className="px-4 pb-4 space-y-3">
           {actionLeads.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No priority leads at this time. Leads will appear here once scored with AI.</p>
+            <p className="text-sm text-white/50">No priority leads at this time. Leads will appear here once scored with AI.</p>
           ) : (
             actionLeads.map((lead) => {
               const score = lead.ai_quality_score ?? lead.quality_score ?? 0
@@ -520,7 +508,7 @@ export default function AdminDashboard() {
                 >
                   <div className="space-y-1 min-w-0 flex-1">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-medium text-sm">{lead.full_name || lead.first_name || 'Unknown'}</span>
+                      <span className="font-medium text-sm text-white">{lead.full_name || lead.first_name || 'Unknown'}</span>
                       {classification && (
                         <Badge variant={classification === 'Hot' ? 'destructive' : 'warning'}>
                           {classification}
@@ -528,8 +516,8 @@ export default function AdminDashboard() {
                       )}
                       {lead.status && <Badge variant="muted">{lead.status}</Badge>}
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span className="font-medium text-foreground">Score: {score}</span>
+                    <div className="flex items-center gap-3 text-xs text-white/40">
+                      <span className="font-medium text-white">Score: {score}</span>
                       {intentScore && <span>Intent: {intentScore}</span>}
                       {lead.budget && <span>{lead.budget}</span>}
                     </div>
@@ -564,21 +552,21 @@ export default function AdminDashboard() {
               )
             })
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Campaign Performance - Real Campaigns with Lead Counts */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Megaphone className="h-4 w-4 text-primary" />
             Campaign Performance
             <Badge variant="secondary">{campaigns.length} campaigns</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+          </h3>
+        </div>
+        <div className="px-4 pb-4 space-y-3">
           {campaigns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No campaigns</p>
+            <p className="text-sm text-white/50">No campaigns</p>
           ) : (
             campaigns
               .slice(0, 5)
@@ -613,17 +601,17 @@ export default function AdminDashboard() {
                 return (
                   <div
                     key={campaign.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-card border"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-white/[0.02] border border-white/5"
                   >
                     <div className="space-y-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-medium text-sm">{campaign.name}</span>
+                        <span className="font-medium text-sm text-white">{campaign.name}</span>
                         {campaign.platform && <Badge variant="secondary">{campaign.platform}</Badge>}
                         {campaign.status === 'active' && <Badge variant="success">Active</Badge>}
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-3 text-xs text-white/40">
                         <span>Spend: {formatCurrency(spend)}</span>
-                        <span className="font-medium text-foreground">Leads: {campaignLeads}</span>
+                        <span className="font-medium text-white">Leads: {campaignLeads}</span>
                         <span className={`font-medium ${actualCPL > 50 ? 'text-warning' : 'text-success'}`}>
                           CPL: {campaignLeads > 0 ? `£${actualCPL}` : 'N/A'}
                         </span>
@@ -639,35 +627,35 @@ export default function AdminDashboard() {
                 )
               })
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Companies Overview */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Building2 className="h-4 w-4 text-primary" />
             Companies
             <Badge variant="secondary">{companies.length}</Badge>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
             {companies.slice(0, 5).map((company) => (
               <div
                 key={company.id}
-                className="p-3 rounded-lg bg-card border text-center"
+                className="p-3 rounded-lg bg-white/[0.02] border border-white/5 text-center"
               >
-                <p className="font-medium text-sm truncate">{company.name}</p>
-                <p className="text-xs text-muted-foreground">{company.tier || company.type || 'Client'}</p>
+                <p className="font-medium text-sm truncate text-white">{company.name}</p>
+                <p className="text-xs text-white/40">{company.tier || company.type || 'Client'}</p>
                 <Badge variant={company.status === 'active' ? 'success' : 'secondary'} className="mt-2 text-[10px]">
                   {company.status || 'Active'}
                 </Badge>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

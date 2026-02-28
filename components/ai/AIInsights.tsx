@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useCampaigns } from '@/hooks/useCampaigns'
@@ -240,38 +239,38 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white text-lg flex items-center gap-2">
             <Lightbulb className="h-5 w-5 text-primary" />
             AI Insights
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <div className="flex items-center justify-center py-8">
-            <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+            <RefreshCw className="h-6 w-6 animate-spin text-white/50" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   return (
     <div className="space-y-4">
       {/* Insights Card */}
-      <Card>
-        <CardHeader className="pb-3">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
           <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
+            <h3 className="text-sm font-medium text-white text-lg flex items-center gap-2">
               <Lightbulb className="h-5 w-5 text-primary" />
               AI Insights
-            </CardTitle>
+            </h3>
             <Button variant="ghost" size="sm" onClick={() => refreshCampaigns()} disabled={isLoading}>
               <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
+        </div>
+        <div className="px-4 pb-4 space-y-2">
           {insights.map((insight, index) => (
             <div
               key={index}
@@ -281,7 +280,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
                 {getInsightIcon(insight.type)}
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium">{insight.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{insight.description}</p>
+                  <p className="text-xs text-white/50 mt-0.5">{insight.description}</p>
                   {insight.action && (
                     <p className="text-xs text-primary mt-1">→ {insight.action}</p>
                   )}
@@ -290,32 +289,32 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
             </div>
           ))}
           {insights.length === 0 && (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-white/50 text-center py-4">
               No insights available - add leads to see analysis
             </p>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Recommended Actions Card */}
       {recommendedActions.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-lg flex items-center gap-2">
+              <h3 className="text-sm font-medium text-white text-lg flex items-center gap-2">
                 Recommended Actions
                 <Badge variant="secondary">{recommendedActions.length}</Badge>
-              </CardTitle>
+              </h3>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-2">
+          </div>
+          <div className="px-4 pb-4 space-y-2">
             {recommendedActions.map((action, index) => (
               <div
                 key={index}
-                className={`p-3 rounded-md border transition-all ${
+                className={`p-3 rounded-md border border-white/5 transition-all ${
                   completedActions.has(String(index))
-                    ? 'bg-muted/50 opacity-60'
-                    : 'hover:bg-muted/50'
+                    ? 'bg-white/[0.02] opacity-60'
+                    : 'hover:bg-white/[0.02]'
                 }`}
               >
                 <div className="flex items-start gap-3">
@@ -327,7 +326,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
                       {getActionIcon(action.actionType)}
                       <p className="text-sm font-medium">{action.title}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{action.description}</p>
+                    <p className="text-xs text-white/50 mt-0.5">{action.description}</p>
                   </div>
                   <div className="flex gap-1">
                     {!completedActions.has(String(index)) && (
@@ -348,8 +347,8 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
                 </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </div>
   )

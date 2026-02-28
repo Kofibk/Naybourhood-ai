@@ -3,7 +3,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { useUsers } from '@/hooks/useUsers'
 import { useLeads } from '@/hooks/useLeads'
@@ -143,7 +142,7 @@ export default function LeadDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-white/50">Loading...</p>
       </div>
     )
   }
@@ -152,17 +151,17 @@ export default function LeadDetailPage() {
   if (isRescoring && !scoreResult) {
     return (
       <div className="max-w-7xl mx-auto space-y-6">
-        <Link href="/admin/leads" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+        <Link href="/admin/leads" className="flex items-center gap-2 text-white/50 hover:text-white">
           <ArrowLeft className="w-4 h-4" />
           Back to Leads
         </Link>
-        <Card>
-          <CardContent className="py-12 text-center">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="py-12 text-center">
             <Bot className="w-12 h-12 mx-auto mb-4 text-primary animate-pulse" />
-            <h3 className="text-lg font-medium mb-2">AI is analyzing this lead...</h3>
-            <p className="text-muted-foreground">Generating quality score, intent score, and recommendations</p>
-          </CardContent>
-        </Card>
+            <h3 className="text-lg font-medium text-white mb-2">AI is analyzing this lead...</h3>
+            <p className="text-white/50">Generating quality score, intent score, and recommendations</p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -170,17 +169,17 @@ export default function LeadDetailPage() {
   if (!lead) {
     return (
       <div className="space-y-6">
-        <Link href="/admin/leads" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+        <Link href="/admin/leads" className="flex items-center gap-2 text-white/50 hover:text-white">
           <ArrowLeft className="w-4 h-4" />
           Back to Leads
         </Link>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <h3 className="text-lg font-medium mb-2">Lead not found</h3>
-            <p className="text-muted-foreground mb-4">The lead you are looking for does not exist.</p>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="py-12 text-center">
+            <h3 className="text-lg font-medium text-white mb-2">Lead not found</h3>
+            <p className="text-white/50 mb-4">The lead you are looking for does not exist.</p>
             <Button onClick={() => router.push('/admin/leads')}>Back to Leads</Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -267,32 +266,32 @@ export default function LeadDetailPage() {
         ───────────────────────────────────────────────────────────────── */}
         <div className="space-y-4">
           {/* Contact Information */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 pb-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 <User className="w-4 h-4" />
                 Contact Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
+              </h3>
+            </div>
+            <div className="px-4 pb-4 space-y-0">
               <EditableTextField label="Full Name" value={lead.full_name} field="full_name" onSave={handleFieldSave} icon={User} />
               <EditableTextField label="First Name" value={lead.first_name} field="first_name" onSave={handleFieldSave} />
               <EditableTextField label="Last Name" value={lead.last_name} field="last_name" onSave={handleFieldSave} />
               <EditableTextField label="Email" value={lead.email} field="email" onSave={handleFieldSave} icon={Mail} type="email" />
               <EditableTextField label="Phone" value={lead.phone} field="phone" onSave={handleFieldSave} icon={Phone} type="tel" />
               <EditableTextField label="Country" value={lead.country} field="country" onSave={handleFieldSave} icon={Globe} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Property Requirements */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 pb-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 <Home className="w-4 h-4" />
                 Property Requirements
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
+              </h3>
+            </div>
+            <div className="px-4 pb-4 space-y-0">
               {(() => {
                 // Parse budget range to auto-populate min/max if not set
                 const parsedBudget = parseBudgetRange(lead.budget_range || lead.budget)
@@ -351,18 +350,18 @@ export default function LeadDetailPage() {
                 ]}
               />
               <EditableBooleanField label="Ready in 28 Days" value={lead.ready_within_28_days || lead.ready_in_28_days} field="ready_within_28_days" onSave={handleFieldSave} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Financial Qualification */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 pb-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 <DollarSign className="w-4 h-4" />
                 Financial Qualification
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
+              </h3>
+            </div>
+            <div className="px-4 pb-4 space-y-0">
               <EditableSelectField
                 label="Payment Method"
                 value={lead.payment_method}
@@ -398,36 +397,36 @@ export default function LeadDetailPage() {
                 value={lead.uk_solicitor}
                 onChange={(newValue) => updateLead(lead.id, { uk_solicitor: newValue })}
               />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Source & Campaign */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 pb-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 <Briefcase className="w-4 h-4" />
                 Source & Campaign
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
+              </h3>
+            </div>
+            <div className="px-4 pb-4 space-y-0">
               <EditableTextField label="Source" value={lead.source_platform || lead.source} field="source_platform" onSave={handleFieldSave} />
               <EditableTextField label="Campaign/Development" value={lead.source_campaign || lead.campaign || lead.development_name} field="source_campaign" onSave={handleFieldSave} />
               <EditableTextField label="Development Name" value={lead.development_name} field="development_name" onSave={handleFieldSave} icon={Building} />
               <EditableTextField label="Enquiry Type" value={lead.enquiry_type} field="enquiry_type" onSave={handleFieldSave} />
               <DataRow label="Campaign ID" value={lead.campaign_id ? lead.campaign_id.substring(0, 8) + '...' : '-'} icon={Hash} />
               <DataRow label="Company ID" value={lead.company_id ? lead.company_id.substring(0, 8) + '...' : '-'} icon={Building} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Engagement & Communication */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 pb-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 <MessageCircle className="w-4 h-4" />
                 Engagement & Communication
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-0">
+              </h3>
+            </div>
+            <div className="px-4 pb-4 space-y-0">
               <EditableBooleanField label="Viewing Intent" value={(lead as any).viewing_intent_confirmed} field="viewing_intent_confirmed" onSave={handleFieldSave} />
               <EditableBooleanField label="Viewing Booked" value={(lead as any).viewing_booked} field="viewing_booked" onSave={handleFieldSave} />
               <EditableTextField label="Viewing Date" value={(lead as any).viewing_date} field="viewing_date" onSave={handleFieldSave} icon={Calendar} />
@@ -435,8 +434,8 @@ export default function LeadDetailPage() {
               <EditableBooleanField label="Stop Comms" value={(lead as any).stop_agent_communication || (lead as any).stop_comms} field="stop_agent_communication" onSave={handleFieldSave} />
               <EditableTextField label="Next Follow-up" value={(lead as any).next_follow_up} field="next_follow_up" onSave={handleFieldSave} icon={Clock} />
               <EditableBooleanField label="Broker Connected" value={(lead as any).connect_to_broker || (lead as any).broker_connected} field="connect_to_broker" onSave={handleFieldSave} />
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* WhatsApp Conversation Thread */}
           <ConversationThread
@@ -449,28 +448,28 @@ export default function LeadDetailPage() {
 
           {/* Call Summary & Transcript */}
           {((lead as any).transcript || (lead as any).call_summary) && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
+            <div className="bg-[#111111] border border-white/10 rounded-xl">
+              <div className="p-4 pb-2">
+                <h3 className="text-base text-white flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
                   Call History
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
+                </h3>
+              </div>
+              <div className="px-4 pb-4 space-y-3">
                 {(lead as any).call_summary && (
                   <div>
-                    <div className="text-sm text-muted-foreground mb-1">Call Summary</div>
-                    <div className="bg-muted rounded-lg p-3 text-sm whitespace-pre-wrap">{(lead as any).call_summary}</div>
+                    <div className="text-sm text-white/50 mb-1">Call Summary</div>
+                    <div className="bg-white/5 rounded-lg p-3 text-sm whitespace-pre-wrap">{(lead as any).call_summary}</div>
                   </div>
                 )}
                 {(lead as any).transcript && (
                   <div>
-                    <div className="text-sm text-muted-foreground mb-1">Transcript</div>
-                    <div className="bg-muted rounded-lg p-3 text-sm whitespace-pre-wrap max-h-[300px] overflow-y-auto">{(lead as any).transcript}</div>
+                    <div className="text-sm text-white/50 mb-1">Transcript</div>
+                    <div className="bg-white/5 rounded-lg p-3 text-sm whitespace-pre-wrap max-h-[300px] overflow-y-auto">{(lead as any).transcript}</div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )}
         </div>
 

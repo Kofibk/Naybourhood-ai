@@ -3,7 +3,6 @@
 import { useState, useMemo, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@tanstack/react-query'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -115,7 +114,7 @@ export default function CompaniesPage() {
         company.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         company.contact_email?.toLowerCase().includes(searchQuery.toLowerCase())
 
-      const matchesStatus = statusFilter === 'all' || 
+      const matchesStatus = statusFilter === 'all' ||
         company.status?.toLowerCase() === statusFilter.toLowerCase()
 
       return matchesSearch && matchesStatus
@@ -261,7 +260,7 @@ export default function CompaniesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Companies</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             Manage client companies and partnerships
           </p>
         </div>
@@ -273,51 +272,43 @@ export default function CompaniesPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Companies</span>
-            </div>
-            <p className="text-2xl font-bold">{totals.total}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <CheckCircle className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">Active</span>
-            </div>
-            <p className="text-2xl font-bold text-success">{totals.active}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-orange-500" />
-              <span className="text-xs text-muted-foreground">Trial</span>
-            </div>
-            <p className="text-2xl font-bold text-orange-500">{totals.trial}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
-            </div>
-            <p className="text-2xl font-bold">{totals.totalLeads}</p>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Building2 className="h-4 w-4 text-white/50" />
+            <span className="text-xs text-white/50">Total Companies</span>
+          </div>
+          <p className="text-2xl font-bold">{totals.total}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <CheckCircle className="h-4 w-4 text-success" />
+            <span className="text-xs text-white/50">Active</span>
+          </div>
+          <p className="text-2xl font-bold text-success">{totals.active}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="h-4 w-4 text-orange-500" />
+            <span className="text-xs text-white/50">Trial</span>
+          </div>
+          <p className="text-2xl font-bold text-orange-500">{totals.trial}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="h-4 w-4 text-white/50" />
+            <span className="text-xs text-white/50">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold">{totals.totalLeads}</p>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search companies..."
-            className="pl-9"
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -325,7 +316,7 @@ export default function CompaniesPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[130px]"
+          className="h-10 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm min-w-[130px]"
         >
           <option value="all">All Status</option>
           <option value="active">Active</option>
@@ -337,18 +328,18 @@ export default function CompaniesPage() {
       {/* Companies Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
+          <div className="col-span-full text-center py-8 text-white/50">
             Loading...
           </div>
         ) : filteredCompanies.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
+          <div className="col-span-full text-center py-8 text-white/50">
             No companies found
           </div>
         ) : (
           filteredCompanies.map((company) => (
-            <Card
+            <div
               key={company.id}
-              className="cursor-pointer hover:border-primary/50 transition-colors"
+              className="bg-[#111111] border border-white/10 rounded-xl hover:border-emerald-500/30 transition-colors cursor-pointer"
               onClick={() => {
                 console.log('[DEBUG] Company card clicked:', {
                   id: company.id,
@@ -358,15 +349,15 @@ export default function CompaniesPage() {
                 router.push(`/admin/companies/${company.id}`)
               }}
             >
-              <CardContent className="p-4">
+              <div className="p-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                       <Building2 className="h-5 w-5 text-primary" />
                     </div>
                     <div>
                       <h3 className="font-semibold">{company.name}</h3>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-sm text-white/50">
                         {company.type}
                       </p>
                     </div>
@@ -394,19 +385,19 @@ export default function CompaniesPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-4 border-t border-border">
+                <div className="mt-4 pt-4 border-t border-white/5">
                   <div className="grid grid-cols-2 gap-4 text-center">
                     <div>
                       <div className="text-lg font-semibold">
                         {company.campaign_count || 0}
                       </div>
-                      <div className="text-xs text-muted-foreground">Campaigns</div>
+                      <div className="text-xs text-white/50">Campaigns</div>
                     </div>
                     <div>
                       <div className="text-lg font-semibold">
                         {company.total_leads || 0}
                       </div>
-                      <div className="text-xs text-muted-foreground">Leads</div>
+                      <div className="text-xs text-white/50">Leads</div>
                     </div>
                   </div>
                 </div>
@@ -425,12 +416,12 @@ export default function CompaniesPage() {
                   </div>
                 </div>
                 {company.contact_email && (
-                  <p className="text-xs text-muted-foreground mt-2">
+                  <p className="text-xs text-white/50 mt-2">
                     {company.contact_email}
                   </p>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))
         )}
       </div>
@@ -438,8 +429,8 @@ export default function CompaniesPage() {
       {/* Create/Edit Modal */}
       {isModalOpen && editingCompany && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-white/5 sticky top-0 bg-[#1a1a1a]">
               <h3 className="font-semibold">
                 {editingCompany.id ? 'Edit Company' : 'Add New Company'}
               </h3>
@@ -461,6 +452,7 @@ export default function CompaniesPage() {
                   value={editingCompany.name}
                   onChange={(e) => setEditingCompany({ ...editingCompany, name: e.target.value })}
                   placeholder="Berkeley Group"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -468,7 +460,7 @@ export default function CompaniesPage() {
                 <select
                   value={editingCompany.type}
                   onChange={(e) => setEditingCompany({ ...editingCompany, type: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="Developer">Developer</option>
                   <option value="Agent">Agent</option>
@@ -486,6 +478,7 @@ export default function CompaniesPage() {
                   value={editingCompany.contact_name}
                   onChange={(e) => setEditingCompany({ ...editingCompany, contact_name: e.target.value })}
                   placeholder="John Smith"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -498,6 +491,7 @@ export default function CompaniesPage() {
                   value={editingCompany.contact_email}
                   onChange={(e) => setEditingCompany({ ...editingCompany, contact_email: e.target.value })}
                   placeholder="john@company.com"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -510,6 +504,7 @@ export default function CompaniesPage() {
                   value={editingCompany.phone}
                   onChange={(e) => setEditingCompany({ ...editingCompany, phone: e.target.value })}
                   placeholder="+44 20 1234 5678"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -522,6 +517,7 @@ export default function CompaniesPage() {
                   value={editingCompany.website}
                   onChange={(e) => setEditingCompany({ ...editingCompany, website: e.target.value })}
                   placeholder="https://company.com"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -533,7 +529,7 @@ export default function CompaniesPage() {
                       ...editingCompany,
                       status: e.target.value as CompanyStatus
                     })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                   >
                     <option value="Active">Active</option>
                     <option value="Trial">Trial</option>
@@ -548,7 +544,7 @@ export default function CompaniesPage() {
                       ...editingCompany,
                       tier: e.target.value as EditingCompany['tier']
                     })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                   >
                     <option value="starter">Starter</option>
                     <option value="growth">Growth</option>
@@ -557,7 +553,7 @@ export default function CompaniesPage() {
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-border sticky bottom-0 bg-background">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-white/5 sticky bottom-0 bg-[#1a1a1a]">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -376,7 +376,7 @@ export default function UsersPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Users</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             Manage platform users and permissions ({users.length} total)
           </p>
         </div>
@@ -393,13 +393,13 @@ export default function UsersPage() {
       </div>
 
       {/* User Type Tabs */}
-      <div className="flex gap-2 border-b border-border pb-2">
+      <div className="flex gap-2 border-b border-white/5 pb-2">
         <button
           onClick={() => setUserTypeFilter('all')}
           className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors ${
             userTypeFilter === 'all'
               ? 'bg-primary text-primary-foreground'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
           }`}
         >
           All Users ({users.length})
@@ -409,7 +409,7 @@ export default function UsersPage() {
           className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors flex items-center gap-2 ${
             userTypeFilter === 'internal'
               ? 'bg-purple-600 text-white'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
           }`}
         >
           <Users className="h-4 w-4" />
@@ -420,7 +420,7 @@ export default function UsersPage() {
           className={`px-4 py-2 text-sm font-medium rounded-t-md transition-colors flex items-center gap-2 ${
             userTypeFilter === 'client'
               ? 'bg-blue-600 text-white'
-              : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              : 'text-white/50 hover:text-white hover:bg-white/5'
           }`}
         >
           <Briefcase className="h-4 w-4" />
@@ -431,10 +431,10 @@ export default function UsersPage() {
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search users..."
-            className="pl-9"
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
           />
@@ -442,7 +442,7 @@ export default function UsersPage() {
         <select
           value={roleFilter}
           onChange={(e) => setRoleFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[140px]"
+          className="h-10 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm min-w-[140px]"
         >
           <option value="all">All Roles</option>
           <optgroup label="Internal Team">
@@ -458,7 +458,7 @@ export default function UsersPage() {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="h-10 px-3 rounded-md border border-input bg-background text-sm min-w-[150px]"
+          className="h-10 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm min-w-[150px]"
         >
           <option value="all">All Status ({users.length})</option>
           <option value="pending">Pending ({statusCounts.pending})</option>
@@ -469,8 +469,8 @@ export default function UsersPage() {
 
       {/* Pending Approval Banner */}
       {pendingApprovalCount > 0 && userTypeFilter !== 'internal' && (
-        <Card className="border-amber-500/30 bg-amber-500/5">
-          <CardContent className="py-4">
+        <div className="bg-amber-500/5 border border-amber-500/30 rounded-xl">
+          <div className="px-4 pb-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center">
@@ -478,7 +478,7 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <p className="font-medium">{pendingApprovalCount} user{pendingApprovalCount !== 1 ? 's' : ''} awaiting approval</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-white/50">
                     These users signed up and requested to join an existing company
                   </p>
                 </div>
@@ -492,57 +492,57 @@ export default function UsersPage() {
                 Review
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Internal Team Section - Only show when viewing internal */}
       {userTypeFilter === 'internal' && (
-        <Card className="border-purple-500/30 bg-purple-500/5">
-          <CardHeader className="pb-2">
+        <div className="bg-purple-500/5 border border-purple-500/30 rounded-xl">
+          <div className="p-4 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-base flex items-center gap-2">
+              <h3 className="text-base text-white flex items-center gap-2">
                 <Shield className="h-5 w-5 text-purple-600" />
                 Naybourhood Internal Team
-              </CardTitle>
+              </h3>
               <Button size="sm" onClick={() => handleOpenInviteModal(true)}>
                 <Plus className="h-4 w-4 mr-1" />
                 Add Team Member
               </Button>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/50">
               Internal staff can access all user profiles and company dashboards
             </p>
-          </CardHeader>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Users Table */}
-      <Card>
-        <CardContent className="p-0">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="px-4 pb-4 p-0">
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Loading...</div>
+            <div className="text-center py-8 text-white/50">Loading...</div>
           ) : (
             <div className="overflow-x-auto -mx-4 sm:-mx-5 px-4 sm:px-5">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[200px]">
+                  <tr className="border-b border-white/5">
+                    <th className="text-left p-4 text-sm font-medium text-white/40 min-w-[200px]">
                       User
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[120px]">
+                    <th className="text-left p-4 text-sm font-medium text-white/40 min-w-[120px]">
                       Role
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[150px]">
+                    <th className="text-left p-4 text-sm font-medium text-white/40 min-w-[150px]">
                       {userTypeFilter === 'internal' ? 'Department' : 'Company'}
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[100px]">
+                    <th className="text-left p-4 text-sm font-medium text-white/40 min-w-[100px]">
                       Status
                     </th>
-                    <th className="text-left p-4 text-sm font-medium text-muted-foreground min-w-[110px]">
+                    <th className="text-left p-4 text-sm font-medium text-white/40 min-w-[110px]">
                       Last Active
                     </th>
-                    <th className="text-right p-4 text-sm font-medium text-muted-foreground min-w-[100px]">
+                    <th className="text-right p-4 text-sm font-medium text-white/40 min-w-[100px]">
                       Actions
                     </th>
                   </tr>
@@ -551,11 +551,11 @@ export default function UsersPage() {
                   {filteredUsers.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors"
+                      className="border-b border-white/5 hover:bg-white/[0.02] transition-colors"
                     >
                       <td className="p-4">
                         <Link href={`/admin/users/${user.id}`} className="flex items-center gap-3 hover:opacity-80">
-                          <div className="w-9 h-9 rounded-full bg-muted flex items-center justify-center">
+                          <div className="w-9 h-9 rounded-full bg-white/5 flex items-center justify-center">
                             {user.avatar_url ? (
                               <Image
                                 src={user.avatar_url}
@@ -565,7 +565,7 @@ export default function UsersPage() {
                                 className="w-9 h-9 rounded-full object-cover"
                               />
                             ) : (
-                              <UserCircle className="h-5 w-5 text-muted-foreground" />
+                              <UserCircle className="h-5 w-5 text-white/50" />
                             )}
                           </div>
                           <div>
@@ -577,7 +577,7 @@ export default function UsersPage() {
                                 </span>
                               )}
                             </div>
-                            <div className="text-sm text-muted-foreground">
+                            <div className="text-sm text-white/50">
                               {user.email}
                             </div>
                           </div>
@@ -612,7 +612,7 @@ export default function UsersPage() {
                           </Badge>
                         )}
                       </td>
-                      <td className="p-4 text-sm text-muted-foreground">
+                      <td className="p-4 text-sm text-white/50">
                         {formatDate(user.last_active)}
                       </td>
                       <td className="p-4 text-right">
@@ -662,7 +662,7 @@ export default function UsersPage() {
                   ))}
                   {filteredUsers.length === 0 && (
                     <tr>
-                      <td colSpan={6} className="p-8 text-center text-muted-foreground">
+                      <td colSpan={6} className="p-8 text-center text-white/50">
                         {users.length === 0
                           ? 'No users found. Invite your first user to get started!'
                           : 'No users match your search'}
@@ -673,14 +673,14 @@ export default function UsersPage() {
               </table>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Invite Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
               <h3 className="font-semibold flex items-center gap-2">
                 {inviteData.is_internal ? (
                   <>
@@ -703,20 +703,20 @@ export default function UsersPage() {
               </Button>
             </div>
             <div className="p-4 space-y-4">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-white/50">
                 {inviteData.is_internal
                   ? 'Add a new Naybourhood team member. They will have access to all user profiles and company dashboards.'
                   : 'The user will receive an email invitation to set up their account.'}
               </p>
 
               {/* User Type Toggle */}
-              <div className="flex gap-2 p-1 bg-muted rounded-lg">
+              <div className="flex gap-2 p-1 bg-white/5 rounded-lg">
                 <button
                   onClick={() => setInviteData({ ...inviteData, is_internal: false, role: 'developer', job_role: undefined, company_id: '' })}
                   className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
                     !inviteData.is_internal
-                      ? 'bg-background shadow text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-[#111111] shadow text-white'
+                      : 'text-white/50 hover:text-white'
                   }`}
                 >
                   <Briefcase className="h-4 w-4 inline mr-1" />
@@ -727,7 +727,7 @@ export default function UsersPage() {
                   className={`flex-1 py-2 text-sm font-medium rounded-md transition-colors ${
                     inviteData.is_internal
                       ? 'bg-purple-600 text-white shadow'
-                      : 'text-muted-foreground hover:text-foreground'
+                      : 'text-white/50 hover:text-white'
                   }`}
                 >
                   <Shield className="h-4 w-4 inline mr-1" />
@@ -772,7 +772,7 @@ export default function UsersPage() {
                       ...inviteData,
                       role: e.target.value as UserRole
                     })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                   >
                     {getRoleOptions().map(opt => (
                       <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -793,7 +793,7 @@ export default function UsersPage() {
                     ...inviteData,
                     job_role: e.target.value as JobRole || undefined
                   })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="">Select job role</option>
                   <option value="sales">Sales</option>
@@ -812,7 +812,7 @@ export default function UsersPage() {
                   <select
                     value={inviteData.company_id || ''}
                     onChange={(e) => setInviteData({ ...inviteData, company_id: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                   >
                     <option value="">Select a company</option>
                     {companies.map((company) => (
@@ -824,7 +824,7 @@ export default function UsersPage() {
                 </div>
               )}
             </div>
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-white/5">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>
                 Cancel
               </Button>

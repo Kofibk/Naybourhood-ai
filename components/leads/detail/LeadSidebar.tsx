@@ -1,6 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import type { Buyer } from '@/types'
 import { STATUS_OPTIONS, formatDateTime } from '@/lib/leadUtils'
@@ -39,20 +38,20 @@ export function LeadSidebar({
   return (
     <div className="space-y-4">
       {/* Status & Assignment */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <BarChart3 className="w-4 h-4" />
             Status & Assignment
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
+          </h3>
+        </div>
+        <div className="px-4 pb-4 space-y-3">
           <div className="space-y-1">
-            <label className="text-sm text-muted-foreground">Status</label>
+            <label className="text-sm text-white/50">Status</label>
             <select
               value={lead.status || ''}
               onChange={(e) => onStatusChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+              className="w-full px-3 py-2 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>{s}</option>
@@ -61,11 +60,11 @@ export function LeadSidebar({
           </div>
 
           <div className="space-y-1">
-            <label className="text-sm text-muted-foreground">Assigned To</label>
+            <label className="text-sm text-white/50">Assigned To</label>
             <select
               value={lead.assigned_to || ''}
               onChange={(e) => onAssigneeChange(e.target.value)}
-              className="w-full px-3 py-2 rounded-md border border-input bg-background text-sm"
+              className="w-full px-3 py-2 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
             >
               <option value="">Unassigned</option>
               {users.map((u) => (
@@ -80,65 +79,65 @@ export function LeadSidebar({
           {lead.assigned_at && (
             <DataRow label="Assigned At" value={formatDateTime(lead.assigned_at)} />
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Notes & Comments */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <MessageSquare className="w-4 h-4" />
             Notes & Comments
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <NotesComments
             notes={lead.notes}
             onSave={(notes) => onUpdateLead(lead.id, { notes })}
             userName="Admin"
           />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Timestamps */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <Clock className="w-4 h-4" />
             Timeline
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-0">
+          </h3>
+        </div>
+        <div className="px-4 pb-4 space-y-0">
           <DataRow label="Date Added" value={formatDateTime(lead.date_added || lead.created_at)} icon={Calendar} />
           <DataRow label="Last Updated" value={formatDateTime(lead.updated_at)} />
           <DataRow label="Last Contact" value={formatDateTime(lead.last_contact)} icon={Phone} />
           <DataRow label="Last AI Score" value={formatDateTime(lead.ai_scored_at)} icon={Bot} />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* AI Classification Details */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base flex items-center gap-2 text-white">
             <Bot className="w-4 h-4" />
             AI Classification Details
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-0">
+          </h3>
+        </div>
+        <div className="px-4 pb-4 space-y-0">
           <DataRow label="Classification" value={lead.ai_classification || classification} />
           <DataRow label="Priority" value={lead.ai_priority || priority} />
           <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
           <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
           <DataRow label="Confidence" value={lead.ai_confidence ? `${lead.ai_confidence}%` : '-'} />
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Quick Actions */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Quick Actions</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-base text-white">Quick Actions</h3>
+        </div>
+        <div className="px-4 pb-4 space-y-2">
           {lead.status !== 'Viewing Booked' && (
             <Button
               className="w-full"
@@ -166,18 +165,18 @@ export function LeadSidebar({
               <CheckCircle className="w-4 h-4 mr-2" /> Mark Funds Verified
             </Button>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Lead ID */}
-      <Card>
-        <CardContent className="py-3">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="px-4 py-3">
+          <div className="flex items-center justify-between text-xs text-white/50">
             <span>Lead ID:</span>
-            <code className="bg-muted px-2 py-1 rounded">{lead.id}</code>
+            <code className="bg-white/5 px-2 py-1 rounded">{lead.id}</code>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

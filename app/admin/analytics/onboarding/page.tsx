@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { STEP_LABELS } from '@/lib/onboarding'
@@ -174,7 +173,7 @@ export default function OnboardingFunnelPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+        <Loader2 className="w-8 h-8 animate-spin text-white/50" />
       </div>
     )
   }
@@ -185,7 +184,7 @@ export default function OnboardingFunnelPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold font-display">Onboarding Funnel</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             Track where users drop off in the onboarding flow
           </p>
         </div>
@@ -197,61 +196,61 @@ export default function OnboardingFunnelPage() {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Users className="h-5 w-5 text-blue-500" />
             </div>
             <div className="text-2xl font-bold">{analytics.totalStarted}</div>
-            <div className="text-xs text-muted-foreground">Users Started</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Users Started</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <CheckCircle className="h-5 w-5 text-emerald-500" />
             </div>
             <div className="text-2xl font-bold text-emerald-500">{analytics.totalCompleted}</div>
-            <div className="text-xs text-muted-foreground">Completed</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Completed</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <TrendingDown className="h-5 w-5 text-amber-500" />
             </div>
             <div className={`text-2xl font-bold ${analytics.completionRate >= 50 ? 'text-emerald-500' : 'text-amber-500'}`}>
               {analytics.completionRate}%
             </div>
-            <div className="text-xs text-muted-foreground">Completion Rate</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Completion Rate</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Clock className="h-5 w-5 text-muted-foreground" />
+              <Clock className="h-5 w-5 text-white/50" />
             </div>
             <div className="text-2xl font-bold">
               {analytics.avgCompletionMins > 0 ? `${analytics.avgCompletionMins}m` : '--'}
             </div>
-            <div className="text-xs text-muted-foreground">Avg Completion Time</div>
-          </CardContent>
-        </Card>
+            <div className="text-xs text-white/50">Avg Completion Time</div>
+          </div>
+        </div>
       </div>
 
       {/* Funnel Visualization */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm text-white flex items-center gap-2">
             <ArrowRight className="h-4 w-4" />
             Step-by-Step Funnel
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <div className="space-y-3">
             {/* Started row */}
             <div className="flex items-center gap-3">
-              <span className="text-xs w-32 text-muted-foreground font-medium">Started</span>
+              <span className="text-xs w-32 text-white/50 font-medium">Started</span>
               <div className="flex-1">
                 <div
                   className="h-8 rounded flex items-center justify-end pr-3 transition-all bg-blue-500"
@@ -260,7 +259,7 @@ export default function OnboardingFunnelPage() {
                   <span className="text-xs font-medium text-white">{analytics.totalStarted}</span>
                 </div>
               </div>
-              <span className="text-xs w-16 text-right text-muted-foreground">--</span>
+              <span className="text-xs w-16 text-right text-white/50">--</span>
             </div>
 
             {analytics.funnel.map((step, i) => {
@@ -274,7 +273,7 @@ export default function OnboardingFunnelPage() {
 
               return (
                 <div key={step.step} className="flex items-center gap-3">
-                  <span className="text-xs w-32 text-muted-foreground">
+                  <span className="text-xs w-32 text-white/50">
                     Step {step.step}: {step.label}
                   </span>
                   <div className="flex-1">
@@ -297,8 +296,8 @@ export default function OnboardingFunnelPage() {
             })}
 
             {/* Completed row */}
-            <div className="flex items-center gap-3 pt-2 border-t border-border">
-              <span className="text-xs w-32 text-muted-foreground font-medium">Completed</span>
+            <div className="flex items-center gap-3 pt-2 border-t border-white/5">
+              <span className="text-xs w-32 text-white/50 font-medium">Completed</span>
               <div className="flex-1">
                 <div
                   className="h-8 rounded flex items-center justify-end pr-3 transition-all bg-emerald-500"
@@ -312,34 +311,34 @@ export default function OnboardingFunnelPage() {
               </span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Activity Summary */}
       <div className="grid md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="text-lg font-bold">{analytics.csvCompleted}</div>
-            <div className="text-xs text-muted-foreground">CSV Imports Completed</div>
+            <div className="text-xs text-white/50">CSV Imports Completed</div>
             {analytics.totalRowsImported > 0 && (
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="text-xs text-white/40 mt-1">
                 {analytics.totalRowsImported.toLocaleString()} total rows
               </div>
             )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="text-lg font-bold">{analytics.totalInvitesSent}</div>
-            <div className="text-xs text-muted-foreground">Team Invites Sent</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Team Invites Sent</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="text-lg font-bold">{analytics.totalDevelopmentsAdded}</div>
-            <div className="text-xs text-muted-foreground">Developments Added</div>
-          </CardContent>
-        </Card>
+            <div className="text-xs text-white/50">Developments Added</div>
+          </div>
+        </div>
       </div>
     </div>
   )

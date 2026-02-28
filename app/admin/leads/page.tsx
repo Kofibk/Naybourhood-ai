@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -316,7 +315,7 @@ function formatBudgetPart(part: string): string {
 // Green = Hot (70+), Amber = Warm (45-69), Red = Cold (<45)
 function ScoreIndicator({ score }: { score: number | undefined | null }) {
   if (score === undefined || score === null) {
-    return <span className="text-muted-foreground">-</span>
+    return <span className="text-white/40">-</span>
   }
 
   const getConfig = (s: number) => {
@@ -338,7 +337,7 @@ function ScoreIndicator({ score }: { score: number | undefined | null }) {
 // Status Badge Component - color coded by category
 // Green = Positive, Amber = Pending, Red = Negative, Grey = Duplicate
 function StatusBadge({ status }: { status: string | undefined | null }) {
-  if (!status) return <span className="text-muted-foreground">-</span>
+  if (!status) return <span className="text-white/40">-</span>
 
   const config = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
 
@@ -361,7 +360,7 @@ function StatusBadge({ status }: { status: string | undefined | null }) {
 
 // Payment Badge Component
 function PaymentBadge({ method }: { method: string | undefined | null }) {
-  if (!method) return <span className="text-muted-foreground">-</span>
+  if (!method) return <span className="text-white/40">-</span>
 
   const styles: Record<string, string> = {
     'Cash': 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
@@ -792,7 +791,7 @@ export default function LeadsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Leads</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             {(() => {
               const activeLeads = leads.filter(l => l.status !== 'Disqualified')
               const disqualifiedCount = leads.length - activeLeads.length
@@ -813,7 +812,7 @@ export default function LeadsPage() {
             </div>
           )}
           {Object.keys(localScores).length > 0 && (
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-white/40">
               {Object.keys(localScores).length} scored
             </div>
           )}
@@ -864,7 +863,7 @@ export default function LeadsPage() {
         {/* Dropdown Filters */}
         <div className="flex gap-2 ml-auto flex-wrap">
           <select
-            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            className="px-3 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
             onChange={(e) => {
               if (e.target.value) {
                 setFilterConditions(prev => [...prev.filter(c => c.field !== 'status'), { id: generateId(), field: 'status', operator: 'equals', value: e.target.value }])
@@ -881,7 +880,7 @@ export default function LeadsPage() {
             }
           </select>
           <select
-            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            className="px-3 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
             onChange={(e) => {
               if (e.target.value) {
                 setFilterConditions(prev => [...prev.filter(c => c.field !== 'ai_classification'), { id: generateId(), field: 'ai_classification', operator: 'equals', value: e.target.value }])
@@ -894,7 +893,7 @@ export default function LeadsPage() {
             {CLASS_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
           <select
-            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            className="px-3 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
             onChange={(e) => {
               if (e.target.value) {
                 setFilterConditions(prev => [...prev.filter(c => c.field !== 'payment_method'), { id: generateId(), field: 'payment_method', operator: 'equals', value: e.target.value }])
@@ -907,7 +906,7 @@ export default function LeadsPage() {
             {PAYMENT_OPTIONS.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
           <select
-            className="px-3 py-1.5 rounded-md border border-input bg-background text-sm"
+            className="px-3 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
             onChange={(e) => {
               if (e.target.value) {
                 setFilterConditions(prev => [...prev.filter(c => c.field !== 'assigned_user_name'), { id: generateId(), field: 'assigned_user_name', operator: 'equals', value: e.target.value }])
@@ -920,10 +919,10 @@ export default function LeadsPage() {
             {uniqueAssignees.map(opt => <option key={opt} value={opt}>{opt}</option>)}
           </select>
           <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             <Input
               placeholder="Search..."
-              className="pl-9 h-8"
+              className="pl-9 h-8 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -954,14 +953,14 @@ export default function LeadsPage() {
 
       {/* Advanced Filter Panel */}
       {showFilters && (
-        <Card>
-          <CardContent className="p-4 space-y-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <span className="text-sm font-medium">Filter conditions</span>
+                <span className="text-sm font-medium text-white">Filter conditions</span>
                 {filterConditions.length > 1 && (
                   <select
-                    className="px-2 py-1 rounded-md border border-input bg-background text-xs"
+                    className="px-2 py-1 rounded-md border border-white/10 bg-[#111111] text-white text-xs"
                     value={filterLogic}
                     onChange={(e) => setFilterLogic(e.target.value as 'and' | 'or')}
                   >
@@ -978,16 +977,16 @@ export default function LeadsPage() {
                 const needsValue = !['is_empty', 'is_not_empty'].includes(condition.operator)
                 return (
                   <div key={condition.id} className="flex items-center gap-2 flex-wrap">
-                    <span className="w-10 text-xs text-muted-foreground">{index === 0 ? 'Where' : filterLogic === 'and' ? 'AND' : 'OR'}</span>
+                    <span className="w-10 text-xs text-white/40">{index === 0 ? 'Where' : filterLogic === 'and' ? 'AND' : 'OR'}</span>
                     <select
-                      className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                      className="px-2 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[140px]"
                       value={condition.field}
                       onChange={(e) => updateFilterCondition(condition.id, { field: e.target.value })}
                     >
                       {FILTER_FIELDS.map((field) => <option key={field.key} value={field.key}>{field.label}</option>)}
                     </select>
                     <select
-                      className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                      className="px-2 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[140px]"
                       value={condition.operator}
                       onChange={(e) => updateFilterCondition(condition.id, { operator: e.target.value as FilterOperator })}
                     >
@@ -997,7 +996,7 @@ export default function LeadsPage() {
                       fieldConfig?.type === 'select' ? (
                         // Multi-select for is_any_of and is_none_of operators
                         (condition.operator === 'is_any_of' || condition.operator === 'is_none_of') ? (
-                          <div className="flex flex-wrap gap-1 min-w-[200px] max-w-[400px] p-2 rounded-md border border-input bg-background">
+                          <div className="flex flex-wrap gap-1 min-w-[200px] max-w-[400px] p-2 rounded-md border border-white/10 bg-[#111111]">
                             {(fieldConfig.key === 'status' ? STATUS_OPTIONS : fieldConfig.options || []).map((opt) => {
                               const selectedValues = Array.isArray(condition.value) ? condition.value : []
                               const isSelected = selectedValues.includes(opt)
@@ -1008,7 +1007,7 @@ export default function LeadsPage() {
                                   className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
                                     isSelected
                                       ? 'bg-primary text-primary-foreground'
-                                      : 'bg-muted hover:bg-muted/80 text-muted-foreground'
+                                      : 'bg-white/5 hover:bg-white/[0.08] text-white/50'
                                   }`}
                                   onClick={() => {
                                     const newValues = isSelected
@@ -1022,14 +1021,14 @@ export default function LeadsPage() {
                               )
                             })}
                             {Array.isArray(condition.value) && condition.value.length > 0 && (
-                              <span className="text-xs text-muted-foreground ml-2 self-center">
+                              <span className="text-xs text-white/40 ml-2 self-center">
                                 ({condition.value.length} selected)
                               </span>
                             )}
                           </div>
                         ) : (
                           <select
-                            className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                            className="px-2 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[140px]"
                             value={condition.value as string}
                             onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
                           >
@@ -1057,7 +1056,7 @@ export default function LeadsPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                      className="h-8 w-8 text-white/40 hover:text-destructive"
                       onClick={() => removeFilterCondition(condition.id)}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -1069,15 +1068,15 @@ export default function LeadsPage() {
             <Button variant="outline" size="sm" onClick={addFilterCondition} className="mt-2">
               <Plus className="h-4 w-4 mr-2" />Add Filter
             </Button>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Column Settings */}
       {showColumnSettings && (
-        <Card>
-          <CardContent className="p-4">
-            <span className="text-sm font-medium mb-3 block">Visible Columns</span>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
+            <span className="text-sm font-medium text-white mb-3 block">Visible Columns</span>
             <div className="flex flex-wrap gap-2">
               {columns.map((col) => (
                 <Button
@@ -1090,19 +1089,19 @@ export default function LeadsPage() {
                 </Button>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
-      <p className="text-xs text-muted-foreground">💡 Double-click any cell to edit inline</p>
+      <p className="text-xs text-white/40">💡 Double-click any cell to edit inline</p>
 
       {/* Leads Table */}
-      <Card>
-        <CardContent className="p-0">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-0">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border bg-muted/30">
+                <tr className="border-b border-white/5 bg-white/[0.02]">
                   <th className="w-[40px] p-3">
                     <Checkbox
                       checked={selectedLeads.size === paginatedLeads.length && paginatedLeads.length > 0}
@@ -1112,7 +1111,7 @@ export default function LeadsPage() {
                   {visibleColumns.map((col) => (
                     <th
                       key={col.key}
-                      className={`text-left p-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground ${col.width || ''}`}
+                      className={`text-left p-3 text-xs font-medium text-white/40 cursor-pointer hover:text-white ${col.width || ''}`}
                       onClick={() => toggleSort(col.key as SortField)}
                     >
                       <div className="flex items-center gap-1">
@@ -1121,19 +1120,19 @@ export default function LeadsPage() {
                       </div>
                     </th>
                   ))}
-                  <th className="text-right p-3 text-xs font-medium text-muted-foreground w-[100px]">Actions</th>
+                  <th className="text-right p-3 text-xs font-medium text-white/40 w-[100px]">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {isLoading ? (
-                  <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-muted-foreground">Loading...</td></tr>
+                  <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-white/50">Loading...</td></tr>
                 ) : paginatedLeads.length === 0 ? (
-                  <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-muted-foreground">No leads found</td></tr>
+                  <tr><td colSpan={visibleColumns.length + 2} className="text-center py-8 text-white/50">No leads found</td></tr>
                 ) : (
                   paginatedLeads.map((lead) => (
                     <tr
                       key={lead.id}
-                      className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                      className="border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
                       onClick={() => router.push(`/admin/leads/${lead.id}`)}
                     >
                       <td className="p-3 w-[40px]" onClick={(e) => e.stopPropagation()}>
@@ -1170,7 +1169,7 @@ export default function LeadsPage() {
                         if (col.key === 'ai_classification') {
                           const classification = cellValue as string | undefined
                           const getClassBadge = (c: string | undefined) => {
-                            if (!c) return <span className="text-muted-foreground text-xs">-</span>
+                            if (!c) return <span className="text-white/40 text-xs">-</span>
                             // Classification badge styles
                             const styles: Record<string, string> = {
                               'Hot': 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
@@ -1205,7 +1204,7 @@ export default function LeadsPage() {
                               <select
                                 value={cellValue || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'status', e.target.value)}
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                                className="px-2 py-1 rounded-md border border-white/10 bg-[#111111] text-white text-xs font-medium cursor-pointer hover:border-primary"
                               >
                                 <option value="">Select...</option>
                                 {(uniqueStatuses.length > 0 ? uniqueStatuses : STATUS_OPTIONS).map(opt => (
@@ -1222,7 +1221,7 @@ export default function LeadsPage() {
                               <select
                                 value={cellValue || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'payment_method', e.target.value)}
-                                className="px-2 py-1 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary"
+                                className="px-2 py-1 rounded-md border border-white/10 bg-[#111111] text-white text-xs font-medium cursor-pointer hover:border-primary"
                               >
                                 <option value="">Select...</option>
                                 {PAYMENT_OPTIONS.map(opt => (
@@ -1247,7 +1246,7 @@ export default function LeadsPage() {
                               <select
                                 value={lead.assigned_to || ''}
                                 onChange={(e) => handleCellSave(lead.id, 'assigned_to', e.target.value)}
-                                className="px-2.5 py-1.5 rounded-md border border-input bg-background text-xs font-medium cursor-pointer hover:border-primary/50 min-w-[140px]"
+                                className="px-2.5 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-xs font-medium cursor-pointer hover:border-primary/50 min-w-[140px]"
                               >
                                 <option value="">Unassigned</option>
                                 {users.map(user => (
@@ -1261,7 +1260,7 @@ export default function LeadsPage() {
                         if (col.key === 'created_at') {
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <span className="text-muted-foreground">{formatDate(cellValue)}</span>
+                              <span className="text-white/50">{formatDate(cellValue)}</span>
                             </td>
                           )
                         }
@@ -1269,7 +1268,7 @@ export default function LeadsPage() {
                         if (col.key === 'phone' || col.key === 'email') {
                           return (
                             <td key={col.key} className={`p-3 text-sm ${col.width || ''}`}>
-                              <span className={col.key === 'email' ? 'text-muted-foreground whitespace-nowrap' : 'whitespace-nowrap'}>
+                              <span className={col.key === 'email' ? 'text-white/50 whitespace-nowrap' : 'whitespace-nowrap'}>
                                 {cellValue || '-'}
                               </span>
                             </td>
@@ -1303,15 +1302,15 @@ export default function LeadsPage() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Pagination */}
       <div className="flex items-center justify-between border-t pt-4">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+        <div className="flex items-center gap-2 text-sm text-white/50">
           <span>Showing {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, sortedLeads.length)} of {sortedLeads.length.toLocaleString()}</span>
           <select
-            className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+            className="px-2 py-1 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
             value={pageSize}
             onChange={(e) => { setPageSize(Number(e.target.value)); setCurrentPage(1) }}
           >

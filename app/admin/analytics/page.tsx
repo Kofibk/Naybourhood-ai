@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCampaigns } from '@/hooks/useCampaigns'
@@ -150,7 +149,7 @@ export default function AnalyticsPage() {
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-success'
     if (score >= 60) return 'text-warning'
-    return 'text-muted-foreground'
+    return 'text-white/50'
   }
 
   return (
@@ -159,7 +158,7 @@ export default function AnalyticsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold font-display">Analytics</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             Lead quality, campaign performance, and business insights
           </p>
         </div>
@@ -182,17 +181,17 @@ export default function AnalyticsPage() {
 
       {/* Overview Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Users className="h-5 w-5 text-muted-foreground" />
+              <Users className="h-5 w-5 text-white/50" />
             </div>
             <div className="text-2xl font-bold">{analytics.leads.total.toLocaleString()}</div>
-            <div className="text-xs text-muted-foreground">Total Leads</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Total Leads</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <Flame className="h-5 w-5 text-orange-500" />
               <Badge variant="success" className="text-[10px]">
@@ -200,61 +199,61 @@ export default function AnalyticsPage() {
               </Badge>
             </div>
             <div className="text-2xl font-bold text-orange-500">{analytics.leads.hot}</div>
-            <div className="text-xs text-muted-foreground">Hot Leads (80+)</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Hot Leads (80+)</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Target className="h-5 w-5 text-muted-foreground" />
+              <Target className="h-5 w-5 text-white/50" />
             </div>
             <div className={`text-2xl font-bold ${getScoreColor(analytics.leads.avgQualityScore)}`}>
               {analytics.leads.avgQualityScore}
             </div>
-            <div className="text-xs text-muted-foreground">Avg Quality Score</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Avg Quality Score</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <PoundSterling className="h-5 w-5 text-muted-foreground" />
+              <PoundSterling className="h-5 w-5 text-white/50" />
             </div>
             <div className="text-2xl font-bold">{formatCurrency(analytics.campaigns.totalSpend)}</div>
-            <div className="text-xs text-muted-foreground">Total Spend</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Total Spend</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
               <TrendingDown className="h-5 w-5 text-success" />
             </div>
             <div className={`text-2xl font-bold ${analytics.campaigns.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
               £{analytics.campaigns.avgCPL}
             </div>
-            <div className="text-xs text-muted-foreground">Avg CPL</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <div className="text-xs text-white/50">Avg CPL</div>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <Megaphone className="h-5 w-5 text-muted-foreground" />
+              <Megaphone className="h-5 w-5 text-white/50" />
             </div>
             <div className="text-2xl font-bold">{analytics.campaigns.active}</div>
-            <div className="text-xs text-muted-foreground">Active Campaigns</div>
-          </CardContent>
-        </Card>
+            <div className="text-xs text-white/50">Active Campaigns</div>
+          </div>
+        </div>
       </div>
 
       {/* Lead Quality Analysis */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <Star className="h-4 w-4" />
               Lead Quality Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -263,12 +262,12 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold">{analytics.leads.hot}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-white/50">
                     ({analytics.leads.hotPercentage}%)
                   </span>
                 </div>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
+              <div className="w-full bg-white/5 rounded-full h-2">
                 <div
                   className="bg-orange-500 h-2 rounded-full"
                   style={{ width: `${analytics.leads.hotPercentage}%` }}
@@ -283,12 +282,12 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold">{analytics.leads.warm}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-white/50">
                     ({analytics.leads.total > 0 ? Math.round((analytics.leads.warm / analytics.leads.total) * 100) : 0}%)
                   </span>
                 </div>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
+              <div className="w-full bg-white/5 rounded-full h-2">
                 <div
                   className="bg-yellow-500 h-2 rounded-full"
                   style={{ width: `${analytics.leads.total > 0 ? (analytics.leads.warm / analytics.leads.total) * 100 : 0}%` }}
@@ -303,29 +302,29 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold">{analytics.leads.cold}</span>
-                  <span className="text-xs text-muted-foreground">
+                  <span className="text-xs text-white/50">
                     ({analytics.leads.total > 0 ? Math.round((analytics.leads.cold / analytics.leads.total) * 100) : 0}%)
                   </span>
                 </div>
               </div>
-              <div className="w-full bg-muted rounded-full h-2">
+              <div className="w-full bg-white/5 rounded-full h-2">
                 <div
                   className="bg-gray-400 h-2 rounded-full"
                   style={{ width: `${analytics.leads.total > 0 ? (analytics.leads.cold / analytics.leads.total) * 100 : 0}%` }}
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Conversion Funnel
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
+            </h3>
+          </div>
+          <div className="px-4 pb-4 space-y-3">
             {[
               { label: 'Total Leads', value: analytics.funnel.total, color: '#ffffff' },
               { label: 'Contacted', value: analytics.funnel.contacted, color: '#3b82f6' },
@@ -340,7 +339,7 @@ export default function AnalyticsPage() {
               const rate = prevValue > 0 ? Math.round((stage.value / prevValue) * 100) : 100
               return (
                 <div key={stage.label} className="flex items-center gap-3">
-                  <span className="text-xs w-24 text-muted-foreground">{stage.label}</span>
+                  <span className="text-xs w-24 text-white/50">{stage.label}</span>
                   <div className="flex-1">
                     <div
                       className="h-6 rounded flex items-center justify-end pr-2 transition-all"
@@ -357,29 +356,29 @@ export default function AnalyticsPage() {
                 </div>
               )
             })}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Source Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Lead Source Performance</CardTitle>
-        </CardHeader>
-        <CardContent>
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white">Lead Source Performance</h3>
+        </div>
+        <div className="px-4 pb-4">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left p-3 text-sm font-medium text-muted-foreground">Source</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Leads</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Avg Score</th>
-                  <th className="text-right p-3 text-sm font-medium text-muted-foreground">Quality</th>
+                <tr className="border-b border-white/5">
+                  <th className="text-left p-3 text-sm font-medium text-white/40">Source</th>
+                  <th className="text-right p-3 text-sm font-medium text-white/40">Leads</th>
+                  <th className="text-right p-3 text-sm font-medium text-white/40">Avg Score</th>
+                  <th className="text-right p-3 text-sm font-medium text-white/40">Quality</th>
                 </tr>
               </thead>
               <tbody>
                 {analytics.sources.slice(0, 10).map((source) => (
-                  <tr key={source.source} className="border-b border-border hover:bg-muted/50">
+                  <tr key={source.source} className="border-b border-white/5 hover:bg-white/[0.02]">
                     <td className="p-3 font-medium">{source.source}</td>
                     <td className="p-3 text-right">{source.count}</td>
                     <td className="p-3 text-right">
@@ -395,133 +394,133 @@ export default function AnalyticsPage() {
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Development Performance */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Building2 className="h-4 w-4" />
             Development Performance
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <div className="space-y-3">
             {analytics.developments.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No development data available</p>
+              <p className="text-sm text-white/50 text-center py-4">No development data available</p>
             ) : (
               analytics.developments.map((dev) => (
-                <div key={dev.name} className="flex items-center justify-between p-3 rounded-lg bg-muted/30">
+                <div key={dev.name} className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02]">
                   <div>
                     <p className="font-medium">{dev.name}</p>
-                    <p className="text-xs text-muted-foreground">{dev.campaigns} campaigns</p>
+                    <p className="text-xs text-white/50">{dev.campaigns} campaigns</p>
                   </div>
                   <div className="flex items-center gap-6 text-sm">
                     <div className="text-right">
                       <p className="font-medium">{formatCurrency(dev.spend)}</p>
-                      <p className="text-xs text-muted-foreground">Spend</p>
+                      <p className="text-xs text-white/50">Spend</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium">{dev.leads}</p>
-                      <p className="text-xs text-muted-foreground">Leads</p>
+                      <p className="text-xs text-white/50">Leads</p>
                     </div>
                     <div className="text-right">
                       <p className={`font-medium ${dev.cpl > 50 ? 'text-destructive' : 'text-success'}`}>
                         £{dev.cpl}
                       </p>
-                      <p className="text-xs text-muted-foreground">CPL</p>
+                      <p className="text-xs text-white/50">CPL</p>
                     </div>
                   </div>
                 </div>
               ))
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       {/* Best & Worst Campaigns */}
       <div className="grid md:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <CheckCircle className="h-4 w-4 text-success" />
               Top Performing Campaigns
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <div className="space-y-3">
               {analytics.bestCampaigns.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No campaign data</p>
+                <p className="text-sm text-white/50 text-center py-4">No campaign data</p>
               ) : (
                 analytics.bestCampaigns.map((campaign) => (
                   <div key={campaign.id} className="flex items-center justify-between p-3 rounded-lg bg-success/5 border border-success/20">
                     <div>
                       <p className="font-medium text-sm">{campaign.name}</p>
-                      <p className="text-xs text-muted-foreground">{campaign.development || campaign.client}</p>
+                      <p className="text-xs text-white/50">{campaign.development || campaign.client}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-success">£{campaign.cpl || 0} CPL</p>
-                      <p className="text-xs text-muted-foreground">{campaign.leads || 0} leads</p>
+                      <p className="text-xs text-white/50">{campaign.leads || 0} leads</p>
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <AlertTriangle className="h-4 w-4 text-destructive" />
               Campaigns Needing Review
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             <div className="space-y-3">
               {analytics.worstCampaigns.length === 0 ? (
-                <p className="text-sm text-muted-foreground text-center py-4">No campaign data</p>
+                <p className="text-sm text-white/50 text-center py-4">No campaign data</p>
               ) : (
                 analytics.worstCampaigns.map((campaign) => (
                   <div key={campaign.id} className="flex items-center justify-between p-3 rounded-lg bg-destructive/5 border border-destructive/20">
                     <div>
                       <p className="font-medium text-sm">{campaign.name}</p>
-                      <p className="text-xs text-muted-foreground">{campaign.development || campaign.client}</p>
+                      <p className="text-xs text-white/50">{campaign.development || campaign.client}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-medium text-destructive">£{campaign.cpl || 0} CPL</p>
-                      <p className="text-xs text-muted-foreground">{campaign.leads || 0} leads</p>
+                      <p className="text-xs text-white/50">{campaign.leads || 0} leads</p>
                     </div>
                   </div>
                 ))
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Status Breakdown */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Clock className="h-4 w-4" />
             Lead Status Distribution
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {Object.entries(analytics.status)
               .sort((a, b) => b[1] - a[1])
               .map(([status, count]) => (
-                <div key={status} className="text-center p-3 rounded-lg bg-muted/30">
+                <div key={status} className="text-center p-3 rounded-lg bg-white/[0.02]">
                   <p className="text-2xl font-bold">{count}</p>
-                  <p className="text-xs text-muted-foreground">{status}</p>
+                  <p className="text-xs text-white/50">{status}</p>
                 </div>
               ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

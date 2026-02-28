@@ -61,14 +61,14 @@ export function LeadHeader({
         }
       >
         {/* Contact Info */}
-        <div className="flex flex-wrap gap-4 text-muted-foreground">
+        <div className="flex flex-wrap gap-4 text-white/50">
           {lead.email && (
-            <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-foreground">
+            <a href={`mailto:${lead.email}`} className="flex items-center gap-1 hover:text-white">
               <Mail className="w-4 h-4" /> {lead.email}
             </a>
           )}
           {lead.phone && (
-            <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-foreground">
+            <a href={`tel:${lead.phone}`} className="flex items-center gap-1 hover:text-white">
               <Phone className="w-4 h-4" /> {lead.phone}
             </a>
           )}
@@ -104,14 +104,14 @@ export function LeadHeader({
 
       {/* Score Reasons Summary */}
       {scoreReasons.length > 0 && (
-        <div className="bg-muted/50 rounded-lg p-4">
+        <div className="bg-white/5 rounded-lg p-4">
           <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
             <Lightbulb className="w-4 h-4 text-yellow-500" />
             Why these scores?
           </h4>
           <ul className="grid grid-cols-1 md:grid-cols-2 gap-1">
             {scoreReasons.map((reason, i) => (
-              <li key={i} className="text-sm text-muted-foreground flex items-center gap-1">
+              <li key={i} className="text-sm text-white/50 flex items-center gap-1">
                 <span className="text-primary">•</span> {reason}
               </li>
             ))}
@@ -121,11 +121,11 @@ export function LeadHeader({
 
       {/* Spam Warning */}
       {scoreResult?.is_spam && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-red-400 shrink-0 mt-0.5" />
           <div>
-            <h4 className="font-medium text-red-800">Potential Spam Detected</h4>
-            <ul className="text-sm text-red-700 mt-1">
+            <h4 className="font-medium text-red-400">Potential Spam Detected</h4>
+            <ul className="text-sm text-red-300 mt-1">
               {scoreResult.spam_flags.map((flag, i) => (
                 <li key={i}>• {flag}</li>
               ))}

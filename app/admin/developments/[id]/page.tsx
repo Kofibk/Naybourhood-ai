@@ -3,7 +3,6 @@
 import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -163,7 +162,7 @@ export default function DevelopmentDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-muted-foreground">Loading...</div>
+        <div className="text-white/50">Loading...</div>
       </div>
     )
   }
@@ -175,15 +174,15 @@ export default function DevelopmentDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <Card>
-          <CardContent className="py-12 text-center">
-            <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-            <h3 className="text-lg font-semibold mb-2">Development not found</h3>
-            <p className="text-muted-foreground">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="py-12 text-center">
+            <Building2 className="h-12 w-12 mx-auto mb-4 text-white/50" />
+            <h3 className="text-lg font-semibold text-white mb-2">Development not found</h3>
+            <p className="text-white/50">
               This development may have been removed or does not exist.
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     )
   }
@@ -220,13 +219,13 @@ export default function DevelopmentDetailPage() {
               </Badge>
             </div>
             {development.location && (
-              <div className="flex items-center gap-1 text-muted-foreground mt-1">
+              <div className="flex items-center gap-1 text-white/50 mt-1">
                 <MapPin className="h-4 w-4" />
                 <span>{development.location}</span>
               </div>
             )}
             {(development.developer || development.company?.name) && (
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className="text-sm text-white/50 mt-1">
                 {development.developer && <>Developed by {development.developer}</>}
                 {development.developer && development.company?.name && <> · </>}
                 {development.company?.name && <span className="text-primary">{development.company.name}</span>}
@@ -264,44 +263,47 @@ export default function DevelopmentDetailPage() {
 
       {/* Edit Form */}
       {isEditing && (
-        <Card>
-          <CardHeader>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Edit Development</CardTitle>
+              <h3 className="text-sm font-medium text-white">Edit Development</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Name</label>
+                <label className="text-sm font-medium text-white">Name</label>
                 <Input
                   value={editData.name || ''}
                   onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                  className="bg-[#111111] border-white/10 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Location</label>
+                <label className="text-sm font-medium text-white">Location</label>
                 <Input
                   value={editData.location || ''}
                   onChange={(e) => setEditData({ ...editData, location: e.target.value })}
+                  className="bg-[#111111] border-white/10 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Developer</label>
+                <label className="text-sm font-medium text-white">Developer</label>
                 <Input
                   value={editData.developer || ''}
                   onChange={(e) => setEditData({ ...editData, developer: e.target.value })}
+                  className="bg-[#111111] border-white/10 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Company</label>
+                <label className="text-sm font-medium text-white">Company</label>
                 <select
                   value={editData.company_id || ''}
                   onChange={(e) => setEditData({ ...editData, company_id: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="">Select a company...</option>
                   {companies.map((company) => (
@@ -312,11 +314,11 @@ export default function DevelopmentDetailPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium text-white">Status</label>
                 <select
                   value={editData.status || ''}
                   onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="Active">Active</option>
                   <option value="Selling">Selling</option>
@@ -327,43 +329,47 @@ export default function DevelopmentDetailPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Total Units</label>
+                <label className="text-sm font-medium text-white">Total Units</label>
                 <Input
                   type="number"
                   value={editData.total_units || editData.units || ''}
                   onChange={(e) => setEditData({ ...editData, total_units: parseInt(e.target.value) || 0 })}
+                  className="bg-[#111111] border-white/10 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Available Units</label>
+                <label className="text-sm font-medium text-white">Available Units</label>
                 <Input
                   type="number"
                   value={editData.available_units || ''}
                   onChange={(e) => setEditData({ ...editData, available_units: parseInt(e.target.value) || 0 })}
+                  className="bg-[#111111] border-white/10 text-white"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Price From</label>
+                <label className="text-sm font-medium text-white">Price From</label>
                 <Input
                   value={editData.price_from || ''}
                   onChange={(e) => setEditData({ ...editData, price_from: e.target.value })}
                   placeholder="£500,000"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Price To</label>
+                <label className="text-sm font-medium text-white">Price To</label>
                 <Input
                   value={editData.price_to || ''}
                   onChange={(e) => setEditData({ ...editData, price_to: e.target.value })}
                   placeholder="£1,500,000"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2 col-span-2">
-                <label className="text-sm font-medium">Description</label>
+                <label className="text-sm font-medium text-white">Description</label>
                 <textarea
                   value={editData.description || ''}
                   onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                  className="w-full min-h-[80px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                  className="w-full min-h-[80px] p-2 rounded-md border bg-[#111111] border-white/10 text-white text-sm resize-y placeholder:text-white/40"
                 />
               </div>
             </div>
@@ -374,110 +380,110 @@ export default function DevelopmentDetailPage() {
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Image */}
       {development.image_url && (
-        <Card className="overflow-hidden relative h-64">
+        <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden relative h-64">
           <Image
             src={development.image_url}
             alt={development.name}
             fill
             className="object-cover"
           />
-        </Card>
+        </div>
       )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Home className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Units</span>
+              <Home className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Total Units</span>
             </div>
             <p className="text-2xl font-bold">
               {(development.total_units || development.units) ? (development.total_units || development.units) : '-'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Home className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">Available</span>
+              <span className="text-xs text-white/50">Available</span>
             </div>
             <p className="text-2xl font-bold text-success">
               {development.available_units ? development.available_units : '-'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Megaphone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Campaigns</span>
+              <Megaphone className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Campaigns</span>
             </div>
             <p className="text-2xl font-bold">{devCampaigns.length}</p>
-            <p className="text-xs text-muted-foreground">{stats.activeCampaigns} active</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+            <p className="text-xs text-white/50">{stats.activeCampaigns} active</p>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
+              <Users className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Total Leads</span>
             </div>
             <p className="text-2xl font-bold">{stats.totalLeads}</p>
             <p className="text-xs text-orange-500">{stats.hotLeads} hot</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Spend</span>
+              <PoundSterling className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Total Spend</span>
             </div>
             <p className="text-2xl font-bold">{formatCurrency(stats.totalSpend)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
               {stats.avgCPL > 50 ? (
                 <TrendingUp className="h-4 w-4 text-destructive" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-success" />
               )}
-              <span className="text-xs text-muted-foreground">Avg CPL</span>
+              <span className="text-xs text-white/50">Avg CPL</span>
             </div>
             <p className={`text-2xl font-bold ${
               stats.avgCPL > 50 ? 'text-destructive' : 'text-success'
             }`}>
               £{stats.avgCPL}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Development Details */}
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle className="text-sm">Development Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl lg:col-span-1">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm text-white">Development Details</h3>
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             {development.description && (
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Description</p>
+                <p className="text-sm text-white/50 mb-1">Description</p>
                 <p className="text-sm">{development.description}</p>
               </div>
             )}
             {(development.price_from || development.price_to) && (
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Price Range</p>
+                <p className="text-sm text-white/50 mb-1">Price Range</p>
                 <p className="text-sm font-medium">
                   {formatPriceRange(development.price_from, development.price_to)}
                 </p>
@@ -485,9 +491,9 @@ export default function DevelopmentDetailPage() {
             )}
             {development.completion_date && (
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Completion Date</p>
+                <p className="text-sm text-white/50 mb-1">Completion Date</p>
                 <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <Calendar className="h-4 w-4 text-white/50" />
                   <p className="text-sm font-medium">{development.completion_date}</p>
                 </div>
               </div>
@@ -495,19 +501,19 @@ export default function DevelopmentDetailPage() {
 
             {/* Documents Section */}
             {(development.brochure_url || development.floor_plan_url || development.price_list_url || (development.attachments && development.attachments.length > 0)) && (
-              <div className="pt-4 border-t border-border">
-                <p className="text-sm text-muted-foreground mb-3">Documents</p>
+              <div className="pt-4 border-t border-white/5">
+                <p className="text-sm text-white/50 mb-3">Documents</p>
                 <div className="space-y-2">
                   {development.brochure_url && (
                     <a
                       href={development.brochure_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                      className="flex items-center gap-2 p-2 rounded-md bg-white/[0.02] hover:bg-white/[0.02] transition-colors text-sm"
                     >
                       <FileText className="h-4 w-4 text-red-500" />
                       <span className="flex-1">Brochure</span>
-                      <Download className="h-4 w-4 text-muted-foreground" />
+                      <Download className="h-4 w-4 text-white/50" />
                     </a>
                   )}
                   {development.floor_plan_url && (
@@ -515,11 +521,11 @@ export default function DevelopmentDetailPage() {
                       href={development.floor_plan_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                      className="flex items-center gap-2 p-2 rounded-md bg-white/[0.02] hover:bg-white/[0.02] transition-colors text-sm"
                     >
                       <FileText className="h-4 w-4 text-blue-500" />
                       <span className="flex-1">Floor Plans</span>
-                      <Download className="h-4 w-4 text-muted-foreground" />
+                      <Download className="h-4 w-4 text-white/50" />
                     </a>
                   )}
                   {development.price_list_url && (
@@ -527,11 +533,11 @@ export default function DevelopmentDetailPage() {
                       href={development.price_list_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                      className="flex items-center gap-2 p-2 rounded-md bg-white/[0.02] hover:bg-white/[0.02] transition-colors text-sm"
                     >
                       <FileText className="h-4 w-4 text-green-500" />
                       <span className="flex-1">Price List</span>
-                      <Download className="h-4 w-4 text-muted-foreground" />
+                      <Download className="h-4 w-4 text-white/50" />
                     </a>
                   )}
                   {development.attachments?.map((attachment, index) => (
@@ -540,30 +546,30 @@ export default function DevelopmentDetailPage() {
                       href={attachment.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="flex items-center gap-2 p-2 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors text-sm"
+                      className="flex items-center gap-2 p-2 rounded-md bg-white/[0.02] hover:bg-white/[0.02] transition-colors text-sm"
                     >
-                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <FileText className="h-4 w-4 text-white/50" />
                       <span className="flex-1">{attachment.name}</span>
-                      <Download className="h-4 w-4 text-muted-foreground" />
+                      <Download className="h-4 w-4 text-white/50" />
                     </a>
                   ))}
                 </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Campaigns */}
-        <Card className="lg:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-sm">Campaigns ({devCampaigns.length})</CardTitle>
+        <div className="bg-[#111111] border border-white/10 rounded-xl lg:col-span-2">
+          <div className="p-4 pb-2 flex flex-row items-center justify-between">
+            <h3 className="text-sm text-white">Campaigns ({devCampaigns.length})</h3>
             <Button size="sm" variant="outline">
               Add Campaign
             </Button>
-          </CardHeader>
-          <CardContent>
+          </div>
+          <div className="px-4 pb-4">
             {devCampaigns.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">
+              <p className="text-sm text-white/50 text-center py-4">
                 No campaigns for this development
               </p>
             ) : (
@@ -571,11 +577,11 @@ export default function DevelopmentDetailPage() {
                 {devCampaigns.map((campaign) => (
                   <div
                     key={campaign.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                    className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] cursor-pointer transition-colors"
                     onClick={() => router.push(`/admin/campaigns/${campaign.id}`)}
                   >
                     <div className="flex items-center gap-3">
-                      <Megaphone className="h-4 w-4 text-muted-foreground" />
+                      <Megaphone className="h-4 w-4 text-white/50" />
                       <div>
                         <p className="text-sm font-medium">{campaign.name}</p>
                         <div className="flex items-center gap-2">
@@ -596,11 +602,11 @@ export default function DevelopmentDetailPage() {
                     <div className="flex items-center gap-6 text-sm">
                       <div className="text-right">
                         <p className="font-medium">{formatCurrency(campaign.spend || 0)}</p>
-                        <p className="text-xs text-muted-foreground">Spend</p>
+                        <p className="text-xs text-white/50">Spend</p>
                       </div>
                       <div className="text-right">
                         <p className="font-medium">{campaign.leads || 0}</p>
-                        <p className="text-xs text-muted-foreground">Leads</p>
+                        <p className="text-xs text-white/50">Leads</p>
                       </div>
                       <div className="text-right">
                         <p className={`font-medium ${
@@ -608,28 +614,28 @@ export default function DevelopmentDetailPage() {
                         }`}>
                           £{campaign.cpl || 0}
                         </p>
-                        <p className="text-xs text-muted-foreground">CPL</p>
+                        <p className="text-xs text-white/50">CPL</p>
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Recent Leads */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle className="text-sm">Recent Leads ({devLeads.length})</CardTitle>
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2 flex flex-row items-center justify-between">
+          <h3 className="text-sm text-white">Recent Leads ({devLeads.length})</h3>
           <Button size="sm" variant="outline">
             View All
           </Button>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div className="px-4 pb-4">
           {devLeads.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-white/50 text-center py-4">
               No leads for this development yet
             </p>
           ) : (
@@ -637,7 +643,7 @@ export default function DevelopmentDetailPage() {
               {devLeads.slice(0, 10).map((lead) => (
                 <div
                   key={lead.id}
-                  className="flex items-center justify-between p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                  className="flex items-center justify-between p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.04] cursor-pointer transition-colors"
                   onClick={() => router.push(`/admin/leads/${lead.id}`)}
                 >
                   <div className="flex items-center gap-3">
@@ -648,7 +654,7 @@ export default function DevelopmentDetailPage() {
                       <p className="text-sm font-medium">
                         {lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown'}
                       </p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2 text-xs text-white/50">
                         {lead.email && <span>{lead.email}</span>}
                         {lead.phone && <span>· {lead.phone}</span>}
                       </div>
@@ -664,11 +670,11 @@ export default function DevelopmentDetailPage() {
                       <div className="text-right">
                         <p className={`text-sm font-medium ${
                           lead.quality_score >= 80 ? 'text-success' :
-                          lead.quality_score >= 60 ? 'text-warning' : 'text-muted-foreground'
+                          lead.quality_score >= 60 ? 'text-warning' : 'text-white/50'
                         }`}>
                           {lead.quality_score}
                         </p>
-                        <p className="text-xs text-muted-foreground">Score</p>
+                        <p className="text-xs text-white/50">Score</p>
                       </div>
                     )}
                     <Badge variant={lead.status === 'New' ? 'warning' : 'secondary'}>
@@ -679,8 +685,8 @@ export default function DevelopmentDetailPage() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

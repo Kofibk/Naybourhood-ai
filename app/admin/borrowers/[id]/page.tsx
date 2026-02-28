@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -107,7 +106,7 @@ export default function FinanceLeadDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-white/50">Loading...</p>
       </div>
     )
   }
@@ -119,7 +118,7 @@ export default function FinanceLeadDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <p className="text-muted-foreground">Finance lead not found</p>
+        <p className="text-white/50">Finance lead not found</p>
       </div>
     )
   }
@@ -189,7 +188,7 @@ export default function FinanceLeadDetailPage() {
                 <Input
                   value={editData.full_name || displayData.full_name || ''}
                   onChange={(e) => updateField('full_name', e.target.value)}
-                  className="text-2xl font-bold h-auto py-1"
+                  className="text-2xl font-bold h-auto py-1 bg-[#111111] border-white/10 text-white"
                   placeholder="Full Name"
                 />
               ) : (
@@ -201,7 +200,7 @@ export default function FinanceLeadDetailPage() {
                 <select
                   value={editData.status || displayData.status || 'Contact Pending'}
                   onChange={(e) => updateField('status', e.target.value)}
-                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                  className="px-2 py-1 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>{status}</option>
@@ -213,7 +212,7 @@ export default function FinanceLeadDetailPage() {
                 </Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/50">
               Added {formatDate(displayData.created_at)}
             </p>
           </div>
@@ -251,44 +250,44 @@ export default function FinanceLeadDetailPage() {
 
       {/* Key Info Cards */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Briefcase className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Finance Type</span>
+              <Briefcase className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Finance Type</span>
             </div>
             <Badge variant="outline" className="text-xs">
               {displayData.finance_type || 'N/A'}
             </Badge>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Loan Amount</span>
+              <PoundSterling className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Loan Amount</span>
             </div>
             <p className="text-xl font-bold">
               {displayData.loan_amount_display || (displayData.loan_amount ? formatCurrency(displayData.loan_amount) : 'N/A')}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Required By</span>
+              <Calendar className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Required By</span>
             </div>
             <p className="text-sm font-bold">
               {formatDate(displayData.required_by_date)}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Days Until Required</span>
+              <Clock className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Days Until Required</span>
             </div>
             <p className={`text-sm font-bold ${
               daysUntil !== null && daysUntil < 0 ? 'text-destructive' :
@@ -297,49 +296,49 @@ export default function FinanceLeadDetailPage() {
             }`}>
               {daysUntil !== null ? (daysUntil < 0 ? `${Math.abs(daysUntil)} overdue` : `${daysUntil} days`) : 'N/A'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <UserCheck className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Assigned Agent</span>
+              <UserCheck className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Assigned Agent</span>
             </div>
             <p className="text-sm font-medium truncate" title={displayData.assigned_agent}>
               {displayData.assigned_agent || 'Unassigned'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Date Added</span>
+              <Calendar className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Date Added</span>
             </div>
             <p className="text-sm font-medium">
               {formatDate(displayData.date_added)}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 gap-6">
         {/* Contact Information */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <User className="h-4 w-4" />
               Contact Information
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Full Name</span>
+              <span className="text-sm text-white/50">Full Name</span>
               {isEditing ? (
                 <Input
                   value={editData.full_name ?? displayData.full_name ?? ''}
                   onChange={(e) => updateField('full_name', e.target.value)}
-                  className="max-w-[200px] h-8"
+                  className="max-w-[200px] h-8 bg-[#111111] border-white/10 text-white"
                 />
               ) : (
                 <span className="text-sm font-medium">
@@ -348,38 +347,38 @@ export default function FinanceLeadDetailPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Email</span>
+              <span className="text-sm text-white/50">Email</span>
               {isEditing ? (
                 <Input
                   type="email"
                   value={editData.email ?? displayData.email ?? ''}
                   onChange={(e) => updateField('email', e.target.value)}
-                  className="max-w-[200px] h-8"
+                  className="max-w-[200px] h-8 bg-[#111111] border-white/10 text-white"
                 />
               ) : (
                 <span className="text-sm font-medium">{displayData.email || 'N/A'}</span>
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Phone</span>
+              <span className="text-sm text-white/50">Phone</span>
               {isEditing ? (
                 <Input
                   type="tel"
                   value={editData.phone ?? displayData.phone ?? ''}
                   onChange={(e) => updateField('phone', e.target.value)}
-                  className="max-w-[200px] h-8"
+                  className="max-w-[200px] h-8 bg-[#111111] border-white/10 text-white"
                 />
               ) : (
                 <span className="text-sm font-medium">{displayData.phone || 'N/A'}</span>
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Status</span>
+              <span className="text-sm text-white/50">Status</span>
               {isEditing ? (
                 <select
                   value={editData.status ?? displayData.status ?? ''}
                   onChange={(e) => updateField('status', e.target.value)}
-                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                  className="px-2 py-1 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   {STATUS_OPTIONS.map((status) => (
                     <option key={status} value={status}>{status}</option>
@@ -392,37 +391,37 @@ export default function FinanceLeadDetailPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Required By</span>
+              <span className="text-sm text-white/50">Required By</span>
               {isEditing ? (
                 <Input
                   type="date"
                   value={editData.required_by_date ?? displayData.required_by_date ?? ''}
                   onChange={(e) => updateField('required_by_date', e.target.value)}
-                  className="max-w-[200px] h-8"
+                  className="max-w-[200px] h-8 bg-[#111111] border-white/10 text-white"
                 />
               ) : (
                 <span className="text-sm font-medium">{formatDate(displayData.required_by_date)}</span>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Finance Details */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <Building2 className="h-4 w-4" />
               Finance Details
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+            </h3>
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Finance Type</span>
+              <span className="text-sm text-white/50">Finance Type</span>
               {isEditing ? (
                 <select
                   value={editData.finance_type ?? displayData.finance_type ?? ''}
                   onChange={(e) => updateField('finance_type', e.target.value)}
-                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                  className="px-2 py-1 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="">Select...</option>
                   {FINANCE_TYPE_OPTIONS.map((type) => (
@@ -434,13 +433,13 @@ export default function FinanceLeadDetailPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Loan Amount</span>
+              <span className="text-sm text-white/50">Loan Amount</span>
               {isEditing ? (
                 <Input
                   type="number"
                   value={editData.loan_amount ?? displayData.loan_amount ?? ''}
                   onChange={(e) => updateField('loan_amount', parseFloat(e.target.value) || 0)}
-                  className="max-w-[150px] h-8"
+                  className="max-w-[150px] h-8 bg-[#111111] border-white/10 text-white"
                 />
               ) : (
                 <span className="text-sm font-medium">
@@ -449,28 +448,28 @@ export default function FinanceLeadDetailPage() {
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Date Added</span>
+              <span className="text-sm text-white/50">Date Added</span>
               <span className="text-sm font-medium">{formatDate(displayData.date_added)}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Assigned Agent</span>
+              <span className="text-sm text-white/50">Assigned Agent</span>
               {isEditing ? (
                 <Input
                   value={editData.assigned_agent ?? displayData.assigned_agent ?? ''}
                   onChange={(e) => updateField('assigned_agent', e.target.value)}
-                  className="max-w-[150px] h-8"
+                  className="max-w-[150px] h-8 bg-[#111111] border-white/10 text-white"
                 />
               ) : (
                 <span className="text-sm font-medium">{displayData.assigned_agent || 'Unassigned'}</span>
               )}
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Broker Company</span>
+              <span className="text-sm text-white/50">Broker Company</span>
               {isEditing ? (
                 <select
                   value={editData.company_id ?? displayData.company_id ?? ''}
                   onChange={(e) => updateField('company_id', e.target.value || undefined)}
-                  className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+                  className="px-2 py-1 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="">Unassigned</option>
                   {brokerCompanies.length > 0 ? (
@@ -487,69 +486,69 @@ export default function FinanceLeadDetailPage() {
                 <span className="text-sm font-medium">{getCompanyName(displayData.company_id)}</span>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Message */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <MessageSquare className="h-4 w-4" />
               Message
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             {isEditing ? (
               <textarea
                 value={editData.message ?? displayData.message ?? ''}
                 onChange={(e) => updateField('message', e.target.value)}
-                className="w-full min-h-[150px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                className="w-full min-h-[150px] p-2 rounded-md border bg-[#111111] border-white/10 text-white text-sm resize-y placeholder:text-white/40"
                 placeholder="Lead's message or inquiry..."
               />
             ) : (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              <p className="text-sm text-white/50 whitespace-pre-wrap">
                 {displayData.message || 'No message provided.'}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         {/* Notes */}
-        <Card className="md:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
+        <div className="bg-[#111111] border border-white/10 rounded-xl md:col-span-2">
+          <div className="p-4 pb-2">
+            <h3 className="text-sm font-medium text-white flex items-center gap-2">
               <FileText className="h-4 w-4" />
               Notes
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
+          </div>
+          <div className="px-4 pb-4">
             {isEditing ? (
               <textarea
                 value={editData.notes ?? displayData.notes ?? ''}
                 onChange={(e) => updateField('notes', e.target.value)}
-                className="w-full min-h-[120px] p-2 rounded-md border border-input bg-background text-sm resize-y"
+                className="w-full min-h-[120px] p-2 rounded-md border bg-[#111111] border-white/10 text-white text-sm resize-y placeholder:text-white/40"
                 placeholder="Add internal notes about this borrower..."
               />
             ) : (
-              <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+              <p className="text-sm text-white/50 whitespace-pre-wrap">
                 {displayData.notes || 'No notes added yet.'}
               </p>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Timestamps */}
-      <Card>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-6 text-xs text-muted-foreground">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4">
+          <div className="flex items-center gap-6 text-xs text-white/50">
             <span>Created: {formatDate(displayData.created_at)}</span>
             {displayData.updated_at && (
               <span>Last Updated: {formatDate(displayData.updated_at)}</span>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

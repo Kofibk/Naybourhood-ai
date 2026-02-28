@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -134,7 +133,7 @@ export default function CampaignDetailPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <p className="text-muted-foreground">Loading...</p>
+        <p className="text-white/50">Loading...</p>
       </div>
     )
   }
@@ -146,7 +145,7 @@ export default function CampaignDetailPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back
         </Button>
-        <p className="text-muted-foreground">Campaign not found</p>
+        <p className="text-white/50">Campaign not found</p>
       </div>
     )
   }
@@ -184,7 +183,7 @@ export default function CampaignDetailPage() {
                 <Badge variant="outline">{campaign.platform}</Badge>
               )}
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-white/50">
               {campaign.client} · Started {formatDate(campaign.start_date)}
             </p>
           </div>
@@ -232,22 +231,23 @@ export default function CampaignDetailPage() {
 
       {/* Edit Modal */}
       {isEditing && (
-        <Card>
-          <CardHeader>
+        <div className="bg-[#1a1a1a] border border-white/10 rounded-xl">
+          <div className="p-4 pb-2">
             <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-medium">Edit Campaign</CardTitle>
+              <h3 className="text-sm font-medium text-white">Edit Campaign</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsEditing(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
-          </CardHeader>
-          <CardContent className="space-y-4">
+          </div>
+          <div className="px-4 pb-4 space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Campaign Name</label>
                 <Input
                   value={editData.name || ''}
                   onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -255,6 +255,7 @@ export default function CampaignDetailPage() {
                 <Input
                   value={editData.client || ''}
                   onChange={(e) => setEditData({ ...editData, client: e.target.value })}
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -262,7 +263,7 @@ export default function CampaignDetailPage() {
                 <select
                   value={editData.platform || ''}
                   onChange={(e) => setEditData({ ...editData, platform: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="">Select Platform</option>
                   <option value="Meta">Meta</option>
@@ -279,7 +280,7 @@ export default function CampaignDetailPage() {
                 <select
                   value={editData.status || ''}
                   onChange={(e) => setEditData({ ...editData, status: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="active">Active</option>
                   <option value="paused">Paused</option>
@@ -293,6 +294,7 @@ export default function CampaignDetailPage() {
                   type="number"
                   value={editData.spend || editData.amount_spent || ''}
                   onChange={(e) => setEditData({ ...editData, spend: parseFloat(e.target.value) || 0 })}
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -301,6 +303,7 @@ export default function CampaignDetailPage() {
                   type="number"
                   value={editData.leads || editData.lead_count || ''}
                   onChange={(e) => setEditData({ ...editData, leads: parseInt(e.target.value) || 0 })}
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
             </div>
@@ -311,141 +314,141 @@ export default function CampaignDetailPage() {
                 {isUpdating ? 'Saving...' : 'Save Changes'}
               </Button>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Performance Stats */}
       <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Spend</span>
+              <PoundSterling className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Spend</span>
             </div>
             <p className="text-2xl font-bold">{formatCurrency(spend)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Leads</span>
+              <Users className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Leads</span>
             </div>
             <p className="text-2xl font-bold">{leadCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
               {cpl > 50 ? (
                 <TrendingUp className="h-4 w-4 text-destructive" />
               ) : (
                 <TrendingDown className="h-4 w-4 text-success" />
               )}
-              <span className="text-xs text-muted-foreground">CPL</span>
+              <span className="text-xs text-white/50">CPL</span>
             </div>
             <p className={`text-2xl font-bold ${cpl > 50 ? 'text-destructive' : 'text-success'}`}>
               £{cpl}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Eye className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Impressions</span>
+              <Eye className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Impressions</span>
             </div>
             <p className="text-2xl font-bold">{(campaign.impressions || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <MousePointerClick className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Clicks</span>
+              <MousePointerClick className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Clicks</span>
             </div>
             <p className="text-2xl font-bold">{(campaign.clicks || 0).toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">CTR</span>
+              <TrendingUp className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">CTR</span>
             </div>
             <p className="text-2xl font-bold">{campaign.ctr || 0}%</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Lead Quality Stats */}
       <div className="grid md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Hot Leads (85+)</p>
+                <p className="text-sm text-white/50">Hot Leads (85+)</p>
                 <p className="text-3xl font-bold text-orange-500">{hotLeads}</p>
               </div>
               <Flame className="h-8 w-8 text-orange-500" />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Qualified Leads</p>
+                <p className="text-sm text-white/50">Qualified Leads</p>
                 <p className="text-3xl font-bold text-success">{qualifiedLeads}</p>
               </div>
               <Users className="h-8 w-8 text-success" />
             </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Qualification Rate</p>
+                <p className="text-sm text-white/50">Qualification Rate</p>
                 <p className="text-3xl font-bold">
                   {leadCount > 0 ? Math.round((qualifiedLeads / leadCount) * 100) : 0}%
                 </p>
               </div>
               <TrendingUp className="h-8 w-8 text-primary" />
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Leads Table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium flex items-center gap-2">
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
+        <div className="p-4 pb-2">
+          <h3 className="text-sm font-medium text-white flex items-center gap-2">
             <Users className="h-4 w-4" />
             Campaign Leads ({leads.length})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+          </h3>
+        </div>
+        <div className="px-4 pb-4">
           {leads.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No leads for this campaign yet</p>
+            <p className="text-sm text-white/50">No leads for this campaign yet</p>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="border-b">
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Lead</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Budget</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Score</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Status</th>
-                    <th className="text-left p-3 text-sm font-medium text-muted-foreground">Date</th>
+                  <tr className="border-b border-white/5">
+                    <th className="text-left p-3 text-sm font-medium text-white/40">Lead</th>
+                    <th className="text-left p-3 text-sm font-medium text-white/40">Budget</th>
+                    <th className="text-left p-3 text-sm font-medium text-white/40">Score</th>
+                    <th className="text-left p-3 text-sm font-medium text-white/40">Status</th>
+                    <th className="text-left p-3 text-sm font-medium text-white/40">Date</th>
                   </tr>
                 </thead>
                 <tbody>
                   {leads.slice(0, 20).map((lead) => (
                     <tr
                       key={lead.id}
-                      className="border-b hover:bg-muted/50 cursor-pointer"
+                      className="border-b border-white/5 hover:bg-white/[0.02] cursor-pointer"
                       onClick={() => router.push(`/admin/leads/${lead.id}`)}
                     >
                       <td className="p-3">
@@ -457,7 +460,7 @@ export default function CampaignDetailPage() {
                             <p className="font-medium text-sm">
                               {lead.full_name || lead.first_name || 'Unknown'}
                             </p>
-                            <p className="text-xs text-muted-foreground">{lead.email}</p>
+                            <p className="text-xs text-white/50">{lead.email}</p>
                           </div>
                         </div>
                       </td>
@@ -473,7 +476,7 @@ export default function CampaignDetailPage() {
                       <td className="p-3">
                         <Badge variant="outline">{lead.status || 'New'}</Badge>
                       </td>
-                      <td className="p-3 text-sm text-muted-foreground">
+                      <td className="p-3 text-sm text-white/50">
                         {formatDate(lead.created_at)}
                       </td>
                     </tr>
@@ -489,8 +492,8 @@ export default function CampaignDetailPage() {
               )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

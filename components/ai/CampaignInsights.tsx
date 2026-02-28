@@ -1,7 +1,6 @@
 'use client'
 
 import { useMemo } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   AlertTriangle,
@@ -142,15 +141,15 @@ export function CampaignInsights({ campaigns, leadCountByCampaign }: CampaignIns
   const getTypeStyles = (type: string) => {
     switch (type) {
       case 'critical':
-        return 'bg-red-50 border-red-200 text-red-800'
+        return 'bg-red-500/10 border-red-500/20 text-red-400'
       case 'warning':
-        return 'bg-yellow-50 border-yellow-200 text-yellow-800'
+        return 'bg-yellow-500/10 border-yellow-500/20 text-yellow-400'
       case 'opportunity':
-        return 'bg-blue-50 border-blue-200 text-blue-800'
+        return 'bg-blue-500/10 border-blue-500/20 text-blue-400'
       case 'success':
-        return 'bg-green-50 border-green-200 text-green-800'
+        return 'bg-green-500/10 border-green-500/20 text-green-400'
       default:
-        return 'bg-gray-50 border-gray-200 text-gray-800'
+        return 'bg-white/5 border-white/10 text-white/50'
     }
   }
 
@@ -170,33 +169,33 @@ export function CampaignInsights({ campaigns, leadCountByCampaign }: CampaignIns
   }
 
   return (
-    <Card>
-      <CardHeader className="pb-3">
+    <div className="bg-[#111111] border border-white/10 rounded-xl">
+      <div className="p-4 pb-2">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-base flex items-center gap-2">
+          <h3 className="text-sm font-medium text-white text-base flex items-center gap-2">
             <Lightbulb className="h-4 w-4 text-yellow-500" />
             Campaign Optimization Insights
-          </CardTitle>
+          </h3>
           <div className="flex gap-2 text-xs">
-            <span className="text-muted-foreground">
+            <span className="text-white/50">
               {summaryStats.active}/{summaryStats.total} active
             </span>
-            <span className="text-muted-foreground">•</span>
-            <span className="text-muted-foreground">
+            <span className="text-white/50">•</span>
+            <span className="text-white/50">
               Avg CPL: £{summaryStats.avgCPL}
             </span>
             {summaryStats.highCPL > 0 && (
               <>
-                <span className="text-muted-foreground">•</span>
-                <span className="text-red-600 font-medium">
+                <span className="text-white/50">•</span>
+                <span className="text-red-400 font-medium">
                   {summaryStats.highCPL} high CPL
                 </span>
               </>
             )}
           </div>
         </div>
-      </CardHeader>
-      <CardContent className="space-y-3">
+      </div>
+      <div className="px-4 pb-4 space-y-3">
         {insights.map((insight, i) => {
           const Icon = insight.icon
           return (
@@ -226,12 +225,12 @@ export function CampaignInsights({ campaigns, leadCountByCampaign }: CampaignIns
         })}
 
         {/* Quick recommendations */}
-        <div className="pt-3 border-t mt-4">
+        <div className="pt-3 border-t border-white/5 mt-4">
           <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
             <Target className="h-4 w-4 text-primary" />
             Quick Recommendations
           </h4>
-          <ul className="space-y-1.5 text-sm text-muted-foreground">
+          <ul className="space-y-1.5 text-sm text-white/50">
             {summaryStats.highCPL > 0 && (
               <li className="flex items-start gap-2">
                 <Zap className="h-4 w-4 text-yellow-500 shrink-0 mt-0.5" />
@@ -256,7 +255,7 @@ export function CampaignInsights({ campaigns, leadCountByCampaign }: CampaignIns
             </li>
           </ul>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

@@ -2,7 +2,6 @@
 
 import { useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -326,10 +325,10 @@ export default function CampaignsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Campaigns</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             {totalStats.totalCampaigns} campaigns across {groupedCampaigns.length} developments
           </p>
-          <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
+          <p className="text-xs text-white/40 mt-1 flex items-center gap-1">
             <Pencil className="h-3 w-3" />
             Double-click any cell to edit inline
           </p>
@@ -359,53 +358,45 @@ export default function CampaignsPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Megaphone className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Active</span>
-            </div>
-            <p className="text-2xl font-bold">{totalStats.activeCampaigns}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Leads</span>
-            </div>
-            <p className="text-2xl font-bold">{totalStats.totalLeads.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Spend</span>
-            </div>
-            <p className="text-2xl font-bold">{formatCurrency(totalStats.totalSpend)}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">Avg CPL</span>
-            </div>
-            <p className="text-2xl font-bold text-success">
-              £{totalStats.totalLeads > 0 ? Math.round(totalStats.totalSpend / totalStats.totalLeads) : 0}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Megaphone className="h-4 w-4 text-white/50" />
+            <span className="text-xs text-white/50">Active</span>
+          </div>
+          <p className="text-2xl font-bold">{totalStats.activeCampaigns}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <Users className="h-4 w-4 text-white/50" />
+            <span className="text-xs text-white/50">Total Leads</span>
+          </div>
+          <p className="text-2xl font-bold">{totalStats.totalLeads.toLocaleString()}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <PoundSterling className="h-4 w-4 text-white/50" />
+            <span className="text-xs text-white/50">Total Spend</span>
+          </div>
+          <p className="text-2xl font-bold">{formatCurrency(totalStats.totalSpend)}</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-1">
+            <TrendingDown className="h-4 w-4 text-success" />
+            <span className="text-xs text-white/50">Avg CPL</span>
+          </div>
+          <p className="text-2xl font-bold text-success">
+            £{totalStats.totalLeads > 0 ? Math.round(totalStats.totalSpend / totalStats.totalLeads) : 0}
+          </p>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search campaigns or developments..."
-            className="pl-9"
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -419,31 +410,31 @@ export default function CampaignsPage() {
       {/* Grouped Campaigns */}
       <div className="space-y-4">
         {isLoading ? (
-          <div className="text-center py-8 text-muted-foreground">Loading...</div>
+          <div className="text-center py-8 text-white/50">Loading...</div>
         ) : filteredGroups.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground">No campaigns found</div>
+          <div className="text-center py-8 text-white/50">No campaigns found</div>
         ) : (
           filteredGroups.map((group) => {
             const isExpanded = expandedGroups.has(group.name)
 
             return (
-              <Card key={group.name}>
+              <div key={group.name} className="bg-[#111111] border border-white/10 rounded-xl">
                 {/* Group Header */}
-                <CardHeader
-                  className="cursor-pointer hover:bg-muted/50 transition-colors p-4"
+                <div
+                  className="cursor-pointer hover:bg-white/[0.02] transition-colors p-4"
                   onClick={() => toggleGroup(group.name)}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {isExpanded ? (
-                        <ChevronDown className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <ChevronDown className="h-5 w-5 text-white/50 flex-shrink-0" />
                       ) : (
-                        <ChevronRight className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                        <ChevronRight className="h-5 w-5 text-white/50 flex-shrink-0" />
                       )}
                       <Building2 className="h-5 w-5 text-primary flex-shrink-0" />
                       <div className="min-w-0">
-                        <CardTitle className="text-base truncate">{group.name}</CardTitle>
-                        <p className="text-xs text-muted-foreground">
+                        <h3 className="text-sm font-medium text-white text-base truncate">{group.name}</h3>
+                        <p className="text-xs text-white/50">
                           {group.campaigns.length} campaigns · {group.activeCampaigns} active
                         </p>
                       </div>
@@ -451,37 +442,37 @@ export default function CampaignsPage() {
                     <div className="flex items-center justify-end gap-4 sm:gap-6 ml-8 sm:ml-0">
                       <div className="text-right">
                         <p className="text-sm font-semibold">{formatCurrency(group.totalSpend)}</p>
-                        <p className="text-xs text-muted-foreground">Spend</p>
+                        <p className="text-xs text-white/50">Spend</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-semibold text-primary">{group.totalLeads.toLocaleString()}</p>
-                        <p className="text-xs text-muted-foreground">Leads</p>
+                        <p className="text-xs text-white/50">Leads</p>
                       </div>
                       <div className="text-right">
                         <p className={`text-sm font-semibold ${group.avgCPL > 50 ? 'text-destructive' : 'text-success'}`}>
                           {group.totalLeads > 0 ? `£${group.avgCPL}` : '£0'}
                         </p>
-                        <p className="text-xs text-muted-foreground">Avg CPL</p>
+                        <p className="text-xs text-white/50">Avg CPL</p>
                       </div>
                     </div>
                   </div>
-                </CardHeader>
+                </div>
 
                 {/* Expanded Campaigns */}
                 {isExpanded && (
-                  <CardContent className="pt-0 px-3 sm:px-6">
-                    <div className="space-y-2 border-t pt-4">
+                  <div className="pt-0 px-3 sm:px-6">
+                    <div className="space-y-2 border-t border-white/5 pt-4 pb-4">
                       {group.campaigns.map((campaign) => (
                         <div
                           key={campaign.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-3 rounded-lg bg-white/[0.02] hover:bg-white/[0.02] cursor-pointer transition-colors"
                           onClick={(e) => {
                             e.stopPropagation()
                             router.push(`/admin/campaigns/${campaign.id}`)
                           }}
                         >
                           <div className="flex items-center gap-3 min-w-0">
-                            <Megaphone className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <Megaphone className="h-4 w-4 text-white/50 flex-shrink-0" />
                             <div className="min-w-0">
                               <p className="text-sm font-medium truncate">{campaign.name}</p>
                               <div className="flex items-center gap-2 flex-wrap">
@@ -516,20 +507,20 @@ export default function CampaignsPage() {
                                   />
                                 )
                               })()}
-                              <p className="text-xs text-muted-foreground">Spend</p>
+                              <p className="text-xs text-white/50">Spend</p>
                             </div>
                             <div className="text-right">
                               <p className="text-sm font-medium text-primary">
                                 {getLeadCount(campaign) || '-'}
                               </p>
-                              <p className="text-xs text-muted-foreground">Leads</p>
+                              <p className="text-xs text-white/50">Leads</p>
                             </div>
                             <div className="text-right w-14 sm:w-16">
                               {(() => {
                                 const actualLeads = getLeadCount(campaign)
                                 const spend = campaign.spend ?? campaign.amount_spent ?? 0
                                 if (actualLeads === 0 || spend === 0) {
-                                  return <p className="text-sm font-medium text-muted-foreground">-</p>
+                                  return <p className="text-sm font-medium text-white/50">-</p>
                                 }
                                 const actualCPL = Math.round(spend / actualLeads)
                                 return (
@@ -547,15 +538,15 @@ export default function CampaignsPage() {
                                   </div>
                                 )
                               })()}
-                              <p className="text-xs text-muted-foreground">CPL</p>
+                              <p className="text-xs text-white/50">CPL</p>
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </CardContent>
+                  </div>
                 )}
-              </Card>
+              </div>
             )
           })
         )}
@@ -564,8 +555,8 @@ export default function CampaignsPage() {
       {/* Create Campaign Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div className="flex items-center justify-between p-4 border-b border-border">
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-lg w-full max-w-md mx-4">
+            <div className="flex items-center justify-between p-4 border-b border-white/5">
               <h3 className="font-semibold">Create New Campaign</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
                 <X className="h-4 w-4" />
@@ -578,6 +569,7 @@ export default function CampaignsPage() {
                   value={newCampaign.name}
                   onChange={(e) => setNewCampaign({ ...newCampaign, name: e.target.value })}
                   placeholder="e.g., The Haydon - Meta Ads"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="space-y-2">
@@ -586,6 +578,7 @@ export default function CampaignsPage() {
                   value={newCampaign.client}
                   onChange={(e) => setNewCampaign({ ...newCampaign, client: e.target.value })}
                   placeholder="e.g., The Haydon"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
@@ -594,7 +587,7 @@ export default function CampaignsPage() {
                   <select
                     value={newCampaign.platform}
                     onChange={(e) => setNewCampaign({ ...newCampaign, platform: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                   >
                     <option value="Meta">Meta</option>
                     <option value="Google">Google</option>
@@ -610,7 +603,7 @@ export default function CampaignsPage() {
                   <select
                     value={newCampaign.status}
                     onChange={(e) => setNewCampaign({ ...newCampaign, status: e.target.value })}
-                    className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                    className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                   >
                     <option value="active">Active</option>
                     <option value="paused">Paused</option>
@@ -625,10 +618,11 @@ export default function CampaignsPage() {
                   value={newCampaign.spend || ''}
                   onChange={(e) => setNewCampaign({ ...newCampaign, spend: parseFloat(e.target.value) || 0 })}
                   placeholder="0"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-border">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-white/5">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateCampaign} disabled={isSaving || !newCampaign.name}>
                 <Save className="h-4 w-4 mr-2" />

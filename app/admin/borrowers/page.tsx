@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -527,7 +527,7 @@ export default function FinanceLeadsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Borrowers</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             {stats.filtered === stats.total
               ? `${stats.total.toLocaleString()} total borrowers`
               : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} borrowers`}
@@ -536,9 +536,9 @@ export default function FinanceLeadsPage() {
         <div className="flex gap-2 items-center">
           {unassignedCount > 0 && brokerCompanies.length > 0 && (
             <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">{unassignedCount} unassigned</span>
+              <span className="text-xs text-white/50">{unassignedCount} unassigned</span>
               <select
-                className="h-8 text-xs rounded-md border border-input bg-background px-2"
+                className="h-8 text-xs rounded-md border border-white/10 bg-[#111111] text-white px-2"
                 onChange={(e) => {
                   if (e.target.value) {
                     handleBulkAssignBroker(e.target.value)
@@ -575,70 +575,70 @@ export default function FinanceLeadsPage() {
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => clearFilters()}>
-          <CardContent className="p-3">
+        <div className="bg-[#111111] border border-white/10 rounded-xl cursor-pointer hover:border-primary/50" onClick={() => clearFilters()}>
+          <div className="p-3">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total</span>
+              <Users className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Total</span>
             </div>
-            <p className="text-xl font-bold">{stats.total.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('contact_pending')}>
-          <CardContent className="p-3">
+            <p className="text-xl font-bold text-white">{stats.total.toLocaleString()}</p>
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('contact_pending')}>
+          <div className="p-3">
             <div className="flex items-center gap-2">
               <Phone className="h-4 w-4 text-yellow-500" />
-              <span className="text-xs text-muted-foreground">Contact Pending</span>
+              <span className="text-xs text-white/50">Contact Pending</span>
             </div>
             <p className="text-xl font-bold text-yellow-500">{stats.contactPending}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('follow_up')}>
-          <CardContent className="p-3">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('follow_up')}>
+          <div className="p-3">
             <div className="flex items-center gap-2">
               <Clock className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Follow-up</span>
+              <span className="text-xs text-white/50">Follow-up</span>
             </div>
             <p className="text-xl font-bold text-blue-500">{stats.followUp}</p>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('awaiting_docs')}>
-          <CardContent className="p-3">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl cursor-pointer hover:border-primary/50" onClick={() => applyQuickFilter('awaiting_docs')}>
+          <div className="p-3">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-purple-500" />
-              <span className="text-xs text-muted-foreground">Awaiting Docs</span>
+              <span className="text-xs text-white/50">Awaiting Docs</span>
             </div>
             <p className="text-xl font-bold text-purple-500">{stats.awaitingDocs}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="p-3">
             <div className="flex items-center gap-2">
               <X className="h-4 w-4 text-destructive" />
-              <span className="text-xs text-muted-foreground">Not Proceeding</span>
+              <span className="text-xs text-white/50">Not Proceeding</span>
             </div>
             <p className="text-xl font-bold text-destructive">{stats.notProceeding}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-3">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl p-4">
+          <div className="p-3">
             <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Filtered</span>
+              <Filter className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Filtered</span>
             </div>
-            <p className="text-xl font-bold">{stats.filtered.toLocaleString()}</p>
-          </CardContent>
-        </Card>
+            <p className="text-xl font-bold text-white">{stats.filtered.toLocaleString()}</p>
+          </div>
+        </div>
       </div>
 
       {/* Search and Filters */}
       <div className="space-y-3">
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
             <Input
               placeholder="Search by name, email, phone, or message..."
-              className="pl-9"
+              className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -664,7 +664,7 @@ export default function FinanceLeadsPage() {
               Columns
             </Button>
             <select
-              className="px-3 py-2 rounded-md border border-input bg-background text-sm"
+              className="px-3 py-2 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
               value={groupBy}
               onChange={(e) => setGroupBy(e.target.value as GroupBy)}
             >
@@ -678,16 +678,16 @@ export default function FinanceLeadsPage() {
 
         {/* Advanced Filters Panel (Airtable-style) */}
         {showFilters && (
-          <Card>
-            <CardContent className="p-4 space-y-4">
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                  <span className="text-sm font-medium">Filter conditions</span>
+                  <span className="text-sm font-medium text-white">Filter conditions</span>
                   {filterConditions.length > 1 && (
                     <div className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Match</span>
+                      <span className="text-xs text-white/50">Match</span>
                       <select
-                        className="px-2 py-1 rounded-md border border-input bg-background text-xs"
+                        className="px-2 py-1 rounded-md border border-white/10 bg-[#111111] text-white text-xs"
                         value={filterLogic}
                         onChange={(e) => setFilterLogic(e.target.value as 'and' | 'or')}
                       >
@@ -716,15 +716,15 @@ export default function FinanceLeadsPage() {
                   return (
                     <div key={condition.id} className="flex items-center gap-2 flex-wrap">
                       {index > 0 && (
-                        <span className="text-xs text-muted-foreground w-10">
+                        <span className="text-xs text-white/50 w-10">
                           {filterLogic === 'and' ? 'AND' : 'OR'}
                         </span>
                       )}
-                      {index === 0 && <span className="w-10 text-xs text-muted-foreground">Where</span>}
+                      {index === 0 && <span className="w-10 text-xs text-white/50">Where</span>}
 
                       {/* Field Select */}
                       <select
-                        className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                        className="px-2 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[140px]"
                         value={condition.field}
                         onChange={(e) => updateFilterCondition(condition.id, { field: e.target.value })}
                       >
@@ -737,7 +737,7 @@ export default function FinanceLeadsPage() {
 
                       {/* Operator Select */}
                       <select
-                        className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                        className="px-2 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[140px]"
                         value={condition.operator}
                         onChange={(e) => updateFilterCondition(condition.id, { operator: e.target.value as FilterOperator })}
                       >
@@ -753,7 +753,7 @@ export default function FinanceLeadsPage() {
                         <>
                           {fieldConfig?.type === 'select' && !isMultiSelect ? (
                             <select
-                              className="px-2 py-1.5 rounded-md border border-input bg-background text-sm min-w-[140px]"
+                              className="px-2 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-sm min-w-[140px]"
                               value={condition.value as string}
                               onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
                             >
@@ -790,21 +790,21 @@ export default function FinanceLeadsPage() {
                           ) : fieldConfig?.type === 'date' ? (
                             <Input
                               type="date"
-                              className="w-[160px]"
+                              className="w-[160px] bg-[#111111] border-white/10 text-white"
                               value={condition.value as string}
                               onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
                             />
                           ) : fieldConfig?.type === 'currency' ? (
                             <Input
                               type="number"
-                              className="w-[150px]"
+                              className="w-[150px] bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                               placeholder="£ Amount"
                               value={condition.value as string}
                               onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
                             />
                           ) : (
                             <Input
-                              className="w-[200px]"
+                              className="w-[200px] bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                               placeholder="Value"
                               value={condition.value as string}
                               onChange={(e) => updateFilterCondition(condition.id, { value: e.target.value })}
@@ -817,7 +817,7 @@ export default function FinanceLeadsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                        className="h-8 w-8 text-white/50 hover:text-destructive"
                         onClick={() => removeFilterCondition(condition.id)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -837,15 +837,15 @@ export default function FinanceLeadsPage() {
                 <Plus className="h-4 w-4 mr-2" />
                 Add Filter
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Column Settings */}
         {showColumnSettings && (
-          <Card>
-            <CardContent className="p-4">
-              <span className="text-sm font-medium mb-3 block">Visible Columns</span>
+          <div className="bg-[#111111] border border-white/10 rounded-xl">
+            <div className="p-4">
+              <span className="text-sm font-medium text-white mb-3 block">Visible Columns</span>
               <div className="flex flex-wrap gap-2">
                 {columns.map((col) => (
                   <Button
@@ -858,31 +858,31 @@ export default function FinanceLeadsPage() {
                   </Button>
                 ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
       </div>
 
       {/* Leads Table */}
       {Object.entries(groupedLeads).map(([groupName, groupLeads]) => (
-        <Card key={groupName}>
+        <div key={groupName} className="bg-[#111111] border border-white/10 rounded-xl">
           {groupBy !== 'none' && (
-            <CardHeader className="py-3 border-b">
-              <CardTitle className="text-sm flex items-center justify-between">
+            <div className="py-3 px-4 border-b border-white/5">
+              <h3 className="text-sm font-medium text-white flex items-center justify-between">
                 <span>{groupName}</span>
                 <Badge variant="secondary">{groupLeads.length}</Badge>
-              </CardTitle>
-            </CardHeader>
+              </h3>
+            </div>
           )}
-          <CardContent className="p-0">
+          <div className="p-0">
             <div className="overflow-x-auto">
               <table className="w-full table-auto">
                 <thead>
-                  <tr className="border-b border-border bg-muted/30">
+                  <tr className="border-b border-white/5 bg-white/[0.02]">
                     {visibleColumns.map((col) => (
                       <th
                         key={col.key}
-                        className={`text-left p-3 text-xs font-medium text-muted-foreground cursor-pointer hover:text-foreground ${col.width || ''}`}
+                        className={`text-left p-3 text-xs font-medium text-white/40 cursor-pointer hover:text-white ${col.width || ''}`}
                         onClick={() => toggleSort(col.key as SortField)}
                       >
                         <div className="flex items-center gap-1">
@@ -893,7 +893,7 @@ export default function FinanceLeadsPage() {
                         </div>
                       </th>
                     ))}
-                    <th className="text-right p-3 text-xs font-medium text-muted-foreground w-[120px]">
+                    <th className="text-right p-3 text-xs font-medium text-white/40 w-[120px]">
                       Actions
                     </th>
                   </tr>
@@ -901,13 +901,13 @@ export default function FinanceLeadsPage() {
                 <tbody>
                   {isLoading ? (
                     <tr>
-                      <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
+                      <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-white/50">
                         Loading...
                       </td>
                     </tr>
                   ) : groupLeads.length === 0 ? (
                     <tr>
-                      <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-muted-foreground">
+                      <td colSpan={visibleColumns.length + 1} className="text-center py-8 text-white/50">
                         No borrowers found
                       </td>
                     </tr>
@@ -915,7 +915,7 @@ export default function FinanceLeadsPage() {
                     groupLeads.map((lead) => (
                       <tr
                         key={lead.id}
-                        className="border-b border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                        className="border-b border-white/5 hover:bg-white/[0.02] transition-colors cursor-pointer"
                         onClick={() => router.push(`/admin/borrowers/${lead.id}`)}
                       >
                         {visibleColumns.map((col) => (
@@ -926,7 +926,7 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'email' && (
-                              <span className="text-muted-foreground whitespace-nowrap">{lead.email || '-'}</span>
+                              <span className="text-white/50 whitespace-nowrap">{lead.email || '-'}</span>
                             )}
                             {col.key === 'phone' && (
                               <span className="whitespace-nowrap">{lead.phone || '-'}</span>
@@ -945,11 +945,11 @@ export default function FinanceLeadsPage() {
                               </span>
                             )}
                             {col.key === 'date_added' && (
-                              <span className="text-muted-foreground whitespace-nowrap">{formatDate(lead.date_added)}</span>
+                              <span className="text-white/50 whitespace-nowrap">{formatDate(lead.date_added)}</span>
                             )}
                             {col.key === 'company_id' && (
                               <select
-                                className="px-2.5 py-1.5 rounded-md border border-input bg-background text-xs font-medium min-w-[150px] cursor-pointer hover:border-primary/50"
+                                className="px-2.5 py-1.5 rounded-md border border-white/10 bg-[#111111] text-white text-xs font-medium min-w-[150px] cursor-pointer hover:border-primary/50"
                                 value={lead.company_id || ''}
                                 onClick={(e) => e.stopPropagation()}
                                 onChange={(e) => handleAssignBroker(lead.id, e.target.value, e as any)}
@@ -974,10 +974,10 @@ export default function FinanceLeadsPage() {
                               <span className="whitespace-nowrap">{lead.assigned_agent || '-'}</span>
                             )}
                             {col.key === 'required_by_date' && (
-                              <span className="text-muted-foreground whitespace-nowrap">{formatDate(lead.required_by_date)}</span>
+                              <span className="text-white/50 whitespace-nowrap">{formatDate(lead.required_by_date)}</span>
                             )}
                             {col.key === 'message' && (
-                              <span className="text-muted-foreground" title={lead.message}>
+                              <span className="text-white/50" title={lead.message}>
                                 {truncateText(lead.message, 50)}
                               </span>
                             )}
@@ -990,12 +990,12 @@ export default function FinanceLeadsPage() {
                               </Badge>
                             )}
                             {col.key === 'notes' && (
-                              <span className="text-muted-foreground" title={lead.notes}>
+                              <span className="text-white/50" title={lead.notes}>
                                 {truncateText(lead.notes, 40)}
                               </span>
                             )}
                             {col.key === 'created_at' && (
-                              <span className="text-muted-foreground whitespace-nowrap">
+                              <span className="text-white/50 whitespace-nowrap">
                                 {formatDate(lead.created_at)}
                               </span>
                             )}
@@ -1035,19 +1035,19 @@ export default function FinanceLeadsPage() {
                 </tbody>
               </table>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ))}
 
       {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex items-center justify-between border-t pt-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <div className="flex items-center gap-2 text-sm text-white/50">
             <span>
               Showing {((currentPage - 1) * pageSize) + 1} - {Math.min(currentPage * pageSize, sortedLeads.length)} of {sortedLeads.length}
             </span>
             <select
-              className="px-2 py-1 rounded-md border border-input bg-background text-sm"
+              className="px-2 py-1 rounded-md border border-white/10 bg-[#111111] text-white text-sm"
               value={pageSize}
               onChange={(e) => {
                 setPageSize(Number(e.target.value))

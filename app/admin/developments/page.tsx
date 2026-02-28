@@ -3,7 +3,6 @@
 import { useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -151,7 +150,7 @@ export default function DevelopmentsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Developments</h2>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-white/50">
             {totals.developments} developments · {totals.totalUnits.toLocaleString()} total units
           </p>
         </div>
@@ -186,57 +185,57 @@ export default function DevelopmentsPage() {
 
       {/* Summary Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Building2 className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Developments</span>
+              <Building2 className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Developments</span>
             </div>
             <p className="text-2xl font-bold">{totals.developments}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
-              <Home className="h-4 w-4 text-muted-foreground" />
-              <span className="text-xs text-muted-foreground">Total Units</span>
+              <Home className="h-4 w-4 text-white/50" />
+              <span className="text-xs text-white/50">Total Units</span>
             </div>
             <p className="text-2xl font-bold">
               {totals.hasUnitData ? totals.totalUnits.toLocaleString() : '-'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Home className="h-4 w-4 text-success" />
-              <span className="text-xs text-muted-foreground">Available</span>
+              <span className="text-xs text-white/50">Available</span>
             </div>
             <p className="text-2xl font-bold text-success">
               {totals.hasAvailableData ? totals.availableUnits.toLocaleString() : '-'}
             </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
+          </div>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-xl">
+          <div className="p-4">
             <div className="flex items-center gap-2 mb-1">
               <Home className="h-4 w-4 text-blue-500" />
-              <span className="text-xs text-muted-foreground">Sold</span>
+              <span className="text-xs text-white/50">Sold</span>
             </div>
             <p className="text-2xl font-bold text-blue-500">
               {totals.hasUnitData && totals.hasAvailableData ? totals.soldUnits.toLocaleString() : '-'}
             </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
           <Input
             placeholder="Search by name, location, or developer..."
-            className="pl-9"
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -276,25 +275,25 @@ export default function DevelopmentsPage() {
       {/* Developments Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
+          <div className="col-span-full text-center py-8 text-white/50">
             Loading developments...
           </div>
         ) : filteredDevelopments.length === 0 ? (
-          <div className="col-span-full text-center py-8 text-muted-foreground">
+          <div className="col-span-full text-center py-8 text-white/50">
             {developments.length === 0
               ? 'No developments found'
               : 'No developments match your search'}
           </div>
         ) : (
           filteredDevelopments.map((dev) => (
-            <Card
+            <div
               key={dev.id}
-              className="cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
+              className="bg-[#111111] border border-white/10 rounded-xl cursor-pointer hover:border-primary/50 transition-colors overflow-hidden"
               onClick={() => router.push(`/admin/developments/${dev.id}`)}
             >
               {/* Development Image */}
               {dev.image_url && (
-                <div className="h-32 bg-muted relative">
+                <div className="h-32 bg-white/5 relative">
                   <Image
                     src={dev.image_url}
                     alt={dev.name}
@@ -310,12 +309,12 @@ export default function DevelopmentsPage() {
                 </div>
               )}
 
-              <CardContent className="p-4">
+              <div className="p-4">
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div>
-                    <h3 className="font-semibold text-lg">{dev.name || 'Unnamed Development'}</h3>
+                    <h3 className="font-semibold text-lg text-white">{dev.name || 'Unnamed Development'}</h3>
                     {dev.location && (
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1 text-sm text-white/50">
                         <MapPin className="h-3 w-3" />
                         <span>{dev.location}</span>
                       </div>
@@ -329,7 +328,7 @@ export default function DevelopmentsPage() {
                 </div>
 
                 {(dev.developer || dev.company?.name) && (
-                  <p className="text-sm text-muted-foreground mb-3">
+                  <p className="text-sm text-white/50 mb-3">
                     {dev.developer && <>by {dev.developer}</>}
                     {dev.developer && dev.company?.name && <> · </>}
                     {dev.company?.name && <span className="text-primary">{dev.company.name}</span>}
@@ -337,18 +336,18 @@ export default function DevelopmentsPage() {
                 )}
 
                 {/* Units Stats */}
-                <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-border">
+                <div className="grid grid-cols-3 gap-2 py-3 border-t border-b border-white/5">
                   <div className="text-center">
                     <p className="text-lg font-semibold">
                       {(dev.total_units || dev.units) ? (dev.total_units || dev.units) : '-'}
                     </p>
-                    <p className="text-xs text-muted-foreground">Total Units</p>
+                    <p className="text-xs text-white/50">Total Units</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-success">
                       {dev.available_units ? dev.available_units : '-'}
                     </p>
-                    <p className="text-xs text-muted-foreground">Available</p>
+                    <p className="text-xs text-white/50">Available</p>
                   </div>
                   <div className="text-center">
                     <p className="text-lg font-semibold text-blue-500">
@@ -356,14 +355,14 @@ export default function DevelopmentsPage() {
                         ? (dev.total_units || dev.units || 0) - (dev.available_units || 0)
                         : '-'}
                     </p>
-                    <p className="text-xs text-muted-foreground">Sold</p>
+                    <p className="text-xs text-white/50">Sold</p>
                   </div>
                 </div>
 
                 {/* Price Range */}
                 {(dev.price_from || dev.price_to) && (
                   <div className="mt-3 text-sm">
-                    <span className="text-muted-foreground">Price: </span>
+                    <span className="text-white/50">Price: </span>
                     <span className="font-medium">
                       {formatPriceRange(dev.price_from, dev.price_to)}
                     </span>
@@ -372,13 +371,13 @@ export default function DevelopmentsPage() {
 
                 {/* Completion Date */}
                 {dev.completion_date && (
-                  <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+                  <div className="mt-2 flex items-center gap-1 text-xs text-white/50">
                     <Calendar className="h-3 w-3" />
                     <span>Completion: {dev.completion_date}</span>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ))
         )}
       </div>
@@ -386,46 +385,49 @@ export default function DevelopmentsPage() {
       {/* Create Development Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-background border border-border rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-4 border-b border-border sticky top-0 bg-background">
-              <h3 className="font-semibold">Add New Development</h3>
+          <div className="bg-[#1a1a1a] border border-white/10 rounded-lg shadow-lg w-full max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-white/5 sticky top-0 bg-[#1a1a1a]">
+              <h3 className="font-semibold text-white">Add New Development</h3>
               <Button variant="ghost" size="icon" onClick={() => setIsModalOpen(false)}>
                 <X className="h-4 w-4" />
               </Button>
             </div>
             <div className="p-4 space-y-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Development Name *</label>
+                <label className="text-sm font-medium text-white">Development Name *</label>
                 <Input
                   value={newDev.name}
                   onChange={(e) => setNewDev({ ...newDev, name: e.target.value })}
                   placeholder="e.g., The Haydon"
+                  className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Location</label>
+                  <label className="text-sm font-medium text-white">Location</label>
                   <Input
                     value={newDev.location}
                     onChange={(e) => setNewDev({ ...newDev, location: e.target.value })}
                     placeholder="e.g., London, E1"
+                    className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Developer</label>
+                  <label className="text-sm font-medium text-white">Developer</label>
                   <Input
                     value={newDev.developer}
                     onChange={(e) => setNewDev({ ...newDev, developer: e.target.value })}
                     placeholder="e.g., Berkeley Group"
+                    className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Company</label>
+                <label className="text-sm font-medium text-white">Company</label>
                 <select
                   value={newDev.company_id}
                   onChange={(e) => setNewDev({ ...newDev, company_id: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="">Select a company...</option>
                   {companies.map((company) => (
@@ -436,11 +438,11 @@ export default function DevelopmentsPage() {
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium text-white">Status</label>
                 <select
                   value={newDev.status}
                   onChange={(e) => setNewDev({ ...newDev, status: e.target.value })}
-                  className="w-full h-9 px-3 rounded-md border border-input bg-background text-sm"
+                  className="w-full h-9 px-3 rounded-md border bg-[#111111] border-white/10 text-white text-sm"
                 >
                   <option value="Active">Active</option>
                   <option value="Selling">Selling</option>
@@ -452,44 +454,48 @@ export default function DevelopmentsPage() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Total Units</label>
+                  <label className="text-sm font-medium text-white">Total Units</label>
                   <Input
                     type="number"
                     value={newDev.total_units || ''}
                     onChange={(e) => setNewDev({ ...newDev, total_units: parseInt(e.target.value) || 0 })}
                     placeholder="0"
+                    className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Available Units</label>
+                  <label className="text-sm font-medium text-white">Available Units</label>
                   <Input
                     type="number"
                     value={newDev.available_units || ''}
                     onChange={(e) => setNewDev({ ...newDev, available_units: parseInt(e.target.value) || 0 })}
                     placeholder="0"
+                    className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Price From</label>
+                  <label className="text-sm font-medium text-white">Price From</label>
                   <Input
                     value={newDev.price_from}
                     onChange={(e) => setNewDev({ ...newDev, price_from: e.target.value })}
                     placeholder="£500,000"
+                    className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Price To</label>
+                  <label className="text-sm font-medium text-white">Price To</label>
                   <Input
                     value={newDev.price_to}
                     onChange={(e) => setNewDev({ ...newDev, price_to: e.target.value })}
                     placeholder="£1,500,000"
+                    className="bg-[#111111] border-white/10 text-white placeholder:text-white/40"
                   />
                 </div>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 p-4 border-t border-border sticky bottom-0 bg-background">
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-white/5 sticky bottom-0 bg-[#1a1a1a]">
               <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateDevelopment} disabled={isSaving || !newDev.name}>
                 <Save className="h-4 w-4 mr-2" />

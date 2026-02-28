@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -147,14 +146,14 @@ export function AIOverview({
   const getTypeStyles = (type: AIInsight['type']) => {
     switch (type) {
       case 'critical':
-        return 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'
+        return 'bg-red-500/10 border-red-500/30 text-red-400'
       case 'warning':
-        return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400'
+        return 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
       case 'positive':
       case 'opportunity':
-        return 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400'
+        return 'bg-green-500/10 border-green-500/30 text-green-400'
       default:
-        return 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
+        return 'bg-blue-500/10 border-blue-500/30 text-blue-400'
     }
   }
 
@@ -177,9 +176,9 @@ export function AIOverview({
   const getUrgencyBadge = (urgency?: string) => {
     if (!urgency) return null
     const styles: Record<string, string> = {
-      now: 'bg-red-100 text-red-700 border-red-200',
-      today: 'bg-orange-100 text-orange-700 border-orange-200',
-      this_week: 'bg-blue-100 text-blue-700 border-blue-200',
+      now: 'bg-red-500/10 text-red-400 border-red-500/20',
+      today: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
+      this_week: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
     }
     const labels: Record<string, string> = {
       now: 'Now',
@@ -209,26 +208,26 @@ export function AIOverview({
 
   if (loading && insights.length === 0) {
     return (
-      <Card className={cn('bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20', className)}>
-        <CardContent className="p-4">
+      <div className={cn('bg-[#111111] border border-white/10 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10', className)}>
+        <div className="px-4 pb-4 p-4">
           <div className="flex items-center gap-3">
             <Brain className="h-5 w-5 text-primary animate-pulse" />
-            <span className="text-sm text-muted-foreground">Claude AI is analyzing your leads...</span>
+            <span className="text-sm text-white/50">Claude AI is analyzing your leads...</span>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
   // Show prompt to generate insights if none exist
   if (insights.length === 0 && leads.length > 0) {
     return (
-      <Card className={cn('bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20', className)}>
-        <CardContent className="p-4">
+      <div className={cn('bg-[#111111] border border-white/10 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10', className)}>
+        <div className="px-4 pb-4 p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <Brain className="h-5 w-5 text-primary" />
-              <span className="text-sm text-muted-foreground">
+              <span className="text-sm text-white/50">
                 {leads.length} leads ready for AI analysis
               </span>
             </div>
@@ -237,8 +236,8 @@ export function AIOverview({
               Generate Insights
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     )
   }
 
@@ -251,8 +250,8 @@ export function AIOverview({
   const otherInsights = insights.filter(i => i.type !== 'critical' && i.type !== 'warning')
 
   return (
-    <Card className={cn('bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20', className)}>
-      <CardContent className="p-4">
+    <div className={cn('bg-[#111111] border border-white/10 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10', className)}>
+      <div className="px-4 pb-4 p-4">
         {/* Header with summary */}
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -260,7 +259,7 @@ export function AIOverview({
             <div>
               <span className="font-medium text-sm">Claude AI Insights</span>
               {summary && (
-                <p className="text-xs text-muted-foreground">{summary}</p>
+                <p className="text-xs text-white/50">{summary}</p>
               )}
             </div>
             <Badge variant="secondary" className="text-[10px]">
@@ -377,7 +376,7 @@ export function AIOverview({
             })}
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }
