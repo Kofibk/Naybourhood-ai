@@ -152,6 +152,7 @@ export const PUBLIC_ROUTES = [
   '/select-plan',
   '/demo',
   '/Mountanvildemo',
+  '/sbricksdemo',
   '/gcpdemo',
   '/api/auth',
   '/api/billing/stripe-webhook',

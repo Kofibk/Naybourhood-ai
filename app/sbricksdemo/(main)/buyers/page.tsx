@@ -1,11 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { DEMO_RECENT_LEADS, DEMO_BUYER_STATS } from '@/lib/demo-data'
+import { SB_DEMO_RECENT_LEADS, SB_DEMO_BUYER_STATS } from '@/lib/demo-data-smartbricks'
 import { Search, Flame, Users, Eye, Target, ArrowUpDown, ChevronRight, X } from 'lucide-react'
 
 const statusColors: Record<string, string> = {
@@ -22,7 +21,7 @@ function getScoreColor(score: number) {
   return 'text-red-400'
 }
 
-export default function DemoBuyersPage() {
+export default function SBDemoBuyersPage() {
   const [search, setSearch] = useState('')
   const [classFilter, setClassFilter] = useState('all')
   const [sortDesc, setSortDesc] = useState(true)
@@ -33,22 +32,22 @@ export default function DemoBuyersPage() {
   const [sourceFilter, setSourceFilter] = useState('all')
 
   const developments = useMemo(() => {
-    const devs = [...new Set(DEMO_RECENT_LEADS.map(l => l.development_name).filter(Boolean))]
+    const devs = [...new Set(SB_DEMO_RECENT_LEADS.map(l => l.development_name).filter(Boolean))]
     return devs.sort()
   }, [])
 
   const statuses = useMemo(() => {
-    const s = [...new Set(DEMO_RECENT_LEADS.map(l => l.status).filter(Boolean))]
+    const s = [...new Set(SB_DEMO_RECENT_LEADS.map(l => l.status).filter(Boolean))]
     return s.sort()
   }, [])
 
   const sources = useMemo(() => {
-    const s = [...new Set(DEMO_RECENT_LEADS.map(l => l.source_platform).filter(Boolean))]
+    const s = [...new Set(SB_DEMO_RECENT_LEADS.map(l => l.source_platform).filter(Boolean))]
     return s.sort()
   }, [])
 
   const filtered = useMemo(() => {
-    let leads = DEMO_RECENT_LEADS.filter((lead) => {
+    let leads = SB_DEMO_RECENT_LEADS.filter((lead) => {
       const matchesSearch = !search ||
         lead.full_name.toLowerCase().includes(search.toLowerCase()) ||
         lead.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -68,7 +67,7 @@ export default function DemoBuyersPage() {
 
   const hasActiveFilters = devFilter !== 'all' || statusFilter !== 'all' || sourceFilter !== 'all'
 
-  const stats = DEMO_BUYER_STATS
+  const stats = SB_DEMO_BUYER_STATS
 
   return (
     <div className="space-y-6">
@@ -183,7 +182,7 @@ export default function DemoBuyersPage() {
             </thead>
             <tbody>
               {filtered.map((lead) => (
-                <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => window.location.href = `/Mountanvildemo/buyers/${lead.id}`}>
+                <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => window.location.href = `/sbricksdemo/buyers/${lead.id}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {(lead.ai_quality_score || 0) >= 85 && <Flame className="h-3.5 w-3.5 text-orange-400" />}

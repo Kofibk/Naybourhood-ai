@@ -111,8 +111,8 @@ export function MorningPriority({
   }, [recentLeads, classificationFilter])
 
   const pathname = usePathname()
-  const isDemo = pathname.startsWith('/demo') || pathname.startsWith('/Mountanvildemo')
-  const routeBase = isDemo ? (pathname.startsWith('/Mountanvildemo') ? '/Mountanvildemo' : '/demo') : `/${userType}`
+  const isDemo = pathname.startsWith('/demo') || pathname.startsWith('/Mountanvildemo') || pathname.startsWith('/sbricksdemo')
+  const routeBase = isDemo ? (pathname.startsWith('/Mountanvildemo') ? '/Mountanvildemo' : pathname.startsWith('/sbricksdemo') ? '/sbricksdemo' : '/demo') : `/${userType}`
 
   const typeConfig = {
     developer: { title: 'Buyers', path: `${routeBase}/buyers` },

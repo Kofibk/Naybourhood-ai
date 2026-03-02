@@ -66,8 +66,8 @@ export function LeadCard({
   const timeAgo = getTimeAgo(mostRecent)
 
   const pathname = usePathname()
-  const isDemo = pathname.startsWith('/demo') || pathname.startsWith('/Mountanvildemo')
-  const demoBase = pathname.startsWith('/Mountanvildemo') ? '/Mountanvildemo' : '/demo'
+  const isDemo = pathname.startsWith('/demo') || pathname.startsWith('/Mountanvildemo') || pathname.startsWith('/sbricksdemo')
+  const demoBase = pathname.startsWith('/Mountanvildemo') ? '/Mountanvildemo' : pathname.startsWith('/sbricksdemo') ? '/sbricksdemo' : '/demo'
   const basePath = isDemo
     ? (userType === 'broker' ? `${demoBase}/borrowers` : `${demoBase}/buyers`)
     : (userType === 'broker' ? `/${userType}/borrowers` : `/${userType}/buyers`)
