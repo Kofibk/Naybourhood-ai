@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { DEMO_USER, DEMO_COMPANY } from '@/lib/demo-data'
-import { User, Building2, Bell, Shield, Key, Users } from 'lucide-react'
+import { User, Building2, Bell, Shield, Key, Users, Plug } from 'lucide-react'
 
 export default function DemoSettingsPage() {
   return (
@@ -74,6 +74,45 @@ export default function DemoSettingsPage() {
             <Users className="h-3.5 w-3.5 mr-2" />
             Invite Team Member
           </Button>
+        </CardContent>
+      </Card>
+
+      {/* Integrations */}
+      <Card className="bg-[#111111] border-white/10">
+        <CardHeader>
+          <CardTitle className="text-white flex items-center gap-2">
+            <Plug className="h-5 w-5 text-indigo-400" />
+            Integrations
+          </CardTitle>
+          <p className="text-sm text-white/40 mt-1">Connect your tools and platforms</p>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { name: 'Rightmove', bg: 'bg-[#00DEB6]/15', text: 'text-[#00DEB6]', initials: 'Rm' },
+              { name: 'Zoopla', bg: 'bg-[#8046F1]/15', text: 'text-[#8046F1]', initials: 'Z' },
+              { name: 'OnTheMarket', bg: 'bg-[#2E1A47]/30', text: 'text-purple-300', initials: 'OTM' },
+              { name: 'WhatsApp', bg: 'bg-[#25D366]/15', text: 'text-[#25D366]', initials: 'WA' },
+              { name: 'Facebook', bg: 'bg-[#1877F2]/15', text: 'text-[#1877F2]', initials: 'Fb' },
+              { name: 'Salesforce', bg: 'bg-[#00A1E0]/15', text: 'text-[#00A1E0]', initials: 'SF' },
+              { name: 'HubSpot', bg: 'bg-[#FF7A59]/15', text: 'text-[#FF7A59]', initials: 'HS' },
+              { name: 'Gmail', bg: 'bg-[#EA4335]/15', text: 'text-[#EA4335]', initials: 'Gm' },
+              { name: 'Outlook', bg: 'bg-[#0078D4]/15', text: 'text-[#0078D4]', initials: 'Ol' },
+            ].map((integration) => (
+              <div
+                key={integration.name}
+                className="flex items-center gap-3 p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors cursor-pointer"
+              >
+                <div className={`h-10 w-10 rounded-lg ${integration.bg} flex items-center justify-center flex-shrink-0`}>
+                  <span className={`text-xs font-bold ${integration.text}`}>{integration.initials}</span>
+                </div>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{integration.name}</p>
+                  <p className="text-[10px] text-white/40">Coming soon</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </CardContent>
       </Card>
 

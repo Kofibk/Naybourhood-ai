@@ -8,7 +8,6 @@ import { Badge } from '@/components/ui/badge'
 import { Logo } from '@/components/Logo'
 import {
   LayoutDashboard,
-  Megaphone,
   Users,
   Building2,
   UserCog,
@@ -90,7 +89,6 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
       const adminItems: NavItem[] = [
         { name: 'Dashboard', icon: LayoutDashboard, href: '/admin' },
         { name: 'Developments', icon: Home, href: '/admin/developments', feature: 'developments' },
-        { name: 'Campaigns', icon: Megaphone, href: '/admin/campaigns', feature: 'campaigns' },
         { name: 'Leads', icon: Users, href: '/admin/leads', feature: 'leads' },
         { name: 'Borrowers', icon: Landmark, href: '/admin/borrowers', feature: 'borrowers' },
         { name: 'Conversations', icon: MessageSquare, href: '/admin/conversations', feature: 'conversations' },
@@ -118,7 +116,6 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
         { name: 'Pipeline', icon: GitBranch, href: `${basePath}/pipeline`, feature: 'leads' },
         { name: 'Outcomes', icon: Target, href: `${basePath}/outcomes`, feature: 'leads' },
         { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
-        { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
         { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
         { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
       ]
@@ -139,14 +136,13 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
       { name: 'Pipeline', icon: GitBranch, href: `${basePath}/pipeline`, feature: 'leads' },
       { name: 'Outcomes', icon: Target, href: `${basePath}/outcomes`, feature: 'leads' },
       { name: 'Conversations', icon: MessageSquare, href: `${basePath}/conversations`, feature: 'conversations' },
-      { name: 'Campaigns', icon: Megaphone, href: `${basePath}/campaigns`, feature: 'campaigns' },
       { name: 'AI Insights', icon: Sparkles, href: `${basePath}/insights`, feature: 'ai_insights' },
       { name: 'Settings', icon: Settings, href: `${basePath}/settings` },
     ]
   }, [userType, basePath, userHasBillingAccess])
 
   // Filter nav items based on feature access (and hide demo-excluded pages)
-  const demoExcluded = basePathOverride === '/demo' ? ['Pipeline', 'Outcomes'] : []
+  const demoExcluded = basePathOverride === '/demo' ? ['Pipeline', 'Outcomes', 'Campaigns'] : []
   const navItems = useMemo(() => {
     return getNavItems()
       .filter(item => canAccessFeature(item.feature))
