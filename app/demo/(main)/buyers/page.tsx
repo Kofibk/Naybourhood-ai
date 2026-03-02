@@ -33,18 +33,15 @@ export default function DemoBuyersPage() {
   const [sourceFilter, setSourceFilter] = useState('all')
 
   const developments = useMemo(() => {
-    const devs = [...new Set(DEMO_RECENT_LEADS.map(l => l.development_name).filter(Boolean))]
-    return devs.sort()
+    return Array.from(new Set(DEMO_RECENT_LEADS.map(l => l.development_name).filter(Boolean))).sort()
   }, [])
 
   const statuses = useMemo(() => {
-    const s = [...new Set(DEMO_RECENT_LEADS.map(l => l.status).filter(Boolean))]
-    return s.sort()
+    return Array.from(new Set(DEMO_RECENT_LEADS.map(l => l.status).filter(Boolean))).sort()
   }, [])
 
   const sources = useMemo(() => {
-    const s = [...new Set(DEMO_RECENT_LEADS.map(l => l.source_platform).filter(Boolean))]
-    return s.sort()
+    return Array.from(new Set(DEMO_RECENT_LEADS.map(l => l.source_platform).filter(Boolean))).sort()
   }, [])
 
   const filtered = useMemo(() => {
