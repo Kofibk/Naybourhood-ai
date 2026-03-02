@@ -52,7 +52,7 @@ export const DEMO_DEVELOPMENTS = [
   {
     id: 'demo-dev-001',
     name: 'The Edit',
-    location: 'Tottenham Hale, London N17',
+    location: 'Southbank, London SE1',
     status: 'Active',
     total_units: 116,
     available_units: 19,
@@ -91,7 +91,7 @@ export const DEMO_DEVELOPMENTS = [
   {
     id: 'demo-dev-004',
     name: 'Queens Cross',
-    location: 'Kilburn, London NW6',
+    location: 'London E16',
     status: 'Coming Soon',
     total_units: 172,
     available_units: 172,
