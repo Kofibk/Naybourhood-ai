@@ -61,7 +61,7 @@ function DemoLayoutContent({ children }: { children: React.ReactNode }) {
         userName={userName}
         userEmail={DEMO_USER.email}
         onLogout={handleLogout}
-        basePath="/demo"
+        basePath="/Mountanvildemo"
       >
         {children}
       </DashboardLayout>

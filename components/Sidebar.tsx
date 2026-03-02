@@ -142,7 +142,8 @@ export function Sidebar({ userType, userName = 'User', userEmail, onLogout, show
   }, [userType, basePath, userHasBillingAccess])
 
   // Filter nav items based on feature access (and hide demo-excluded pages)
-  const demoExcluded = basePathOverride === '/demo' ? ['Pipeline', 'Outcomes', 'Campaigns'] : []
+  const isDemo = basePathOverride === '/demo' || basePathOverride === '/Mountanvildemo'
+  const demoExcluded = isDemo ? ['Pipeline', 'Outcomes', 'Campaigns'] : []
   const navItems = useMemo(() => {
     return getNavItems()
       .filter(item => canAccessFeature(item.feature))

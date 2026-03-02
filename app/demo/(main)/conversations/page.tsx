@@ -245,7 +245,7 @@ export default function DemoConversationsPage() {
             </div>
 
             <Link
-              href={`/demo/buyers/${selectedConvo.leadId}`}
+              href={`/Mountanvildemo/buyers/${selectedConvo.leadId}`}
               className="block text-center text-sm text-emerald-400 hover:text-emerald-300 py-2 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/5 transition-colors"
             >
               View Full Buyer Profile

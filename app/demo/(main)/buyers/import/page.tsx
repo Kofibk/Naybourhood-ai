@@ -20,7 +20,7 @@ export default function DemoBuyersImportPage() {
   return (
     <div className="max-w-3xl mx-auto space-y-6">
       <div>
-        <Link href="/demo/buyers" className="flex items-center gap-2 text-white/50 hover:text-white mb-2 text-sm">
+        <Link href="/Mountanvildemo/buyers" className="flex items-center gap-2 text-white/50 hover:text-white mb-2 text-sm">
           <ArrowLeft className="w-4 h-4" /> Back to Buyers
         </Link>
         <h2 className="text-2xl font-bold text-white">Import Buyers</h2>
@@ -140,7 +140,7 @@ export default function DemoBuyersImportPage() {
             </div>
 
             <div className="flex items-center justify-center gap-3 mt-6">
-              <Link href="/demo/buyers">
+              <Link href="/Mountanvildemo/buyers">
                 <Button className="bg-emerald-500 hover:bg-emerald-600">View All Buyers</Button>
               </Link>
               <Button variant="outline" className="border-white/20 text-white hover:bg-white/5" onClick={() => setStep('upload')}>

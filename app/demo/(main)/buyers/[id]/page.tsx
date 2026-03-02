@@ -446,7 +446,7 @@ export default function DemoBuyerDetailPage() {
   if (!lead) {
     return (
       <div className="space-y-6">
-        <Link href="/demo/buyers" className="flex items-center gap-2 text-white/50 hover:text-white">
+        <Link href="/Mountanvildemo/buyers" className="flex items-center gap-2 text-white/50 hover:text-white">
           <ArrowLeft className="w-4 h-4" /> Back to Buyers
         </Link>
         <div className="bg-[#111111] border border-white/10 rounded-xl py-12 text-center">
@@ -487,7 +487,7 @@ export default function DemoBuyerDetailPage() {
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <Link href="/demo/buyers" className="flex items-center gap-2 text-white/50 hover:text-white mb-2 text-sm">
+          <Link href="/Mountanvildemo/buyers" className="flex items-center gap-2 text-white/50 hover:text-white mb-2 text-sm">
             <ArrowLeft className="w-4 h-4" /> Back to Buyers
           </Link>
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">

@@ -119,7 +119,7 @@ export default function DemoBuyersPage() {
             </thead>
             <tbody>
               {filtered.map((lead) => (
-                <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => window.location.href = `/demo/buyers/${lead.id}`}>
+                <tr key={lead.id} className="border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer group" onClick={() => window.location.href = `/Mountanvildemo/buyers/${lead.id}`}>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       {(lead.ai_quality_score || 0) >= 85 && <Flame className="h-3.5 w-3.5 text-orange-400" />}

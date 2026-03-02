@@ -27,7 +27,7 @@ export default function DemoPage() {
     sessionStorage.setItem('naybourhood_skip_onboarding', 'true')
 
     // Redirect to the self-contained demo dashboard (public route, no auth needed)
-    router.replace('/demo/dashboard')
+    router.replace('/Mountanvildemo/dashboard')
   }, [router])
 
   return (
