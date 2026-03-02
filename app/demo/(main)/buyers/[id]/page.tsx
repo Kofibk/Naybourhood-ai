@@ -27,6 +27,7 @@ import {
   Shield,
   ShieldCheck,
   ShieldAlert,
+  ExternalLink,
   Linkedin,
   Briefcase,
   GraduationCap,
@@ -183,7 +184,7 @@ const BUYER_INTELLIGENCE: Record<string, {
     ],
   },
   'demo-lead-004': {
-    overview: 'Emily Thornton is a London-based financial services professional seeking her primary residence. As a Senior Director at Deloitte, she has strong, verifiable income and an established mortgage Agreement in Principle of £1.8M. She has already instructed solicitors and submitted an offer on a Dollar Bay 3-bedroom unit, placing her at the most advanced stage of any current buyer.',
+    overview: 'Emily Thornton is a London-based financial services professional seeking her primary residence. As a Senior Director at Deloitte, she has strong, verifiable income and an established mortgage Agreement in Principle of £1.8M. She has already instructed solicitors and submitted an offer on a The Edit 3-bedroom unit, placing her at the most advanced stage of any current buyer.',
     occupation: 'Senior Director, Financial Advisory',
     estimatedIncome: '£220,000 - £280,000 p.a.',
     address: '42 Clapham Common North Side, London SW4 0QR',
@@ -293,7 +294,7 @@ const BUYER_INTELLIGENCE: Record<string, {
     ],
   },
   'demo-lead-007': {
-    overview: 'Priya Sharma is a Mumbai-based investor with a daughter starting at King\'s College London. She is looking for a 2-bedroom property near Waterloo as both a student accommodation and long-term investment. While her £1.5M budget is at the lower end for Keybridge Lofts, her family\'s business background and intent to purchase within 3 months make her a strong qualified lead.',
+    overview: 'Priya Sharma is a Mumbai-based investor with a daughter starting at King\'s College London. She is looking for a 2-bedroom property near Waterloo as both a student accommodation and long-term investment. While her £1.5M budget is at the lower end for One Clapham, her family\'s business background and intent to purchase within 3 months make her a strong qualified lead.',
     occupation: 'Director, Sharma Group of Companies',
     estimatedIncome: '£300,000 - £450,000 p.a.',
     address: 'Sharma House, Breach Candy, Mumbai 400026, India',
@@ -327,7 +328,7 @@ const BUYER_INTELLIGENCE: Record<string, {
     ],
   },
   'demo-lead-008': {
-    overview: 'David Osei is an Accra-based property developer and investor exploring off-plan opportunities at Royal Eden Docks. With a budget of £750K and a 6-month timeline, he is currently exploring mortgage options for UK purchase. His existing experience in Ghanaian property development gives him good market understanding, though his financing timeline makes him a mid-priority qualified lead.',
+    overview: 'David Osei is an Accra-based property developer and investor exploring off-plan opportunities at The Broadley. With a budget of £750K and a 6-month timeline, he is currently exploring mortgage options for UK purchase. His existing experience in Ghanaian property development gives him good market understanding, though his financing timeline makes him a mid-priority qualified lead.',
     occupation: 'CEO, Accra Development Company',
     estimatedIncome: '£150,000 - £250,000 p.a.',
     address: '22 Liberation Road, Airport Residential Area, Accra, Ghana',
@@ -599,6 +600,36 @@ export default function DemoBuyerDetailPage() {
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Verify This Buyer */}
+      <div className="bg-[#111111] border border-amber-500/30 rounded-xl">
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Shield className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-white mb-1">Verify This Buyer</h4>
+              <p className="text-sm text-white/60 mb-3">Complete KYC, AML and Proof of Funds checks via our integrated verification partner.</p>
+              <div className="flex gap-2 flex-wrap">
+                <a href="https://www.checkboard.com" target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-medium">
+                    <ShieldCheck className="w-4 h-4 mr-1" /> Run KYC / AML Check
+                    <ExternalLink className="w-3 h-3 ml-1.5" />
+                  </Button>
+                </a>
+                <a href="https://www.checkboard.com" target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+                    <DollarSign className="w-4 h-4 mr-1" /> Proof of Funds
+                    <ExternalLink className="w-3 h-3 ml-1.5" />
+                  </Button>
+                </a>
+              </div>
+              <p className="text-[10px] text-white/30 mt-2">Powered by Checkboard — KYC, AML & Source of Funds verification</p>
             </div>
           </div>
         </div>

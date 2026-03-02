@@ -50,10 +50,8 @@ export default function DemoSettingsPage() {
         <CardContent>
           <div className="space-y-3">
             {[
-              { name: 'Rowena Mitchell', email: 'rowena@mountanvil.com', role: 'Sales Manager', status: 'Active' },
-              { name: 'Tom Hegarty', email: 'tom.h@mountanvil.com', role: 'Sales Director', status: 'Active' },
-              { name: 'Jessica Park', email: 'jessica.p@mountanvil.com', role: 'Marketing', status: 'Active' },
-              { name: 'Amir Kahn', email: 'amir.k@mountanvil.com', role: 'Sales', status: 'Pending' },
+              { name: 'Rowena McCullough', email: 'rowena@mountanvil.com', role: 'Sales Manager', status: 'Active' },
+              { name: 'Jay Weston', email: 'jay.w@mountanvil.com', role: 'Sales Director', status: 'Active' },
             ].map((member) => (
               <div key={member.email} className="flex items-center justify-between py-2 border-b border-white/5 last:border-0">
                 <div className="flex items-center gap-3">

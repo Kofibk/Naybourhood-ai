@@ -25,22 +25,22 @@ export default function DemoInsightsPage() {
   const insights = [
     {
       title: 'Hot Lead Alert: James Richardson',
-      description: 'NB Score 92 — Verified cash buyer with £2.8M budget, viewing confirmed for Keybridge Lofts penthouse. Solicitor instructed. Contact immediately to close.',
+      description: 'NB Score 92 — Verified cash buyer with £2.8M budget, viewing confirmed for One Clapham penthouse. Solicitor instructed. Contact immediately to close.',
       priority: 'high' as const,
     },
     {
       title: 'Emily Thornton — Ready to Reserve',
-      description: 'NB Score 93 — Mortgage AIP secured, solicitor instructed, offer submitted on Dollar Bay 3-bed. High conversion probability. Follow up today.',
+      description: 'NB Score 93 — Mortgage AIP secured, solicitor instructed, offer submitted on The Edit 3-bed. High conversion probability. Follow up today.',
       priority: 'high' as const,
     },
     {
       title: 'International Pipeline Strength',
-      description: '5 of 8 recent leads are international buyers (HK, UAE, Nigeria, Germany, India). Consider expanding Meta International campaign budget for Royal Eden Docks.',
+      description: '5 of 8 recent leads are international buyers (HK, UAE, Nigeria, Germany, India). Consider expanding Meta International campaign budget for The Broadley.',
       priority: 'medium' as const,
     },
     {
-      title: 'Dollar Bay — Rightmove Outperforming',
-      description: 'Rightmove Featured campaign delivering £144 CPL vs £227 for Meta UK. Consider reallocating 20% of Meta budget to Rightmove for Dollar Bay.',
+      title: 'The Edit — Rightmove Outperforming',
+      description: 'Rightmove Featured campaign delivering £144 CPL vs £227 for Meta UK. Consider reallocating 20% of Meta budget to Rightmove for The Edit.',
       priority: 'medium' as const,
     },
     {
@@ -49,8 +49,8 @@ export default function DemoInsightsPage() {
       priority: 'high' as const,
     },
     {
-      title: 'Keybridge Lofts — 90% Sold',
-      description: 'Only 41 of 415 units remaining. Consider launching a "final units" campaign to drive urgency. International buyers showing highest interest.',
+      title: 'One Clapham — 84% Sold',
+      description: 'Only 32 of 205 units remaining. Consider launching a "final units" campaign to drive urgency. International buyers showing highest interest.',
       priority: 'low' as const,
     },
   ]
