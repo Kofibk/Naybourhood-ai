@@ -3,6 +3,7 @@
 import { Suspense } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { GcpSidebar } from '@/components/gcpdemo/GcpSidebar'
+import { GcpDemoAIChat } from '@/components/gcpdemo/GcpDemoAIChat'
 import { Toaster } from 'sonner'
 
 function GcpLayoutContent({ children }: { children: React.ReactNode }) {
@@ -42,6 +43,7 @@ function GcpLayoutContent({ children }: { children: React.ReactNode }) {
           {children}
         </div>
       </main>
+      <GcpDemoAIChat />
       <Toaster position="top-right" richColors closeButton />
     </div>
   )
