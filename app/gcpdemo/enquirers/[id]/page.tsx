@@ -54,6 +54,7 @@ import {
   ChevronDown,
   ChevronUp,
   MessageSquare,
+  X,
 } from 'lucide-react'
 
 // Tenant intelligence data keyed by enquirer ID
@@ -464,112 +465,112 @@ function ReferenceCard({ type, provider, status, detail }: { type: string; provi
   )
 }
 
-// Agentic AI Component
-function AgenticAIPanel({ enquirerName, intel }: { enquirerName: string; intel: typeof TENANT_INTELLIGENCE[string] | undefined }) {
+// Floating Agentic AI Chat Panel
+function AgenticAIChatPanel({ enquirerName, intel }: { enquirerName: string; intel: typeof TENANT_INTELLIGENCE[string] | undefined }) {
+  const [isOpen, setIsOpen] = useState(false)
   const [actions, setActions] = useState<AgentAction[]>([
     {
       id: 'research',
       type: 'research',
       label: 'Deep Research Applicant',
-      description: 'Search LinkedIn, Companies House, electoral roll, and public records to build a comprehensive profile.',
+      description: 'Search LinkedIn, Companies House, electoral roll, and public records.',
       status: 'idle',
     },
     {
       id: 'verify',
       type: 'verify',
       label: 'Run Full Verification Suite',
-      description: 'Execute credit check, employer reference, landlord reference, and Right to Rent in parallel.',
+      description: 'Credit check, employer reference, landlord reference, Right to Rent.',
       status: 'idle',
     },
     {
       id: 'draft',
       type: 'draft',
       label: 'Draft Tenancy Offer',
-      description: 'Generate a personalised tenancy offer email with terms, rent, deposit, and move-in date.',
+      description: 'Generate personalised tenancy offer with terms and deposit.',
       status: 'idle',
     },
     {
       id: 'check',
       type: 'check',
       label: 'Affordability Analysis',
-      description: 'Calculate rent-to-income ratio, check DTI, simulate stress scenarios, and flag any risks.',
+      description: 'Rent-to-income, DTI stress test, and risk flags.',
       status: 'idle',
     },
     {
       id: 'recommend',
       type: 'recommend',
       label: 'Generate Recommendation',
-      description: 'Produce an AI-powered proceed / caution / reject recommendation with full reasoning.',
+      description: 'AI-powered proceed / caution / reject with reasoning.',
       status: 'idle',
     },
   ])
 
   const [agentLog, setAgentLog] = useState<string[]>([])
   const [isRunningAll, setIsRunningAll] = useState(false)
-  const [showLog, setShowLog] = useState(true)
 
   const runAction = (actionId: string) => {
     setActions(prev => prev.map(a => a.id === actionId ? { ...a, status: 'running' as const } : a))
-    setAgentLog(prev => [...prev, `[Agent] Starting: ${actions.find(a => a.id === actionId)?.label}...`])
+    setAgentLog(prev => [...prev, `Starting: ${actions.find(a => a.id === actionId)?.label}...`])
 
     const results: Record<string, { result: string; duration: string; logs: string[] }> = {
       research: {
-        result: `Profile verified for ${enquirerName}. LinkedIn confirmed (${intel?.linkedinHeadline || 'N/A'}). ${intel?.companyAssociations?.[0] ? `Companies House: ${intel.companyAssociations[0].name} — active company.` : 'No Companies House records found.'} Electoral roll: confirmed at current address. No adverse media found.`,
+        result: `Profile verified for ${enquirerName}. LinkedIn confirmed (${intel?.linkedinHeadline || 'N/A'}). ${intel?.companyAssociations?.[0] ? `Companies House: ${intel.companyAssociations[0].name} — active.` : 'No Companies House records.'} Electoral roll confirmed. No adverse media.`,
         duration: '3.2s',
         logs: [
-          `[Agent] Searching LinkedIn for "${enquirerName}"...`,
-          `[Agent] Found LinkedIn profile — ${intel?.linkedinHeadline || 'verified'}`,
-          `[Agent] Querying Companies House API...`,
-          `[Agent] Checking electoral roll via Experian...`,
-          `[Agent] Scanning adverse media databases...`,
-          `[Agent] Research complete — profile verified.`,
+          `Searching LinkedIn for "${enquirerName}"...`,
+          `Found profile — ${intel?.linkedinHeadline || 'verified'}`,
+          `Querying Companies House API...`,
+          `Checking electoral roll via Experian...`,
+          `Scanning adverse media databases...`,
+          `Research complete.`,
         ],
       },
       verify: {
-        result: `Verification suite completed. ${intel?.references?.filter(r => r.status === 'verified').length || 0}/${intel?.references?.length || 0} checks passed. Credit score: ${intel?.creditScore || 'N/A'}. Right to Rent: ${intel?.rightToRent || 'pending'}.`,
+        result: `Verification complete. ${intel?.references?.filter(r => r.status === 'verified').length || 0}/${intel?.references?.length || 0} checks passed. Credit: ${intel?.creditScore || 'N/A'}. Right to Rent: ${intel?.rightToRent || 'pending'}.`,
         duration: '5.8s',
         logs: [
-          `[Agent] Initiating parallel verification checks...`,
-          `[Agent] → Credit check via Experian API...`,
-          `[Agent] → Employer reference request sent...`,
-          `[Agent] → Landlord reference request sent...`,
-          `[Agent] → Right to Rent document check...`,
-          `[Agent] All checks completed. Compiling results...`,
+          `Initiating parallel verification...`,
+          `→ Credit check via Experian...`,
+          `→ Employer reference sent...`,
+          `→ Landlord reference sent...`,
+          `→ Right to Rent check...`,
+          `All checks completed.`,
         ],
       },
       draft: {
-        result: `Tenancy offer drafted for ${enquirerName}. 12-month AST, rent at market rate, 5-week deposit (capped). Move-in date: 1st of next month. Sent to drafts for review.`,
+        result: `Tenancy offer drafted. 12-month AST, market rent, 5-week deposit (capped). Move-in: 1st of next month. Saved to drafts.`,
         duration: '2.1s',
         logs: [
-          `[Agent] Generating tenancy offer from template...`,
-          `[Agent] Populating applicant details and unit information...`,
-          `[Agent] Calculating deposit (5-week cap)...`,
-          `[Agent] Setting move-in date and break clause terms...`,
-          `[Agent] Offer saved to drafts.`,
+          `Generating offer from template...`,
+          `Populating applicant details...`,
+          `Calculating deposit (5-week cap)...`,
+          `Setting terms and move-in date...`,
+          `Offer saved to drafts.`,
         ],
       },
       check: {
-        result: `Affordability: ${intel?.estimatedIncome || 'Unknown income'}. Rent-to-income ratio within ${(intel?.references?.[2]?.status === 'verified') ? 'acceptable' : 'warning'} range. No adverse debt flags. ${(intel?.creditScore?.includes('Poor') || intel?.creditScore?.includes('Fair')) ? 'Recommend guarantor.' : 'No guarantor required.'}`,
+        result: `Income: ${intel?.estimatedIncome || 'Unknown'}. Ratio: ${(intel?.references?.[2]?.status === 'verified') ? 'acceptable' : 'warning'} range. ${(intel?.creditScore?.includes('Poor') || intel?.creditScore?.includes('Fair')) ? 'Recommend guarantor.' : 'No guarantor needed.'}`,
         duration: '1.8s',
         logs: [
-          `[Agent] Pulling income data...`,
-          `[Agent] Calculating rent-to-income ratio...`,
-          `[Agent] Running DTI stress test at +2% base rate...`,
-          `[Agent] Checking for outstanding debts...`,
-          `[Agent] Affordability analysis complete.`,
+          `Pulling income data...`,
+          `Calculating rent-to-income...`,
+          `DTI stress test at +2%...`,
+          `Checking outstanding debts...`,
+          `Analysis complete.`,
         ],
       },
       recommend: {
         result: intel?.creditScore?.includes('Poor')
-          ? `RECOMMENDATION: CAUTION. ${enquirerName} has adverse credit (CCJ on record) and unverified income. Recommend requesting a guarantor or 6 months' rent in advance before proceeding. Do not offer tenancy without additional security.`
-          : `RECOMMENDATION: PROCEED. ${enquirerName} is a strong applicant with verified employment, clean credit, and good references. Low risk profile. Recommend offering tenancy at standard terms.`,
+          ? `CAUTION — Adverse credit (CCJ) and unverified income. Recommend guarantor or 6 months rent in advance.`
+          : `PROCEED — Verified employment, clean credit, good references. Low risk. Offer at standard terms.`,
         duration: '2.5s',
         logs: [
-          `[Agent] Aggregating all verification results...`,
-          `[Agent] Weighing risk factors (credit, income, references)...`,
-          `[Agent] Applying Aroundtown letting criteria...`,
-          `[Agent] Generating recommendation with reasoning...`,
-          `[Agent] Recommendation generated.`,
+          `Aggregating verification results...`,
+          `Weighing risk factors...`,
+          `Applying letting criteria...`,
+          `Generating recommendation...`,
+          `Done.`,
         ],
       },
     }
@@ -584,14 +585,14 @@ function AgenticAIPanel({ enquirerName, intel }: { enquirerName: string; intel: 
       } else {
         clearInterval(interval)
         setActions(prev => prev.map(a => a.id === actionId ? { ...a, status: 'complete' as const, result: data.result, duration: data.duration } : a))
-        setAgentLog(prev => [...prev, `[Agent] ✓ Complete (${data.duration})`])
+        setAgentLog(prev => [...prev, `✓ Complete (${data.duration})`])
       }
     }, 400)
   }
 
   const runAll = () => {
     setIsRunningAll(true)
-    setAgentLog([`[Agent] Starting full agentic pipeline for ${enquirerName}...`])
+    setAgentLog([`Starting full pipeline for ${enquirerName}...`])
     const order = ['research', 'verify', 'check', 'recommend']
     let i = 0
 
@@ -603,7 +604,7 @@ function AgenticAIPanel({ enquirerName, intel }: { enquirerName: string; intel: 
       } else {
         setTimeout(() => {
           setIsRunningAll(false)
-          setAgentLog(prev => [...prev, `[Agent] Full pipeline complete. All tasks finished.`])
+          setAgentLog(prev => [...prev, `Pipeline complete. All tasks finished.`])
         }, 3000)
       }
     }
@@ -624,130 +625,159 @@ function AgenticAIPanel({ enquirerName, intel }: { enquirerName: string; intel: 
     recommend: Brain,
   }
 
-  return (
-    <div className="bg-[#111111] border border-purple-500/30 rounded-xl overflow-hidden">
-      <div className="p-4 border-b border-purple-500/20 bg-purple-500/5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
-              <Brain className="w-4 h-4 text-purple-400" />
-            </div>
-            <div>
-              <h3 className="text-base font-semibold text-white flex items-center gap-2">
-                Agentic AI
-                <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px]">Beta</Badge>
-              </h3>
-              <p className="text-xs text-white/40">Autonomous AI agent that researches, verifies, and recommends actions</p>
-            </div>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              onClick={runAll}
-              disabled={isRunningAll}
-              className="bg-purple-500 hover:bg-purple-600 text-white"
-            >
-              {isRunningAll ? (
-                <><Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> Running...</>
-              ) : (
-                <><Play className="w-3.5 h-3.5 mr-1.5" /> Run All</>
-              )}
-            </Button>
-            <Button size="sm" variant="outline" onClick={resetAll} className="border-white/20 text-white/60 hover:bg-white/5">
-              <RotateCcw className="w-3.5 h-3.5" />
-            </Button>
-          </div>
-        </div>
-      </div>
+  const completedCount = actions.filter(a => a.status === 'complete').length
+  const runningCount = actions.filter(a => a.status === 'running').length
 
-      {/* Actions Grid */}
-      <div className="p-4 space-y-2">
-        {actions.map((action) => {
-          const ActionIcon = actionIcons[action.id] || Zap
-          return (
-            <div key={action.id} className={`border rounded-lg transition-all ${
-              action.status === 'complete' ? 'border-emerald-500/20 bg-emerald-500/5' :
-              action.status === 'running' ? 'border-purple-500/30 bg-purple-500/5' :
-              'border-white/5 bg-white/[0.02]'
-            }`}>
-              <div className="p-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className={`w-7 h-7 rounded-md flex items-center justify-center ${
-                      action.status === 'complete' ? 'bg-emerald-500/20' :
-                      action.status === 'running' ? 'bg-purple-500/20' :
-                      'bg-white/5'
-                    }`}>
-                      {action.status === 'running' ? (
-                        <Loader2 className="w-3.5 h-3.5 text-purple-400 animate-spin" />
-                      ) : action.status === 'complete' ? (
-                        <CheckCircle className="w-3.5 h-3.5 text-emerald-400" />
-                      ) : (
-                        <ActionIcon className="w-3.5 h-3.5 text-white/40" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">{action.label}</p>
-                      <p className="text-[11px] text-white/40">{action.description}</p>
-                    </div>
+  return (
+    <>
+      {/* Floating Action Button */}
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 ${
+          isOpen
+            ? 'bg-white/10 border border-white/20 rotate-0'
+            : 'bg-purple-500 hover:bg-purple-600 hover:scale-110'
+        } ${runningCount > 0 ? 'animate-pulse' : ''}`}
+      >
+        {isOpen ? (
+          <X className="w-5 h-5 text-white" />
+        ) : (
+          <Brain className="w-6 h-6 text-white" />
+        )}
+        {/* Activity indicator */}
+        {!isOpen && (completedCount > 0 || runningCount > 0) && (
+          <span className={`absolute -top-1 -right-1 w-5 h-5 rounded-full text-[10px] font-bold flex items-center justify-center ${
+            runningCount > 0 ? 'bg-purple-400 text-white animate-pulse' : 'bg-emerald-400 text-black'
+          }`}>
+            {runningCount > 0 ? '...' : completedCount}
+          </span>
+        )}
+      </button>
+
+      {/* Slide-out Panel */}
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div className="fixed inset-0 z-40" onClick={() => setIsOpen(false)} />
+
+          {/* Panel */}
+          <div className="fixed bottom-24 right-6 z-50 w-[420px] max-h-[calc(100vh-140px)] bg-[#0A0A0A] border border-purple-500/30 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
+            {/* Header */}
+            <div className="p-4 border-b border-purple-500/20 bg-purple-500/5 flex-shrink-0">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 bg-purple-500/20 rounded-lg flex items-center justify-center">
+                    <Brain className="w-4 h-4 text-purple-400" />
                   </div>
-                  <div className="flex items-center gap-2">
-                    {action.duration && (
-                      <span className="text-[10px] text-white/30">{action.duration}</span>
-                    )}
-                    {action.status === 'idle' && (
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => runAction(action.id)}
-                        disabled={isRunningAll}
-                        className="border-white/10 text-white/60 hover:bg-white/5 text-xs h-7 px-2.5"
-                      >
-                        <Play className="w-3 h-3 mr-1" /> Run
-                      </Button>
-                    )}
+                  <div>
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      Agentic AI
+                      <Badge className="bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[9px] px-1.5 py-0">Beta</Badge>
+                    </h3>
+                    <p className="text-[11px] text-white/40">{enquirerName}</p>
                   </div>
                 </div>
-                {action.result && (
-                  <div className="mt-2 ml-9.5 pl-9 text-xs text-white/60 leading-relaxed bg-black/20 rounded-md p-2.5 border border-white/5">
-                    {action.result}
-                  </div>
-                )}
+                <div className="flex gap-1.5">
+                  <Button
+                    size="sm"
+                    onClick={runAll}
+                    disabled={isRunningAll}
+                    className="bg-purple-500 hover:bg-purple-600 text-white h-7 text-xs px-2.5"
+                  >
+                    {isRunningAll ? (
+                      <><Loader2 className="w-3 h-3 mr-1 animate-spin" /> Running</>
+                    ) : (
+                      <><Play className="w-3 h-3 mr-1" /> Run All</>
+                    )}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={resetAll} className="border-white/20 text-white/60 hover:bg-white/5 h-7 w-7 p-0">
+                    <RotateCcw className="w-3 h-3" />
+                  </Button>
+                </div>
               </div>
             </div>
-          )
-        })}
-      </div>
 
-      {/* Agent Log */}
-      {agentLog.length > 0 && (
-        <div className="border-t border-purple-500/20">
-          <button
-            onClick={() => setShowLog(!showLog)}
-            className="w-full px-4 py-2 flex items-center justify-between text-xs text-white/40 hover:text-white/60 transition-colors"
-          >
-            <span className="flex items-center gap-2">
-              <Bot className="w-3.5 h-3.5" />
-              Agent Log ({agentLog.length} entries)
-            </span>
-            {showLog ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-          </button>
-          {showLog && (
-            <div className="px-4 pb-3 max-h-48 overflow-y-auto">
-              <div className="bg-black/30 rounded-lg p-3 font-mono text-[11px] space-y-0.5">
-                {agentLog.map((log, i) => (
-                  <p key={i} className={`${
-                    log.includes('✓') ? 'text-emerald-400' :
-                    log.includes('Starting') ? 'text-purple-400' :
-                    'text-white/50'
-                  }`}>{log}</p>
-                ))}
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto">
+              {/* Actions */}
+              <div className="p-3 space-y-1.5">
+                {actions.map((action) => {
+                  const ActionIcon = actionIcons[action.id] || Zap
+                  return (
+                    <div key={action.id} className={`border rounded-lg transition-all ${
+                      action.status === 'complete' ? 'border-emerald-500/20 bg-emerald-500/5' :
+                      action.status === 'running' ? 'border-purple-500/30 bg-purple-500/5' :
+                      'border-white/5 bg-white/[0.02]'
+                    }`}>
+                      <div className="p-2.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 flex-1 min-w-0">
+                            <div className={`w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0 ${
+                              action.status === 'complete' ? 'bg-emerald-500/20' :
+                              action.status === 'running' ? 'bg-purple-500/20' :
+                              'bg-white/5'
+                            }`}>
+                              {action.status === 'running' ? (
+                                <Loader2 className="w-3 h-3 text-purple-400 animate-spin" />
+                              ) : action.status === 'complete' ? (
+                                <CheckCircle className="w-3 h-3 text-emerald-400" />
+                              ) : (
+                                <ActionIcon className="w-3 h-3 text-white/40" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-xs font-medium text-white truncate">{action.label}</p>
+                              <p className="text-[10px] text-white/30 truncate">{action.description}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+                            {action.duration && (
+                              <span className="text-[9px] text-white/25">{action.duration}</span>
+                            )}
+                            {action.status === 'idle' && (
+                              <button
+                                onClick={() => runAction(action.id)}
+                                disabled={isRunningAll}
+                                className="text-[10px] text-purple-400 hover:text-purple-300 font-medium disabled:opacity-30"
+                              >
+                                Run
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        {action.result && (
+                          <div className="mt-1.5 ml-8 text-[11px] text-white/50 leading-relaxed bg-black/20 rounded-md p-2 border border-white/5">
+                            {action.result}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
+
+              {/* Agent Log */}
+              {agentLog.length > 0 && (
+                <div className="border-t border-white/5 px-3 py-2">
+                  <p className="text-[10px] text-white/30 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                    <Bot className="w-3 h-3" /> Agent Log
+                  </p>
+                  <div className="bg-black/30 rounded-lg p-2.5 max-h-36 overflow-y-auto font-mono text-[10px] space-y-0.5">
+                    {agentLog.map((log, i) => (
+                      <p key={i} className={`${
+                        log.includes('✓') ? 'text-emerald-400' :
+                        log.includes('Starting') || log.includes('pipeline') ? 'text-purple-400' :
+                        'text-white/40'
+                      }`}>{log}</p>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </div>
+        </>
       )}
-    </div>
+    </>
   )
 }
 
@@ -878,23 +908,6 @@ export default function GCPEnquirerDetailPage() {
         </div>
       </div>
 
-      {/* Overview Summary */}
-      {intel && (
-        <div className="bg-[#111111] border border-purple-500/30 rounded-xl">
-          <div className="p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <FileText className="w-4 h-4 text-purple-400" />
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-purple-400 mb-1">Tenant Overview</h4>
-                <p className="text-sm text-white/70 leading-relaxed">{intel.overview}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* AI Tenant Summary */}
       {enquirer.tenantSummary && (
         <div className="bg-[#111111] border border-blue-500/30 rounded-xl">
@@ -943,9 +956,6 @@ export default function GCPEnquirerDetailPage() {
           </div>
         </div>
       </div>
-
-      {/* Agentic AI */}
-      <AgenticAIPanel enquirerName={enquirer.fullName} intel={intel} />
 
       {/* Verify This Tenant */}
       <div className="bg-[#111111] border border-amber-500/30 rounded-xl">
@@ -1197,28 +1207,6 @@ export default function GCPEnquirerDetailPage() {
             </div>
           </SectionCard>
 
-          {/* Consistency Checks */}
-          {enquirer.consistencyChecks && (
-            <SectionCard title="Consistency Checks" icon={Shield} accentColor="text-yellow-400">
-              <div className="space-y-2">
-                {enquirer.consistencyChecks.map((check, i) => (
-                  <div key={i} className="bg-white/[0.03] border border-white/5 rounded-lg p-3">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm text-white">{check.field}</span>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                        check.result === 'Match' ? 'bg-emerald-500/20 text-emerald-400' :
-                        check.result === 'Mismatch' ? 'bg-red-500/20 text-red-400' :
-                        'bg-amber-500/20 text-amber-400'
-                      }`}>{check.result}</span>
-                    </div>
-                    <p className="text-xs text-white/40">{check.source}</p>
-                    <p className="text-xs text-white/60 mt-0.5">{check.detail}</p>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          )}
-
           {/* AI Conversation Preview */}
           {conversation && (
             <SectionCard title="AI Conversation" icon={MessageSquare} accentColor="text-blue-400">
@@ -1239,30 +1227,11 @@ export default function GCPEnquirerDetailPage() {
             </SectionCard>
           )}
 
-          {/* Quality Breakdown */}
-          {enquirer.qualityBreakdown && (
-            <SectionCard title="Quality Breakdown" icon={TrendingUp} accentColor="text-emerald-400">
-              <div className="space-y-3">
-                {enquirer.qualityBreakdown.map((factor, i) => (
-                  <div key={i} className="space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs text-white/60">{factor.name}</span>
-                      <span className="text-xs font-semibold text-white">{factor.score}/{factor.maxScore}</span>
-                    </div>
-                    <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full bg-emerald-400 transition-all"
-                        style={{ width: `${(factor.score / factor.maxScore) * 100}%` }}
-                      />
-                    </div>
-                    <p className="text-[10px] text-white/30">{factor.evidence}</p>
-                  </div>
-                ))}
-              </div>
-            </SectionCard>
-          )}
         </div>
       </div>
+
+      {/* Floating Agentic AI Chat Button + Panel */}
+      <AgenticAIChatPanel enquirerName={enquirer.fullName} intel={intel} />
     </div>
   )
 }
