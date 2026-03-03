@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import { useRouter } from 'next/navigation'
 import { ALL_ENQUIRERS } from '@/lib/gcpdemo'
 import type { DemoEnquirer, PipelineStatus, RiskLevel } from '@/lib/gcpdemo/types'
-import { EnquirerDetailPanel } from '@/components/gcpdemo/EnquirerDetailPanel'
 import { Search, Filter, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -17,12 +17,12 @@ function getScoreBand(score: number): ScoreBand {
 }
 
 export default function EnquirersPage() {
+  const router = useRouter()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState<PipelineStatus | 'all'>('all')
   const [scoreBand, setScoreBand] = useState<ScoreBand>('all')
   const [riskFilter, setRiskFilter] = useState<RiskLevel | 'all'>('all')
   const [verificationFilter, setVerificationFilter] = useState<string>('all')
-  const [selectedEnquirer, setSelectedEnquirer] = useState<DemoEnquirer | null>(null)
   const [sortField, setSortField] = useState<'aiScore' | 'fullName' | 'daysInPipeline'>('aiScore')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
@@ -175,7 +175,7 @@ export default function EnquirersPage() {
               {filtered.map((e) => (
                 <tr
                   key={e.id}
-                  onClick={() => setSelectedEnquirer(e)}
+                  onClick={() => router.push(`/gcpdemo/enquirers/${e.id}`)}
                   className="border-b border-white/5 hover:bg-white/[0.03] cursor-pointer transition-colors"
                 >
                   <td className="px-4 py-3 text-white font-medium">{e.fullName}</td>
@@ -219,16 +219,7 @@ export default function EnquirersPage() {
         </div>
       </div>
 
-      {/* Detail Panel */}
-      {selectedEnquirer && (
-        <>
-          <div className="fixed inset-0 bg-black/50 z-40" onClick={() => setSelectedEnquirer(null)} />
-          <EnquirerDetailPanel
-            enquirer={selectedEnquirer}
-            onClose={() => setSelectedEnquirer(null)}
-          />
-        </>
-      )}
+      {/* Rows now navigate to /gcpdemo/enquirers/[id] detail page */}
     </div>
   )
 }

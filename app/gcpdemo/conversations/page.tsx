@@ -1,182 +1,255 @@
 'use client'
 
-import { useState, useMemo } from 'react'
-import { useSearchParams } from 'next/navigation'
-import { DEMO_CONVERSATIONS } from '@/lib/gcpdemo'
-import type { DemoConversation } from '@/lib/gcpdemo/types'
-import { MessageSquare, Bot, User, CheckCircle2, AlertTriangle, XCircle, Filter } from 'lucide-react'
+import { useState } from 'react'
+import Link from 'next/link'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { ALL_ENQUIRERS } from '@/lib/gcpdemo'
+import {
+  Search,
+  Phone,
+  MessageCircle,
+  Mail,
+  ChevronRight,
+  X,
+} from 'lucide-react'
 
-function ConversationList({ conversations, selectedId, onSelect }: {
-  conversations: DemoConversation[]
-  selectedId: string | null
-  onSelect: (c: DemoConversation) => void
-}) {
-  return (
-    <div className="space-y-1">
-      {conversations.map(conv => (
-        <button
-          key={conv.id}
-          onClick={() => onSelect(conv)}
-          className={`w-full text-left p-3 rounded-lg transition-colors ${
-            selectedId === conv.id ? 'bg-emerald-500/10 border border-emerald-500/30' : 'hover:bg-white/[0.03] border border-transparent'
-          }`}
-        >
-          <div className="flex items-center justify-between mb-1">
-            <span className="text-sm font-medium text-white">{conv.enquirerName}</span>
-            <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-              conv.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' :
-              conv.status === 'Flagged' ? 'bg-red-500/20 text-red-400' :
-              'bg-blue-500/20 text-blue-400'
-            }`}>{conv.status}</span>
-          </div>
-          <p className="text-xs text-white/40 truncate">
-            {conv.messages[conv.messages.length - 1]?.content.slice(0, 60)}...
-          </p>
-          <p className="text-[10px] text-white/30 mt-1">
-            {conv.messages.length} messages · Score: {conv.outcome.score}
-          </p>
-        </button>
-      ))}
-    </div>
-  )
+const GCP_DEMO_CONVERSATIONS = [
+  {
+    enquirerId: 'enq-marcus-weber',
+    name: 'Marcus Weber',
+    channel: 'email',
+    lastMessage: 'Good morning. I have reviewed the tenancy agreement for Unit 1A. Everything looks in order. Could you confirm the move-in date as 1st March and the deposit amount?',
+    time: '20 min ago',
+    status: 'Verified',
+    unread: true,
+  },
+  {
+    enquirerId: 'enq-sophie-chen',
+    name: 'Sophie Chen',
+    channel: 'whatsapp',
+    lastMessage: 'Hi, I visited the 2-bed in Unit 3B yesterday. Lovely flat. I would like to proceed with the application. What documents do you need from me?',
+    time: '1h ago',
+    status: 'Viewing Complete',
+    unread: true,
+  },
+  {
+    enquirerId: 'enq-amara-osei',
+    name: 'Amara Osei',
+    channel: 'phone',
+    lastMessage: 'Call completed — 14 min. Discussed Unit 2C options and rent terms. Sending application form and reference request via email.',
+    time: '3h ago',
+    status: 'Viewing Booked',
+    unread: false,
+  },
+  {
+    enquirerId: 'enq-james-okafor',
+    name: 'James Okafor',
+    channel: 'whatsapp',
+    lastMessage: 'Thanks for the floor plan. The 1-bed at Unit 4A looks perfect for my needs. I can do a viewing this Saturday if available?',
+    time: '5h ago',
+    status: 'Scored',
+    unread: false,
+  },
+  {
+    enquirerId: 'enq-raj-kapoor',
+    name: 'Raj Kapoor',
+    channel: 'email',
+    lastMessage: 'I work at Imperial NHS Trust and need a flat close to the hospital. Do you have anything available from next month? My budget is up to £2,000 PCM.',
+    time: 'Yesterday',
+    status: 'Scored',
+    unread: false,
+  },
+  {
+    enquirerId: 'enq-li-mei-wong',
+    name: 'Li Mei Wong',
+    channel: 'whatsapp',
+    lastMessage: 'Following up on the 1-bed near Kensington High Street. I work at Burberry HQ nearby so the location would be ideal. Can we arrange a viewing?',
+    time: 'Yesterday',
+    status: 'Viewing Booked',
+    unread: false,
+  },
+  {
+    enquirerId: 'enq-tom-richards',
+    name: 'Tom Richards',
+    channel: 'phone',
+    lastMessage: 'Missed call. Left voicemail asking about studio availability and whether a 6-month tenancy is possible.',
+    time: '2d ago',
+    status: 'Flagged',
+    unread: false,
+  },
+]
+
+const channelIcons: Record<string, typeof Phone> = {
+  whatsapp: MessageCircle,
+  phone: Phone,
+  email: Mail,
 }
 
-function ConversationThread({ conversation }: { conversation: DemoConversation }) {
+const channelColors: Record<string, string> = {
+  whatsapp: 'text-green-400 bg-green-400/10',
+  phone: 'text-blue-400 bg-blue-400/10',
+  email: 'text-purple-400 bg-purple-400/10',
+}
+
+export default function GCPDemoConversationsPage() {
+  const [search, setSearch] = useState('')
+  const [channelFilter, setChannelFilter] = useState('all')
+  const [selectedConvo, setSelectedConvo] = useState<typeof GCP_DEMO_CONVERSATIONS[0] | null>(null)
+
+  const filtered = GCP_DEMO_CONVERSATIONS.filter((c) => {
+    const matchesSearch = !search ||
+      c.name.toLowerCase().includes(search.toLowerCase()) ||
+      c.lastMessage.toLowerCase().includes(search.toLowerCase())
+    const matchesChannel = channelFilter === 'all' || c.channel === channelFilter
+    return matchesSearch && matchesChannel
+  })
+
+  const selectedEnquirer = selectedConvo ? ALL_ENQUIRERS.find(e => e.id === selectedConvo.enquirerId) : null
+
   return (
-    <div className="flex flex-col h-full">
-      {/* Header */}
-      <div className="border-b border-white/10 px-5 py-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-lg font-medium text-white">{conversation.enquirerName}</h3>
-            <p className="text-xs text-white/40">
-              {new Date(conversation.startedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-              {' · '}{conversation.messages.length} messages
-            </p>
-          </div>
-          <span className={`text-xs px-2 py-1 rounded-full ${
-            conversation.status === 'Completed' ? 'bg-emerald-500/20 text-emerald-400' :
-            'bg-red-500/20 text-red-400'
-          }`}>{conversation.status}</span>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold text-white">Conversations</h2>
+        <p className="text-sm text-white/50">Manage applicant communications</p>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="grid grid-cols-4 gap-3">
+        <div className="bg-[#111111] border border-white/10 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold text-white">{GCP_DEMO_CONVERSATIONS.length}</p>
+          <p className="text-[10px] text-white/40 uppercase">Total</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold text-yellow-400">{GCP_DEMO_CONVERSATIONS.filter(c => c.unread).length}</p>
+          <p className="text-[10px] text-white/40 uppercase">Unread</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold text-green-400">{GCP_DEMO_CONVERSATIONS.filter(c => c.channel === 'whatsapp').length}</p>
+          <p className="text-[10px] text-white/40 uppercase">WhatsApp</p>
+        </div>
+        <div className="bg-[#111111] border border-white/10 rounded-lg p-3 text-center">
+          <p className="text-lg font-bold text-blue-400">{GCP_DEMO_CONVERSATIONS.filter(c => c.channel === 'phone').length}</p>
+          <p className="text-[10px] text-white/40 uppercase">Calls</p>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-4">
-        {conversation.messages.map((msg) => (
-          <div key={msg.id} className={`flex gap-3 ${msg.sender === 'ai' ? '' : 'flex-row-reverse'}`}>
-            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${
-              msg.sender === 'ai' ? 'bg-blue-500/20' : 'bg-white/10'
-            }`}>
-              {msg.sender === 'ai' ? (
-                <Bot className="w-3.5 h-3.5 text-blue-400" />
-              ) : (
-                <User className="w-3.5 h-3.5 text-white/60" />
-              )}
-            </div>
-            <div className={`max-w-[80%] rounded-xl px-4 py-3 ${
-              msg.sender === 'ai'
-                ? 'bg-[#111111] border border-white/10'
-                : 'bg-emerald-500/10 border border-emerald-500/20'
-            }`}>
-              <p className="text-sm text-white/80 leading-relaxed">{msg.content}</p>
-              <p className="text-[10px] text-white/30 mt-1.5">
-                {new Date(msg.timestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-              </p>
-            </div>
-          </div>
-        ))}
-
-        {/* Outcome Assessment */}
-        <div className="mt-6 bg-[#111111] border border-white/10 rounded-xl p-5">
-          <div className="inline-flex items-center gap-3 mb-3">
-            <span className="w-2 h-2 rounded-full bg-[#34D399]" />
-            <span className="text-xs font-medium tracking-[0.15em] uppercase text-white/70">OUTCOME ASSESSMENT</span>
-          </div>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="text-center">
-              <p className={`text-3xl font-bold ${
-                conversation.outcome.score >= 70 ? 'text-emerald-400' :
-                conversation.outcome.score >= 45 ? 'text-amber-400' : 'text-gray-400'
-              }`}>{conversation.outcome.score}</p>
-              <p className="text-[10px] text-white/40 uppercase">{conversation.outcome.category}</p>
-            </div>
-          </div>
-          <div className="space-y-2">
-            {conversation.outcome.lines.map((line, i) => (
-              <div key={i} className="flex items-start gap-2.5">
-                {line.status === 'pass' ? (
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 flex-shrink-0" />
-                ) : line.status === 'warn' ? (
-                  <AlertTriangle className="w-4 h-4 text-amber-400 mt-0.5 flex-shrink-0" />
-                ) : (
-                  <XCircle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
-                )}
-                <span className="text-sm text-white/70">{line.text}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-export default function ConversationsPage() {
-  const searchParams = useSearchParams()
-  const initialId = searchParams.get('id')
-  const [filter, setFilter] = useState<'all' | 'Completed' | 'Flagged'>('all')
-
-  const filtered = useMemo(() => {
-    if (filter === 'all') return DEMO_CONVERSATIONS
-    return DEMO_CONVERSATIONS.filter(c => c.status === filter)
-  }, [filter])
-
-  const initialConversation = initialId ? DEMO_CONVERSATIONS.find(c => c.id === initialId) : null
-  const [selected, setSelected] = useState<DemoConversation | null>(initialConversation || filtered[0] || null)
-
-  return (
-    <div className="flex gap-0 h-[calc(100vh-73px)] -m-4 lg:-m-6">
-      {/* Left: Conversation List */}
-      <div className="w-80 flex-shrink-0 border-r border-white/10 flex flex-col bg-[#0A0A0A]">
-        <div className="p-4 border-b border-white/10">
-          <div className="flex items-center gap-2">
-            <MessageSquare className="w-4 h-4 text-emerald-400" />
-            <span className="text-sm font-medium text-white">Conversations</span>
-            <span className="text-xs text-white/40 ml-auto">{filtered.length}</span>
-          </div>
-          <div className="flex gap-1 mt-3">
-            {(['all', 'Completed', 'Flagged'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`text-[10px] px-2.5 py-1 rounded-full transition-colors ${
-                  filter === f
-                    ? 'bg-emerald-500/20 text-emerald-400'
-                    : 'text-white/40 hover:text-white/60 hover:bg-white/5'
-                }`}
-              >
-                {f === 'all' ? 'All' : f}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2">
-          <ConversationList
-            conversations={filtered}
-            selectedId={selected?.id || null}
-            onSelect={setSelected}
+      {/* Filters */}
+      <div className="flex gap-3">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/40" />
+          <Input
+            placeholder="Search conversations..."
+            className="pl-9 bg-[#111111] border-white/10 text-white placeholder:text-white/40"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
           />
         </div>
+        <div className="flex gap-2">
+          {['all', 'whatsapp', 'phone', 'email'].map((ch) => (
+            <Button
+              key={ch}
+              variant={channelFilter === ch ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setChannelFilter(ch)}
+              className={channelFilter !== ch ? 'border-white/10 text-white/70 hover:bg-white/5' : ''}
+            >
+              {ch === 'all' ? 'All' : ch.charAt(0).toUpperCase() + ch.slice(1)}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      {/* Right: Message Thread */}
-      <div className="flex-1 bg-[#0A0A0A]">
-        {selected ? (
-          <ConversationThread conversation={selected} />
-        ) : (
-          <div className="flex items-center justify-center h-full text-white/30 text-sm">
-            Select a conversation to view
+      {/* Conversation List + Side Panel */}
+      <div className="flex gap-4">
+        <div className={`space-y-2 ${selectedConvo ? 'w-1/2' : 'w-full'} transition-all`}>
+          {filtered.map((convo) => {
+            const Icon = channelIcons[convo.channel] || Mail
+            return (
+              <div
+                key={convo.enquirerId}
+                onClick={() => setSelectedConvo(convo)}
+                className={`bg-[#111111] border rounded-xl p-4 cursor-pointer transition-colors ${
+                  selectedConvo?.enquirerId === convo.enquirerId
+                    ? 'border-emerald-500/50 bg-emerald-500/5'
+                    : 'border-white/10 hover:border-white/20'
+                }`}
+              >
+                <div className="flex items-start gap-3">
+                  <div className={`h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0 ${channelColors[convo.channel]}`}>
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2">
+                        <p className={`text-sm font-medium ${convo.unread ? 'text-white' : 'text-white/70'}`}>{convo.name}</p>
+                        {convo.unread && <div className="h-2 w-2 rounded-full bg-emerald-400" />}
+                      </div>
+                      <span className="text-[10px] text-white/30">{convo.time}</span>
+                    </div>
+                    <p className="text-xs text-white/40 truncate">{convo.lastMessage}</p>
+                    <Badge variant="secondary" className="mt-1.5 text-[10px]">{convo.status}</Badge>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-white/20 flex-shrink-0 mt-1" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        {/* Side Panel */}
+        {selectedConvo && selectedEnquirer && (
+          <div className="w-1/2 bg-[#111111] border border-white/10 rounded-xl p-5 space-y-4 sticky top-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">{selectedConvo.name}</h3>
+              <button onClick={() => setSelectedConvo(null)} className="text-white/40 hover:text-white">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-sm text-white/50">
+              <Phone className="h-3.5 w-3.5" />
+              <span>{selectedEnquirer.phone}</span>
+            </div>
+
+            <Badge variant="secondary">{selectedConvo.status}</Badge>
+
+            <div className="flex gap-2">
+              <Button size="sm" className="bg-emerald-500 hover:bg-emerald-600">
+                <Phone className="h-3.5 w-3.5 mr-1" /> Call
+              </Button>
+              <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/5">
+                <MessageCircle className="h-3.5 w-3.5 mr-1" /> WhatsApp
+              </Button>
+              <Button size="sm" variant="outline" className="border-white/20 text-white hover:bg-white/5">
+                <Mail className="h-3.5 w-3.5 mr-1" /> Email
+              </Button>
+            </div>
+
+            {/* Last Message */}
+            <div className="bg-white/5 rounded-lg p-3">
+              <p className="text-xs text-white/40 mb-1">Last message · {selectedConvo.time}</p>
+              <p className="text-sm text-white/70">{selectedConvo.lastMessage}</p>
+            </div>
+
+            {/* Contact Details */}
+            <div className="space-y-2 pt-2 border-t border-white/10">
+              <h4 className="text-xs text-white/40 uppercase tracking-wider">Contact Details</h4>
+              <div className="text-sm">
+                <p className="text-white/60">Email: <span className="text-white/80">{selectedEnquirer.email}</span></p>
+                <p className="text-white/60">Employer: <span className="text-white/80">{selectedEnquirer.employer}</span></p>
+                <p className="text-white/60">Role: <span className="text-white/80">{selectedEnquirer.role}</span></p>
+                <p className="text-white/60">NB Score: <span className="text-emerald-400 font-bold">{selectedEnquirer.aiScore}</span></p>
+              </div>
+            </div>
+
+            <Link
+              href={`/gcpdemo/enquirers/${selectedConvo.enquirerId}`}
+              className="block text-center text-sm text-emerald-400 hover:text-emerald-300 py-2 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/5 transition-colors"
+            >
+              View Full Enquirer Profile
+            </Link>
           </div>
         )}
       </div>
