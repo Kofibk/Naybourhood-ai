@@ -112,7 +112,7 @@ export default function GCPDemoConversationsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-white">Conversations</h2>
-        <p className="text-sm text-white/50">Manage tenant communications</p>
+        <p className="text-sm text-white/50">Manage applicant communications</p>
       </div>
 
       {/* Quick Stats */}
@@ -233,9 +233,9 @@ export default function GCPDemoConversationsPage() {
               <p className="text-sm text-white/70">{selectedConvo.lastMessage}</p>
             </div>
 
-            {/* Tenant Details */}
+            {/* Contact Details */}
             <div className="space-y-2 pt-2 border-t border-white/10">
-              <h4 className="text-xs text-white/40 uppercase tracking-wider">Tenant Details</h4>
+              <h4 className="text-xs text-white/40 uppercase tracking-wider">Contact Details</h4>
               <div className="text-sm">
                 <p className="text-white/60">Email: <span className="text-white/80">{selectedEnquirer.email}</span></p>
                 <p className="text-white/60">Employer: <span className="text-white/80">{selectedEnquirer.employer}</span></p>
@@ -248,7 +248,7 @@ export default function GCPDemoConversationsPage() {
               href={`/gcpdemo/enquirers/${selectedConvo.enquirerId}`}
               className="block text-center text-sm text-emerald-400 hover:text-emerald-300 py-2 border border-emerald-500/30 rounded-lg hover:bg-emerald-500/5 transition-colors"
             >
-              View Full Tenant Profile
+              View Full Enquirer Profile
             </Link>
           </div>
         )}
