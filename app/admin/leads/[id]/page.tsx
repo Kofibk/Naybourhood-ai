@@ -4,49 +4,75 @@ import { useMemo, useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { NBScoreRing } from '@/components/ui/nb-score-ring'
+import { getNBScoreColor } from '@/lib/scoring/nb-score'
 import { useUsers } from '@/hooks/useUsers'
 import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer } from '@/types'
 import type { ScoreBuyerResponse } from '@/app/api/ai/score-buyer/route'
-import {
-  parseBudgetRange,
-  formatBudgetValue,
-  formatDate,
-} from '@/lib/leadUtils'
-import {
-  DataRow,
-} from '@/components/leads/detail/LeadDisplayComponents'
-import {
-  EditableTextField,
-  EditableBooleanField,
-  EditableSelectField,
-  EditableConnectionStatus,
-} from '@/components/leads/detail/LeadEditableFields'
-import { LeadHeader } from '@/components/leads/detail/LeadHeader'
-import { LeadAIInsights } from '@/components/leads/detail/LeadAIInsights'
+import { parseBudgetRange, formatBudgetValue, formatDate } from '@/lib/leadUtils'
+import { DataRow } from '@/components/leads/detail/LeadDisplayComponents'
+import { EditableTextField, EditableBooleanField, EditableSelectField, EditableConnectionStatus } from '@/components/leads/detail/LeadEditableFields'
 import { LeadSidebar } from '@/components/leads/detail/LeadSidebar'
 import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
 import {
-  ArrowLeft,
-  Phone,
-  Mail,
-  MessageCircle,
-  Calendar,
-  Bot,
-  MessageSquare,
-  User,
-  Building,
-  Clock,
-  DollarSign,
-  MapPin,
-  Hash,
-  Globe,
-  Briefcase,
-  Home,
+  ArrowLeft, Phone, Mail, MessageCircle, Calendar, Bot, MessageSquare,
+  User, Building, Clock, DollarSign, MapPin, Hash, Globe, Briefcase, Home,
+  Target, Sparkles, Shield, ShieldCheck, ExternalLink, TrendingUp,
+  CircleDot, CheckCircle, FileText, RefreshCw, ShieldAlert, AlertTriangle,
 } from 'lucide-react'
 
+// ─── Helper Components ───────────────────────────────────────────────────────
+
+function SectionCard({ title, icon: Icon, children, accentColor }: { title: string; icon: any; children: React.ReactNode; accentColor?: string }) {
+  return (
+    <div className="bg-[#111111] border border-white/10 rounded-xl overflow-hidden">
+      <div className="p-4 pb-2">
+        <h3 className="text-base font-semibold text-white flex items-center gap-2">
+          <Icon className={`w-4 h-4 ${accentColor || 'text-white/50'}`} />
+          {title}
+        </h3>
+      </div>
+      <div className="px-4 pb-4">{children}</div>
+    </div>
+  )
+}
+
+function SubScoreBar({ label, score, maxScore = 100 }: { label: string; score: number | null | undefined; maxScore?: number }) {
+  const value = score ?? 0
+  const percentage = Math.min((value / maxScore) * 100, 100)
+  const color = getNBScoreColor(value)
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between">
+        <span className="text-sm text-white/50">{label}</span>
+        <span className="text-sm font-semibold" style={{ color }}>{score ?? '-'}</span>
+      </div>
+      <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+        <div className="h-full rounded-full transition-all duration-500" style={{ width: `${percentage}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  )
+}
+
+// ─── Classification Config ───────────────────────────────────────────────────
+
+const CLASSIFICATION_CONFIG: Record<string, { bg: string; text: string; label: string; ringBg: string }> = {
+  'Hot': { bg: 'bg-red-600', text: 'text-white', label: 'Hot Lead', ringBg: 'bg-red-500/10 border-red-500/30' },
+  'Hot Lead': { bg: 'bg-red-600', text: 'text-white', label: 'Hot Lead', ringBg: 'bg-red-500/10 border-red-500/30' },
+  'Qualified': { bg: 'bg-emerald-600', text: 'text-white', label: 'Qualified', ringBg: 'bg-emerald-500/10 border-emerald-500/30' },
+  'Warm-Qualified': { bg: 'bg-emerald-600', text: 'text-white', label: 'Qualified', ringBg: 'bg-emerald-500/10 border-emerald-500/30' },
+  'Needs Qualification': { bg: 'bg-amber-500', text: 'text-white', label: 'Needs Qualification', ringBg: 'bg-amber-500/10 border-amber-500/30' },
+  'Warm-Engaged': { bg: 'bg-amber-500', text: 'text-white', label: 'Warm', ringBg: 'bg-amber-500/10 border-amber-500/30' },
+  'Nurture': { bg: 'bg-blue-500', text: 'text-white', label: 'Nurture', ringBg: 'bg-blue-500/10 border-blue-500/30' },
+  'Cold': { bg: 'bg-gray-400', text: 'text-white', label: 'Cold', ringBg: 'bg-gray-400/10 border-gray-400/30' },
+  'Disqualified': { bg: 'bg-red-900', text: 'text-white', label: 'Disqualified', ringBg: 'bg-red-900/10 border-red-900/30' },
+}
+
+// ─── Main Page ───────────────────────────────────────────────────────────────
 
 export default function LeadDetailPage() {
   const params = useParams()
@@ -139,6 +165,8 @@ export default function LeadDetailPage() {
     await updateLead(lead.id, { [field]: value })
   }
 
+  // ─── Loading State ──────────────────────────────────────────────────────────
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -166,6 +194,8 @@ export default function LeadDetailPage() {
     )
   }
 
+  // ─── Not Found State ────────────────────────────────────────────────────────
+
   if (!lead) {
     return (
       <div className="space-y-6">
@@ -183,6 +213,8 @@ export default function LeadDetailPage() {
       </div>
     )
   }
+
+  // ─── Score Computation ──────────────────────────────────────────────────────
 
   // Use score result if available, otherwise use stored values
   // Use null for unscored leads (will trigger auto-scoring)
@@ -226,54 +258,235 @@ export default function LeadDetailPage() {
 
   const scoreReasons = getScoreExplanation()
 
+  // Composite NB Score (average of quality + intent)
+  const nbScore = (qualityScore != null && intentScore != null)
+    ? Math.round((qualityScore + intentScore) / 2)
+    : qualityScore ?? intentScore ?? 0
+
+  const classConfig = CLASSIFICATION_CONFIG[classification] || CLASSIFICATION_CONFIG['Cold']
+  const displayName = lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Unknown Lead'
+
+  // ─── Render ─────────────────────────────────────────────────────────────────
+
   return (
     <div className="max-w-7xl mx-auto space-y-6">
-      {/* HEADER SECTION */}
-      <LeadHeader
-        lead={lead}
-        qualityScore={qualityScore}
-        intentScore={intentScore}
-        confidenceScore={confidenceScore}
-        classification={classification}
-        priority={priority}
-        scoreReasons={scoreReasons}
-        scoreResult={scoreResult}
-        isRescoring={isRescoring}
-        onRescore={handleRescore}
-        onArchive={handleArchive}
-      />
 
-      {/* KYC Verification Banner */}
+      {/* ═══════════════════════════════════════════════════════════════════
+          1. HEADER
+      ═══════════════════════════════════════════════════════════════════ */}
+      <div>
+        <Link href="/admin/leads" className="inline-flex items-center gap-2 text-white/50 hover:text-white text-sm mb-4">
+          <ArrowLeft className="w-4 h-4" />
+          Back to Leads
+        </Link>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-white">{displayName}</h1>
+            <div className="flex items-center gap-4 mt-1 text-sm text-white/50">
+              {lead.email && (
+                <span className="flex items-center gap-1">
+                  <Mail className="w-3.5 h-3.5" />
+                  {lead.email}
+                </span>
+              )}
+              {lead.phone && (
+                <span className="flex items-center gap-1">
+                  <Phone className="w-3.5 h-3.5" />
+                  {lead.phone}
+                </span>
+              )}
+              {lead.country && (
+                <span className="flex items-center gap-1">
+                  <Globe className="w-3.5 h-3.5" />
+                  {lead.country}
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          2. NB SCORE HERO
+      ═══════════════════════════════════════════════════════════════════ */}
+      <div className={`bg-[#111111] border ${classConfig.ringBg} rounded-xl`}>
+        <div className="p-6">
+          <div className="flex items-center gap-8">
+            {/* Score Ring */}
+            <div className="flex-shrink-0">
+              <NBScoreRing score={nbScore} size={120} />
+            </div>
+
+            {/* Classification & Sub-scores */}
+            <div className="flex-1 space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <Badge className={`${classConfig.bg} ${classConfig.text} text-sm px-3 py-1`}>
+                  {classConfig.label}
+                </Badge>
+                <Badge variant="outline" className="border-white/20 text-white/70 text-sm px-3 py-1">
+                  {priority}
+                </Badge>
+                <Button variant="outline" size="sm" onClick={handleRescore} disabled={isRescoring} className="border-white/20 text-white hover:bg-white/5">
+                  <RefreshCw className={`w-4 h-4 mr-1 ${isRescoring ? 'animate-spin' : ''}`} />
+                  {isRescoring ? 'Scoring...' : 'Re-score'}
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-6">
+                <SubScoreBar label="Quality" score={qualityScore} />
+                <SubScoreBar label="Intent" score={intentScore} />
+                <SubScoreBar label="Confidence" score={confidenceScore} />
+              </div>
+
+              {/* Score Reasons */}
+              {scoreReasons.length > 0 && (
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {scoreReasons.map((reason, i) => (
+                    <span key={i} className="text-xs text-white/40 bg-white/5 px-2 py-0.5 rounded-full">
+                      {reason}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          3. KYC VERIFICATION BANNER
+      ═══════════════════════════════════════════════════════════════════ */}
       <KycVerificationBanner buyerId={lead.id} />
 
       {/* ═══════════════════════════════════════════════════════════════════
-          THREE COLUMN LAYOUT
+          4. AI SUMMARY
+      ═══════════════════════════════════════════════════════════════════ */}
+      {(summary || scoreResult?.summary) && (
+        <div className="bg-[#111111] border border-blue-500/30 rounded-xl">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Sparkles className="w-4 h-4 text-blue-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-white mb-1">AI Summary</h4>
+                <p className="text-sm text-white/70 leading-relaxed">{summary || scoreResult?.summary}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          5. RECOMMENDED NEXT ACTION
+      ═══════════════════════════════════════════════════════════════════ */}
+      {nextAction && (
+        <div className="bg-[#111111] border border-emerald-500/30 rounded-xl">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Target className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-white mb-1">Recommended Next Action</h4>
+                <p className="text-sm text-white/70 leading-relaxed mb-3">{nextAction}</p>
+                <div className="flex gap-2 flex-wrap">
+                  {lead.phone && (
+                    <a href={`tel:${lead.phone}`}>
+                      <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                        <Phone className="w-4 h-4 mr-1" /> Call
+                      </Button>
+                    </a>
+                  )}
+                  {lead.email && (
+                    <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10" onClick={() => setShowEmailComposer(true)}>
+                      <Mail className="w-4 h-4 mr-1" /> Email
+                    </Button>
+                  )}
+                  {lead.phone && (
+                    <a href={`https://wa.me/${lead.phone?.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer">
+                      <Button size="sm" variant="outline" className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10">
+                        <MessageCircle className="w-4 h-4 mr-1" /> WhatsApp
+                      </Button>
+                    </a>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          6. RISK FLAGS
+      ═══════════════════════════════════════════════════════════════════ */}
+      {riskFlags && riskFlags.length > 0 && (
+        <div className="bg-[#111111] border border-orange-500/30 rounded-xl">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-orange-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <AlertTriangle className="w-4 h-4 text-orange-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-white mb-2">Risk Flags</h4>
+                <ul className="space-y-1.5">
+                  {riskFlags.map((flag, i) => (
+                    <li key={i} className="text-sm text-orange-300/80 flex items-start gap-2">
+                      <ShieldAlert className="w-3.5 h-3.5 mt-0.5 flex-shrink-0 text-orange-400/60" />
+                      {flag}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          7. VERIFY THIS BUYER
+      ═══════════════════════════════════════════════════════════════════ */}
+      <div className="bg-[#111111] border border-amber-500/30 rounded-xl">
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-amber-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Shield className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-white mb-1">Verify This Buyer</h4>
+              <p className="text-sm text-white/60 mb-3">Complete KYC, AML and Proof of Funds checks via our integrated verification partner.</p>
+              <div className="flex gap-2 flex-wrap">
+                <a href="https://www.checkboard.com" target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" className="bg-amber-500 hover:bg-amber-600 text-black font-medium">
+                    <ShieldCheck className="w-4 h-4 mr-1" /> Run KYC / AML Check
+                    <ExternalLink className="w-3 h-3 ml-1.5" />
+                  </Button>
+                </a>
+                <a href="https://www.checkboard.com" target="_blank" rel="noopener noreferrer">
+                  <Button size="sm" variant="outline" className="border-amber-500/30 text-amber-400 hover:bg-amber-500/10">
+                    <DollarSign className="w-4 h-4 mr-1" /> Proof of Funds
+                    <ExternalLink className="w-3 h-3 ml-1.5" />
+                  </Button>
+                </a>
+              </div>
+              <p className="text-[10px] text-white/30 mt-2">Powered by Checkboard — KYC, AML & Source of Funds verification</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          8. THREE-COLUMN GRID
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* COLUMN 1 - AI INSIGHTS & ACTIONS */}
-        <LeadAIInsights
-          lead={lead}
-          summary={summary}
-          nextAction={nextAction}
-          recommendations={recommendations}
-          riskFlags={riskFlags}
-          scoreBreakdown={scoreBreakdown}
-          onShowEmailComposer={() => setShowEmailComposer(true)}
-        />
 
         {/* ─────────────────────────────────────────────────────────────────
-            COLUMN 2 - BUYER PROFILE & REQUIREMENTS
+            COLUMN 1 - Contact, Property, Financial
         ───────────────────────────────────────────────────────────────── */}
         <div className="space-y-4">
           {/* Contact Information */}
-          <div className="bg-[#111111] border border-white/10 rounded-xl">
-            <div className="p-4 pb-2">
-              <h3 className="text-base text-white flex items-center gap-2">
-                <User className="w-4 h-4" />
-                Contact Information
-              </h3>
-            </div>
-            <div className="px-4 pb-4 space-y-0">
+          <SectionCard title="Contact Information" icon={User} accentColor="text-blue-400">
+            <div className="space-y-0">
               <EditableTextField label="Full Name" value={lead.full_name} field="full_name" onSave={handleFieldSave} icon={User} />
               <EditableTextField label="First Name" value={lead.first_name} field="first_name" onSave={handleFieldSave} />
               <EditableTextField label="Last Name" value={lead.last_name} field="last_name" onSave={handleFieldSave} />
@@ -281,19 +494,12 @@ export default function LeadDetailPage() {
               <EditableTextField label="Phone" value={lead.phone} field="phone" onSave={handleFieldSave} icon={Phone} type="tel" />
               <EditableTextField label="Country" value={lead.country} field="country" onSave={handleFieldSave} icon={Globe} />
             </div>
-          </div>
+          </SectionCard>
 
           {/* Property Requirements */}
-          <div className="bg-[#111111] border border-white/10 rounded-xl">
-            <div className="p-4 pb-2">
-              <h3 className="text-base text-white flex items-center gap-2">
-                <Home className="w-4 h-4" />
-                Property Requirements
-              </h3>
-            </div>
-            <div className="px-4 pb-4 space-y-0">
+          <SectionCard title="Property Requirements" icon={Home} accentColor="text-emerald-400">
+            <div className="space-y-0">
               {(() => {
-                // Parse budget range to auto-populate min/max if not set
                 const parsedBudget = parseBudgetRange(lead.budget_range || lead.budget)
                 const minBudget = lead.budget_min || parsedBudget.min
                 const maxBudget = lead.budget_max || parsedBudget.max
@@ -351,17 +557,11 @@ export default function LeadDetailPage() {
               />
               <EditableBooleanField label="Ready in 28 Days" value={lead.ready_within_28_days || lead.ready_in_28_days} field="ready_within_28_days" onSave={handleFieldSave} />
             </div>
-          </div>
+          </SectionCard>
 
           {/* Financial Qualification */}
-          <div className="bg-[#111111] border border-white/10 rounded-xl">
-            <div className="p-4 pb-2">
-              <h3 className="text-base text-white flex items-center gap-2">
-                <DollarSign className="w-4 h-4" />
-                Financial Qualification
-              </h3>
-            </div>
-            <div className="px-4 pb-4 space-y-0">
+          <SectionCard title="Financial Qualification" icon={DollarSign} accentColor="text-amber-400">
+            <div className="space-y-0">
               <EditableSelectField
                 label="Payment Method"
                 value={lead.payment_method}
@@ -398,17 +598,16 @@ export default function LeadDetailPage() {
                 onChange={(newValue) => updateLead(lead.id, { uk_solicitor: newValue })}
               />
             </div>
-          </div>
+          </SectionCard>
+        </div>
 
+        {/* ─────────────────────────────────────────────────────────────────
+            COLUMN 2 - Source, Engagement, Conversations, Calls
+        ───────────────────────────────────────────────────────────────── */}
+        <div className="space-y-4">
           {/* Source & Campaign */}
-          <div className="bg-[#111111] border border-white/10 rounded-xl">
-            <div className="p-4 pb-2">
-              <h3 className="text-base text-white flex items-center gap-2">
-                <Briefcase className="w-4 h-4" />
-                Source & Campaign
-              </h3>
-            </div>
-            <div className="px-4 pb-4 space-y-0">
+          <SectionCard title="Source & Campaign" icon={Briefcase} accentColor="text-purple-400">
+            <div className="space-y-0">
               <EditableTextField label="Source" value={lead.source_platform || lead.source} field="source_platform" onSave={handleFieldSave} />
               <EditableTextField label="Campaign/Development" value={lead.source_campaign || lead.campaign || lead.development_name} field="source_campaign" onSave={handleFieldSave} />
               <EditableTextField label="Development Name" value={lead.development_name} field="development_name" onSave={handleFieldSave} icon={Building} />
@@ -416,17 +615,11 @@ export default function LeadDetailPage() {
               <DataRow label="Campaign ID" value={lead.campaign_id ? lead.campaign_id.substring(0, 8) + '...' : '-'} icon={Hash} />
               <DataRow label="Company ID" value={lead.company_id ? lead.company_id.substring(0, 8) + '...' : '-'} icon={Building} />
             </div>
-          </div>
+          </SectionCard>
 
           {/* Engagement & Communication */}
-          <div className="bg-[#111111] border border-white/10 rounded-xl">
-            <div className="p-4 pb-2">
-              <h3 className="text-base text-white flex items-center gap-2">
-                <MessageCircle className="w-4 h-4" />
-                Engagement & Communication
-              </h3>
-            </div>
-            <div className="px-4 pb-4 space-y-0">
+          <SectionCard title="Engagement & Communication" icon={MessageCircle} accentColor="text-cyan-400">
+            <div className="space-y-0">
               <EditableBooleanField label="Viewing Intent" value={(lead as any).viewing_intent_confirmed} field="viewing_intent_confirmed" onSave={handleFieldSave} />
               <EditableBooleanField label="Viewing Booked" value={(lead as any).viewing_booked} field="viewing_booked" onSave={handleFieldSave} />
               <EditableTextField label="Viewing Date" value={(lead as any).viewing_date} field="viewing_date" onSave={handleFieldSave} icon={Calendar} />
@@ -435,7 +628,7 @@ export default function LeadDetailPage() {
               <EditableTextField label="Next Follow-up" value={(lead as any).next_follow_up} field="next_follow_up" onSave={handleFieldSave} icon={Clock} />
               <EditableBooleanField label="Broker Connected" value={(lead as any).connect_to_broker || (lead as any).broker_connected} field="connect_to_broker" onSave={handleFieldSave} />
             </div>
-          </div>
+          </SectionCard>
 
           {/* WhatsApp Conversation Thread */}
           <ConversationThread
@@ -448,14 +641,8 @@ export default function LeadDetailPage() {
 
           {/* Call Summary & Transcript */}
           {((lead as any).transcript || (lead as any).call_summary) && (
-            <div className="bg-[#111111] border border-white/10 rounded-xl">
-              <div className="p-4 pb-2">
-                <h3 className="text-base text-white flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Call History
-                </h3>
-              </div>
-              <div className="px-4 pb-4 space-y-3">
+            <SectionCard title="Call History" icon={MessageSquare} accentColor="text-violet-400">
+              <div className="space-y-3">
                 {(lead as any).call_summary && (
                   <div>
                     <div className="text-sm text-white/50 mb-1">Call Summary</div>
@@ -469,11 +656,13 @@ export default function LeadDetailPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </SectionCard>
           )}
         </div>
 
-        {/* COLUMN 3 - STATUS, NOTES & HISTORY */}
+        {/* ─────────────────────────────────────────────────────────────────
+            COLUMN 3 - Status, Assignment, Notes (LeadSidebar)
+        ───────────────────────────────────────────────────────────────── */}
         <LeadSidebar
           lead={lead}
           users={users}
@@ -485,7 +674,9 @@ export default function LeadDetailPage() {
         />
       </div>
 
-      {/* Email Composer Modal */}
+      {/* ═══════════════════════════════════════════════════════════════════
+          EMAIL COMPOSER MODAL
+      ═══════════════════════════════════════════════════════════════════ */}
       {lead.email && (
         <EmailComposer
           open={showEmailComposer}

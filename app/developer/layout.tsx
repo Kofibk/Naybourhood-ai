@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isMasterAdmin, canAccessDashboard } from '@/lib/auth'
 import { Toaster } from 'sonner'
+import { NBAIChat } from '@/components/shared/NBAIChat'
 import { Button } from '@/components/ui/button'
 import { UserPlus } from 'lucide-react'
 
@@ -160,6 +161,7 @@ function DeveloperLayoutContent({ children }: { children: React.ReactNode }) {
         >
           {children}
         </DashboardLayout>
+        <NBAIChat userType="developer" />
     </QueryProvider>
   )
 }

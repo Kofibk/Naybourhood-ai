@@ -8,6 +8,7 @@ import { AuthProvider, useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { isAdminRole, isMasterAdmin, canAccessDashboard } from '@/lib/auth'
 import { Toaster } from 'sonner'
+import { NBAIChat } from '@/components/shared/NBAIChat'
 
 function AdminLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isLoading, logout } = useAuth()
@@ -150,6 +151,7 @@ function AdminLayoutContent({ children }: { children: React.ReactNode }) {
         >
           {children}
         </DashboardLayout>
+        <NBAIChat userType="admin" />
     </QueryProvider>
   )
 }
