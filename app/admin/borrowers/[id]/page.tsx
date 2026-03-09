@@ -374,7 +374,7 @@ export default function FinanceLeadDetailPage() {
   // Company options for broker select
   const companyOptions = (brokerCompanies.length > 0 ? brokerCompanies : companies).map(c => ({
     value: c.id,
-    label: c.name,
+    label: c.name ?? '',
   }))
 
   // ─── Render ─────────────────────────────────────────────────────────────────
