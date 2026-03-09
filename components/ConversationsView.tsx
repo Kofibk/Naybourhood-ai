@@ -13,6 +13,7 @@ import {
   SheetTitle,
   SheetDescription,
 } from '@/components/ui/sheet'
+import { ConversationThread } from '@/components/ConversationThread'
 import type { Buyer, FinanceLead } from '@/types'
 import {
   Search,
@@ -595,48 +596,14 @@ export function ConversationsView({
                   </CardContent>
                 </Card>
 
-                {/* Last WhatsApp Message */}
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <WhatsAppIcon className="h-4 w-4 text-green-600" />
-                      Last WhatsApp Message
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    {selectedConversation.lastMessage ? (
-                      <div className="bg-green-100 dark:bg-green-900/50 rounded-lg p-4 border border-green-300 dark:border-green-700">
-                        <p className="text-sm whitespace-pre-wrap text-green-900 dark:text-green-100">{selectedConversation.lastMessage}</p>
-                      </div>
-                    ) : (
-                      <div className="text-center py-6">
-                        <MessageSquare className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">No WhatsApp messages yet</p>
-                        {selectedConversation.phone && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="mt-3"
-                            onClick={() => handleWhatsApp(selectedConversation.phone)}
-                          >
-                            <WhatsAppIcon className="h-4 w-4 mr-2 text-green-600" />
-                            Start Conversation
-                          </Button>
-                        )}
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-
-                {/* Info Note */}
-                <div className="bg-muted/50 rounded-lg p-3 text-xs text-muted-foreground">
-                  <p className="flex items-start gap-2">
-                    <MessageCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
-                    <span>
-                      This shows the last recorded message. Full conversation history requires WhatsApp Business API integration.
-                    </span>
-                  </p>
-                </div>
+                {/* Full Conversation Thread */}
+                <ConversationThread
+                  buyerId={selectedConversation.id}
+                  buyerName={selectedConversation.name}
+                  buyerPhone={selectedConversation.phone}
+                  channel="whatsapp"
+                  maxHeight="400px"
+                />
               </div>
 
               {/* View Full Profile Link */}

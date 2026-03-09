@@ -444,6 +444,147 @@ export default function LeadDetailPage() {
       )}
 
       {/* ═══════════════════════════════════════════════════════════════════
+          BUYER PROFILE SUMMARY
+      ═══════════════════════════════════════════════════════════════════ */}
+      <div className="bg-[#111111] border border-purple-500/30 rounded-xl">
+        <div className="p-5">
+          <div className="flex items-start gap-3">
+            <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <User className="w-4 h-4 text-purple-400" />
+            </div>
+            <div className="flex-1">
+              <h4 className="text-sm font-semibold text-white mb-3">Buyer Profile Summary</h4>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
+                {/* Left column */}
+                <div className="space-y-3">
+                  <div>
+                    <span className="text-xs text-white/40 uppercase tracking-wider">Full Name</span>
+                    <p className="text-sm text-white">{displayName}</p>
+                  </div>
+                  {lead.country && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Country</span>
+                      <p className="text-sm text-white">{lead.country}</p>
+                    </div>
+                  )}
+                  {(lead.budget_range || lead.budget) && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Budget</span>
+                      <p className="text-sm text-white">{lead.budget_range || lead.budget}</p>
+                    </div>
+                  )}
+                  {lead.payment_method && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Payment Method</span>
+                      <p className="text-sm text-white">{lead.payment_method}</p>
+                    </div>
+                  )}
+                  {lead.mortgage_status && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Mortgage Status</span>
+                      <p className="text-sm text-white">{lead.mortgage_status}</p>
+                    </div>
+                  )}
+                  {(lead.preferred_location || lead.location || lead.area) && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Preferred Location</span>
+                      <p className="text-sm text-white">{lead.preferred_location || lead.location || lead.area}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Right column */}
+                <div className="space-y-3">
+                  {(lead.preferred_bedrooms || lead.bedrooms) && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Bedrooms</span>
+                      <p className="text-sm text-white">{lead.preferred_bedrooms || lead.bedrooms} Bed</p>
+                    </div>
+                  )}
+                  {(lead.timeline_to_purchase || lead.timeline) && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Purchase Timeline</span>
+                      <p className="text-sm text-white">{lead.timeline_to_purchase || lead.timeline}</p>
+                    </div>
+                  )}
+                  {(lead.purchase_purpose || lead.purpose) && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Purpose</span>
+                      <p className="text-sm text-white">{lead.purchase_purpose || lead.purpose}</p>
+                    </div>
+                  )}
+                  {(lead.source_platform || lead.source) && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Source</span>
+                      <p className="text-sm text-white">{lead.source_platform || lead.source}</p>
+                    </div>
+                  )}
+                  {lead.development_name && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Development Interest</span>
+                      <p className="text-sm text-white">{lead.development_name}</p>
+                    </div>
+                  )}
+                  {lead.enquiry_type && (
+                    <div>
+                      <span className="text-xs text-white/40 uppercase tracking-wider">Enquiry Type</span>
+                      <p className="text-sm text-white">{lead.enquiry_type}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Qualification indicators */}
+              <div className="mt-4 pt-3 border-t border-white/10">
+                <span className="text-xs text-white/40 uppercase tracking-wider block mb-2">Qualification Indicators</span>
+                <div className="flex flex-wrap gap-2">
+                  <span className={`text-xs px-2 py-1 rounded-full ${lead.proof_of_funds ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white/30'}`}>
+                    {lead.proof_of_funds ? '✓' : '○'} Proof of Funds
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${hasPositiveConnection(lead.uk_broker) ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white/30'}`}>
+                    {hasPositiveConnection(lead.uk_broker) ? '✓' : '○'} UK Broker
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${hasPositiveConnection(lead.uk_solicitor) ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white/30'}`}>
+                    {hasPositiveConnection(lead.uk_solicitor) ? '✓' : '○'} UK Solicitor
+                  </span>
+                  <span className={`text-xs px-2 py-1 rounded-full ${(lead as any).ready_within_28_days || (lead as any).ready_in_28_days ? 'bg-emerald-500/10 text-emerald-400' : 'bg-white/5 text-white/30'}`}>
+                    {(lead as any).ready_within_28_days || (lead as any).ready_in_28_days ? '✓' : '○'} Ready in 28 Days
+                  </span>
+                </div>
+              </div>
+
+              {/* AI-generated buyer summary if available */}
+              {lead.buyer_summary && (
+                <div className="mt-4 pt-3 border-t border-white/10">
+                  <span className="text-xs text-white/40 uppercase tracking-wider block mb-2">AI Buyer Summary</span>
+                  <p className="text-sm text-white/70 leading-relaxed">{lead.buyer_summary}</p>
+                </div>
+              )}
+
+              {/* LinkedIn / Company website if available */}
+              <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-3">
+                {lead.linkedin && (
+                  <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
+                    <Briefcase className="w-3 h-3" />
+                    LinkedIn Profile
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+                {lead.company_website && (
+                  <a href={lead.company_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
+                    <Globe className="w-3 h-3" />
+                    Company Website
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
           7. VERIFY THIS BUYER
       ═══════════════════════════════════════════════════════════════════ */}
       <div className="bg-[#111111] border border-amber-500/30 rounded-xl">
