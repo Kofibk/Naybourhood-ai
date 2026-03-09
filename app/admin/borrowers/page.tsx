@@ -32,11 +32,13 @@ import {
   MessageSquare,
   FileText,
   Clock,
+  AlertTriangle,
 } from 'lucide-react'
 
 type SortField = 'full_name' | 'email' | 'phone' | 'finance_type' | 'loan_amount' | 'required_by_date' | 'message' | 'status' | 'notes' | 'assigned_agent' | 'date_added' | 'created_at'
 type SortDirection = 'asc' | 'desc'
 type GroupBy = 'none' | 'status' | 'finance_type' | 'assigned_agent'
+type QuickFilter = 'all' | 'urgent' | 'awaiting_documents' | 'contact_pending' | 'completed'
 
 // Filter types for Airtable-style filtering
 type FilterOperator =
@@ -199,6 +201,56 @@ export default function FinanceLeadsPage() {
     [financeLeads]
   )
 
+  // Quick filter tab state
+  const [quickFilter, setQuickFilter] = useState<QuickFilter>('all')
+
+  // Urgency helper: returns 'overdue' | 'urgent' | 'normal' | null
+  const getDateUrgency = useCallback((dateString?: string): 'overdue' | 'urgent' | 'normal' | null => {
+    if (!dateString) return null
+    const now = new Date()
+    now.setHours(0, 0, 0, 0)
+    const target = new Date(dateString)
+    target.setHours(0, 0, 0, 0)
+    const diffDays = Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
+    if (diffDays < 0) return 'overdue'
+    if (diffDays <= 7) return 'urgent'
+    return 'normal'
+  }, [])
+
+  // Pre-filter by quick filter tab (before Airtable filters)
+  const quickFilteredLeads = useMemo(() => {
+    if (quickFilter === 'all') return financeLeads
+    return financeLeads.filter((lead) => {
+      switch (quickFilter) {
+        case 'urgent': {
+          const urgency = getDateUrgency(lead.required_by_date)
+          return urgency === 'overdue' || urgency === 'urgent'
+        }
+        case 'awaiting_documents':
+          return lead.status === 'Awaiting Documents'
+        case 'contact_pending':
+          return lead.status === 'Contact Pending'
+        case 'completed':
+          return lead.status === 'Completed'
+        default:
+          return true
+      }
+    })
+  }, [financeLeads, quickFilter, getDateUrgency])
+
+  // Format loan amount with K/M suffix for summary
+  const formatLoanSummary = useCallback((amount: number): string => {
+    if (amount >= 1000000) {
+      const m = amount / 1000000
+      return m % 1 === 0 ? `\u00A3${m.toFixed(0)}M` : `\u00A3${m.toFixed(1)}M`
+    }
+    if (amount >= 1000) {
+      const k = amount / 1000
+      return k % 1 === 0 ? `\u00A3${k.toFixed(0)}K` : `\u00A3${k.toFixed(1)}K`
+    }
+    return `\u00A3${amount}`
+  }, [])
+
   // Search state
   const [search, setSearch] = useState('')
 
@@ -341,9 +393,9 @@ export default function FinanceLeadsPage() {
     }
   }, [])
 
-  // Filter leads based on all conditions
+  // Filter leads based on all conditions (uses quickFilteredLeads as base)
   const filteredLeads = useMemo(() => {
-    return financeLeads.filter((lead) => {
+    return quickFilteredLeads.filter((lead) => {
       // Text search
       if (search) {
         const searchLower = search.toLowerCase()
@@ -369,7 +421,7 @@ export default function FinanceLeadsPage() {
 
       return true
     })
-  }, [financeLeads, search, filterConditions, filterLogic, matchesCondition])
+  }, [quickFilteredLeads, search, filterConditions, filterLogic, matchesCondition])
 
   // Sort leads
   const sortedLeads = useMemo(() => {
@@ -408,7 +460,7 @@ export default function FinanceLeadsPage() {
   }, [sortedLeads, currentPage, pageSize])
 
   // Reset to page 1 when filters change
-  const filterKey = `${search}-${JSON.stringify(filterConditions)}-${filterLogic}`
+  const filterKey = `${search}-${quickFilter}-${JSON.stringify(filterConditions)}-${filterLogic}`
   useEffect(() => {
     setCurrentPage(1)
   }, [filterKey])
@@ -433,6 +485,11 @@ export default function FinanceLeadsPage() {
 
   // Stats based on actual status values
   const stats = useMemo(() => {
+    const totalLoanValue = filteredLeads.reduce((sum, l) => sum + (l.loan_amount || 0), 0)
+    const urgentCount = financeLeads.filter((l) => {
+      const u = getDateUrgency(l.required_by_date)
+      return u === 'overdue' || u === 'urgent'
+    }).length
     return {
       total: financeLeads.length,
       filtered: filteredLeads.length,
@@ -440,8 +497,11 @@ export default function FinanceLeadsPage() {
       followUp: financeLeads.filter((l) => l.status === 'Follow-up').length,
       awaitingDocs: financeLeads.filter((l) => l.status === 'Awaiting Documents').length,
       notProceeding: financeLeads.filter((l) => l.status === 'Not Proceeding' || l.status === 'Duplicate').length,
+      completed: financeLeads.filter((l) => l.status === 'Completed').length,
+      urgentCount,
+      totalLoanValue,
     }
-  }, [financeLeads, filteredLeads])
+  }, [financeLeads, filteredLeads, getDateUrgency])
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -527,11 +587,18 @@ export default function FinanceLeadsPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold font-display">Borrowers</h2>
-          <p className="text-sm text-white/50">
-            {stats.filtered === stats.total
-              ? `${stats.total.toLocaleString()} total borrowers`
-              : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} borrowers`}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-sm text-white/50">
+              {stats.filtered === stats.total
+                ? `${stats.total.toLocaleString()} total borrowers`
+                : `Showing ${stats.filtered.toLocaleString()} of ${stats.total.toLocaleString()} borrowers`}
+            </p>
+            {stats.totalLoanValue > 0 && (
+              <span className="text-sm font-semibold text-emerald-400">
+                Total: {formatLoanSummary(stats.totalLoanValue)}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex gap-2 items-center">
           {unassignedCount > 0 && brokerCompanies.length > 0 && (
@@ -674,6 +741,37 @@ export default function FinanceLeadsPage() {
               <option value="assigned_agent">Group by Agent</option>
             </select>
           </div>
+        </div>
+
+        {/* Quick Filter Tabs */}
+        <div className="flex items-center gap-1 overflow-x-auto pb-1">
+          {([
+            { key: 'all' as QuickFilter, label: 'All', count: financeLeads.length, dotColor: '' },
+            { key: 'urgent' as QuickFilter, label: 'Urgent', count: stats.urgentCount, dotColor: 'bg-red-500' },
+            { key: 'awaiting_documents' as QuickFilter, label: 'Awaiting Documents', count: stats.awaitingDocs, dotColor: 'bg-amber-500' },
+            { key: 'contact_pending' as QuickFilter, label: 'Contact Pending', count: stats.contactPending, dotColor: 'bg-blue-500' },
+            { key: 'completed' as QuickFilter, label: 'Completed', count: stats.completed, dotColor: 'bg-emerald-500' },
+          ]).map((tab) => (
+            <button
+              key={tab.key}
+              onClick={() => setQuickFilter(tab.key)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
+                quickFilter === tab.key
+                  ? 'bg-white/10 text-white border border-white/20'
+                  : 'text-white/50 hover:text-white hover:bg-white/5 border border-transparent'
+              }`}
+            >
+              {tab.dotColor && (
+                <span className={`h-2 w-2 rounded-full ${tab.dotColor}`} />
+              )}
+              {tab.label}
+              <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                quickFilter === tab.key ? 'bg-white/20' : 'bg-white/10'
+              }`}>
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Advanced Filters Panel (Airtable-style) */}
@@ -974,7 +1072,16 @@ export default function FinanceLeadsPage() {
                               <span className="whitespace-nowrap">{lead.assigned_agent || '-'}</span>
                             )}
                             {col.key === 'required_by_date' && (
-                              <span className="text-white/50 whitespace-nowrap">{formatDate(lead.required_by_date)}</span>
+                              <span className="text-white/50 whitespace-nowrap flex items-center gap-1.5">
+                                {(() => {
+                                  const urgency = getDateUrgency(lead.required_by_date)
+                                  if (urgency === 'overdue') return <span className="inline-block h-2 w-2 rounded-full bg-red-500 shrink-0" title="Overdue" />
+                                  if (urgency === 'urgent') return <span className="inline-block h-2 w-2 rounded-full bg-amber-500 shrink-0" title="Due within 7 days" />
+                                  if (urgency === 'normal') return <span className="inline-block h-2 w-2 rounded-full bg-emerald-500 shrink-0" title="More than 7 days" />
+                                  return null
+                                })()}
+                                {formatDate(lead.required_by_date)}
+                              </span>
                             )}
                             {col.key === 'message' && (
                               <span className="text-white/50" title={lead.message}>
@@ -986,6 +1093,15 @@ export default function FinanceLeadsPage() {
                                 variant={getStatusColor(lead.status) as any}
                                 className="text-xs font-medium"
                               >
+                                <span className={`inline-block h-1.5 w-1.5 rounded-full mr-1.5 ${
+                                  lead.status === 'Contact Pending' ? 'bg-amber-400' :
+                                  lead.status === 'Follow-up' ? 'bg-blue-400' :
+                                  lead.status === 'Awaiting Documents' ? 'bg-purple-400' :
+                                  lead.status === 'Not Proceeding' ? 'bg-red-400' :
+                                  lead.status === 'Duplicate' ? 'bg-gray-400' :
+                                  lead.status === 'Completed' ? 'bg-emerald-400' :
+                                  'bg-white/40'
+                                }`} />
                                 {lead.status || 'Unknown'}
                               </Badge>
                             )}
