@@ -125,15 +125,21 @@ function mapBuyerRow(b: any): Buyer {
 async function fetchLeads(
   page = 0,
   pageSize = 20,
+  companyId?: string, // Add this parameter
 ): Promise<{ data: Buyer[]; count: number }> {
   if (!isSupabaseConfigured()) return { data: [], count: 0 };
 
   const supabase = createClient();
   if (!supabase) return { data: [], count: 0 };
 
-  const { data, error, count } = await supabase
-    .from("buyers")
-    .select("*", { count: "exact" })
+  let query = supabase.from("buyers").select("*", { count: "exact" });
+
+  // Apply filter at database level
+  if (companyId && companyId !== "all") {
+    query = query.eq("company_id", companyId);
+  }
+
+  const { data, error, count } = await query
     .order("created_at", { ascending: false })
     .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -144,7 +150,7 @@ async function fetchLeads(
   };
 }
 
-export function useLeads(page = 0, pageSize = 20) {
+export function useLeads(page = 0, pageSize = 20, companyId?: string) {
   const queryClient = useQueryClient();
 
   const {
@@ -153,8 +159,8 @@ export function useLeads(page = 0, pageSize = 20) {
     error,
     refetch,
   } = useQuery({
-    queryKey: ["leads", page, pageSize],
-    queryFn: () => fetchLeads(page, pageSize),
+    queryKey: ["leads", page, pageSize, companyId],
+    queryFn: () => fetchLeads(page, pageSize, companyId),
   });
 
   // Update a lead
