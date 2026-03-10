@@ -1,39 +1,44 @@
-'use client'
+"use client";
 
-import { useMemo, useState } from 'react'
-import { useFinanceLeads } from '@/hooks/useFinanceLeads'
-import { useLeads } from '@/hooks/useLeads'
-import { useCompanies } from '@/hooks/useCompanies'
-import { ConversationsView } from '@/components/ConversationsView'
-import { Card, CardContent } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Users, Building } from 'lucide-react'
+import { useMemo, useState, useEffect } from "react";
+import { useFinanceLeads } from "@/hooks/useFinanceLeads";
+import { useLeads } from "@/hooks/useLeads";
+import { useCompanies } from "@/hooks/useCompanies";
+import { ConversationsView } from "@/components/ConversationsView";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users, Building } from "lucide-react";
 
 export default function AdminConversationsPage() {
-  const { leads, isLoading: leadsLoading } = useLeads()
-  const { companies } = useCompanies()
-  const { financeLeads, isLoading: dataLoading } = useFinanceLeads()
-  const isLoading = leadsLoading || dataLoading
-  const [activeTab, setActiveTab] = useState<'buyers' | 'borrowers'>('buyers')
-  const [companyFilter, setCompanyFilter] = useState<string>('all')
+  const { companies } = useCompanies();
+  const [page, setPage] = useState(0);
+  const [activeTab, setActiveTab] = useState<"buyers" | "borrowers">("buyers");
+  const [companyFilter, setCompanyFilter] = useState<string>("all");
+  const { leads, isLoading: leadsLoading } = useLeads(page, 20, companyFilter);
+  const { financeLeads, isLoading: dataLoading } = useFinanceLeads();
+  const isLoading = leadsLoading || dataLoading;
 
-  // Filter leads by company if selected
-  const filteredLeads = useMemo(() => {
-    if (companyFilter === 'all') return leads
-    return leads.filter(lead => lead.company_id === companyFilter)
-  }, [leads, companyFilter])
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [page]);
+
+  // Reset to page 0 when company changes
+  const handleCompanyChange = (value: string) => {
+    setCompanyFilter(value);
+    setPage(0);
+  };
 
   // Filter borrowers by company if selected
   const filteredBorrowers = useMemo(() => {
-    if (companyFilter === 'all') return financeLeads
-    return financeLeads.filter(lead => lead.company_id === companyFilter)
-  }, [financeLeads, companyFilter])
+    if (companyFilter === "all") return financeLeads;
+    return financeLeads.filter((lead) => lead.company_id === companyFilter);
+  }, [financeLeads, companyFilter]);
 
   // Get companies for filter dropdown
   const companyOptions = useMemo(() => {
-    return companies.sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-  }, [companies])
+    return companies.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+  }, [companies]);
 
   return (
     <div className="space-y-6">
@@ -50,10 +55,10 @@ export default function AdminConversationsPage() {
           <select
             className="px-3 py-2 rounded-md border border-input bg-background text-sm"
             value={companyFilter}
-            onChange={(e) => setCompanyFilter(e.target.value)}
+            onChange={(e) => handleCompanyChange(e.target.value)}
           >
             <option value="all">All Companies</option>
-            {companyOptions.map(company => (
+            {companyOptions.map((company) => (
               <option key={company.id} value={company.id}>
                 {company.name}
               </option>
@@ -63,11 +68,14 @@ export default function AdminConversationsPage() {
       </div>
 
       {/* Tabs for Buyers vs Borrowers */}
-      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'buyers' | 'borrowers')}>
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "buyers" | "borrowers")}
+      >
         <TabsList>
           <TabsTrigger value="buyers" className="flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Buyers ({filteredLeads.length})
+            Buyers ({leads.count})
           </TabsTrigger>
           <TabsTrigger value="borrowers" className="flex items-center gap-2">
             <Building className="h-4 w-4" />
@@ -77,7 +85,9 @@ export default function AdminConversationsPage() {
 
         <TabsContent value="buyers" className="mt-4">
           <ConversationsView
-            leads={filteredLeads}
+            leads={leads}
+            currentPage={page}
+            onPageChange={setPage}
             source="leads"
             isLoading={isLoading}
             basePath="/admin"
@@ -100,5 +110,5 @@ export default function AdminConversationsPage() {
         </TabsContent>
       </Tabs>
     </div>
-  )
+  );
 }
