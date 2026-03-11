@@ -446,11 +446,32 @@ export default function LeadDetailPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           BUYER PROFILE SUMMARY
       ═══════════════════════════════════════════════════════════════════ */}
-      <div className="bg-[#111111] border border-purple-500/30 rounded-xl">
+
+      {/* Background Research / Overview — WHO is this buyer */}
+      {(lead.background_research || lead.buyer_summary) && (
+        <div className="bg-[#111111] border border-purple-500/30 rounded-xl">
+          <div className="p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <FileText className="w-4 h-4 text-purple-400" />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-sm font-semibold text-purple-400 mb-1">Buyer Background Research</h4>
+                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+                  {lead.background_research || lead.buyer_summary}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Buyer Profile Details */}
+      <div className="bg-[#111111] border border-white/10 rounded-xl">
         <div className="p-5">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <User className="w-4 h-4 text-purple-400" />
+            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <User className="w-4 h-4 text-blue-400" />
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-white mb-3">Buyer Profile Summary</h4>
@@ -554,8 +575,8 @@ export default function LeadDetailPage() {
                 </div>
               </div>
 
-              {/* AI-generated buyer summary if available */}
-              {lead.buyer_summary && (
+              {/* AI-generated buyer summary (separate from background research) */}
+              {lead.buyer_summary && lead.background_research && (
                 <div className="mt-4 pt-3 border-t border-white/10">
                   <span className="text-xs text-white/40 uppercase tracking-wider block mb-2">AI Buyer Summary</span>
                   <p className="text-sm text-white/70 leading-relaxed">{lead.buyer_summary}</p>
@@ -563,22 +584,24 @@ export default function LeadDetailPage() {
               )}
 
               {/* LinkedIn / Company website if available */}
-              <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-3">
-                {lead.linkedin && (
-                  <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
-                    <Briefcase className="w-3 h-3" />
-                    LinkedIn Profile
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-                {lead.company_website && (
-                  <a href={lead.company_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
-                    <Globe className="w-3 h-3" />
-                    Company Website
-                    <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-              </div>
+              {(lead.linkedin || lead.company_website) && (
+                <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-3">
+                  {lead.linkedin && (
+                    <a href={lead.linkedin} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
+                      <Briefcase className="w-3 h-3" />
+                      LinkedIn Profile
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  {lead.company_website && (
+                    <a href={lead.company_website} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs text-blue-400 hover:text-blue-300">
+                      <Globe className="w-3 h-3" />
+                      Company Website
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>

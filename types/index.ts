@@ -139,6 +139,7 @@ export interface Buyer {
   budget_match?: boolean
   bedroom_match?: boolean
   buyer_summary?: string
+  background_research?: string
   // Source & Campaign
   source?: string
   source_platform?: string  // Supabase field name
