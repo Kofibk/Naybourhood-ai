@@ -10,6 +10,7 @@ import { NBScoreRing } from '@/components/ui/nb-score-ring'
 import { getNBScoreColor } from '@/lib/scoring/nb-score'
 import { Lead } from '@/types'
 import { fetchLeadById, updateLeadStatus } from '@/lib/queries/leads'
+import { ConversationThread } from '@/components/ConversationThread'
 import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
 import { toast } from 'sonner'
 import {
@@ -344,6 +345,16 @@ export default function AgentLeadDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Conversation Thread */}
+      <ConversationThread
+        buyerId={lead.id}
+        buyerName={lead.fullName || 'Lead'}
+        buyerPhone={lead.phone}
+        channel="whatsapp"
+        maxHeight="400px"
+        agentTranscript={lead.agentTranscript || lead.transcript}
+      />
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

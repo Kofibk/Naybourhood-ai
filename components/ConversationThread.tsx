@@ -43,6 +43,47 @@ interface ConversationThreadProps {
   channel?: 'whatsapp' | 'all'
   maxHeight?: string
   showHeader?: boolean
+  agentTranscript?: string | null
+}
+
+/**
+ * Parse an agent_transcript string ("Buyer: ...\n\nAgent: ...") into messages.
+ */
+function parseAgentTranscript(transcript: string, buyerName: string): ConversationMessage[] {
+  const messages: ConversationMessage[] = []
+  // Split on lines that start with "Buyer:" or "Agent:"
+  const parts = transcript.split(/\n\n+/)
+  let idx = 0
+
+  for (const part of parts) {
+    const trimmed = part.trim()
+    if (!trimmed) continue
+
+    let direction: 'inbound' | 'outbound' = 'inbound'
+    let content = trimmed
+
+    if (/^Buyer:\s*/i.test(trimmed)) {
+      direction = 'inbound'
+      content = trimmed.replace(/^Buyer:\s*/i, '')
+    } else if (/^Agent:\s*/i.test(trimmed)) {
+      direction = 'outbound'
+      content = trimmed.replace(/^Agent:\s*/i, '')
+    }
+
+    if (content) {
+      messages.push({
+        id: `transcript-${idx}`,
+        channel: 'whatsapp',
+        direction,
+        content,
+        sender_name: direction === 'inbound' ? buyerName : 'AI Agent',
+        created_at: new Date().toISOString(),
+      })
+      idx++
+    }
+  }
+
+  return messages
 }
 
 function formatTimestamp(dateString: string): string {
@@ -102,6 +143,7 @@ export function ConversationThread({
   channel = 'all',
   maxHeight = '500px',
   showHeader = true,
+  agentTranscript,
 }: ConversationThreadProps) {
   const [messages, setMessages] = useState<ConversationMessage[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -110,7 +152,12 @@ export function ConversationThread({
 
   const fetchConversations = useCallback(async () => {
     if (!isSupabaseConfigured()) {
-      setMessages([])
+      // Fall back to agent_transcript if available
+      if (agentTranscript) {
+        setMessages(parseAgentTranscript(agentTranscript, buyerName))
+      } else {
+        setMessages([])
+      }
       setIsLoading(false)
       return
     }
@@ -121,7 +168,11 @@ export function ConversationThread({
     try {
       const supabase = createClient()
       if (!supabase) {
-        setMessages([])
+        if (agentTranscript) {
+          setMessages(parseAgentTranscript(agentTranscript, buyerName))
+        } else {
+          setMessages([])
+        }
         setIsLoading(false)
         return
       }
@@ -141,18 +192,34 @@ export function ConversationThread({
 
       if (fetchError) {
         console.error('[ConversationThread] Fetch error:', fetchError)
+        // Fall back to agent_transcript on error
+        if (agentTranscript) {
+          setMessages(parseAgentTranscript(agentTranscript, buyerName))
+          return
+        }
         setError(fetchError.message)
         return
       }
 
-      setMessages(data || [])
+      // Use conversations table data if available, otherwise fall back to agent_transcript
+      if (data && data.length > 0) {
+        setMessages(data)
+      } else if (agentTranscript) {
+        setMessages(parseAgentTranscript(agentTranscript, buyerName))
+      } else {
+        setMessages([])
+      }
     } catch (e) {
       console.error('[ConversationThread] Error:', e)
-      setError('Failed to load conversation')
+      if (agentTranscript) {
+        setMessages(parseAgentTranscript(agentTranscript, buyerName))
+      } else {
+        setError('Failed to load conversation')
+      }
     } finally {
       setIsLoading(false)
     }
-  }, [buyerId, channel])
+  }, [buyerId, channel, agentTranscript, buyerName])
 
   useEffect(() => {
     if (buyerId) {

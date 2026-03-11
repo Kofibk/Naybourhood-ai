@@ -61,6 +61,7 @@ interface ConversationItem {
   callDirection?: 'inbound' | 'outbound'
   callDuration?: number
   type: 'lead' | 'borrower'
+  agentTranscript?: string | null
 }
 
 interface ConversationsViewProps {
@@ -138,6 +139,7 @@ export function ConversationsView({
           location: lead.preferred_location || lead.location,
           channel: lead.last_wa_message ? 'whatsapp' : (lead.call_summary ? 'call' : 'all'),
           type: 'lead' as const,
+          agentTranscript: lead.agent_transcript,
         }))
     } else {
       return borrowers
@@ -603,6 +605,7 @@ export function ConversationsView({
                   buyerPhone={selectedConversation.phone}
                   channel="whatsapp"
                   maxHeight="400px"
+                  agentTranscript={selectedConversation.agentTranscript}
                 />
               </div>
 

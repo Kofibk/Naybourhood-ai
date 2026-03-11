@@ -11,6 +11,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { createClient, isSupabaseConfigured } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import type { FinanceLead } from '@/types'
+import { ConversationThread } from '@/components/ConversationThread'
 import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
 import { useKycCheck } from '@/hooks/useKycCheck'
 import {
@@ -482,6 +483,16 @@ export default function BrokerBorrowerDetailPage() {
           }`}>{daysUntil !== null ? (daysUntil < 0 ? `${Math.abs(daysUntil)} overdue` : `${daysUntil} days`) : 'N/A'}</p>
         </div>
       </div>
+
+      {/* WhatsApp Conversation Thread */}
+      <ConversationThread
+        buyerId={lead.id}
+        buyerName={lead.full_name || `${lead.first_name || ''} ${lead.last_name || ''}`.trim() || 'Lead'}
+        buyerPhone={lead.phone}
+        channel="whatsapp"
+        maxHeight="400px"
+        agentTranscript={(lead as any).agent_transcript}
+      />
 
       {/* Two-column layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

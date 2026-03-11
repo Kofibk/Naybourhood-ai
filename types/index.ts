@@ -710,6 +710,7 @@ export interface Lead {
   // Communication
   lastWaMessage?: string
   transcript?: string
+  agentTranscript?: string
   callSummary?: string
   replied?: boolean
   stopComms?: boolean

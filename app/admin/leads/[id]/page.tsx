@@ -779,6 +779,7 @@ export default function LeadDetailPage() {
             buyerPhone={lead.phone}
             channel="whatsapp"
             maxHeight="400px"
+            agentTranscript={lead.agent_transcript}
           />
 
           {/* Call Summary & Transcript */}

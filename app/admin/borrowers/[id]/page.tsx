@@ -536,6 +536,7 @@ export default function FinanceLeadDetailPage() {
             buyerPhone={lead.phone}
             channel="whatsapp"
             maxHeight="400px"
+            agentTranscript={(lead as any).agent_transcript}
           />
 
           {/* Message */}

@@ -91,6 +91,7 @@ export function transformBuyerToLead(buyer: Record<string, unknown>): Lead {
 
     lastWaMessage: buyer.last_wa_message as string,
     transcript: buyer.transcript as string,
+    agentTranscript: buyer.agent_transcript as string,
     callSummary: buyer.call_summary as string,
     replied: buyer.replied as boolean,
     stopComms: buyer.stop_comms as boolean,

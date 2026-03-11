@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
+import { ConversationThread } from '@/components/ConversationThread'
 import { toast } from 'sonner'
 import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { useKycCheck } from '@/hooks/useKycCheck'
@@ -561,6 +562,16 @@ export default function AgentBuyerDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* WhatsApp Conversation Thread */}
+      <ConversationThread
+        buyerId={lead.id}
+        buyerName={lead.full_name || 'Lead'}
+        buyerPhone={lead.phone}
+        channel="whatsapp"
+        maxHeight="400px"
+        agentTranscript={lead.agent_transcript}
+      />
 
       {/* Two-column grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
