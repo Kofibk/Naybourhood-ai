@@ -111,7 +111,9 @@ export interface Buyer {
   phone?: string
   country?: string
   linkedin?: string
+  company_name?: string
   company_website?: string
+  job_title?: string
   // Budget fields
   budget?: string
   budget_range?: string  // Supabase field name
