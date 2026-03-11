@@ -295,6 +295,12 @@ export default function LeadDetailPage() {
                   {lead.phone}
                 </span>
               )}
+              {(lead.job_title || lead.company_name) && (
+                <span className="flex items-center gap-1">
+                  <Building className="w-3.5 h-3.5" />
+                  {[lead.job_title, lead.company_name].filter(Boolean).join(', ')}
+                </span>
+              )}
               {lead.country && (
                 <span className="flex items-center gap-1">
                   <Globe className="w-3.5 h-3.5" />

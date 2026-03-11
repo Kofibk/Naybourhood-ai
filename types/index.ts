@@ -657,6 +657,8 @@ export interface Lead {
   email?: string
   phone?: string
   country?: string
+  job_title?: string
+  company_name?: string
 
   // Scoring
   qualityScore: number

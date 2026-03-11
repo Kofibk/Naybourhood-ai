@@ -160,6 +160,12 @@ export function LeadDetail({
                     {lead.phone}
                   </span>
                 )}
+                {(lead.job_title || lead.company_name) && (
+                  <span className="flex items-center gap-1">
+                    <Building className="h-3.5 w-3.5" />
+                    {[lead.job_title, lead.company_name].filter(Boolean).join(', ')}
+                  </span>
+                )}
                 {lead.country && (
                   <span className="flex items-center gap-1">
                     <MapPin className="h-3.5 w-3.5" />

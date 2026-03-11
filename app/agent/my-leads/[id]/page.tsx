@@ -206,6 +206,7 @@ export default function AgentLeadDetailPage() {
           <div className="flex flex-wrap gap-3 text-sm text-white/50 mt-1">
             {lead.email && <span className="flex items-center gap-1"><Mail className="w-4 h-4" /> {lead.email}</span>}
             {lead.phone && <span className="flex items-center gap-1"><Phone className="w-4 h-4" /> {lead.phone}</span>}
+            {(lead.job_title || lead.company_name) && <span className="flex items-center gap-1"><Building className="w-4 h-4" /> {[lead.job_title, lead.company_name].filter(Boolean).join(', ')}</span>}
             {lead.country && <span className="flex items-center gap-1"><MapPin className="w-4 h-4" /> {lead.country}</span>}
           </div>
         </div>
