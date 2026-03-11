@@ -446,35 +446,23 @@ export default function LeadDetailPage() {
       {/* ═══════════════════════════════════════════════════════════════════
           BUYER PROFILE SUMMARY
       ═══════════════════════════════════════════════════════════════════ */}
-
-      {/* Background Research / Overview — WHO is this buyer */}
-      {(lead.background_research || lead.buyer_summary) && (
-        <div className="bg-[#111111] border border-purple-500/30 rounded-xl">
-          <div className="p-5">
-            <div className="flex items-start gap-3">
-              <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                <FileText className="w-4 h-4 text-purple-400" />
-              </div>
-              <div className="flex-1">
-                <h4 className="text-sm font-semibold text-purple-400 mb-1">Buyer Background Research</h4>
-                <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
-                  {lead.background_research || lead.buyer_summary}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Buyer Profile Details */}
-      <div className="bg-[#111111] border border-white/10 rounded-xl">
+      <div className="bg-[#111111] border border-purple-500/30 rounded-xl">
         <div className="p-5">
           <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <User className="w-4 h-4 text-blue-400" />
+            <div className="w-8 h-8 bg-purple-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+              <User className="w-4 h-4 text-purple-400" />
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-white mb-3">Buyer Profile Summary</h4>
+
+              {/* Buyer Summary — WHO is this buyer */}
+              {(lead.background_research || lead.buyer_summary) && (
+                <div className="mb-4 pb-3 border-b border-white/10">
+                  <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
+                    {lead.background_research || lead.buyer_summary}
+                  </p>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                 {/* Left column */}
@@ -574,14 +562,6 @@ export default function LeadDetailPage() {
                   </span>
                 </div>
               </div>
-
-              {/* AI-generated buyer summary (separate from background research) */}
-              {lead.buyer_summary && lead.background_research && (
-                <div className="mt-4 pt-3 border-t border-white/10">
-                  <span className="text-xs text-white/40 uppercase tracking-wider block mb-2">AI Buyer Summary</span>
-                  <p className="text-sm text-white/70 leading-relaxed">{lead.buyer_summary}</p>
-                </div>
-              )}
 
               {/* LinkedIn / Company website if available */}
               {(lead.linkedin || lead.company_website) && (
