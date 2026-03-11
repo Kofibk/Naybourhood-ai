@@ -313,6 +313,12 @@ export default function DeveloperLeadDetailPage() {
                 {lead.phone}
               </span>
             )}
+            {(lead.job_title || lead.company_name) && (
+              <span className="flex items-center gap-1.5">
+                <Building className="w-3.5 h-3.5" />
+                {[lead.job_title, lead.company_name].filter(Boolean).join(', ')}
+              </span>
+            )}
             {lead.country && (
               <span className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5" />
@@ -367,16 +373,18 @@ export default function DeveloperLeadDetailPage() {
         </div>
       </div>
 
-      {/* AI Summary */}
-      {lead.ai_summary && (
+      {/* Buyer Overview - consolidated profile + AI summary */}
+      {(lead.background_research || lead.buyer_summary || lead.ai_summary) && (
         <div className="bg-[#111111] border border-blue-500/30 rounded-xl p-5">
           <div className="flex items-start gap-3">
             <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Sparkles className="w-4 h-4 text-blue-400" />
+              <User className="w-4 h-4 text-blue-400" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-blue-300 mb-1">AI Summary</h4>
-              <p className="text-sm text-white/60 leading-relaxed">{lead.ai_summary}</p>
+              <h4 className="text-sm font-semibold text-blue-300 mb-1">Buyer Overview</h4>
+              <p className="text-sm text-white/60 leading-relaxed">
+                {[lead.background_research || lead.buyer_summary, lead.ai_summary].filter(Boolean).join(' ')}
+              </p>
             </div>
           </div>
         </div>
@@ -470,15 +478,6 @@ export default function DeveloperLeadDetailPage() {
             </div>
             <div className="flex-1">
               <h4 className="text-sm font-semibold text-white mb-3">Buyer Profile Summary</h4>
-
-              {/* Buyer Summary — WHO is this buyer */}
-              {(lead.background_research || lead.buyer_summary) && (
-                <div className="mb-4 pb-3 border-b border-white/10">
-                  <p className="text-sm text-white/70 leading-relaxed whitespace-pre-wrap">
-                    {lead.background_research || lead.buyer_summary}
-                  </p>
-                </div>
-              )}
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-3">
                 {/* Left column */}
