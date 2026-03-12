@@ -126,7 +126,7 @@ export function LeadSidebar({
         <div className="px-4 pb-4 space-y-0">
           <DataRow label="Classification" value={lead.ai_classification || classification} />
           <DataRow label="Priority" value={lead.ai_priority || priority} />
-          <DataRow label="Quality Score" value={lead.ai_quality_score ?? lead.quality_score ?? 0} />
+          <DataRow label="Quality Score" value={lead.final_score ?? lead.ai_quality_score ?? lead.quality_score ?? 0} />
           <DataRow label="Intent Score" value={lead.ai_intent_score ?? lead.intent_score ?? 0} />
           <DataRow label="Confidence" value={lead.ai_confidence ? `${lead.ai_confidence}%` : '-'} />
         </div>

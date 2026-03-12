@@ -665,6 +665,7 @@ export default function LeadsPage() {
         const bLocal = localScores[b.id]
         const getScoreVal = (local: typeof aLocal, lead: Buyer): number => {
           if (local?.quality !== undefined) return local.quality
+          if (lead.final_score !== undefined && lead.final_score !== null) return lead.final_score
           if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
           if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
           return calculateHeuristicScore(lead).score  // Use heuristic for sorting
@@ -753,6 +754,7 @@ export default function LeadsPage() {
     if (field === 'lead_score') {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
+      if (lead.final_score !== undefined && lead.final_score !== null) return lead.final_score
       if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
       if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
       // Use heuristic score for instant display

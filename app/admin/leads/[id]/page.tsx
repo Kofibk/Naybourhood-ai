@@ -218,7 +218,7 @@ export default function LeadDetailPage() {
 
   // Use score result if available, otherwise use stored values
   // Use null for unscored leads (will trigger auto-scoring)
-  const qualityScore = scoreResult?.quality_score ?? lead.ai_quality_score ?? lead.quality_score
+  const qualityScore = scoreResult?.quality_score ?? lead.final_score ?? lead.ai_quality_score ?? lead.quality_score
   const intentScore = scoreResult?.intent_score ?? lead.ai_intent_score ?? lead.intent_score
   // ai_confidence is stored as 0-100 (e.g., 30 means 30%)
   const confidenceScore = scoreResult?.confidence ?? lead.ai_confidence ?? null

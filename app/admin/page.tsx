@@ -496,7 +496,7 @@ export default function AdminDashboard() {
             <p className="text-sm text-white/50">No priority leads at this time. Leads will appear here once scored with AI.</p>
           ) : (
             actionLeads.map((lead) => {
-              const score = lead.ai_quality_score ?? lead.quality_score ?? 0
+              const score = lead.final_score ?? lead.ai_quality_score ?? lead.quality_score ?? 0
               const intentScore = lead.ai_intent_score ?? lead.intent_score
               const nextAction = lead.ai_next_action
               const classification = lead.ai_classification

@@ -253,7 +253,7 @@ export default function BrokerBuyerDetailPage() {
     )
   }
 
-  const qualityScore = lead.ai_quality_score ?? lead.quality_score
+  const qualityScore = lead.final_score ?? lead.ai_quality_score ?? lead.quality_score
   const intentScore = lead.ai_intent_score ?? lead.intent_score
   const nbScore = lead.final_score ?? qualityScore ?? 0
   const confidence = lead.ai_confidence ?? 0
