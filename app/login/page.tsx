@@ -68,7 +68,16 @@ function LoginPageInner() {
     const checkAuth = async () => {
       if (supabaseConfigured) {
         const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
+        if (!supabase) return
+
+        // Timeout getUser to prevent hanging on degraded Supabase connections
+        const getUserWithTimeout = Promise.race([
+          supabase.auth.getUser(),
+          new Promise<{ data: { user: null } }>((resolve) =>
+            setTimeout(() => resolve({ data: { user: null } }), 10000)
+          ),
+        ])
+        const { data: { user } } = await getUserWithTimeout
         if (user) {
           // Fire-and-forget: update user status (don't block redirect)
           supabase
@@ -167,16 +176,26 @@ function LoginPageInner() {
     setError('')
     setIsLoading(true)
 
+    // Safety timeout — prevent infinite spinner if Supabase hangs
+    const loginTimeout = setTimeout(() => {
+      setIsLoading(false)
+      setError('Login timed out. Please check your connection and try again.')
+    }, 20000)
+
     try {
-      if (supabaseConfigured) {
-        const supabase = createClient()
+      if (!supabaseConfigured) {
+        setError('Authentication service is not configured. Please contact support.')
+        return
+      }
 
-        if (!supabase) {
-          setError('Authentication service not available. Please try again later.')
-          return
-        }
+      const supabase = createClient()
 
-        if (isSignUp) {
+      if (!supabase) {
+        setError('Authentication service not available. Please try again later.')
+        return
+      }
+
+      if (isSignUp) {
           console.log('[Signup] 🆕 Starting signup process for:', email)
           // Sign up with password
           // Don't use emailRedirectTo - let Supabase use default token-based confirmation
@@ -278,7 +297,6 @@ function LoginPageInner() {
             }
           }
         }
-      }
     } catch (err: unknown) {
       console.error('[Auth] Password auth error:', err)
       if (err instanceof Error) {
@@ -287,6 +305,7 @@ function LoginPageInner() {
         setError('Something went wrong. Please try again.')
       }
     } finally {
+      clearTimeout(loginTimeout)
       setIsLoading(false)
     }
   }
