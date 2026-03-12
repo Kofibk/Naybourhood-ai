@@ -34,6 +34,42 @@ function parseSummary(raw: string): StructuredSummary | null {
 }
 
 /**
+ * Parse enrichment text (from background_research field) into signals.
+ * The enrichment text has a structured format like:
+ *   - Identity Confirmed: yes
+ *   - Professional Background: Chairman of SOCOGIE SARL...
+ *   - Business Activity: ...
+ *   - Risk Flags: ...
+ */
+function parseEnrichmentSignals(enrichmentText: string): BuyerOverviewSignal[] {
+  if (!enrichmentText || enrichmentText.length < 20) return []
+
+  const signals: BuyerOverviewSignal[] = []
+
+  const fieldMap: Array<{ regex: RegExp; label: string }> = [
+    { regex: /Professional Background:\s*(.+?)(?:\n-|\n\n|$)/i, label: 'Professional Background' },
+    { regex: /Business Activity:\s*(.+?)(?:\n-|\n\n|$)/i, label: 'Business Activity' },
+    { regex: /Wealth Signals:\s*(.+?)(?:\n-|\n\n|$)/i, label: 'Financial Profile' },
+    { regex: /Property History:\s*(.+?)(?:\n-|\n\n|$)/i, label: 'Property Intent' },
+    { regex: /Media Presence:\s*(.+?)(?:\n-|\n\n|$)/i, label: 'Media Presence' },
+    { regex: /Risk Flags:\s*(.+?)(?:\n-|\n\n|$)/i, label: 'Risk Flag' },
+  ]
+
+  for (const { regex, label } of fieldMap) {
+    const match = enrichmentText.match(regex)
+    if (match?.[1]) {
+      const detail = match[1].trim()
+      // Skip empty/no-data fields
+      if (detail && !detail.toLowerCase().startsWith('no data') && !detail.toLowerCase().startsWith('none') && detail.length > 5) {
+        signals.push({ label, detail: detail.endsWith('.') ? detail : detail + '.' })
+      }
+    }
+  }
+
+  return signals
+}
+
+/**
  * Generate signals client-side from buyer data when no structured
  * ai_summary is available (legacy plain-text summaries).
  */
@@ -180,6 +216,10 @@ export function BuyerOverviewCard({ backgroundResearch, buyerSummary, aiSummary,
   // Try to parse the AI summary as structured JSON
   const structured = parseSummary(summaryText)
 
+  // Parse enrichment data for signals (from background_research)
+  const enrichmentSignals = parseEnrichmentSignals(enrichmentText)
+  const hasEnrichment = enrichmentSignals.length > 0
+
   // If no data at all, don't render
   if (!structured && !enrichmentText && !buyer) return null
 
@@ -193,9 +233,20 @@ export function BuyerOverviewCard({ backgroundResearch, buyerSummary, aiSummary,
     // BEST: Structured AI summary with signals (from Claude after enrichment)
     paragraph = structured.paragraph
     signals = structured.signals
+  } else if (hasEnrichment) {
+    // ENRICHED: We have web enrichment data — use AI paragraph (or generate one)
+    // and pair with enrichment-derived signals
+    paragraph = (structured && structured.paragraph && structured.paragraph.length > 30)
+      ? structured.paragraph
+      : (buyer ? generateClientParagraph(buyer) : structured?.paragraph || '')
+    // Merge enrichment signals with client-side signals, enrichment takes priority
+    const enrichmentLabels = new Set(enrichmentSignals.map(s => s.label))
+    const clientSignals = buyer
+      ? generateClientSignals(buyer).filter(s => !enrichmentLabels.has(s.label))
+      : []
+    signals = [...enrichmentSignals, ...clientSignals].slice(0, 6)
   } else if (structured && structured.paragraph && structured.paragraph.length > 50) {
     // GOOD: AI-generated plain text summary (from Claude, richer than client-side)
-    // Use the AI paragraph but generate signals from buyer data to add structure
     paragraph = structured.paragraph
     signals = buyer ? generateClientSignals(buyer) : []
   } else if (buyer) {
