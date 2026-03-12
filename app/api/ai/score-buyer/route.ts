@@ -74,7 +74,7 @@ export interface ScoreBuyerResponse {
 
 // Generate enhanced AI summary using Claude (complements Naybourhood scoring)
 async function generateClaudeSummary(client: Anthropic, buyer: any, naybourhoodScore: NaybourhoodScoreResult): Promise<{ summary: string; next_action: string; recommendations: string[] }> {
-  const prompt = `You are a real estate CRM AI assistant. Generate a concise buyer summary and action recommendations.
+  const prompt = `You are a real estate CRM AI assistant. Generate a structured buyer overview in two parts.
 
 BUYER DATA:
 - Name: ${buyer.full_name || buyer.first_name || 'Unknown'}
@@ -93,23 +93,41 @@ BUYER DATA:
 - UK Solicitor: ${buyer.uk_solicitor || 'Unknown'}
 - Source: ${buyer.source || 'Unknown'}
 - Notes: ${buyer.notes || 'None'}
+- Job Title: ${buyer.job_title || 'Not specified'}
+- Company: ${buyer.company_name || 'Not specified'}
 
 SCORING (already calculated by Naybourhood AI Framework):
 - Quality Score: ${naybourhoodScore.qualityScore.total}/100
 - Intent Score: ${naybourhoodScore.intentScore.total}/100
+- Confidence: ${naybourhoodScore.confidenceScore.total}/100
 - Classification: ${naybourhoodScore.classification}
 - Is 28-Day Buyer: ${naybourhoodScore.is28DayBuyer ? 'YES - HARD RULE AUTO HOT LEAD' : 'No'}
 - Call Priority: Level ${naybourhoodScore.callPriority.level} (${naybourhoodScore.callPriority.responseTime})
 - Risk Flags: ${naybourhoodScore.riskFlags.join(', ') || 'None'}
 
-Based on this data, provide:
-1. A 2-3 sentence summary highlighting buyer readiness and key characteristics
-2. The single most important next action for the sales team
-3. Up to 3 actionable recommendations
+ENRICHED/BACKGROUND DATA:
+${buyer.background_research || 'None available'}
+
+Generate a buyer overview with TWO parts:
+
+PART 1 - PARAGRAPH: 2-3 sentences max. Cover who this buyer is, what they do, their property intent, and their current position in the buying journey. Third person. No filler. Every sentence must carry a commercially useful fact. If enriched data is available, lead with the most credible external signal first.
+
+PART 2 - KEY SIGNALS: 4-6 bullet points. Each bullet is a signal label followed by one sharp sentence.
+Signal labels to draw from: Financial Profile, Property Intent, Verification Status, Engagement, International Exposure, Professional Background, Risk Flag, Next Action Readiness, Missing Data, Media Presence, Business Activity.
+Only include bullets where a real signal exists. Never invent data. Only flag Missing Data if the absence is commercially meaningful.
+
+Also provide:
+- The single most important next action for the sales team
+- Up to 3 actionable recommendations
 
 Respond ONLY with valid JSON:
 {
-  "summary": "<2-3 sentence summary>",
+  "summary": {
+    "paragraph": "<2-3 sentence overview paragraph>",
+    "signals": [
+      { "label": "<Signal Label>", "detail": "<one sharp sentence>" }
+    ]
+  },
   "next_action": "<single specific action>",
   "recommendations": ["<rec1>", "<rec2>", "<rec3>"]
 }`
@@ -128,7 +146,16 @@ Respond ONLY with valid JSON:
 
     const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0])
+      const parsed = JSON.parse(jsonMatch[0])
+      // Serialize the structured summary as JSON string for storage
+      const summaryStr = typeof parsed.summary === 'object'
+        ? JSON.stringify(parsed.summary)
+        : parsed.summary
+      return {
+        summary: summaryStr,
+        next_action: parsed.next_action,
+        recommendations: parsed.recommendations
+      }
     }
   } catch (err) {
     console.log('[AI Score] Claude summary generation failed, using fallback')
@@ -143,23 +170,119 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycS
   const name = buyer.full_name || buyer.first_name || 'This lead'
   const paymentType = buyer.payment_method || 'potential'
   const locationInfo = buyer.location || buyer.area || 'the area'
-  const budget = buyer.budget || buyer.budget_range || 'Not specified'
+  const budget = buyer.budget || buyer.budget_range || ''
+  const bedrooms = buyer.bedrooms || buyer.preferred_bedrooms || ''
+  const timeline = buyer.timeline || ''
+  const country = (buyer.country || '').toLowerCase()
+  const jobTitle = buyer.job_title || ''
+  const companyName = buyer.company_name || ''
 
-  let summary = `${name} is a ${paymentType} buyer interested in ${locationInfo}. Budget: ${budget}.`
+  // Build paragraph (2-3 sentences, commercially useful facts only)
+  let paragraph = ''
 
+  // Sentence 1: Who they are + what they want
+  const professionalContext = jobTitle && companyName
+    ? `${jobTitle} at ${companyName}`
+    : jobTitle || companyName || ''
+  const bedroomInfo = bedrooms ? `${bedrooms}-bedroom property` : 'property'
+  const paymentDesc = paymentType.toLowerCase() === 'cash' ? 'cash' : paymentType.toLowerCase() === 'mortgage' ? 'mortgage' : paymentType
+
+  if (professionalContext) {
+    paragraph = `${name} is a ${professionalContext} seeking a ${bedroomInfo} in ${locationInfo} via ${paymentDesc}.`
+  } else {
+    paragraph = `${name} is a ${paymentDesc} buyer seeking a ${bedroomInfo} in ${locationInfo}.`
+  }
+
+  // Sentence 2: Budget + timeline/journey position
+  const budgetPart = budget ? `Budget: ${budget}` : 'Budget not disclosed'
   if (score.is28DayBuyer) {
-    summary += ' URGENT: Ready to purchase within 28 days - immediate priority.'
-  } else if (score.classification === 'Hot Lead') {
-    summary += ' High-quality lead with strong purchase intent.'
+    paragraph += ` ${budgetPart}; ready to complete within 28 days, making this an immediate-priority lead.`
+  } else if (timeline) {
+    paragraph += ` ${budgetPart}; timeline: ${timeline}.`
+  } else {
+    paragraph += ` ${budgetPart}; purchase timeline not yet confirmed.`
   }
 
-  // Add KYC context to summary
+  // Sentence 3: Journey position (only if adds value)
+  const status = buyer.status || ''
+  if (status && !['new', 'unknown', ''].includes(status.toLowerCase())) {
+    paragraph += ` Currently at "${status}" stage.`
+  }
+
+  // Build signals
+  const signals: Array<{ label: string; detail: string }> = []
+
+  // Financial Profile
+  if (paymentType.toLowerCase() === 'cash') {
+    if (buyer.proof_of_funds) {
+      signals.push({ label: 'Financial Profile', detail: `Verified cash buyer${budget ? ` with ${budget} budget` : ''}.` })
+    } else {
+      signals.push({ label: 'Financial Profile', detail: `Claims cash buyer status${budget ? ` with ${budget} budget` : ''} but proof of funds not yet provided.` })
+    }
+  } else if (paymentType.toLowerCase() === 'mortgage') {
+    const mortgageStatus = buyer.mortgage_status?.toLowerCase()
+    if (mortgageStatus === 'approved' || mortgageStatus === 'aip') {
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer with AIP in place${budget ? `, targeting ${budget}` : ''}.` })
+    } else {
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer without AIP${budget ? `, targeting ${budget}` : ''} — financing unconfirmed.` })
+    }
+  }
+
+  // Property Intent
+  if (bedrooms || locationInfo !== 'the area') {
+    const purposeInfo = buyer.purchase_purpose || buyer.purpose || ''
+    const intentParts = [bedrooms ? `${bedrooms}-bed` : '', locationInfo !== 'the area' ? locationInfo : '', purposeInfo].filter(Boolean)
+    signals.push({ label: 'Property Intent', detail: `Looking for ${intentParts.join(' in ')}${score.is28DayBuyer ? ' with 28-day purchase readiness' : ''}.` })
+  }
+
+  // Verification Status
   if (kycStatus === 'passed') {
-    summary += ' Buyer verified - AML/KYC checks passed.'
+    signals.push({ label: 'Verification Status', detail: 'AML/KYC checks passed — identity confirmed.' })
   } else if (kycStatus === 'failed') {
-    summary += ' WARNING: AML/KYC verification failed.'
+    signals.push({ label: 'Verification Status', detail: 'AML/KYC verification failed — do not proceed without review.' })
+  } else {
+    signals.push({ label: 'Verification Status', detail: 'Not yet verified — AML/KYC check recommended before progressing.' })
   }
 
+  // International Exposure
+  if (country && !['uk', 'united kingdom', 'england', 'scotland', 'wales', 'gb', 'great britain'].includes(country)) {
+    signals.push({ label: 'International Exposure', detail: `Based in ${buyer.country}; international payment and legal considerations apply.` })
+  }
+
+  // Professional Background
+  if (professionalContext) {
+    signals.push({ label: 'Professional Background', detail: `${professionalContext}.` })
+  }
+
+  // Risk Flags
+  if (score.riskFlags.length > 0) {
+    signals.push({ label: 'Risk Flag', detail: score.riskFlags[0] + '.' })
+  }
+  if (score.fakeLeadCheck.flags.length > 0) {
+    signals.push({ label: 'Risk Flag', detail: `Authenticity concern: ${score.fakeLeadCheck.flags[0]}.` })
+  }
+
+  // Engagement
+  if (buyer.source) {
+    signals.push({ label: 'Engagement', detail: `Sourced via ${buyer.source}${status ? `; current status: ${status}` : ''}.` })
+  }
+
+  // Missing Data (only commercially meaningful gaps)
+  const missingItems: string[] = []
+  if (!budget) missingItems.push('budget')
+  if (!timeline) missingItems.push('timeline')
+  if (!buyer.phone && !buyer.email) missingItems.push('contact details')
+  if (missingItems.length > 0) {
+    signals.push({ label: 'Missing Data', detail: `No ${missingItems.join(', ')} provided — limits qualification accuracy.` })
+  }
+
+  // Serialize the structured summary as JSON
+  const structuredSummary = JSON.stringify({
+    paragraph,
+    signals: signals.slice(0, 6)
+  })
+
+  // Next action
   let next_action = 'Contact lead to confirm interest and timeline'
   if (score.is28DayBuyer) {
     next_action = 'Call immediately - 28-day buyer requires same-day contact'
@@ -202,7 +325,7 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycS
     recommendations.push('Schedule property viewing')
   }
 
-  return { summary, next_action, recommendations: recommendations.slice(0, 3) }
+  return { summary: structuredSummary, next_action, recommendations: recommendations.slice(0, 3) }
 }
 
 

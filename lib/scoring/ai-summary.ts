@@ -216,69 +216,118 @@ export function generateBuyerSummary(
   const { classification, priority, qualityScore, intentScore, confidenceScore, riskFlags } = scores
 
   const name = buyer.full_name || `${buyer.first_name || ''} ${buyer.last_name || ''}`.trim() || 'This lead'
-  const budget = buyer.budget || buyer.budget_range || 'unspecified budget'
-  const paymentMethod = buyer.payment_method || 'unknown payment method'
-  const location = buyer.location || buyer.area || 'unspecified location'
-  const timeline = buyer.timeline || 'unspecified timeline'
+  const budget = buyer.budget || buyer.budget_range || ''
+  const paymentMethod = buyer.payment_method || ''
+  const location = buyer.location || buyer.area || ''
+  const timeline = buyer.timeline || ''
   const country = buyer.country || ''
+  const bedrooms = buyer.bedrooms || (buyer as any).preferred_bedrooms || ''
+  const jobTitle = (buyer as any).job_title || ''
+  const companyName = (buyer as any).company_name || ''
 
-  // Build classification description
-  const classificationDescriptions: Record<Classification, string> = {
-    'Hot': 'high-priority',
-    'Warm-Qualified': 'financially qualified',
-    'Warm-Engaged': 'actively engaged',
-    'Nurture-Premium': 'promising',
-    'Nurture-Standard': 'developing',
-    'Cold': 'early-stage',
-    'Disqualified': 'unqualified',
-    'Spam': 'suspected spam'
+  // ── Part 1: Paragraph (2-3 sentences, commercially useful facts) ──
+
+  // Payment description
+  const paymentDesc = paymentMethod.toLowerCase() === 'cash'
+    ? 'cash' : paymentMethod.toLowerCase() === 'mortgage'
+    ? 'mortgage' : paymentMethod || 'potential'
+
+  // Professional context
+  const professionalContext = jobTitle && companyName
+    ? `${jobTitle} at ${companyName}`
+    : jobTitle || companyName || ''
+
+  const bedroomInfo = bedrooms ? `${bedrooms}-bedroom property` : 'property'
+  const locationInfo = location || 'an unspecified location'
+
+  let paragraph = ''
+  if (professionalContext) {
+    paragraph = `${name} is a ${professionalContext} seeking a ${bedroomInfo} in ${locationInfo} via ${paymentDesc}.`
+  } else {
+    paragraph = `${name} is a ${paymentDesc} buyer seeking a ${bedroomInfo} in ${locationInfo}.`
   }
 
-  const classDesc = classificationDescriptions[classification]
+  // Budget + timeline
+  const budgetPart = budget ? `Budget: ${budget}` : 'Budget not disclosed'
+  const is28Day = (buyer as any).ready_within_28_days || (buyer as any).ready_in_28_days
+  if (is28Day) {
+    paragraph += ` ${budgetPart}; ready to complete within 28 days, making this an immediate-priority lead.`
+  } else if (timeline) {
+    paragraph += ` ${budgetPart}; timeline: ${timeline}.`
+  } else {
+    paragraph += ` ${budgetPart}; purchase timeline not yet confirmed.`
+  }
 
-  // Payment/financial status
-  let financialStatus = ''
+  // Journey position
+  const status = buyer.status || ''
+  if (status && !['new', 'unknown', ''].includes(status.toLowerCase())) {
+    paragraph += ` Currently at "${status}" stage.`
+  }
+
+  // ── Part 2: Key Signals ──
+
+  const signals: Array<{ label: string; detail: string }> = []
+
+  // Financial Profile
   if (paymentMethod.toLowerCase() === 'cash') {
     if (buyer.proof_of_funds) {
-      financialStatus = 'verified cash buyer'
+      signals.push({ label: 'Financial Profile', detail: `Verified cash buyer${budget ? ` with ${budget} budget` : ''}.` })
     } else {
-      financialStatus = 'cash buyer (unverified)'
+      signals.push({ label: 'Financial Profile', detail: `Claims cash buyer status${budget ? ` with ${budget} budget` : ''} but proof of funds not yet provided.` })
     }
   } else if (paymentMethod.toLowerCase() === 'mortgage') {
     const mortgageStatus = buyer.mortgage_status?.toLowerCase()
     if (mortgageStatus === 'approved' || mortgageStatus === 'aip') {
-      financialStatus = 'mortgage buyer with AIP'
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer with AIP in place${budget ? `, targeting ${budget}` : ''}.` })
     } else {
-      financialStatus = 'mortgage buyer (pending approval)'
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer without AIP${budget ? `, targeting ${budget}` : ''} — financing unconfirmed.` })
     }
-  } else {
-    financialStatus = `${paymentMethod} buyer`
   }
 
-  // Location context
-  const locationContext = country && !['uk', 'united kingdom'].includes(country.toLowerCase())
-    ? `based in ${country}, interested in ${location}`
-    : `looking in ${location}`
-
-  // Build sentences
-  const sentence1 = `${name} is a ${classDesc} ${financialStatus} ${locationContext}.`
-
-  const sentence2 = `Budget: ${budget}. Timeline: ${timeline}.`
-
-  // Risk/opportunity sentence
-  let sentence3 = ''
-  if (classification === 'Hot' || classification === 'Warm-Qualified') {
-    const status = buyer.status || 'Contact Pending'
-    sentence3 = `Currently at "${status}" stage. Priority: ${priority.priority} (${priority.responseTime} response time).`
-  } else if (riskFlags.length > 0) {
-    sentence3 = `Note: ${riskFlags[0]}.`
-  } else if (confidenceScore.total < 5) {
-    sentence3 = `Limited data available - confidence: ${confidenceScore.total}/10.`
-  } else {
-    sentence3 = `Quality: ${qualityScore.total}/100, Intent: ${intentScore.total}/100.`
+  // Property Intent
+  if (bedrooms || location) {
+    const purposeInfo = (buyer as any).purchase_purpose || (buyer as any).purpose || ''
+    const intentDetail = [bedrooms ? `${bedrooms}-bed` : '', location, purposeInfo].filter(Boolean).join(' in ')
+    signals.push({ label: 'Property Intent', detail: `Looking for ${intentDetail}${is28Day ? ' with 28-day purchase readiness' : ''}.` })
   }
 
-  return `${sentence1} ${sentence2} ${sentence3}`
+  // Verification Status
+  signals.push({ label: 'Verification Status', detail: 'Not yet verified — AML/KYC check recommended before progressing.' })
+
+  // International Exposure
+  if (country && !['uk', 'united kingdom', 'england', 'scotland', 'wales', 'gb', 'great britain'].includes(country.toLowerCase())) {
+    signals.push({ label: 'International Exposure', detail: `Based in ${country}; international payment and legal considerations apply.` })
+  }
+
+  // Professional Background
+  if (professionalContext) {
+    signals.push({ label: 'Professional Background', detail: `${professionalContext}.` })
+  }
+
+  // Risk Flags
+  if (riskFlags.length > 0) {
+    signals.push({ label: 'Risk Flag', detail: `${riskFlags[0]}.` })
+  }
+
+  // Engagement
+  if (buyer.source) {
+    signals.push({ label: 'Engagement', detail: `Sourced via ${buyer.source}${status ? `; current status: ${status}` : ''}.` })
+  }
+
+  // Missing Data
+  const missingItems: string[] = []
+  if (!budget) missingItems.push('budget')
+  if (!timeline) missingItems.push('timeline')
+  if (!buyer.phone && !buyer.email) missingItems.push('contact details')
+  if (missingItems.length > 0) {
+    signals.push({ label: 'Missing Data', detail: `No ${missingItems.join(', ')} provided — limits qualification accuracy.` })
+  }
+
+  // Return as JSON string
+  return JSON.stringify({
+    paragraph,
+    signals: signals.slice(0, 6)
+  })
 }
 
 // ═══════════════════════════════════════════════════════════════════

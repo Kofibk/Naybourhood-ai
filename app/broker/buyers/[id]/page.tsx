@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useLeads } from '@/hooks/useLeads'
 import { EmailComposer } from '@/components/EmailComposer'
 import { ConversationThread } from '@/components/ConversationThread'
+import { BuyerOverviewCard } from '@/components/ai/BuyerOverviewCard'
 import { toast } from 'sonner'
 import { KycVerificationBanner, KycStatusBadge } from '@/components/kyc/KycVerificationBanner'
 import { useKycCheck } from '@/hooks/useKycCheck'
@@ -341,21 +342,11 @@ export default function BrokerBuyerDetailPage() {
       </div>
 
       {/* Buyer Overview - consolidated profile + AI summary */}
-      {(lead.background_research || lead.buyer_summary || lead.ai_summary) && (
-        <div className="bg-[#111111] border border-blue-500/30 rounded-xl p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <User className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-blue-300 mb-1">Buyer Overview</h4>
-              <p className="text-sm text-white/60 leading-relaxed">
-                {[lead.background_research || lead.buyer_summary, lead.ai_summary].filter(Boolean).join(' ')}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <BuyerOverviewCard
+        backgroundResearch={lead.background_research}
+        buyerSummary={lead.buyer_summary}
+        aiSummary={lead.ai_summary}
+      />
 
       {/* Recommended Next Action */}
       <div className="bg-[#111111] border border-emerald-500/30 rounded-xl p-5">

@@ -18,6 +18,7 @@ import { DataRow } from '@/components/leads/detail/LeadDisplayComponents'
 import { EditableTextField, EditableBooleanField, EditableSelectField, EditableConnectionStatus } from '@/components/leads/detail/LeadEditableFields'
 import { LeadSidebar } from '@/components/leads/detail/LeadSidebar'
 import { KycVerificationBanner } from '@/components/kyc/KycVerificationBanner'
+import { BuyerOverviewCard } from '@/components/ai/BuyerOverviewCard'
 import {
   ArrowLeft, Phone, Mail, MessageCircle, Calendar, Bot, MessageSquare,
   User, Building, Clock, DollarSign, MapPin, Hash, Globe, Briefcase, Home,
@@ -368,21 +369,11 @@ export default function LeadDetailPage() {
           4. AI SUMMARY
       ═══════════════════════════════════════════════════════════════════ */}
       {/* Buyer Overview - consolidated profile + AI summary */}
-      {(lead.background_research || lead.buyer_summary || summary) && (
-        <div className="bg-[#111111] border border-blue-500/30 rounded-xl p-5">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 bg-blue-500/10 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-              <User className="w-4 h-4 text-blue-400" />
-            </div>
-            <div>
-              <h4 className="text-sm font-semibold text-blue-300 mb-1">Buyer Overview</h4>
-              <p className="text-sm text-white/60 leading-relaxed">
-                {[lead.background_research || lead.buyer_summary, summary].filter(Boolean).join(' ')}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
+      <BuyerOverviewCard
+        backgroundResearch={lead.background_research}
+        buyerSummary={lead.buyer_summary}
+        aiSummary={summary}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════════
           5. RECOMMENDED NEXT ACTION
