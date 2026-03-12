@@ -68,8 +68,8 @@ export default function AIAnalysisPage() {
   // Calculate quick stats from local data
   const quickStats = useMemo(() => {
     const totalLeads = leads.length
-    const hotLeads = leads.filter(l => (l.quality_score || 0) >= 80).length
-    const coldLeads = leads.filter(l => (l.quality_score || 0) < 40).length
+    const hotLeads = leads.filter(l => (l.final_score || l.quality_score || 0) >= 55).length
+    const coldLeads = leads.filter(l => (l.final_score || l.quality_score || 0) < 35).length
     const avgScore = totalLeads > 0
       ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads)
       : 0
@@ -80,16 +80,16 @@ export default function AIAnalysisPage() {
   }, [leads, campaigns])
 
   const getHealthColor = (score: number) => {
-    if (score >= 80) return 'text-green-500'
-    if (score >= 60) return 'text-yellow-500'
-    if (score >= 40) return 'text-orange-500'
+    if (score >= 55) return 'text-green-500'
+    if (score >= 45) return 'text-yellow-500'
+    if (score >= 35) return 'text-orange-500'
     return 'text-red-500'
   }
 
   const getHealthBg = (score: number) => {
-    if (score >= 80) return 'bg-green-500/10 border-green-500/20'
-    if (score >= 60) return 'bg-yellow-500/10 border-yellow-500/20'
-    if (score >= 40) return 'bg-orange-500/10 border-orange-500/20'
+    if (score >= 55) return 'bg-green-500/10 border-green-500/20'
+    if (score >= 45) return 'bg-yellow-500/10 border-yellow-500/20'
+    if (score >= 35) return 'bg-orange-500/10 border-orange-500/20'
     return 'bg-red-500/10 border-red-500/20'
   }
 

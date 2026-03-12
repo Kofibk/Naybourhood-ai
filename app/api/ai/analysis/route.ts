@@ -77,12 +77,12 @@ export async function GET() {
       sourceGroups[source].total++
       const score = b.ai_quality_score || b.quality_score || 50
       sourceGroups[source].scores.push(score)
-      if (score >= 70) sourceGroups[source].hot++
+      if (score >= 55) sourceGroups[source].hot++
     })
 
     // Calculate pipeline health score
     const totalLeads = buyersList.length
-    const hotLeads = buyersList.filter(b => (b.ai_quality_score || b.quality_score || 0) >= 70).length
+    const hotLeads = buyersList.filter(b => (b.final_score || b.ai_quality_score || b.quality_score || 0) >= 55).length
     const viewingsBooked = buyersList.filter(b => b.status === 'Viewing Booked').length
     const completed = buyersList.filter(b => b.status === 'Completed' || b.status === 'Offer Made').length
 
@@ -106,9 +106,9 @@ export async function GET() {
     pipelineScore = Math.max(0, Math.min(100, Math.round(pipelineScore)))
 
     // Pipeline summary
-    const pipelineSummary = pipelineScore >= 70
+    const pipelineSummary = pipelineScore >= 55
       ? `Your pipeline is healthy with ${hotLeads} hot leads and a ${(conversionRate * 100).toFixed(1)}% viewing conversion rate.`
-      : pipelineScore >= 50
+      : pipelineScore >= 35
         ? `Pipeline is performing adequately. Focus on moving ${earlyStage} leads in early stages to viewings.`
         : `Pipeline needs attention. ${earlyStageRatio > 0.7 ? 'Too many leads stuck in early stages.' : 'Lead quality may need improvement.'}`
 

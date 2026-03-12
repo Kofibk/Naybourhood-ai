@@ -23,8 +23,8 @@ export function ScoreBar({
 
   // Color based on score
   const getColor = (score: number) => {
-    if (score >= 70) return 'bg-red-500'
-    if (score >= 45) return 'bg-orange-500'
+    if (score >= 55) return 'bg-red-500'
+    if (score >= 35) return 'bg-orange-500'
     return 'bg-gray-400'
   }
 

@@ -17,8 +17,8 @@ export function CampaignHealthBadge({ score, showLabel = true }: CampaignHealthB
   }
 
   const getHealthColor = (score: number) => {
-    if (score >= 70) return { bg: 'bg-green-500', text: 'text-green-500', label: '🟢' }
-    if (score >= 50) return { bg: 'bg-yellow-500', text: 'text-yellow-500', label: '🟡' }
+    if (score >= 55) return { bg: 'bg-green-500', text: 'text-green-500', label: '🟢' }
+    if (score >= 35) return { bg: 'bg-yellow-500', text: 'text-yellow-500', label: '🟡' }
     return { bg: 'bg-red-500', text: 'text-red-500', label: '🔴' }
   }
 

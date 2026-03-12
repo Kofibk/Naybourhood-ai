@@ -154,7 +154,7 @@ export function generateRecommendations(
   }
 
   // Legal preparation
-  if (!hasConnection(buyer.uk_solicitor) && qualityScore.total >= 50) {
+  if (!hasConnection(buyer.uk_solicitor) && qualityScore.total >= 45) {
     recommendations.push('Recommend panel solicitor early in process')
   }
 
@@ -181,12 +181,12 @@ export function generateRecommendations(
   }
 
   // Intent boosting for warm leads
-  if (intentScore.total < 50 && qualityScore.total >= 60) {
+  if (intentScore.total < 35 && qualityScore.total >= 45) {
     recommendations.push('Schedule discovery call to understand timeline')
   }
 
   // Quality improvement for engaged leads
-  if (qualityScore.total < 50 && intentScore.total >= 60) {
+  if (qualityScore.total < 35 && intentScore.total >= 45) {
     recommendations.push('Complete buyer profile with missing information')
   }
 

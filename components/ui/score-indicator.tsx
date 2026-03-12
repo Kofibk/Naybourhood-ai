@@ -13,14 +13,14 @@ interface ScoreIndicatorProps {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 70) return 'bg-emerald-500'
-  if (score >= 45) return 'bg-amber-500'
+  if (score >= 55) return 'bg-emerald-500'
+  if (score >= 35) return 'bg-amber-500'
   return 'bg-gray-400'
 }
 
 function getScoreTextColor(score: number): string {
-  if (score >= 70) return 'text-emerald-500'
-  if (score >= 45) return 'text-amber-500'
+  if (score >= 55) return 'text-emerald-500'
+  if (score >= 35) return 'text-amber-500'
   return 'text-gray-400'
 }
 

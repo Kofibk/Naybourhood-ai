@@ -83,9 +83,9 @@ Be specific and actionable. Focus on real estate buying signals.`
 async function generateDashboardInsights(client: Anthropic, leads: any[]): Promise<any> {
   // Summarize lead data for the prompt
   const totalLeads = leads.length
-  const hotLeads = leads.filter(l => (l.quality_score || 0) >= 70).length
-  const warmLeads = leads.filter(l => (l.quality_score || 0) >= 45 && (l.quality_score || 0) < 70).length
-  const coldLeads = leads.filter(l => (l.quality_score || 0) < 45).length
+  const hotLeads = leads.filter(l => (l.final_score || l.quality_score || 0) >= 55).length
+  const warmLeads = leads.filter(l => (l.final_score || l.quality_score || 0) >= 35 && (l.final_score || l.quality_score || 0) < 55).length
+  const coldLeads = leads.filter(l => (l.final_score || l.quality_score || 0) < 35).length
 
   const cashBuyers = leads.filter(l => l.payment_method?.toLowerCase() === 'cash').length
   const mortgageBuyers = leads.filter(l => l.payment_method?.toLowerCase() === 'mortgage').length
@@ -113,9 +113,9 @@ async function generateDashboardInsights(client: Anthropic, leads: any[]): Promi
 
 PORTFOLIO SUMMARY:
 - Total Leads: ${totalLeads}
-- Hot Leads (score >= 70): ${hotLeads}
-- Warm Leads (score 45-69): ${warmLeads}
-- Cold Leads (score < 45): ${coldLeads}
+- Hot Leads (score >= 55): ${hotLeads}
+- Warm Leads (score 35-54): ${warmLeads}
+- Cold Leads (score < 35): ${coldLeads}
 
 BUYER TYPES:
 - Cash Buyers: ${cashBuyers}
@@ -287,7 +287,7 @@ function getFallbackContent(type: string, data: any): any {
 
     case 'dashboard_insights':
       const leads = data.leads || []
-      const hotCount = leads.filter((l: any) => (l.quality_score || 0) >= 70).length
+      const hotCount = leads.filter((l: any) => (l.final_score || l.quality_score || 0) >= 55).length
       return {
         insights: [
           {

@@ -8,8 +8,8 @@ export function transformBuyerToLead(buyer: Record<string, unknown>): Lead {
 
   // Determine classification based on quality score
   let classification: LeadClassification = 'Low'
-  if (qualityScore >= 70) classification = 'Hot'
-  else if (qualityScore >= 45) classification = 'Warm'
+  if (qualityScore >= 55) classification = 'Hot'
+  else if (qualityScore >= 35) classification = 'Warm'
 
   // Map status
   const rawStatus = (buyer.status as string) || 'Contact Pending'
@@ -213,7 +213,7 @@ export async function fetchLeadById(id: string): Promise<Lead | null> {
   return transformBuyerToLead(data)
 }
 
-// Fetch hot leads (quality score >= 70)
+// Fetch hot leads (quality score >= 55)
 export async function fetchHotLeads(limit: number = 10): Promise<Lead[]> {
   const supabase = createClient()
 

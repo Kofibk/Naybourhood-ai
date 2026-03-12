@@ -189,13 +189,13 @@ export function calculateHeuristicScore(lead: {
 
   // Determine classification based on score
   let classification: HeuristicScoreResult['classification']
-  if (score >= 75) {
+  if (score >= 55) {
     classification = 'Hot'
-  } else if (score >= 60) {
-    classification = 'Warm-Qualified'
   } else if (score >= 45) {
+    classification = 'Warm-Qualified'
+  } else if (score >= 35) {
     classification = 'Warm-Engaged'
-  } else if (score >= 30) {
+  } else if (score >= 25) {
     classification = 'Nurture'
   } else {
     classification = 'Cold'

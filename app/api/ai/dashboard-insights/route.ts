@@ -64,10 +64,10 @@ export async function GET() {
 
     // Calculate stats
     const totalLeads = buyersList.length
-    const hotLeads = buyersList.filter(b => (b.ai_quality_score || b.quality_score || 0) >= 70).length
+    const hotLeads = buyersList.filter(b => (b.final_score || b.ai_quality_score || b.quality_score || 0) >= 55).length
     const warmLeads = buyersList.filter(b => {
-      const score = b.ai_quality_score || b.quality_score || 0
-      return score >= 40 && score < 70
+      const score = b.final_score || b.ai_quality_score || b.quality_score || 0
+      return score >= 35 && score < 55
     }).length
 
     // Find stale leads (in Follow Up status for 5+ days)
@@ -81,7 +81,7 @@ export async function GET() {
 
     // Find hot leads without viewing booked
     const hotLeadsNoViewing = buyersList.filter(b =>
-      (b.ai_quality_score || b.quality_score || 0) >= 70 &&
+      (b.final_score || b.ai_quality_score || b.quality_score || 0) >= 55 &&
       b.status !== 'Viewing Booked' &&
       b.status !== 'Completed'
     )
@@ -162,8 +162,8 @@ export async function GET() {
 
     // Add top hot lead to call
     const topHotLead = buyersList
-      .filter(b => (b.ai_quality_score || b.quality_score || 0) >= 70)
-      .sort((a, b) => (b.ai_quality_score || b.quality_score || 0) - (a.ai_quality_score || a.quality_score || 0))[0]
+      .filter(b => (b.final_score || b.ai_quality_score || b.quality_score || 0) >= 55)
+      .sort((a, b) => (b.final_score || b.ai_quality_score || b.quality_score || 0) - (a.final_score || a.ai_quality_score || a.quality_score || 0))[0]
 
     if (topHotLead) {
       recommendedActions.push({

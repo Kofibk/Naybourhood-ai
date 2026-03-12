@@ -9,8 +9,8 @@ interface ScoreBadgeProps {
 }
 
 function getScoreColor(score: number): { text: string; bg: string; border: string } {
-  if (score >= 70) return { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' }
-  if (score >= 40) return { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' }
+  if (score >= 55) return { text: 'text-emerald-400', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30' }
+  if (score >= 35) return { text: 'text-amber-400', bg: 'bg-amber-500/10', border: 'border-amber-500/30' }
   return { text: 'text-zinc-400', bg: 'bg-zinc-500/10', border: 'border-zinc-500/30' }
 }
 

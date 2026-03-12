@@ -173,7 +173,7 @@ export function UserDashboard({ userType, userName, companyId }: UserDashboardPr
     }
     return recentLeads.filter((l: any) => {
       const score = l.ai_quality_score
-      return l.ai_classification === 'Hot Lead' || (score && score >= 70)
+      return l.ai_classification === 'Hot Lead' || (score && score >= 55)
     }).slice(0, 5)
   }, [recentLeads, userType])
 

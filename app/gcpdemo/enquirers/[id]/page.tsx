@@ -468,9 +468,9 @@ export default function GCPEnquirerDetailPage() {
     : 2000
   const rentRatio = enquirer.annualIncome > 0 ? ((rentPCM * 12) / enquirer.annualIncome * 100).toFixed(1) : 'N/A'
 
-  const classConfig = nbScore >= 70
+  const classConfig = nbScore >= 55
     ? { bg: 'bg-emerald-600', text: 'text-white', label: 'Priority', ringBg: 'bg-emerald-500/10 border-emerald-500/30' }
-    : nbScore >= 45
+    : nbScore >= 35
     ? { bg: 'bg-amber-500', text: 'text-white', label: 'Qualified', ringBg: 'bg-amber-500/10 border-amber-500/30' }
     : { bg: 'bg-red-500', text: 'text-white', label: 'Low Priority', ringBg: 'bg-red-500/10 border-red-500/30' }
 

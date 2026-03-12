@@ -8,7 +8,7 @@ describe('ScoreBadge', () => {
     expect(screen.getByText('85')).toBeInTheDocument()
   })
 
-  it('renders green (emerald) for scores >= 70', () => {
+  it('renders green (emerald) for scores >= 55', () => {
     const { container } = render(<ScoreBadge score={75} />)
     const badge = container.querySelector('.rounded-full')
     expect(badge?.className).toContain('bg-emerald-500/10')
@@ -16,15 +16,15 @@ describe('ScoreBadge', () => {
     expect(badge?.className).toContain('border-emerald-500/30')
   })
 
-  it('renders amber for scores >= 40 and < 70', () => {
-    const { container } = render(<ScoreBadge score={55} />)
+  it('renders amber for scores >= 35 and < 55', () => {
+    const { container } = render(<ScoreBadge score={45} />)
     const badge = container.querySelector('.rounded-full')
     expect(badge?.className).toContain('bg-amber-500/10')
     expect(badge?.className).toContain('text-amber-400')
     expect(badge?.className).toContain('border-amber-500/30')
   })
 
-  it('renders gray (zinc) for scores < 40', () => {
+  it('renders gray (zinc) for scores < 35', () => {
     const { container } = render(<ScoreBadge score={20} />)
     const badge = container.querySelector('.rounded-full')
     expect(badge?.className).toContain('bg-zinc-500/10')

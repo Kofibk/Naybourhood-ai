@@ -57,13 +57,13 @@ function getFallbackScores(buyer: any): any {
   let classification = 'Nurture'
   let priority = 'P3'
 
-  if (qualityScore >= 70 && intentScore >= 70) {
+  if (qualityScore >= 55 && intentScore >= 55) {
     classification = 'Hot'
     priority = 'P1'
-  } else if (qualityScore >= 70 && intentScore >= 45) {
+  } else if (qualityScore >= 45 && intentScore >= 35) {
     classification = 'Warm-Qualified'
     priority = 'P2'
-  } else if (qualityScore >= 45 && intentScore >= 70) {
+  } else if (qualityScore >= 35 && intentScore >= 45) {
     classification = 'Warm-Engaged'
     priority = 'P2'
   } else if (qualityScore < 20 || intentScore < 20) {

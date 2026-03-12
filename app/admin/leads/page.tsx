@@ -312,15 +312,15 @@ function formatBudgetPart(part: string): string {
 }
 
 // Score Indicator Component - Traffic light color system with score number
-// Green = Hot (70+), Amber = Warm (45-69), Red = Cold (<45)
+// Green = Hot (55+), Amber = Warm (35-54), Red = Cold (<35)
 function ScoreIndicator({ score }: { score: number | undefined | null }) {
   if (score === undefined || score === null) {
     return <span className="text-white/40">-</span>
   }
 
   const getConfig = (s: number) => {
-    if (s >= 70) return { color: 'bg-green-500', textColor: 'text-green-600', label: 'Hot' }
-    if (s >= 45) return { color: 'bg-amber-500', textColor: 'text-amber-600', label: 'Warm' }
+    if (s >= 55) return { color: 'bg-green-500', textColor: 'text-green-600', label: 'Hot' }
+    if (s >= 35) return { color: 'bg-amber-500', textColor: 'text-amber-600', label: 'Warm' }
     return { color: 'bg-red-500', textColor: 'text-red-600', label: 'Cold' }
   }
 
@@ -571,14 +571,15 @@ export default function LeadsPage() {
     const getScore = (lead: Buyer): number => {
       const local = localScores[lead.id]
       if (local?.quality !== undefined) return local.quality
+      if (lead.final_score !== undefined && lead.final_score !== null) return lead.final_score
       if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) return lead.ai_quality_score
       if (lead.quality_score !== undefined && lead.quality_score !== null) return lead.quality_score
       // Use heuristic for instant counts
       return calculateHeuristicScore(lead).score
     }
-    const hot = activeLeads.filter((l) => getScore(l) >= 70).length
-    const warm = activeLeads.filter((l) => { const s = getScore(l); return s >= 45 && s < 70 }).length
-    const low = activeLeads.filter((l) => getScore(l) < 45).length
+    const hot = activeLeads.filter((l) => getScore(l) >= 55).length
+    const warm = activeLeads.filter((l) => { const s = getScore(l); return s >= 35 && s < 55 }).length
+    const low = activeLeads.filter((l) => getScore(l) < 35).length
     const duplicates = leads.filter((l) => l.status === 'Duplicate').length
     return { hot, warm, low, total: activeLeads.length, duplicates }
   }, [leads, localScores])
@@ -620,13 +621,14 @@ export default function LeadsPage() {
         const local = localScores[lead.id]
         let score: number
         if (local?.quality !== undefined) score = local.quality
+        else if (lead.final_score !== undefined && lead.final_score !== null) score = lead.final_score
         else if (lead.ai_quality_score !== undefined && lead.ai_quality_score !== null) score = lead.ai_quality_score
         else if (lead.quality_score !== undefined && lead.quality_score !== null) score = lead.quality_score
         else score = calculateHeuristicScore(lead).score  // Use heuristic for instant filtering
 
-        if (quickFilter === 'hot' && score < 70) return false
-        if (quickFilter === 'warm' && (score < 45 || score >= 70)) return false
-        if (quickFilter === 'low' && score >= 45) return false
+        if (quickFilter === 'hot' && score < 55) return false
+        if (quickFilter === 'warm' && (score < 35 || score >= 55)) return false
+        if (quickFilter === 'low' && score >= 35) return false
       }
 
       // Apply search

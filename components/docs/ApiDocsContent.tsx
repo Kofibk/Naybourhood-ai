@@ -292,11 +292,11 @@ export function ApiDocsContent() {
         </h2>
         <div className="grid sm:grid-cols-2 gap-3">
           {[
-            { name: 'Hot Lead', desc: '28-day buyer OR quality/intent >= 70', color: 'text-red-400' },
-            { name: 'Qualified', desc: 'Quality >= 60, intent >= 50', color: 'text-amber-400' },
-            { name: 'Needs Qualification', desc: 'Confidence < 50, missing data', color: 'text-yellow-400' },
-            { name: 'Nurture', desc: 'Good quality but low intent', color: 'text-blue-400' },
-            { name: 'Low Priority', desc: 'Quality < 40 or flagged low urgency', color: 'text-gray-400' },
+            { name: 'Hot Lead', desc: '28-day buyer OR quality/intent >= 55', color: 'text-red-400' },
+            { name: 'Qualified', desc: 'Quality >= 45, intent >= 45', color: 'text-amber-400' },
+            { name: 'Needs Qualification', desc: 'Quality >= 35 OR intent >= 35', color: 'text-yellow-400' },
+            { name: 'Nurture', desc: 'Intent < 35 but quality >= 35', color: 'text-blue-400' },
+            { name: 'Low Priority', desc: 'Everything else', color: 'text-gray-400' },
             { name: 'Disqualified', desc: 'Fake lead or data mismatch', color: 'text-red-600' },
           ].map(c => (
             <Card key={c.name}>

@@ -88,8 +88,8 @@ function parseBedroomValue(value: string): number {
 }
 
 function getScoreColor(score: number): string {
-  if (score >= 70) return '#34D399' // green
-  if (score >= 40) return '#F59E0B' // amber
+  if (score >= 55) return '#34D399' // green
+  if (score >= 35) return '#F59E0B' // amber
   return '#EF4444' // red
 }
 

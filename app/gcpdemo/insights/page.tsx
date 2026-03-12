@@ -102,8 +102,8 @@ function PipelineView() {
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-sm text-white font-medium truncate">{e.fullName}</span>
                       <span className={`text-xs font-bold ${
-                        e.aiScore >= 70 ? 'text-emerald-400' :
-                        e.aiScore >= 45 ? 'text-amber-400' : 'text-gray-400'
+                        e.aiScore >= 55 ? 'text-emerald-400' :
+                        e.aiScore >= 35 ? 'text-amber-400' : 'text-gray-400'
                       }`}>{e.aiScore}</span>
                     </div>
                     <p className="text-[10px] text-white/40 truncate">{e.employer} · {e.role}</p>

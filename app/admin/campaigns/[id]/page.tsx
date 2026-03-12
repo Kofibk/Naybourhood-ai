@@ -153,8 +153,8 @@ export default function CampaignDetailPage() {
   const spend = campaign.spend || campaign.amount_spent || 0
   const leadCount = campaign.leads || campaign.lead_count || leads.length
   const cpl = campaign.cpl || campaign.cost_per_lead || (leadCount > 0 ? Math.round(spend / leadCount) : 0)
-  const hotLeads = leads.filter(l => (l.quality_score || 0) >= 85).length
-  const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+  const hotLeads = leads.filter(l => (l.final_score || l.quality_score || 0) >= 55).length
+  const qualifiedLeads = leads.filter(l => l.status === 'Qualified' || (l.final_score || l.quality_score || 0) >= 45).length
 
   const formatDate = (dateString?: string) => {
     if (!dateString) return 'N/A'
@@ -467,8 +467,8 @@ export default function CampaignDetailPage() {
                       <td className="p-3 text-sm">{lead.budget || 'N/A'}</td>
                       <td className="p-3">
                         <span className={`font-semibold ${
-                          (lead.quality_score || 0) >= 85 ? 'text-orange-500' :
-                          (lead.quality_score || 0) >= 70 ? 'text-success' : ''
+                          (lead.quality_score || 0) >= 55 ? 'text-orange-500' :
+                          (lead.quality_score || 0) >= 35 ? 'text-success' : ''
                         }`}>
                           {lead.quality_score || 0}
                         </span>

@@ -37,9 +37,9 @@ export default function AnalyticsPage() {
   // Calculate comprehensive analytics
   const analytics = useMemo(() => {
     // Lead quality metrics
-    const hotLeads = leads.filter(l => (l.quality_score || 0) >= 80)
-    const warmLeads = leads.filter(l => (l.quality_score || 0) >= 60 && (l.quality_score || 0) < 80)
-    const coldLeads = leads.filter(l => (l.quality_score || 0) < 60)
+    const hotLeads = leads.filter(l => (l.final_score || l.quality_score || 0) >= 55)
+    const warmLeads = leads.filter(l => { const s = l.final_score || l.quality_score || 0; return s >= 35 && s < 55 })
+    const coldLeads = leads.filter(l => (l.final_score || l.quality_score || 0) < 35)
 
     const avgQualityScore = leads.length > 0
       ? Math.round(leads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / leads.length)
@@ -147,8 +147,8 @@ export default function AnalyticsPage() {
   }, [leads, campaigns])
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-success'
-    if (score >= 60) return 'text-warning'
+    if (score >= 55) return 'text-success'
+    if (score >= 35) return 'text-warning'
     return 'text-white/50'
   }
 
@@ -385,8 +385,8 @@ export default function AnalyticsPage() {
                       <span className={getScoreColor(source.avgScore)}>{source.avgScore}</span>
                     </td>
                     <td className="p-3 text-right">
-                      <Badge variant={source.avgScore >= 70 ? 'success' : source.avgScore >= 50 ? 'warning' : 'secondary'}>
-                        {source.avgScore >= 70 ? 'High' : source.avgScore >= 50 ? 'Medium' : 'Low'}
+                      <Badge variant={source.avgScore >= 55 ? 'success' : source.avgScore >= 35 ? 'warning' : 'secondary'}>
+                        {source.avgScore >= 55 ? 'High' : source.avgScore >= 35 ? 'Medium' : 'Low'}
                       </Badge>
                     </td>
                   </tr>

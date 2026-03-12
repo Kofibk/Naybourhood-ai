@@ -54,8 +54,8 @@ export function AIBuyerSummary({ buyerId, initialData }: AIBuyerSummaryProps) {
 
   const getClassification = (quality: number, intent: number) => {
     const combined = (quality * 0.5) + (intent * 0.5)
-    if (combined >= 70) return { label: 'Hot', icon: Flame, color: 'text-red-500', bg: 'bg-red-500' }
-    if (combined >= 45) return { label: 'Warm', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-500' }
+    if (combined >= 55) return { label: 'Hot', icon: Flame, color: 'text-red-500', bg: 'bg-red-500' }
+    if (combined >= 35) return { label: 'Warm', icon: Thermometer, color: 'text-orange-500', bg: 'bg-orange-500' }
     return { label: 'Cold', icon: Snowflake, color: 'text-blue-500', bg: 'bg-blue-500' }
   }
 

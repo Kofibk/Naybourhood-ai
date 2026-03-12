@@ -667,11 +667,11 @@ export function calculateConfidenceScore(buyer: Buyer): ConfidenceScoreResult {
 
 // ═══════════════════════════════════════════════════════════════════
 // CLASSIFICATION
-// Hot Lead: 28-day = Yes OR (Quality ≥70 AND Intent ≥70 AND Confidence ≥60)
-// Qualified: Quality ≥60 AND Intent ≥50 AND Confidence ≥50
-// Needs Qualification: Confidence <50
-// Nurture: Intent <50 but Quality ≥50
-// Low Priority: Quality <40 or low_urgency flag
+// Hot Lead: 28-day = Yes (hard rule) OR (Quality ≥55 AND Intent ≥55 AND Confidence ≥45)
+// Qualified: Quality ≥45 AND Intent ≥45
+// Needs Qualification: Quality ≥35 OR Intent ≥35
+// Nurture: Intent <35 but Quality ≥35
+// Low Priority: everything else
 // Disqualified: £2M+ budget with studio/1-bed
 // ═══════════════════════════════════════════════════════════════════
 
@@ -701,33 +701,28 @@ export function determineClassification(
     return 'Hot Lead'
   }
 
-  // HOT LEAD: Quality ≥70 AND Intent ≥70 AND Confidence ≥60
-  if (quality >= 70 && intent >= 70 && confidence >= 60) {
+  // HOT LEAD: Quality ≥55 AND Intent ≥55 AND Confidence ≥45
+  if (quality >= 55 && intent >= 55 && confidence >= 45) {
     return 'Hot Lead'
   }
 
-  // LOW PRIORITY: Quality <40 or low_urgency flag
-  if (quality < 40 || lowUrgencyFlag) {
-    return 'Low Priority'
-  }
-
-  // NEEDS QUALIFICATION: Confidence <50
-  if (confidence < 50) {
-    return 'Needs Qualification'
-  }
-
-  // QUALIFIED: Quality ≥60 AND Intent ≥50 AND Confidence ≥50
-  if (quality >= 60 && intent >= 50 && confidence >= 50) {
+  // QUALIFIED: Quality ≥45 AND Intent ≥45
+  if (quality >= 45 && intent >= 45) {
     return 'Qualified'
   }
 
-  // NURTURE: Intent <50 but Quality ≥50
-  if (intent < 50 && quality >= 50) {
+  // NURTURE: Intent <35 but Quality ≥35
+  if (intent < 35 && quality >= 35) {
     return 'Nurture'
   }
 
-  // Default to Needs Qualification if nothing else matches
-  return 'Needs Qualification'
+  // NEEDS QUALIFICATION: Quality ≥35 OR Intent ≥35
+  if (quality >= 35 || intent >= 35) {
+    return 'Needs Qualification'
+  }
+
+  // LOW PRIORITY: everything else
+  return 'Low Priority'
 }
 
 // ═══════════════════════════════════════════════════════════════════

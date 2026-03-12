@@ -186,7 +186,7 @@ export function LeadManagementPage({ mode }: LeadManagementPageProps) {
   const stats = useMemo(() => {
     const total = myLeads.length
     if (isPropertyMode) {
-      const hot = myLeads.filter((l: any) => l.ai_classification === 'Hot' || (l.ai_quality_score || l.quality_score || 0) >= 70).length
+      const hot = myLeads.filter((l: any) => l.ai_classification === 'Hot' || (l.final_score || l.ai_quality_score || l.quality_score || 0) >= 55).length
       const viewings = myLeads.filter((l: any) => l.status === 'Viewing Booked').length
       const negotiating = myLeads.filter((l: any) => l.status === 'Negotiating').length
       const reserved = myLeads.filter((l: any) => l.status === 'Reserved' || l.status === 'Exchanged').length

@@ -114,10 +114,10 @@ export default function DevelopmentDetailPage() {
       c.status === 'active' || c.status === 'Active'
     ).length
     const avgCPL = totalLeads > 0 ? Math.round(totalSpend / totalLeads) : 0
-    // Hot leads: scored 80+ (check both ai_quality_score and quality_score)
+    // Hot leads: scored 55+ (check both final_score and ai_quality_score)
     const hotLeads = devLeads.filter((l) => {
-      const score = l.ai_quality_score ?? l.quality_score
-      return score !== null && score !== undefined && score >= 80
+      const score = l.final_score ?? l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 55
     }).length
 
     return {
@@ -669,8 +669,8 @@ export default function DevelopmentDetailPage() {
                     {lead.quality_score !== undefined && (
                       <div className="text-right">
                         <p className={`text-sm font-medium ${
-                          lead.quality_score >= 80 ? 'text-success' :
-                          lead.quality_score >= 60 ? 'text-warning' : 'text-white/50'
+                          lead.quality_score >= 55 ? 'text-success' :
+                          lead.quality_score >= 35 ? 'text-warning' : 'text-white/50'
                         }`}>
                           {lead.quality_score}
                         </p>

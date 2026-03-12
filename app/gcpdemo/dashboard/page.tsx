@@ -196,7 +196,7 @@ export default function GcpDashboardPage() {
                   <td className="py-3 text-white font-medium">{e.fullName}</td>
                   <td className="py-3 text-white/60">{e.employer}</td>
                   <td className="py-3">
-                    <span className={`font-semibold ${e.aiScore >= 70 ? 'text-emerald-400' : e.aiScore >= 45 ? 'text-amber-400' : 'text-gray-400'}`}>
+                    <span className={`font-semibold ${e.aiScore >= 55 ? 'text-emerald-400' : e.aiScore >= 35 ? 'text-amber-400' : 'text-gray-400'}`}>
                       {e.aiScore}
                     </span>
                   </td>

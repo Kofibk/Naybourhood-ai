@@ -733,22 +733,22 @@ export function determineClassification(
   }
 
   // Hot leads: High quality + High intent
-  if (qualityScore >= 70 && intentScore >= 70) {
+  if (qualityScore >= 55 && intentScore >= 55) {
     return 'Hot'
   }
 
-  // Warm-Qualified: High quality, moderate intent
-  if (qualityScore >= 70 && intentScore >= 45) {
+  // Warm-Qualified: Good quality, moderate intent
+  if (qualityScore >= 45 && intentScore >= 35) {
     return 'Warm-Qualified'
   }
 
-  // Warm-Engaged: Moderate quality, high intent
-  if (qualityScore >= 45 && intentScore >= 70) {
+  // Warm-Engaged: Moderate quality, good intent
+  if (qualityScore >= 35 && intentScore >= 45) {
     return 'Warm-Engaged'
   }
 
   // Nurture-Premium: Good scores but not quite hot
-  if (qualityScore >= 55 && intentScore >= 45) {
+  if (qualityScore >= 45 && intentScore >= 35) {
     return 'Nurture-Premium'
   }
 

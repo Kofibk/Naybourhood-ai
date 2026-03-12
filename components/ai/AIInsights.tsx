@@ -63,10 +63,10 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
     // Calculate stats
     const totalLeads = activeLeads.length
-    const hotLeads = activeLeads.filter(b => (b.ai_quality_score ?? b.quality_score ?? 0) >= 70)
+    const hotLeads = activeLeads.filter(b => (b.final_score ?? b.ai_quality_score ?? b.quality_score ?? 0) >= 55)
     const warmLeads = activeLeads.filter(b => {
-      const score = b.ai_quality_score ?? b.quality_score ?? 0
-      return score >= 40 && score < 70
+      const score = b.final_score ?? b.ai_quality_score ?? b.quality_score ?? 0
+      return score >= 35 && score < 55
     })
     const coldLeads = totalLeads - hotLeads.length - warmLeads.length
 
@@ -81,7 +81,7 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
     // Find hot leads without viewing booked
     const hotLeadsNoViewing = activeLeads.filter(b =>
-      (b.ai_quality_score ?? b.quality_score ?? 0) >= 70 &&
+      (b.final_score ?? b.ai_quality_score ?? b.quality_score ?? 0) >= 55 &&
       b.status !== 'Viewing Booked' &&
       b.status !== 'Completed' &&
       b.status !== 'Reserved' &&
@@ -160,8 +160,8 @@ export function AIInsights({ onActionClick }: AIInsightsProps) {
 
     // Add top hot lead to call
     const topHotLead = activeLeads
-      .filter(b => (b.ai_quality_score ?? b.quality_score ?? 0) >= 70)
-      .sort((a, b) => (b.ai_quality_score ?? b.quality_score ?? 0) - (a.ai_quality_score ?? a.quality_score ?? 0))[0]
+      .filter(b => (b.final_score ?? b.ai_quality_score ?? b.quality_score ?? 0) >= 55)
+      .sort((a, b) => (b.final_score ?? b.ai_quality_score ?? b.quality_score ?? 0) - (a.final_score ?? a.ai_quality_score ?? a.quality_score ?? 0))[0]
 
     if (topHotLead) {
       actionsList.push({

@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
       recommendations.push('Review targeting - CPL is above optimal range')
     }
 
-    const hotLeads = buyersList.filter(b => (b.ai_quality_score || b.quality_score || 0) >= 70).length
+    const hotLeads = buyersList.filter(b => (b.final_score || b.ai_quality_score || b.quality_score || 0) >= 55).length
     const hotLeadPercent = buyersList.length > 0 ? (hotLeads / buyersList.length) * 100 : 0
 
     if (hotLeadPercent < 20) {

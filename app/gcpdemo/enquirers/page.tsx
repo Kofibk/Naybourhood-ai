@@ -10,9 +10,9 @@ import { Button } from '@/components/ui/button'
 type ScoreBand = 'all' | '80+' | '60-79' | '40-59' | '<40'
 
 function getScoreBand(score: number): ScoreBand {
-  if (score >= 80) return '80+'
-  if (score >= 60) return '60-79'
-  if (score >= 40) return '40-59'
+  if (score >= 55) return '80+'
+  if (score >= 45) return '60-79'
+  if (score >= 35) return '40-59'
   return '<40'
 }
 
@@ -185,8 +185,8 @@ export default function EnquirersPage() {
                   </td>
                   <td className="px-4 py-3">
                     <span className={`font-bold text-base ${
-                      e.aiScore >= 70 ? 'text-emerald-400' :
-                      e.aiScore >= 45 ? 'text-amber-400' : 'text-gray-400'
+                      e.aiScore >= 55 ? 'text-emerald-400' :
+                      e.aiScore >= 35 ? 'text-amber-400' : 'text-gray-400'
                     }`}>{e.aiScore}</span>
                   </td>
                   <td className="px-4 py-3">

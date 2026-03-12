@@ -92,8 +92,8 @@ export function ScoreCard({ label, score, maxScore = 100, explanation }: { label
 
   const percentage = (score / maxScore) * 100
   const getColor = (p: number) => {
-    if (p >= 70) return 'bg-green-500'
-    if (p >= 45) return 'bg-orange-500'
+    if (p >= 55) return 'bg-green-500'
+    if (p >= 35) return 'bg-orange-500'
     return 'bg-gray-400'
   }
 
@@ -143,7 +143,7 @@ export function ScoreBreakdownSection({
         <div className="flex items-center gap-2">
           <div className="w-20 h-2 bg-muted rounded-full">
             <div
-              className={`h-2 rounded-full ${percentage >= 70 ? 'bg-green-500' : percentage >= 45 ? 'bg-orange-500' : 'bg-gray-400'}`}
+              className={`h-2 rounded-full ${percentage >= 55 ? 'bg-green-500' : percentage >= 35 ? 'bg-orange-500' : 'bg-gray-400'}`}
               style={{ width: `${percentage}%` }}
             />
           </div>

@@ -52,7 +52,7 @@ export default function InsightsPage() {
       ? (myLeads.reduce((sum, l) => sum + (l.quality_score || 0), 0) / totalLeads / 10).toFixed(1)
       : '0'
 
-    const qualifiedLeads = myLeads.filter(l => l.status === 'Qualified' || (l.quality_score || 0) >= 70).length
+    const qualifiedLeads = myLeads.filter(l => l.status === 'Qualified' || (l.final_score || l.quality_score || 0) >= 55).length
     const conversionRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
     return {
@@ -67,7 +67,7 @@ export default function InsightsPage() {
 
     const sortedLeads = [...myLeads].sort((a, b) => (b.quality_score || 0) - (a.quality_score || 0))
     const topLead = sortedLeads[0]
-    if (topLead && (topLead.quality_score || 0) >= 80) {
+    if (topLead && (topLead.quality_score || 0) >= 55) {
       generatedInsights.push({
         title: 'Hot Lead Alert',
         description: `${topLead.full_name || topLead.first_name || 'A lead'} (Score: ${topLead.quality_score}) is a high-value prospect. Contact immediately.`,

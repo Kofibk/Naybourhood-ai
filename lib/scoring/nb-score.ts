@@ -25,7 +25,7 @@ export function calculateNBScore(
  * Get the colour for an NB Score value.
  */
 export function getNBScoreColor(score: number): string {
-  if (score >= 70) return '#34D399' // green
-  if (score >= 40) return '#FBBF24' // amber
+  if (score >= 55) return '#34D399' // green
+  if (score >= 35) return '#FBBF24' // amber
   return '#EF4444'                   // red
 }

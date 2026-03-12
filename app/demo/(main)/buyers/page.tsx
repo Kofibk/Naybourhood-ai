@@ -17,8 +17,8 @@ const statusColors: Record<string, string> = {
 }
 
 function getScoreColor(score: number) {
-  if (score >= 80) return 'text-emerald-400'
-  if (score >= 60) return 'text-amber-400'
+  if (score >= 55) return 'text-emerald-400'
+  if (score >= 35) return 'text-amber-400'
   return 'text-red-400'
 }
 

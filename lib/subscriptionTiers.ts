@@ -98,9 +98,9 @@ export const getTierByPriceId = (priceId: string): SubscriptionTierConfig | unde
 export const canAccessBuyer = (tier: SubscriptionTier, buyerScore: number): boolean => {
   switch (tier) {
     case 'access':
-      return buyerScore >= 50 && buyerScore <= 69
+      return buyerScore >= 35 && buyerScore <= 54
     case 'growth':
-      return buyerScore >= 50
+      return buyerScore >= 35
     case 'enterprise':
       return true
     default:

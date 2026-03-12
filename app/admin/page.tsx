@@ -125,19 +125,19 @@ export default function AdminDashboard() {
 
     const totalLeads = activeLeads.length
 
-    // Hot leads: score >= 70 (only count leads that have been scored)
+    // Hot leads: score >= 55 (only count leads that have been scored)
     const hotLeads = activeLeads.filter(l => {
-      const score = l.ai_quality_score ?? l.quality_score
-      return score !== null && score !== undefined && score >= 70
+      const score = l.final_score ?? l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 55
     }).length
 
     // Average score: only average leads that have actual scores (not null/undefined)
     const scoredLeads = activeLeads.filter(l => {
-      const score = l.ai_quality_score ?? l.quality_score
+      const score = l.final_score ?? l.ai_quality_score ?? l.quality_score
       return score !== null && score !== undefined
     })
     const avgScore = scoredLeads.length > 0
-      ? Math.round(scoredLeads.reduce((sum, l) => sum + (l.ai_quality_score ?? l.quality_score ?? 0), 0) / scoredLeads.length)
+      ? Math.round(scoredLeads.reduce((sum, l) => sum + (l.final_score ?? l.ai_quality_score ?? l.quality_score ?? 0), 0) / scoredLeads.length)
       : 0
 
     const totalSpend = campaigns.reduce((sum, c) => sum + (c.spend || 0), 0)
@@ -152,8 +152,8 @@ export default function AdminDashboard() {
     // Qualified = positive status OR high score (for scored leads only)
     const qualifiedLeads = activeLeads.filter(l => {
       if (STATUS_CATEGORIES.positive.includes(l.status || '')) return true
-      const score = l.ai_quality_score ?? l.quality_score
-      return score !== null && score !== undefined && score >= 70
+      const score = l.final_score ?? l.ai_quality_score ?? l.quality_score
+      return score !== null && score !== undefined && score >= 55
     }).length
     const qualifiedRate = totalLeads > 0 ? Math.round((qualifiedLeads / totalLeads) * 100) : 0
 
@@ -209,13 +209,13 @@ export default function AdminDashboard() {
         if (STATUS_CATEGORIES.disqualified.includes(status)) return false
         if (STATUS_CATEGORIES.negative.includes(status)) return false
         if (status === 'Completed') return false
-        // Only include scored leads with score >= 70
-        const score = l.ai_quality_score ?? l.quality_score
-        return score !== null && score !== undefined && score >= 70
+        // Only include scored leads with score >= 55
+        const score = l.final_score ?? l.ai_quality_score ?? l.quality_score
+        return score !== null && score !== undefined && score >= 55
       })
       .sort((a, b) => {
-        const scoreA = a.ai_quality_score ?? a.quality_score ?? 0
-        const scoreB = b.ai_quality_score ?? b.quality_score ?? 0
+        const scoreA = a.final_score ?? a.ai_quality_score ?? a.quality_score ?? 0
+        const scoreB = b.final_score ?? b.ai_quality_score ?? b.quality_score ?? 0
         return scoreB - scoreA
       })
       .slice(0, 5)

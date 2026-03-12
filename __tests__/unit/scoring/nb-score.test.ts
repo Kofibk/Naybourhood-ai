@@ -61,21 +61,21 @@ describe('calculateNBScore', () => {
 })
 
 describe('getNBScoreColor', () => {
-  it('should return green (#34D399) for scores >= 70', () => {
-    expect(getNBScoreColor(70)).toBe('#34D399')
+  it('should return green (#34D399) for scores >= 55', () => {
+    expect(getNBScoreColor(55)).toBe('#34D399')
     expect(getNBScoreColor(85)).toBe('#34D399')
     expect(getNBScoreColor(100)).toBe('#34D399')
   })
 
-  it('should return amber (#FBBF24) for scores 40-69', () => {
-    expect(getNBScoreColor(40)).toBe('#FBBF24')
-    expect(getNBScoreColor(55)).toBe('#FBBF24')
-    expect(getNBScoreColor(69)).toBe('#FBBF24')
+  it('should return amber (#FBBF24) for scores 35-54', () => {
+    expect(getNBScoreColor(35)).toBe('#FBBF24')
+    expect(getNBScoreColor(45)).toBe('#FBBF24')
+    expect(getNBScoreColor(54)).toBe('#FBBF24')
   })
 
-  it('should return red (#EF4444) for scores < 40', () => {
+  it('should return red (#EF4444) for scores < 35', () => {
     expect(getNBScoreColor(0)).toBe('#EF4444')
     expect(getNBScoreColor(20)).toBe('#EF4444')
-    expect(getNBScoreColor(39)).toBe('#EF4444')
+    expect(getNBScoreColor(34)).toBe('#EF4444')
   })
 })

@@ -202,9 +202,9 @@ export function EditableScore({
 }: Omit<EditableCellProps, 'type'>) {
   const getScoreColor = (score: number | undefined) => {
     if (!score) return 'text-muted-foreground'
-    if (score >= 80) return 'text-red-500'
-    if (score >= 60) return 'text-orange-500'
-    if (score >= 40) return 'text-yellow-500'
+    if (score >= 55) return 'text-red-500'
+    if (score >= 45) return 'text-orange-500'
+    if (score >= 35) return 'text-yellow-500'
     return 'text-muted-foreground'
   }
 
