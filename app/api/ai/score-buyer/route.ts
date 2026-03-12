@@ -8,6 +8,7 @@ import {
   convertToLegacyFormat,
   NaybourhoodScoreResult
 } from '@/lib/scoring/naybourhood-scoring'
+import { enrichBuyerProfile, enrichmentToText } from '@/lib/enrichment/buyer-enrichment'
 
 // Force dynamic rendering - this route uses cookies
 export const dynamic = 'force-dynamic'
@@ -135,7 +136,7 @@ Respond ONLY with valid JSON:
   try {
     const response = await client.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 500,
+      max_tokens: 800,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -394,6 +395,35 @@ export async function POST(request: NextRequest) {
 
     // Get Anthropic client for enhanced summary generation
     const client = getAnthropicClient()
+
+    // Run web enrichment if Anthropic client is available and buyer has no existing enrichment
+    let enrichmentText = buyer.background_research || ''
+    if (client && !buyer.background_research) {
+      console.log('[AI Score] Running web enrichment for buyer profile')
+      try {
+        const enrichment = await enrichBuyerProfile(client, {
+          name: buyer.full_name || buyer.first_name || undefined,
+          email: buyer.email || undefined,
+          phone: buyer.phone || undefined,
+          company: buyer.company_name || undefined,
+          jobTitle: buyer.job_title || undefined,
+          location: buyer.location || buyer.area || buyer.country || undefined,
+        })
+        enrichmentText = enrichmentToText(enrichment)
+        if (enrichmentText) {
+          console.log(`[AI Score] Enrichment complete — confidence: ${enrichment.enrichmentConfidence}`)
+          // Store enrichment in buyer record
+          await supabase
+            .from('buyers')
+            .update({ background_research: enrichmentText })
+            .eq('id', buyerId)
+          // Make enrichment available for the Claude summary prompt
+          buyer.background_research = enrichmentText
+        }
+      } catch (enrichErr) {
+        console.error('[AI Score] Enrichment failed (non-blocking):', enrichErr)
+      }
+    }
 
     // Generate summary (with Claude if available, otherwise fallback)
     let summaryData: { summary: string; next_action: string; recommendations: string[] }
