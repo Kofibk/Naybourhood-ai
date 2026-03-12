@@ -136,7 +136,7 @@ Respond ONLY with valid JSON:
   try {
     const response = await client.messages.create({
       model: 'claude-3-haiku-20240307',
-      max_tokens: 800,
+      max_tokens: 1200,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -148,12 +148,24 @@ Respond ONLY with valid JSON:
     const jsonMatch = textContent.text.match(/\{[\s\S]*\}/)
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0])
-      // Serialize the structured summary as JSON string for storage
-      const summaryStr = typeof parsed.summary === 'object'
-        ? JSON.stringify(parsed.summary)
-        : parsed.summary
+
+      // Ensure summary is always stored as structured JSON with paragraph + signals
+      let summaryObj: { paragraph: string; signals: Array<{ label: string; detail: string }> }
+
+      if (typeof parsed.summary === 'object' && parsed.summary?.paragraph) {
+        // Claude returned the expected structured object
+        summaryObj = parsed.summary
+      } else if (typeof parsed.summary === 'string') {
+        // Claude returned summary as a plain string — wrap it with empty signals
+        // so the card component can still pair it with client-side signals
+        summaryObj = { paragraph: parsed.summary, signals: [] }
+      } else {
+        // Unexpected shape — use whatever we got as the paragraph
+        summaryObj = { paragraph: String(parsed.summary || ''), signals: [] }
+      }
+
       return {
-        summary: summaryStr,
+        summary: JSON.stringify(summaryObj),
         next_action: parsed.next_action,
         recommendations: parsed.recommendations
       }

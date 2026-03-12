@@ -174,34 +174,37 @@ interface BuyerOverviewCardProps {
 }
 
 export function BuyerOverviewCard({ backgroundResearch, buyerSummary, aiSummary, buyer }: BuyerOverviewCardProps) {
-  // Combine sources: background_research/buyer_summary as context, ai_summary as main
-  const primaryText = backgroundResearch || buyerSummary || ''
   const summaryText = aiSummary || ''
+  const enrichmentText = backgroundResearch || buyerSummary || ''
 
-  // Try to parse the AI summary as structured
+  // Try to parse the AI summary as structured JSON
   const structured = parseSummary(summaryText)
-  const legacyContext = parseSummary(primaryText)
 
-  // If neither source has data and no buyer data, don't render
-  if (!structured && !legacyContext && !buyer) return null
+  // If no data at all, don't render
+  if (!structured && !enrichmentText && !buyer) return null
 
-  // Check if we have a properly structured AI summary with signals
+  // Check if we have the new structured format (JSON with paragraph + signals)
   const hasStructuredSignals = structured && structured.signals.length > 0
 
   let paragraph: string
   let signals: BuyerOverviewSignal[]
 
   if (hasStructuredSignals) {
-    // New format: use structured AI summary directly
+    // BEST: Structured AI summary with signals (from Claude after enrichment)
     paragraph = structured.paragraph
     signals = structured.signals
+  } else if (structured && structured.paragraph && structured.paragraph.length > 50) {
+    // GOOD: AI-generated plain text summary (from Claude, richer than client-side)
+    // Use the AI paragraph but generate signals from buyer data to add structure
+    paragraph = structured.paragraph
+    signals = buyer ? generateClientSignals(buyer) : []
   } else if (buyer) {
-    // Legacy or no summary: generate from buyer data client-side
+    // FALLBACK: No AI summary — generate entirely from buyer data client-side
     paragraph = generateClientParagraph(buyer)
     signals = generateClientSignals(buyer)
   } else {
-    // Bare fallback: combine whatever text we have
-    paragraph = [legacyContext?.paragraph, structured?.paragraph].filter(Boolean).join(' ')
+    // BARE: Just show whatever text we have
+    paragraph = enrichmentText || structured?.paragraph || ''
     signals = []
   }
 
