@@ -33,6 +33,106 @@ function parseSummary(raw: string): StructuredSummary | null {
   return { paragraph: raw, signals: [] }
 }
 
+/**
+ * Generate signals client-side from buyer data when no structured
+ * ai_summary is available (legacy plain-text summaries).
+ */
+function generateClientSignals(buyer: BuyerData): BuyerOverviewSignal[] {
+  const signals: BuyerOverviewSignal[] = []
+
+  // Financial Profile
+  const payment = (buyer.paymentMethod || '').toLowerCase()
+  if (payment === 'cash') {
+    if (buyer.proofOfFunds) {
+      signals.push({ label: 'Financial Profile', detail: `Verified cash buyer${buyer.budget ? ` with ${buyer.budget} budget` : ''}.` })
+    } else {
+      signals.push({ label: 'Financial Profile', detail: `Claims cash buyer status${buyer.budget ? ` with ${buyer.budget} budget` : ''} but proof of funds not yet provided.` })
+    }
+  } else if (payment === 'mortgage') {
+    const ms = (buyer.mortgageStatus || '').toLowerCase()
+    if (ms === 'approved' || ms === 'aip') {
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer with AIP in place${buyer.budget ? `, targeting ${buyer.budget}` : ''}.` })
+    } else {
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer without AIP${buyer.budget ? `, targeting ${buyer.budget}` : ''} — financing unconfirmed.` })
+    }
+  }
+
+  // Property Intent
+  const bedrooms = buyer.bedrooms
+  const location = buyer.location
+  if (bedrooms || location) {
+    const parts = [bedrooms ? `${bedrooms}-bed` : '', location].filter(Boolean).join(' in ')
+    const is28 = buyer.readyIn28Days
+    signals.push({ label: 'Property Intent', detail: `Looking for ${parts}${is28 ? ' with 28-day purchase readiness' : ''}.` })
+  }
+
+  // Verification Status
+  signals.push({ label: 'Verification Status', detail: 'Not yet verified — AML/KYC check recommended before progressing.' })
+
+  // International Exposure
+  const country = (buyer.country || '').toLowerCase()
+  if (country && !['uk', 'united kingdom', 'england', 'scotland', 'wales', 'gb', 'great britain'].includes(country)) {
+    signals.push({ label: 'International Exposure', detail: `Based in ${buyer.country}; international payment and legal considerations apply.` })
+  }
+
+  // Professional Background
+  const job = buyer.jobTitle
+  const company = buyer.companyName
+  const prof = job && company ? `${job} at ${company}` : job || company || ''
+  if (prof) {
+    signals.push({ label: 'Professional Background', detail: `${prof}.` })
+  }
+
+  // Engagement
+  if (buyer.source) {
+    signals.push({ label: 'Engagement', detail: `Sourced via ${buyer.source}.` })
+  }
+
+  // Missing Data (only commercially meaningful)
+  const missing: string[] = []
+  if (!buyer.budget) missing.push('budget')
+  if (!buyer.timeline) missing.push('timeline')
+  if (!buyer.phone && !buyer.email) missing.push('contact details')
+  if (missing.length > 0) {
+    signals.push({ label: 'Missing Data', detail: `No ${missing.join(', ')} provided — limits qualification accuracy.` })
+  }
+
+  return signals.slice(0, 6)
+}
+
+/**
+ * Build a paragraph from buyer data when the stored summary is legacy text.
+ */
+function generateClientParagraph(buyer: BuyerData): string {
+  const name = buyer.fullName || 'This buyer'
+  const payment = (buyer.paymentMethod || 'potential').toLowerCase()
+  const paymentDesc = payment === 'cash' ? 'cash' : payment === 'mortgage' ? 'mortgage' : buyer.paymentMethod || 'potential'
+  const bedrooms = buyer.bedrooms ? `${buyer.bedrooms}-bedroom property` : 'property'
+  const loc = buyer.location || 'an unspecified location'
+
+  const job = buyer.jobTitle
+  const company = buyer.companyName
+  const prof = job && company ? `${job} at ${company}` : job || company || ''
+
+  let para = ''
+  if (prof) {
+    para = `${name} is a ${prof} seeking a ${bedrooms} in ${loc} via ${paymentDesc}.`
+  } else {
+    para = `${name} is a ${paymentDesc} buyer seeking a ${bedrooms} in ${loc}.`
+  }
+
+  const budgetPart = buyer.budget ? `Budget: ${buyer.budget}` : 'Budget not disclosed'
+  if (buyer.readyIn28Days) {
+    para += ` ${budgetPart}; ready to complete within 28 days, making this an immediate-priority lead.`
+  } else if (buyer.timeline) {
+    para += ` ${budgetPart}; timeline: ${buyer.timeline}.`
+  } else {
+    para += ` ${budgetPart}; purchase timeline not yet confirmed.`
+  }
+
+  return para
+}
+
 const SIGNAL_COLORS: Record<string, string> = {
   'Financial Profile': 'text-emerald-400',
   'Property Intent': 'text-blue-400',
@@ -47,13 +147,33 @@ const SIGNAL_COLORS: Record<string, string> = {
   'Business Activity': 'text-teal-400',
 }
 
+export interface BuyerData {
+  fullName?: string | null
+  email?: string | null
+  phone?: string | null
+  paymentMethod?: string | null
+  budget?: string | null
+  location?: string | null
+  bedrooms?: string | number | null
+  timeline?: string | null
+  country?: string | null
+  source?: string | null
+  proofOfFunds?: boolean | null
+  mortgageStatus?: string | null
+  readyIn28Days?: boolean | null
+  jobTitle?: string | null
+  companyName?: string | null
+}
+
 interface BuyerOverviewCardProps {
   backgroundResearch?: string | null
   buyerSummary?: string | null
   aiSummary?: string | null
+  /** Pass buyer data to generate signals client-side for legacy summaries */
+  buyer?: BuyerData | null
 }
 
-export function BuyerOverviewCard({ backgroundResearch, buyerSummary, aiSummary }: BuyerOverviewCardProps) {
+export function BuyerOverviewCard({ backgroundResearch, buyerSummary, aiSummary, buyer }: BuyerOverviewCardProps) {
   // Combine sources: background_research/buyer_summary as context, ai_summary as main
   const primaryText = backgroundResearch || buyerSummary || ''
   const summaryText = aiSummary || ''
@@ -62,19 +182,28 @@ export function BuyerOverviewCard({ backgroundResearch, buyerSummary, aiSummary 
   const structured = parseSummary(summaryText)
   const legacyContext = parseSummary(primaryText)
 
-  // If neither source has data, don't render
-  if (!structured && !legacyContext) return null
+  // If neither source has data and no buyer data, don't render
+  if (!structured && !legacyContext && !buyer) return null
 
-  // Use the best available structured data
-  // If AI summary is structured, use it. Otherwise combine texts.
+  // Check if we have a properly structured AI summary with signals
   const hasStructuredSignals = structured && structured.signals.length > 0
 
-  // Build the paragraph: prefer structured AI summary, fall back to combined text
-  const paragraph = hasStructuredSignals
-    ? structured.paragraph
-    : [legacyContext?.paragraph, structured?.paragraph].filter(Boolean).join(' ')
+  let paragraph: string
+  let signals: BuyerOverviewSignal[]
 
-  const signals = hasStructuredSignals ? structured.signals : (legacyContext?.signals || [])
+  if (hasStructuredSignals) {
+    // New format: use structured AI summary directly
+    paragraph = structured.paragraph
+    signals = structured.signals
+  } else if (buyer) {
+    // Legacy or no summary: generate from buyer data client-side
+    paragraph = generateClientParagraph(buyer)
+    signals = generateClientSignals(buyer)
+  } else {
+    // Bare fallback: combine whatever text we have
+    paragraph = [legacyContext?.paragraph, structured?.paragraph].filter(Boolean).join(' ')
+    signals = []
+  }
 
   if (!paragraph) return null
 

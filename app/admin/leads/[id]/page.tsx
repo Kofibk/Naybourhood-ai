@@ -373,6 +373,23 @@ export default function LeadDetailPage() {
         backgroundResearch={lead.background_research}
         buyerSummary={lead.buyer_summary}
         aiSummary={summary}
+        buyer={{
+          fullName: lead.full_name || lead.first_name,
+          email: lead.email,
+          phone: lead.phone,
+          paymentMethod: lead.payment_method,
+          budget: lead.budget || lead.budget_range,
+          location: lead.location || lead.area,
+          bedrooms: lead.bedrooms || lead.preferred_bedrooms,
+          timeline: lead.timeline,
+          country: lead.country,
+          source: lead.source,
+          proofOfFunds: lead.proof_of_funds,
+          mortgageStatus: lead.mortgage_status,
+          readyIn28Days: lead.ready_within_28_days,
+          jobTitle: lead.job_title,
+          companyName: lead.company_name,
+        }}
       />
 
       {/* ═══════════════════════════════════════════════════════════════════
