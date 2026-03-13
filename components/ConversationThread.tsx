@@ -152,7 +152,6 @@ export function ConversationThread({
 
   const fetchConversations = useCallback(async () => {
     if (!isSupabaseConfigured()) {
-      // Fall back to agent_transcript if available
       if (agentTranscript) {
         setMessages(parseAgentTranscript(agentTranscript, buyerName))
       } else {
@@ -177,33 +176,76 @@ export function ConversationThread({
         return
       }
 
-      let query = supabase
-        .from('conversations')
-        .select('*')
-        .eq('buyer_id', buyerId)
-        .order('created_at', { ascending: true })
+      // Query messages table (has actual content) via conversations for this buyer.
+      // First get conversation IDs, then get their messages.
+      let dbMessages: ConversationMessage[] = []
 
-      // Filter by channel if specified
-      if (channel !== 'all') {
-        query = query.eq('channel', channel)
+      // Try messages table first (joined via lead_id which maps to buyer_id)
+      const messagesResult = await Promise.race([
+        (async () => {
+          // Try direct lookup by lead_id (buyer_id)
+          let msgQuery = supabase
+            .from('messages')
+            .select('id, conversation_id, lead_id, sender_type, sender_name, content, channel, direction, created_at')
+            .eq('lead_id', buyerId)
+            .order('created_at', { ascending: true })
+
+          if (channel !== 'all') {
+            msgQuery = msgQuery.eq('channel', channel)
+          }
+
+          const { data: directMessages, error: directErr } = await msgQuery
+
+          if (!directErr && directMessages && directMessages.length > 0) {
+            return directMessages
+          }
+
+          // Fallback: get conversation IDs from conversations table, then get messages
+          const { data: convos } = await supabase
+            .from('conversations')
+            .select('id')
+            .eq('buyer_id', buyerId)
+
+          if (convos && convos.length > 0) {
+            const convoIds = convos.map((c: any) => c.id)
+            let msgByConvo = supabase
+              .from('messages')
+              .select('id, conversation_id, lead_id, sender_type, sender_name, content, channel, direction, created_at')
+              .in('conversation_id', convoIds)
+              .order('created_at', { ascending: true })
+
+            if (channel !== 'all') {
+              msgByConvo = msgByConvo.eq('channel', channel)
+            }
+
+            const { data: convoMessages } = await msgByConvo
+            if (convoMessages && convoMessages.length > 0) {
+              return convoMessages
+            }
+          }
+
+          return null
+        })(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000)),
+      ])
+
+      if (messagesResult && messagesResult.length > 0) {
+        // Map DB messages to our ConversationMessage interface
+        dbMessages = messagesResult.map((m: any) => ({
+          id: m.id,
+          buyer_id: m.lead_id,
+          channel: m.channel || 'whatsapp',
+          direction: m.direction || (m.sender_type === 'buyer' ? 'inbound' : 'outbound'),
+          content: m.content || '',
+          status: m.read ? 'read' : m.delivered ? 'delivered' : 'sent',
+          sender_name: m.sender_name || (m.sender_type === 'buyer' ? buyerName : 'Agent'),
+          created_at: m.created_at || new Date().toISOString(),
+        }))
       }
 
-      const { data, error: fetchError } = await query
-
-      if (fetchError) {
-        console.error('[ConversationThread] Fetch error:', fetchError)
-        // Fall back to agent_transcript on error
-        if (agentTranscript) {
-          setMessages(parseAgentTranscript(agentTranscript, buyerName))
-          return
-        }
-        setError(fetchError.message)
-        return
-      }
-
-      // Use conversations table data if available, otherwise fall back to agent_transcript
-      if (data && data.length > 0) {
-        setMessages(data)
+      // Use DB messages if found, otherwise fall back to agent_transcript
+      if (dbMessages.length > 0) {
+        setMessages(dbMessages)
       } else if (agentTranscript) {
         setMessages(parseAgentTranscript(agentTranscript, buyerName))
       } else {
