@@ -87,12 +87,18 @@ function LoginPageInner() {
             .then(() => {})
             .catch(() => {})
 
-          // Fetch profile for role/onboarding check
-          const { data: profile } = await supabase
-            .from('user_profiles')
-            .select('user_type, first_name, last_name, company_id, onboarding_completed')
-            .eq('id', user.id)
-            .single()
+          // Fetch profile with timeout — don't block redirect on slow DB
+          const profileResult = await Promise.race([
+            supabase
+              .from('user_profiles')
+              .select('user_type, first_name, last_name, company_id, onboarding_completed')
+              .eq('id', user.id)
+              .single(),
+            new Promise<{ data: null }>((resolve) =>
+              setTimeout(() => resolve({ data: null }), 5000)
+            ),
+          ])
+          const profile = profileResult.data
 
           // Determine role - master admin override takes priority
           let role = profile?.user_type || 'developer'
@@ -257,15 +263,25 @@ function LoginPageInner() {
               .then(() => {})
               .catch(() => {})
 
-            // Fetch profile for role/onboarding check (only needed columns)
-            const { data: profile, error: profileError } = await supabase
-              .from('user_profiles')
-              .select('user_type, first_name, last_name, company_id, onboarding_completed')
-              .eq('id', data.user.id)
-              .single()
-
-            if (profileError) {
-              console.error('[Login] Profile fetch error:', profileError)
+            // Fetch profile with timeout — don't let a slow DB block login
+            let profile: { user_type: string; first_name: string; last_name: string; company_id: string; onboarding_completed: boolean } | null = null
+            try {
+              const profileResult = await Promise.race([
+                supabase
+                  .from('user_profiles')
+                  .select('user_type, first_name, last_name, company_id, onboarding_completed')
+                  .eq('id', data.user.id)
+                  .single(),
+                new Promise<{ data: null; error: { message: string } }>((resolve) =>
+                  setTimeout(() => resolve({ data: null, error: { message: 'Profile fetch timed out' } }), 5000)
+                ),
+              ])
+              if (profileResult.error) {
+                console.error('[Login] Profile fetch error:', profileResult.error)
+              }
+              profile = profileResult.data
+            } catch (profileErr) {
+              console.error('[Login] Profile fetch exception:', profileErr)
             }
 
             // Determine role - master admin override takes priority
@@ -275,7 +291,7 @@ function LoginPageInner() {
             }
 
             // Only redirect to onboarding if profile exists AND onboarding not completed
-            // If profile is null (fetch failed), proceed to dashboard - AuthContext will handle
+            // If profile is null (fetch failed/timed out), proceed to dashboard
             if (profile && !profile.onboarding_completed) {
               router.push('/onboarding')
               router.refresh()

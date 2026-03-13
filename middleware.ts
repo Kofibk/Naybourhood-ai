@@ -108,8 +108,14 @@ export async function middleware(request: NextRequest) {
       }
     )
 
-    // Get authenticated user (validates with Supabase server, not just JWT)
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    // Get authenticated user with timeout (validates with Supabase server, not just JWT)
+    const userResult = await Promise.race([
+      supabase.auth.getUser(),
+      new Promise<{ data: { user: null }; error: { message: string } }>((resolve) =>
+        setTimeout(() => resolve({ data: { user: null }, error: { message: 'Auth check timed out' } }), 5000)
+      ),
+    ])
+    const { data: { user }, error: userError } = userResult
 
     if (userError || !user) {
       // No valid session - redirect to login
@@ -119,12 +125,18 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url)
     }
 
-    // Get user profile for permission checks
-    const { data: profile } = await supabase
-      .from('user_profiles')
-      .select('permission_role, company_id, is_internal_team, company:companies(enabled_features)')
-      .eq('id', user.id)
-      .single()
+    // Get user profile with timeout for permission checks
+    const profileResult = await Promise.race([
+      supabase
+        .from('user_profiles')
+        .select('permission_role, company_id, is_internal_team, company:companies(enabled_features)')
+        .eq('id', user.id)
+        .single(),
+      new Promise<{ data: null }>((resolve) =>
+        setTimeout(() => resolve({ data: null }), 5000)
+      ),
+    ])
+    const profile = profileResult.data
 
     // Internal team has full access
     const userEmail = user.email?.toLowerCase() || ''

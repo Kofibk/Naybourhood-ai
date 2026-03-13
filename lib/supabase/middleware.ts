@@ -31,7 +31,11 @@ export async function updateSession(request: NextRequest) {
     }
   )
 
-  await supabase.auth.getUser()
+  // Timeout getUser to prevent blocking all requests if Supabase is slow
+  await Promise.race([
+    supabase.auth.getUser(),
+    new Promise((resolve) => setTimeout(resolve, 5000)),
+  ])
 
   return supabaseResponse
 }
