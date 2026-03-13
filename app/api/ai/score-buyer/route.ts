@@ -74,7 +74,7 @@ export interface ScoreBuyerResponse {
 }
 
 // Generate enhanced AI summary using Claude (complements Naybourhood scoring)
-async function generateClaudeSummary(client: Anthropic, buyer: any, naybourhoodScore: NaybourhoodScoreResult): Promise<{ summary: string; next_action: string; recommendations: string[] }> {
+async function generateClaudeSummary(client: Anthropic, buyer: any, naybourhoodScore: NaybourhoodScoreResult, kycStatus?: string): Promise<{ summary: string; next_action: string; recommendations: string[] }> {
   const prompt = `You are a real estate CRM AI assistant. Generate a structured buyer overview in two parts.
 
 BUYER DATA:
@@ -135,8 +135,8 @@ Respond ONLY with valid JSON:
 
   try {
     const response = await client.messages.create({
-      model: 'claude-3-haiku-20240307',
-      max_tokens: 1200,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
       messages: [{ role: 'user', content: prompt }],
     })
 
@@ -170,15 +170,28 @@ Respond ONLY with valid JSON:
         recommendations: parsed.recommendations
       }
     }
-  } catch (err) {
-    console.log('[AI Score] Claude summary generation failed, using fallback')
+  } catch (err: any) {
+    console.error('[AI Score] Claude summary generation failed:', err?.message || err)
+    console.error('[AI Score] Full error:', JSON.stringify(err, null, 2))
   }
 
-  // Fallback summary generation
-  return generateFallbackSummary(buyer, naybourhoodScore)
+  // Fallback summary generation (includes enrichment data if available)
+  return generateFallbackSummary(buyer, naybourhoodScore, kycStatus)
 }
 
-// Generate fallback summary without Claude
+// Parse enrichment text fields (from background_research)
+function parseEnrichmentField(text: string, label: string): string {
+  const regex = new RegExp(`${label}:\\s*(.+?)(?:\\n-|\\n\\n|$)`, 'i')
+  const match = text.match(regex)
+  const value = match?.[1]?.trim() || ''
+  // Skip empty/no-data fields
+  if (!value || value.toLowerCase().startsWith('no data') || value.toLowerCase().startsWith('none') || value.length < 5) {
+    return ''
+  }
+  return value
+}
+
+// Generate fallback summary without Claude (uses enrichment data when available)
 function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycStatus?: string): { summary: string; next_action: string; recommendations: string[] } {
   const name = buyer.full_name || buyer.first_name || 'This lead'
   const paymentType = buyer.payment_method || 'potential'
@@ -189,44 +202,84 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycS
   const country = (buyer.country || '').toLowerCase()
   const jobTitle = buyer.job_title || ''
   const companyName = buyer.company_name || ''
+  const enrichment = buyer.background_research || ''
+
+  // Extract enrichment fields
+  const enrichedProfBackground = parseEnrichmentField(enrichment, 'Professional Background')
+  const enrichedBusinessActivity = parseEnrichmentField(enrichment, 'Business Activity')
+  const enrichedWealthSignals = parseEnrichmentField(enrichment, 'Wealth Signals')
+  const enrichedPropertyHistory = parseEnrichmentField(enrichment, 'Property History')
+  const enrichedMediaPresence = parseEnrichmentField(enrichment, 'Media Presence')
+  const enrichedRiskFlags = parseEnrichmentField(enrichment, 'Risk Flags')
+  const hasEnrichment = !!(enrichedProfBackground || enrichedBusinessActivity || enrichedWealthSignals)
 
   // Build paragraph (2-3 sentences, commercially useful facts only)
   let paragraph = ''
 
   // Sentence 1: Who they are + what they want
-  const professionalContext = jobTitle && companyName
-    ? `${jobTitle} at ${companyName}`
-    : jobTitle || companyName || ''
-  const bedroomInfo = bedrooms ? `${bedrooms}-bedroom property` : 'property'
+  const professionalContext = enrichedProfBackground
+    || (jobTitle && companyName ? `${jobTitle} at ${companyName}` : jobTitle || companyName || '')
+  const bedroomInfo = bedrooms ? `${bedrooms}-bed` : 'property'
   const paymentDesc = paymentType.toLowerCase() === 'cash' ? 'cash' : paymentType.toLowerCase() === 'mortgage' ? 'mortgage' : paymentType
+  const locationName = locationInfo !== 'the area' ? locationInfo : ''
 
-  if (professionalContext) {
-    paragraph = `${name} is a ${professionalContext} seeking a ${bedroomInfo} in ${locationInfo} via ${paymentDesc}.`
+  if (hasEnrichment && enrichedProfBackground) {
+    // Lead with enrichment data
+    paragraph = `${name} is ${enrichedProfBackground}.`
+    const seekingParts = [bedroomInfo, locationName].filter(Boolean).join(' in ')
+    if (seekingParts) {
+      paragraph += ` Seeking a ${seekingParts} via ${paymentDesc}.`
+    }
+  } else if (professionalContext) {
+    paragraph = `${name} is a ${professionalContext} seeking a ${bedroomInfo}${locationName ? ` in ${locationName}` : ''} via ${paymentDesc}.`
   } else {
-    paragraph = `${name} is a ${paymentDesc} buyer seeking a ${bedroomInfo} in ${locationInfo}.`
+    paragraph = `${name} is a ${paymentDesc} buyer seeking a ${bedroomInfo}${locationName ? ` in ${locationName}` : ''}.`
   }
 
-  // Sentence 2: Budget + timeline/journey position
-  const budgetPart = budget ? `Budget: ${budget}` : 'Budget not disclosed'
-  if (score.is28DayBuyer) {
-    paragraph += ` ${budgetPart}; ready to complete within 28 days, making this an immediate-priority lead.`
-  } else if (timeline) {
-    paragraph += ` ${budgetPart}; timeline: ${timeline}.`
+  // Sentence 2: Financial/identity context
+  if (hasEnrichment) {
+    // Add identity/financial context from enrichment
+    const identityConfirmed = parseEnrichmentField(enrichment, 'Identity Confirmed')
+    if (identityConfirmed === 'no' || identityConfirmed === 'partial') {
+      paragraph += ' Identity is unverified and financial capacity unconfirmed — KYC is the immediate blocker before this lead can progress.'
+    } else {
+      const budgetPart = budget ? `Budget: ${budget}` : 'Budget not disclosed'
+      paragraph += ` ${budgetPart}.`
+    }
   } else {
-    paragraph += ` ${budgetPart}; purchase timeline not yet confirmed.`
+    const budgetPart = budget ? `Budget: ${budget}` : 'Budget not disclosed'
+    if (score.is28DayBuyer) {
+      paragraph += ` ${budgetPart}; ready to complete within 28 days, making this an immediate-priority lead.`
+    } else if (timeline) {
+      paragraph += ` ${budgetPart}; timeline: ${timeline}.`
+    } else {
+      paragraph += ` ${budgetPart}; purchase timeline not yet confirmed.`
+    }
   }
 
-  // Sentence 3: Journey position (only if adds value)
-  const status = buyer.status || ''
-  if (status && !['new', 'unknown', ''].includes(status.toLowerCase())) {
-    paragraph += ` Currently at "${status}" stage.`
-  }
-
-  // Build signals
+  // Build signals — enrichment signals take priority over form-derived ones
   const signals: Array<{ label: string; detail: string }> = []
 
-  // Financial Profile
-  if (paymentType.toLowerCase() === 'cash') {
+  // Professional Background (enriched first)
+  if (enrichedProfBackground) {
+    signals.push({ label: 'Professional Background', detail: enrichedProfBackground.endsWith('.') ? enrichedProfBackground : enrichedProfBackground + '.' })
+  } else if (professionalContext) {
+    signals.push({ label: 'Professional Background', detail: `${professionalContext}.` })
+  }
+
+  // Property Intent
+  if (bedrooms || locationName) {
+    const intentParts = [bedrooms ? `${bedrooms}` : '', locationName].filter(Boolean).join(' in ')
+    const intentExtra = score.intentScore
+      ? `; intent score of ${score.intentScore.total} suggests ${score.intentScore.total > 70 ? 'strong pipeline commitment' : 'active search without strong pipeline commitment'}`
+      : ''
+    signals.push({ label: 'Property Intent', detail: `${intentParts}${intentExtra}.` })
+  }
+
+  // Financial Profile (enriched or form-based)
+  if (enrichedWealthSignals) {
+    signals.push({ label: 'Financial Profile', detail: enrichedWealthSignals.endsWith('.') ? enrichedWealthSignals : enrichedWealthSignals + '.' })
+  } else if (paymentType.toLowerCase() === 'cash') {
     if (buyer.proof_of_funds) {
       signals.push({ label: 'Financial Profile', detail: `Verified cash buyer${budget ? ` with ${budget} budget` : ''}.` })
     } else {
@@ -234,18 +287,12 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycS
     }
   } else if (paymentType.toLowerCase() === 'mortgage') {
     const mortgageStatus = buyer.mortgage_status?.toLowerCase()
+    const budgetPart = budget ? `, targeting ${budget}` : '; budget unspecified'
     if (mortgageStatus === 'approved' || mortgageStatus === 'aip') {
-      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer with AIP in place${budget ? `, targeting ${budget}` : ''}.` })
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer with AIP in place${budgetPart}.` })
     } else {
-      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer without AIP${budget ? `, targeting ${budget}` : ''} — financing unconfirmed.` })
+      signals.push({ label: 'Financial Profile', detail: `Mortgage buyer with no AIP or proof of funds on file${budgetPart}.` })
     }
-  }
-
-  // Property Intent
-  if (bedrooms || locationInfo !== 'the area') {
-    const purposeInfo = buyer.purchase_purpose || buyer.purpose || ''
-    const intentParts = [bedrooms ? `${bedrooms}-bed` : '', locationInfo !== 'the area' ? locationInfo : '', purposeInfo].filter(Boolean)
-    signals.push({ label: 'Property Intent', detail: `Looking for ${intentParts.join(' in ')}${score.is28DayBuyer ? ' with 28-day purchase readiness' : ''}.` })
   }
 
   // Verification Status
@@ -254,7 +301,30 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycS
   } else if (kycStatus === 'failed') {
     signals.push({ label: 'Verification Status', detail: 'AML/KYC verification failed — do not proceed without review.' })
   } else {
-    signals.push({ label: 'Verification Status', detail: 'Not yet verified — AML/KYC check recommended before progressing.' })
+    const enrichedVerification = hasEnrichment
+      ? 'AML/KYC not completed; cross-border profile may require enhanced due diligence.'
+      : 'Not yet verified — AML/KYC check recommended before progressing.'
+    signals.push({ label: 'Verification Status', detail: enrichedVerification })
+  }
+
+  // Risk Flags (enriched or score-based)
+  if (enrichedRiskFlags) {
+    signals.push({ label: 'Risk Flag', detail: enrichedRiskFlags.endsWith('.') ? enrichedRiskFlags : enrichedRiskFlags + '.' })
+  } else if (score.riskFlags.length > 0) {
+    signals.push({ label: 'Risk Flag', detail: score.riskFlags[0] + '.' })
+  }
+  if (score.fakeLeadCheck.flags.length > 0) {
+    signals.push({ label: 'Risk Flag', detail: `Authenticity concern: ${score.fakeLeadCheck.flags[0]}.` })
+  }
+
+  // Business Activity (from enrichment)
+  if (enrichedBusinessActivity) {
+    signals.push({ label: 'Business Activity', detail: enrichedBusinessActivity.endsWith('.') ? enrichedBusinessActivity : enrichedBusinessActivity + '.' })
+  }
+
+  // Media Presence (from enrichment)
+  if (enrichedMediaPresence) {
+    signals.push({ label: 'Media Presence', detail: enrichedMediaPresence.endsWith('.') ? enrichedMediaPresence : enrichedMediaPresence + '.' })
   }
 
   // International Exposure
@@ -262,31 +332,26 @@ function generateFallbackSummary(buyer: any, score: NaybourhoodScoreResult, kycS
     signals.push({ label: 'International Exposure', detail: `Based in ${buyer.country}; international payment and legal considerations apply.` })
   }
 
-  // Professional Background
-  if (professionalContext) {
-    signals.push({ label: 'Professional Background', detail: `${professionalContext}.` })
-  }
-
-  // Risk Flags
-  if (score.riskFlags.length > 0) {
-    signals.push({ label: 'Risk Flag', detail: score.riskFlags[0] + '.' })
-  }
-  if (score.fakeLeadCheck.flags.length > 0) {
-    signals.push({ label: 'Risk Flag', detail: `Authenticity concern: ${score.fakeLeadCheck.flags[0]}.` })
-  }
-
   // Engagement
-  if (buyer.source) {
+  if (!hasEnrichment && buyer.source) {
+    const status = buyer.status || ''
     signals.push({ label: 'Engagement', detail: `Sourced via ${buyer.source}${status ? `; current status: ${status}` : ''}.` })
   }
 
-  // Missing Data (only commercially meaningful gaps)
-  const missingItems: string[] = []
-  if (!budget) missingItems.push('budget')
-  if (!timeline) missingItems.push('timeline')
-  if (!buyer.phone && !buyer.email) missingItems.push('contact details')
-  if (missingItems.length > 0) {
-    signals.push({ label: 'Missing Data', detail: `No ${missingItems.join(', ')} provided — limits qualification accuracy.` })
+  // Next Action Readiness (for enriched profiles, KYC is usually the blocker)
+  if (hasEnrichment && kycStatus !== 'passed') {
+    signals.push({ label: 'Next Action Readiness', detail: 'Do not advance to viewing; complete KYC verification first.' })
+  }
+
+  // Missing Data (only commercially meaningful gaps, skip if enriched)
+  if (!hasEnrichment) {
+    const missingItems: string[] = []
+    if (!budget) missingItems.push('budget')
+    if (!timeline) missingItems.push('timeline')
+    if (!buyer.phone && !buyer.email) missingItems.push('contact details')
+    if (missingItems.length > 0) {
+      signals.push({ label: 'Missing Data', detail: `No ${missingItems.join(', ')} provided — limits qualification accuracy.` })
+    }
   }
 
   // Serialize the structured summary as JSON
@@ -441,7 +506,7 @@ export async function POST(request: NextRequest) {
     let summaryData: { summary: string; next_action: string; recommendations: string[] }
     if (client) {
       console.log('[AI Score] Enhancing with Claude AI summary')
-      summaryData = await generateClaudeSummary(client, buyer, naybourhoodScore)
+      summaryData = await generateClaudeSummary(client, buyer, naybourhoodScore, kycStatus)
     } else {
       console.log('[AI Score] Using fallback summary generation')
       summaryData = generateFallbackSummary(buyer, naybourhoodScore, kycStatus)
