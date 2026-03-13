@@ -120,6 +120,7 @@ export async function enrichBuyerProfile(
   const prompt = buildEnrichmentPrompt(buyer)
 
   try {
+    console.log('[Enrichment] Calling Anthropic API with web_search_20250305 tool...')
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
       max_tokens: 4096,
@@ -133,21 +134,30 @@ export async function enrichBuyerProfile(
       messages: [{ role: 'user', content: prompt }],
     })
 
-    // Extract text from the response (may include tool_use blocks)
+    console.log('[Enrichment] API response received:', {
+      stopReason: response.stop_reason,
+      contentBlockTypes: response.content.map(b => b.type),
+      contentBlockCount: response.content.length,
+    })
+
+    // Extract text from the response (may include tool_use / web_search_tool_result blocks)
     const textBlocks = response.content.filter(
       (block): block is Anthropic.TextBlock => block.type === 'text'
     )
     const fullText = textBlocks.map(b => b.text).join('\n')
 
+    console.log('[Enrichment] Extracted text length:', fullText.length, '| Preview:', fullText.substring(0, 300))
+
     if (!fullText.trim()) {
-      console.log('[Enrichment] Empty response from Claude')
+      console.log('[Enrichment] Empty text response from Claude — no text blocks found')
       return EMPTY_RESULT
     }
 
     return parseEnrichmentResponse(fullText)
-  } catch (err) {
-    console.error('[Enrichment] Web search enrichment failed:', err)
-    return EMPTY_RESULT
+  } catch (err: any) {
+    console.error('[Enrichment] ❌ Web search enrichment failed:', err?.status, err?.message || err)
+    // Re-throw so the caller can surface the error
+    throw err
   }
 }
 

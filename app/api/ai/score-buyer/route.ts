@@ -39,8 +39,10 @@ export interface ScoreBuyerResponse {
   summary: string
   _debug?: {
     hasAnthropicKey: boolean
-    hasEnrichment: boolean
+    enrichmentStatus: string
+    enrichmentError?: string
     enrichmentLength: number
+    enrichmentPreview: string
     summarySource: string
   }
   quality_score: number
@@ -482,35 +484,33 @@ export async function POST(request: NextRequest) {
 
     // ALWAYS run web enrichment on every score — fresh web search each time
     let enrichmentText = ''
+    let enrichmentStatus = 'skipped'
+    let enrichmentError = ''
     if (!client) {
+      enrichmentStatus = 'no_api_key'
       console.warn('[AI Score] ⚠️ No Anthropic API key — enrichment and Claude summary will be SKIPPED. Set ANTHROPIC_API_KEY env var.')
     } else {
       console.log('[AI Score] Running web enrichment for buyer profile...')
-      console.log('[AI Score] Enrichment identifiers:', {
-        name: buyer.full_name || buyer.first_name || 'NONE',
-        email: buyer.email || 'NONE',
-        phone: buyer.phone || 'NONE',
-        company: buyer.company_name || 'NONE',
-        jobTitle: buyer.job_title || 'NONE',
-        location: buyer.location || buyer.area || buyer.country || 'NONE',
-      })
+      const enrichIdentifiers = {
+        name: buyer.full_name || buyer.first_name || undefined,
+        email: buyer.email || undefined,
+        phone: buyer.phone || undefined,
+        company: buyer.company_name || undefined,
+        jobTitle: buyer.job_title || undefined,
+        location: buyer.location || buyer.area || buyer.country || undefined,
+      }
+      console.log('[AI Score] Enrichment identifiers:', enrichIdentifiers)
       try {
-        const enrichment = await enrichBuyerProfile(client, {
-          name: buyer.full_name || buyer.first_name || undefined,
-          email: buyer.email || undefined,
-          phone: buyer.phone || undefined,
-          company: buyer.company_name || undefined,
-          jobTitle: buyer.job_title || undefined,
-          location: buyer.location || buyer.area || buyer.country || undefined,
-        })
+        const enrichment = await enrichBuyerProfile(client, enrichIdentifiers)
         console.log('[AI Score] Enrichment result:', {
           identityConfirmed: enrichment.identityConfirmed,
           confidence: enrichment.enrichmentConfidence,
           rawSummaryLength: enrichment.rawSummary?.length || 0,
-          rawSummaryPreview: enrichment.rawSummary?.substring(0, 300) || 'EMPTY',
+          rawSummaryPreview: enrichment.rawSummary?.substring(0, 500) || 'EMPTY',
         })
         enrichmentText = enrichmentToText(enrichment)
         if (enrichmentText) {
+          enrichmentStatus = 'success'
           console.log(`[AI Score] ✅ Enrichment complete — ${enrichmentText.length} chars`)
           // Save enrichment to DB
           const { error: enrichUpdateErr } = await supabase
@@ -522,10 +522,13 @@ export async function POST(request: NextRequest) {
           }
           buyer.background_research = enrichmentText
         } else {
-          console.log('[AI Score] ⚠️ Enrichment returned empty (low confidence + unconfirmed identity)')
+          enrichmentStatus = 'empty_result'
+          console.log('[AI Score] ⚠️ Enrichment returned empty text')
         }
       } catch (enrichErr: any) {
-        console.error('[AI Score] ❌ Enrichment failed:', enrichErr?.message || enrichErr)
+        enrichmentStatus = 'error'
+        enrichmentError = enrichErr?.message || String(enrichErr)
+        console.error('[AI Score] ❌ Enrichment failed:', enrichmentError)
       }
     }
 
@@ -580,8 +583,10 @@ export async function POST(request: NextRequest) {
       summary: summaryData.summary,
       _debug: {
         hasAnthropicKey: !!client,
-        hasEnrichment: !!buyer.background_research,
+        enrichmentStatus,
+        enrichmentError: enrichmentError || undefined,
         enrichmentLength: buyer.background_research?.length || 0,
+        enrichmentPreview: buyer.background_research?.substring(0, 300) || 'NONE',
         summarySource,
       },
       quality_score: naybourhoodScore.qualityScore.total,
