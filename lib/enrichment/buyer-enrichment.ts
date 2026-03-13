@@ -122,10 +122,10 @@ export async function enrichBuyerProfile(
   try {
     const response = await client.messages.create({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 1500,
+      max_tokens: 4096,
       tools: [
         {
-          type: 'web_search' as any,
+          type: 'web_search_20250305',
           name: 'web_search',
           max_uses: 10,
         } as any,
