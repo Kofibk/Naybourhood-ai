@@ -479,14 +479,12 @@ export async function POST(request: NextRequest) {
     // Get Anthropic client for enhanced summary generation
     const client = getAnthropicClient()
     console.log('[AI Score] Anthropic client available:', !!client, '| ANTHROPIC_API_KEY set:', !!process.env.ANTHROPIC_API_KEY)
-    console.log('[AI Score] Existing background_research:', buyer.background_research ? `${buyer.background_research.substring(0, 100)}...` : 'NONE')
 
-    // Run web enrichment if Anthropic client is available and buyer has no existing enrichment
-    let enrichmentText = buyer.background_research || ''
+    // ALWAYS run web enrichment on every score — fresh web search each time
+    let enrichmentText = ''
     if (!client) {
       console.warn('[AI Score] ⚠️ No Anthropic API key — enrichment and Claude summary will be SKIPPED. Set ANTHROPIC_API_KEY env var.')
-    }
-    if (client && !buyer.background_research) {
+    } else {
       console.log('[AI Score] Running web enrichment for buyer profile...')
       console.log('[AI Score] Enrichment identifiers:', {
         name: buyer.full_name || buyer.first_name || 'NONE',
@@ -494,6 +492,7 @@ export async function POST(request: NextRequest) {
         phone: buyer.phone || 'NONE',
         company: buyer.company_name || 'NONE',
         jobTitle: buyer.job_title || 'NONE',
+        location: buyer.location || buyer.area || buyer.country || 'NONE',
       })
       try {
         const enrichment = await enrichBuyerProfile(client, {
@@ -507,14 +506,13 @@ export async function POST(request: NextRequest) {
         console.log('[AI Score] Enrichment result:', {
           identityConfirmed: enrichment.identityConfirmed,
           confidence: enrichment.enrichmentConfidence,
-          hasRawSummary: !!enrichment.rawSummary,
           rawSummaryLength: enrichment.rawSummary?.length || 0,
-          rawSummaryPreview: enrichment.rawSummary?.substring(0, 200) || 'EMPTY',
+          rawSummaryPreview: enrichment.rawSummary?.substring(0, 300) || 'EMPTY',
         })
         enrichmentText = enrichmentToText(enrichment)
         if (enrichmentText) {
-          console.log(`[AI Score] ✅ Enrichment stored — ${enrichmentText.length} chars`)
-          // Store enrichment in buyer record
+          console.log(`[AI Score] ✅ Enrichment complete — ${enrichmentText.length} chars`)
+          // Save enrichment to DB
           const { error: enrichUpdateErr } = await supabase
             .from('buyers')
             .update({ background_research: enrichmentText })
@@ -522,7 +520,6 @@ export async function POST(request: NextRequest) {
           if (enrichUpdateErr) {
             console.error('[AI Score] ❌ Failed to save enrichment to DB:', enrichUpdateErr)
           }
-          // Make enrichment available for the Claude summary prompt
           buyer.background_research = enrichmentText
         } else {
           console.log('[AI Score] ⚠️ Enrichment returned empty (low confidence + unconfirmed identity)')
@@ -530,8 +527,6 @@ export async function POST(request: NextRequest) {
       } catch (enrichErr: any) {
         console.error('[AI Score] ❌ Enrichment failed:', enrichErr?.message || enrichErr)
       }
-    } else if (buyer.background_research) {
-      console.log(`[AI Score] ✅ Using existing enrichment (${buyer.background_research.length} chars)`)
     }
 
     // Generate summary (with Claude if available, otherwise fallback)

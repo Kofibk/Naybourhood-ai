@@ -156,7 +156,8 @@ export async function enrichBuyerProfile(
  * suitable for storage in background_research field.
  */
 export function enrichmentToText(result: EnrichmentResult): string {
-  if (result.enrichmentConfidence === 'low' && result.identityConfirmed === 'no') {
+  // Only discard if truly empty or the default "no enrichment" message
+  if (!result.rawSummary || result.rawSummary === 'No enrichment data was available for this buyer.') {
     return ''
   }
   return result.rawSummary
