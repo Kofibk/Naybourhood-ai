@@ -37,6 +37,12 @@ function getAnthropicClient() {
 export interface ScoreBuyerResponse {
   success: boolean
   summary: string
+  _debug?: {
+    hasAnthropicKey: boolean
+    hasEnrichment: boolean
+    enrichmentLength: number
+    summarySource: string
+  }
   quality_score: number
   intent_score: number
   confidence: number
@@ -472,11 +478,23 @@ export async function POST(request: NextRequest) {
 
     // Get Anthropic client for enhanced summary generation
     const client = getAnthropicClient()
+    console.log('[AI Score] Anthropic client available:', !!client, '| ANTHROPIC_API_KEY set:', !!process.env.ANTHROPIC_API_KEY)
+    console.log('[AI Score] Existing background_research:', buyer.background_research ? `${buyer.background_research.substring(0, 100)}...` : 'NONE')
 
     // Run web enrichment if Anthropic client is available and buyer has no existing enrichment
     let enrichmentText = buyer.background_research || ''
+    if (!client) {
+      console.warn('[AI Score] ⚠️ No Anthropic API key — enrichment and Claude summary will be SKIPPED. Set ANTHROPIC_API_KEY env var.')
+    }
     if (client && !buyer.background_research) {
-      console.log('[AI Score] Running web enrichment for buyer profile')
+      console.log('[AI Score] Running web enrichment for buyer profile...')
+      console.log('[AI Score] Enrichment identifiers:', {
+        name: buyer.full_name || buyer.first_name || 'NONE',
+        email: buyer.email || 'NONE',
+        phone: buyer.phone || 'NONE',
+        company: buyer.company_name || 'NONE',
+        jobTitle: buyer.job_title || 'NONE',
+      })
       try {
         const enrichment = await enrichBuyerProfile(client, {
           name: buyer.full_name || buyer.first_name || undefined,
@@ -486,20 +504,34 @@ export async function POST(request: NextRequest) {
           jobTitle: buyer.job_title || undefined,
           location: buyer.location || buyer.area || buyer.country || undefined,
         })
+        console.log('[AI Score] Enrichment result:', {
+          identityConfirmed: enrichment.identityConfirmed,
+          confidence: enrichment.enrichmentConfidence,
+          hasRawSummary: !!enrichment.rawSummary,
+          rawSummaryLength: enrichment.rawSummary?.length || 0,
+          rawSummaryPreview: enrichment.rawSummary?.substring(0, 200) || 'EMPTY',
+        })
         enrichmentText = enrichmentToText(enrichment)
         if (enrichmentText) {
-          console.log(`[AI Score] Enrichment complete — confidence: ${enrichment.enrichmentConfidence}`)
+          console.log(`[AI Score] ✅ Enrichment stored — ${enrichmentText.length} chars`)
           // Store enrichment in buyer record
-          await supabase
+          const { error: enrichUpdateErr } = await supabase
             .from('buyers')
             .update({ background_research: enrichmentText })
             .eq('id', buyerId)
+          if (enrichUpdateErr) {
+            console.error('[AI Score] ❌ Failed to save enrichment to DB:', enrichUpdateErr)
+          }
           // Make enrichment available for the Claude summary prompt
           buyer.background_research = enrichmentText
+        } else {
+          console.log('[AI Score] ⚠️ Enrichment returned empty (low confidence + unconfirmed identity)')
         }
-      } catch (enrichErr) {
-        console.error('[AI Score] Enrichment failed (non-blocking):', enrichErr)
+      } catch (enrichErr: any) {
+        console.error('[AI Score] ❌ Enrichment failed:', enrichErr?.message || enrichErr)
       }
+    } else if (buyer.background_research) {
+      console.log(`[AI Score] ✅ Using existing enrichment (${buyer.background_research.length} chars)`)
     }
 
     // Generate summary (with Claude if available, otherwise fallback)
@@ -544,9 +576,19 @@ export async function POST(request: NextRequest) {
       console.error('[AI Score] Update error:', updateError)
     }
 
+    const summarySource = !client ? 'fallback_no_api_key' : 'claude_or_fallback'
+    console.log('[AI Score] Final summary (first 200 chars):', summaryData.summary.substring(0, 200))
+    console.log('[AI Score] Summary source:', summarySource)
+
     const response: ScoreBuyerResponse = {
       success: true,
       summary: summaryData.summary,
+      _debug: {
+        hasAnthropicKey: !!client,
+        hasEnrichment: !!buyer.background_research,
+        enrichmentLength: buyer.background_research?.length || 0,
+        summarySource,
+      },
       quality_score: naybourhoodScore.qualityScore.total,
       intent_score: naybourhoodScore.intentScore.total,
       confidence: naybourhoodScore.confidenceScore.total,
